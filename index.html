@@ -73,6 +73,9 @@
             border-radius: 15px;
             background: #fff;
             transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .rubric-card:hover {
@@ -91,14 +94,15 @@
             text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
+            text-align: center;
         }
 
-        /* Video Section */
         .video-section {
             margin: 50px 0;
-            padding: 20px;
+            padding: 25px;
             background: #f8fafc;
             border-radius: 15px;
+            border: 1px solid #e2e8f0;
         }
 
         .video-wrapper {
@@ -124,10 +128,14 @@
             cursor: pointer;
             color: var(--primary);
             font-weight: bold;
-            text-decoration: underline;
+            padding: 10px;
+            background: #eef2ff;
+            border-radius: 8px;
+            list-style: none;
         }
 
-        /* Eslatma Qismi */
+        summary::-webkit-details-marker { display: none; }
+
         .note-section {
             background-color: var(--warning);
             border: 2px dashed var(--warning-border);
@@ -150,6 +158,8 @@
 
         @media (max-width: 600px) {
             .container { padding: 20px; }
+            h1 { font-size: 1.8rem; }
+            .stat-card h3 { font-size: 1.8rem; }
         }
     </style>
 </head>
@@ -182,38 +192,50 @@
     <h2>Kontent Rubrikalari</h2>
     <div class="rubrics-grid">
         <div class="rubric-card">
-            <h3>1. Isbot va Natija</h3>
-            <p>O'quvchilar natijalari va ota-onalar bilan samimiy suhbatlar. (Ishonch)</p>
+            <div>
+                <h3>1. Isbot va Natija</h3>
+                <p>O'quvchilar natijalari va ota-onalar bilan samimiy suhbatlar. (Ishonch)</p>
+            </div>
             <a href="https://www.instagram.com/reel/DW6QbDFglVz/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
-            <h3>2. Brend va Jamoa</h3>
-            <p>Oscar Ta'lim muhiti va o'qituvchilar mahorati. (Eng zo'ri imidji)</p>
+            <div>
+                <h3>2. Brend va Jamoa</h3>
+                <p>Oscar Ta'lim muhiti va o'qituvchilar mahorati. (Eng zo'ri imidji)</p>
+            </div>
             <a href="https://www.instagram.com/reel/DWgmsi9gimy/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
-            <h3>3. Ta'limdagi Yangiliklar</h3>
-            <p>Sohadagi so'nggi trendlar va imtihonlar haqida ma'lumotlar. (Obuna yig'ish)</p>
+            <div>
+                <h3>3. Ta'limdagi Yangiliklar</h3>
+                <p>Sohadagi so'nggi trendlar va imtihonlar haqida ma'lumotlar. (Obuna yig'ish)</p>
+            </div>
             <a href="https://www.instagram.com/reel/DWtgZ41DJNU/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
-            <h3>4. Foydali Resurslar</h3>
-            <p>Lug'atlar va o'rganish materiallari. (Save kontent)</p>
+            <div>
+                <h3>4. Foydali Resurslar</h3>
+                <p>Lug'atlar va o'rganish materiallari. (Save kontent)</p>
+            </div>
             <a href="https://www.instagram.com/reel/DWjTCMBCM5V/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
-            <h3>5. Interaktiv va O'yin</h3>
-            <p>Qiziqarli savol-javoblar va ko'cha intervyulari. (Viral qamrov)</p>
+            <div>
+                <h3>5. Interaktiv va O'yin</h3>
+                <p>Qiziqarli savol-javoblar va ko'cha intervyulari. (Viral qamrov)</p>
+            </div>
             <a href="https://www.instagram.com/reel/DWFpiuVEnGQ/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
-            <h3>6. Motivatsiya va Maslahat</h3>
-            <p>O'qituvchilarning shaxsiy tajribasi va maslahatlar. (Samimiylik)</p>
+            <div>
+                <h3>6. Motivatsiya va Maslahat</h3>
+                <p>O'qituvchilarning shaxsiy tajribasi va maslahatlar. (Samimiylik)</p>
+            </div>
             <a href="https://www.instagram.com/reel/DXWg8otjF8e/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
     </div>
@@ -223,10 +245,12 @@
         <p style="margin-bottom: 15px; color: #64748b;">Ushbu video orqali rejaning asosiy maqsadi va kutilayotgan natijalar haqida batafsil ma'lumot beriladi:</p>
         
         <details>
-            <summary>Videoni shu yerda ko'rish (ustiga bosing)</summary>
+            <summary>▶ Videoni ko'rish uchun bosing</summary>
             <div class="video-wrapper">
                 <iframe 
-                    src="https://youtu.be/gZ2MK8RdH_s?si=HxNb5R-wnDhBVk44" 
+                    src="https://www.youtube.com/embed/gZ2MK8RdH_s" 
+                    title="Oscar Ta'lim SMM Taqdimoti"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowfullscreen>
                 </iframe>
             </div>
@@ -235,13 +259,12 @@
 
     <div class="note-section">
         <h3>📝 Muhim eslatma va Shartlar:</h3>
-        <p>Umumiy hisobda 3 oy ichida <span class="highlight">60+ video mahsulot</span>, kunlik stories va postlar taqdim etiladi. Strategiyamiz <strong>Performance va Brand marketingga</strong> yo'naltirilgan bo'lib, asosiy e'tibor obunachi yig'ishga qaratiladi.</p>
+        <p>Umumiy hisobda 3 oy ichida <span class="highlight">60+ video mahsulot</span>, kunlik stories va postlar taqdim etiladi. Strategiyamiz <strong>Performance va Brand marketingga</strong> yo'naltirilgan.</p>
         
         <ul style="padding-left: 20px;">
-            <li><strong>Kafolat:</strong> Nobodo KPIga chiqilmasa, qo'shimcha <span class="highlight">+3 oylik 60 ta kontent marketing</span> tayyorlab beriladi.</li>
-            <li><strong>Tahlil:</strong> Natijalar umumiy 3 oydan keyin ko'rib chiqiladi.</li>
-            <li><strong>Sizdan talab:</strong> Kerakli resurslar (Expert, o'quvchilar, tadbirlar) va o'z vaqtida to'lov.</li>
-            <li><strong>To'lov tartibi:</strong> Har oyning boshida amalga oshirilishi lozim.</li>
+            <li><strong>Kafolat:</strong> Nobodo KPIga chiqilmasa, qo'shimcha <span class="highlight">+3 oylik 60 ta kontent</span> bepul tayyorlab beriladi.</li>
+            <li><strong>Tahlil:</strong> Natijalar har oy yakunida va umumiy 3 oydan keyin ko'rib chiqiladi.</li>
+            <li><strong>Sizdan talab:</strong> Kerakli resurslar (Ekspert, o'quvchilar, tadbirlar) va o'z vaqtida to'lov.</li>
         </ul>
         <p style="text-align: right; font-weight: bold; margin-top: 20px;">— O'N agy. tomonidan boshqariladi.</p>
     </div>
