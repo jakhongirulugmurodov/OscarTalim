@@ -93,7 +93,7 @@
             font-weight: 600;
         }
 
-        /* Video Section (Oxiridan bitta oldin) */
+        /* Video Section */
         .video-section {
             margin: 50px 0;
             padding: 20px;
@@ -103,11 +103,12 @@
 
         .video-wrapper {
             position: relative;
-            padding-bottom: 56.25%;
+            padding-bottom: 56.25%; /* 16:9 ratio */
             height: 0;
             overflow: hidden;
             border-radius: 12px;
             background: #000;
+            margin-top: 15px;
         }
 
         .video-wrapper iframe {
@@ -119,7 +120,14 @@
             border: 0;
         }
 
-        /* Eslatma Qismi (Oxirgi qism) */
+        summary {
+            cursor: pointer;
+            color: var(--primary);
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        /* Eslatma Qismi */
         .note-section {
             background-color: var(--warning);
             border: 2px dashed var(--warning-border);
@@ -176,59 +184,53 @@
         <div class="rubric-card">
             <h3>1. Isbot va Natija</h3>
             <p>O'quvchilar natijalari va ota-onalar bilan samimiy suhbatlar. (Ishonch)</p>
-            <a href="https://www.instagram.com/reel/DW6QbDFglVz/" class="referral-btn">Namuna ko'rish</a>
+            <a href="https://www.instagram.com/reel/DW6QbDFglVz/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
             <h3>2. Brend va Jamoa</h3>
             <p>Oscar Ta'lim muhiti va o'qituvchilar mahorati. (Eng zo'ri imidji)</p>
-            <a href="https://www.instagram.com/reel/DWgmsi9gimy/" class="referral-btn">Namuna ko'rish</a>
+            <a href="https://www.instagram.com/reel/DWgmsi9gimy/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
             <h3>3. Ta'limdagi Yangiliklar</h3>
             <p>Sohadagi so'nggi trendlar va imtihonlar haqida ma'lumotlar. (Obuna yig'ish)</p>
-            <a href="https://www.instagram.com/reel/DWtgZ41DJNU/" class="referral-btn">Namuna ko'rish</a>
+            <a href="https://www.instagram.com/reel/DWtgZ41DJNU/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
             <h3>4. Foydali Resurslar</h3>
             <p>Lug'atlar va o'rganish materiallari. (Save kontent)</p>
-            <a href="https://www.instagram.com/reel/DWjTCMBCM5V/" class="referral-btn">Namuna ko'rish</a>
+            <a href="https://www.instagram.com/reel/DWjTCMBCM5V/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
             <h3>5. Interaktiv va O'yin</h3>
             <p>Qiziqarli savol-javoblar va ko'cha intervyulari. (Viral qamrov)</p>
-            <a href="https://www.instagram.com/reel/DWFpiuVEnGQ/" class="referral-btn">Namuna ko'rish</a>
+            <a href="https://www.instagram.com/reel/DWFpiuVEnGQ/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
 
         <div class="rubric-card">
             <h3>6. Motivatsiya va Maslahat</h3>
             <p>O'qituvchilarning shaxsiy tajribasi va maslahatlar. (Samimiylik)</p>
-            <a href="https://www.instagram.com/reel/DXWg8otjF8e/" class="referral-btn">Namuna ko'rish</a>
+            <a href="https://www.instagram.com/reel/DXWg8otjF8e/" target="_blank" class="referral-btn">Namuna ko'rish</a>
         </div>
     </div>
 
     <div class="video-section">
         <h3 style="color: var(--secondary); margin-bottom: 15px;">💡 Muallifdan video-mulohaza:</h3>
         <p style="margin-bottom: 15px; color: #64748b;">Ushbu video orqali rejaning asosiy maqsadi va kutilayotgan natijalar haqida batafsil ma'lumot beriladi:</p>
-        <div class="video-wrapper">
-       <details>
-  <summary style="cursor: pointer; color: blue; text-decoration: underline;">
-    Videoni shu yerda ko'rish (ustiga bosing)
-  </summary>
-  <div style="margin-top: 15px;">
-    <iframe 
-        width="560" 
-        height="315" 
-        src="https://youtu.be/HjSO3a5XXnE" 
-        frameborder="0" 
-        allowfullscreen>
-    </iframe>
-  </div>
-</details>
-        </div>
+        
+        <details>
+            <summary>Videoni shu yerda ko'rish (ustiga bosing)</summary>
+            <div class="video-wrapper">
+                <iframe 
+                    src="https://www.youtube.com/embed/HjSO3a5XXnE" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </details>
     </div>
 
     <div class="note-section">
@@ -238,7 +240,7 @@
         <ul style="padding-left: 20px;">
             <li><strong>Kafolat:</strong> Nobodo KPIga chiqilmasa, qo'shimcha <span class="highlight">+3 oylik 60 ta kontent marketing</span> tayyorlab beriladi.</li>
             <li><strong>Tahlil:</strong> Natijalar umumiy 3 oydan keyin ko'rib chiqiladi.</li>
-            <li><strong>Sizdan talab:</strong> Kerakli resurslar (Expert, kerakli o'quvchilar, tadbirlar tashkillash) va o'z vaqtida to'lov.</li>
+            <li><strong>Sizdan talab:</strong> Kerakli resurslar (Expert, o'quvchilar, tadbirlar) va o'z vaqtida to'lov.</li>
             <li><strong>To'lov tartibi:</strong> Har oyning boshida amalga oshirilishi lozim.</li>
         </ul>
         <p style="text-align: right; font-weight: bold; margin-top: 20px;">— O'N agy. tomonidan boshqariladi.</p>
