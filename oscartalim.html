@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMM Strategik Reja - Oscar Ta'lim</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --accent: #f59e0b;
+            --bg: #f1f5f9;
+            --text: #1e293b;
+            --white: #ffffff;
+            --warning: #fff7ed;
+            --warning-border: #fb923c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 4px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        h1 { color: var(--primary); margin: 0; font-size: 2.2rem; }
+        h2 { color: var(--secondary); border-left: 6px solid var(--primary); padding-left: 15px; margin: 40px 0 20px 0; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card h3 { margin: 0; font-size: 2.2rem; }
+
+        .rubrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .rubric-card {
+            border: 1px solid #e2e8f0;
+            padding: 25px;
+            border-radius: 15px;
+            background: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .rubric-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
+        }
+
+        .rubric-card h3 { margin-top: 0; color: var(--primary); }
+
+        .referral-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        /* Video Section (Oxiridan bitta oldin) */
+        .video-section {
+            margin: 50px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 15px;
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #000;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        /* Eslatma Qismi (Oxirgi qism) */
+        .note-section {
+            background-color: var(--warning);
+            border: 2px dashed var(--warning-border);
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+
+        .note-section h3 { color: #9a3412; margin-top: 0; }
+        .highlight { font-weight: bold; color: var(--primary); }
+
+        .footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>SMM Strategik Reja</h1>
+        <p>Oscar Ta'lim O'quv Markazi — 2026</p>
+    </header>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <p>1 oylik o'sish</p>
+            <h3>+5,000</h3>
+            <small>Obunachi</small>
+        </div>
+        <div class="stat-card">
+            <p>3 oylik maqsad</p>
+            <h3>15,000+</h3>
+            <small>Jami obunachi</small>
+        </div>
+        <div class="stat-card">
+            <p>Kontent hajmi</p>
+            <h3>20+</h3>
+            <small>Har oyda video</small>
+        </div>
+    </div>
+
+    <h2>Kontent Rubrikalari</h2>
+    <div class="rubrics-grid">
+        <div class="rubric-card">
+            <h3>1. Isbot va Natija</h3>
+            <p>O'quvchilar natijalari va ota-onalar bilan samimiy suhbatlar. (Ishonch)</p>
+            <a href="https://www.instagram.com/reel/DW6QbDFglVz/" class="referral-btn">Namuna ko'rish</a>
+        </div>
+
+        <div class="rubric-card">
+            <h3>2. Brend va Jamoa</h3>
+            <p>Oscar Ta'lim muhiti va o'qituvchilar mahorati. (Eng zo'ri imidji)</p>
+            <a href="https://www.instagram.com/reel/DWgmsi9gimy/" class="referral-btn">Namuna ko'rish</a>
+        </div>
+
+        <div class="rubric-card">
+            <h3>3. Ta'limdagi Yangiliklar</h3>
+            <p>Sohadagi so'nggi trendlar va imtihonlar haqida ma'lumotlar. (Obuna yig'ish)</p>
+            <a href="https://www.instagram.com/reel/DWtgZ41DJNU/" class="referral-btn">Namuna ko'rish</a>
+        </div>
+
+        <div class="rubric-card">
+            <h3>4. Foydali Resurslar</h3>
+            <p>Lug'atlar va o'rganish materiallari. (Save kontent)</p>
+            <a href="https://www.instagram.com/reel/DWjTCMBCM5V/" class="referral-btn">Namuna ko'rish</a>
+        </div>
+
+        <div class="rubric-card">
+            <h3>5. Interaktiv va O'yin</h3>
+            <p>Qiziqarli savol-javoblar va ko'cha intervyulari. (Viral qamrov)</p>
+            <a href="https://www.instagram.com/reel/DWFpiuVEnGQ/" class="referral-btn">Namuna ko'rish</a>
+        </div>
+
+        <div class="rubric-card">
+            <h3>6. Motivatsiya va Maslahat</h3>
+            <p>O'qituvchilarning shaxsiy tajribasi va maslahatlar. (Samimiylik)</p>
+            <a href="https://www.instagram.com/reel/DXWg8otjF8e/" class="referral-btn">Namuna ko'rish</a>
+        </div>
+    </div>
+
+    <div class="video-section">
+        <h3 style="color: var(--secondary); margin-bottom: 15px;">💡 Muallifdan video-mulohaza:</h3>
+        <p style="margin-bottom: 15px; color: #64748b;">Ushbu video orqali rejaning asosiy maqsadi va kutilayotgan natijalar haqida batafsil ma'lumot beriladi:</p>
+        <div class="video-wrapper">
+            <iframe 
+                src="https://www.youtube.com/embed/VIDEO_ID_SHU_YERGA" 
+                title="SMM Strategiya Video" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+            </iframe>
+        </div>
+    </div>
+
+    <div class="note-section">
+        <h3>📝 Muhim eslatma va Shartlar:</h3>
+        <p>Umumiy hisobda 3 oy ichida <span class="highlight">60+ video mahsulot</span>, kunlik stories va postlar taqdim etiladi. Strategiyamiz <strong>Performance va Brand marketingga</strong> yo'naltirilgan bo'lib, asosiy e'tibor obunachi yig'ishga qaratiladi.</p>
+        
+        <ul style="padding-left: 20px;">
+            <li><strong>Kafolat:</strong> Nobodo KPIga chiqilmasa, qo'shimcha <span class="highlight">+3 oylik 60 ta kontent marketing</span> tayyorlab beriladi.</li>
+            <li><strong>Tahlil:</strong> Natijalar umumiy 3 oydan keyin ko'rib chiqiladi.</li>
+            <li><strong>Sizdan talab:</strong> Kerakli resurslar (Expert, kerakli o'quvchilar, tadbirlar tashkillash) va o'z vaqtida to'lov.</li>
+            <li><strong>To'lov tartibi:</strong> Har oyning boshida amalga oshirilishi lozim.</li>
+        </ul>
+        <p style="text-align: right; font-weight: bold; margin-top: 20px;">— O'N agy. tomonidan boshqariladi.</p>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 Oscar Ta'lim | Strategiya muallifi: O'N agy.</p>
+    </div>
+</div>
+
+</body>
+</html>
