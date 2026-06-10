@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biomechanical Serpent — Orb Interceptor</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #05060e; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #hud {
+        position: fixed; top: 14px; left: 16px;
+        font-family: 'Segoe UI', Roboto, monospace;
+        color: #9fd8ff; font-size: 13px; letter-spacing: 1px;
+        text-shadow: 0 0 8px rgba(80, 180, 255, .8);
+        user-select: none; pointer-events: none; line-height: 1.8;
+    }
+    #hud b { color: #ffffff; font-size: 16px; }
+    #hud .escaped { color: #ff7a7a; }
+    #title {
+        position: fixed; top: 14px; right: 18px; text-align: right;
+        font-family: 'Segoe UI', Roboto, sans-serif;
+        color: rgba(160, 220, 255, .55); font-size: 12px; letter-spacing: 3px;
+        text-transform: uppercase; user-select: none; pointer-events: none;
+    }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+    CAPTURED <b id="score">0</b><br>
+    ESCAPED <b id="missed" class="escaped">0</b><br>
+    FPS <b id="fps">--</b>
+</div>
+<div id="title">BIOMECHANICAL SERPENT<br>ORB INTERCEPTION PROTOCOL</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   SETUP — canvas, DPR-aware sizing, pre-rendered glow sprites
+   ============================================================ */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const missedEl = document.getElementById('missed');
+const fpsEl = document.getElementById('fps');
+
+let W = 0, H = 0, DPR = 1;
+let starfield = null;
+
+function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    buildStarfield();
+    serpent.rebuild();
+}
+
+/* Pre-render a soft radial glow sprite once; drawImage is far
+   cheaper per-frame than shadowBlur or per-particle gradients. */
+function makeGlowSprite(size, inner, outer) {
+    const s = document.createElement('canvas');
+    s.width = s.height = size;
+    const g = s.getContext('2d');
+    const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, inner);
+    grad.addColorStop(0.35, outer);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+    return s;
+}
+const glowWhite = makeGlowSprite(64, 'rgba(255,255,255,1)', 'rgba(255,255,255,.35)');
+const glowCyan  = makeGlowSprite(128, 'rgba(170,255,255,.9)', 'rgba(40,180,255,.25)');
+const glowAmber = makeGlowSprite(128, 'rgba(255,240,200,.9)', 'rgba(255,150,40,.25)');
+const glowViolet= makeGlowSprite(128, 'rgba(240,200,255,.9)', 'rgba(170,60,255,.25)');
+const glowGreen = makeGlowSprite(128, 'rgba(210,255,210,.9)', 'rgba(60,255,140,.25)');
+const ORB_SPRITES = [glowCyan, glowAmber, glowViolet, glowGreen];
+const ORB_COLORS = [
+    { core: '#d8ffff', halo: 'rgba(60,200,255,', h: 195 },
+    { core: '#fff3d0', halo: 'rgba(255,170,60,',  h: 35 },
+    { core: '#f4ddff', halo: 'rgba(190,90,255,',  h: 275 },
+    { core: '#e0ffe4', halo: 'rgba(80,255,150,',  h: 140 }
+];
+
+function buildStarfield() {
+    starfield = document.createElement('canvas');
+    starfield.width = W; starfield.height = H;
+    const g = starfield.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#070a18');
+    grad.addColorStop(0.6, '#060812');
+    grad.addColorStop(1, '#04050c');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 160; i++) {
+        const a = Math.random() * 0.5 + 0.08;
+        g.fillStyle = `rgba(180, 210, 255, ${a})`;
+        const r = Math.random() * 1.3 + 0.2;
+        g.beginPath();
+        g.arc(Math.random() * W, Math.random() * H, r, 0, 6.2832);
+        g.fill();
+    }
+}
+
+/* ============================================================
+   PARTICLES — fixed-size pool, zero allocation during play
+   ============================================================ */
+const POOL = 900;
+const particles = new Array(POOL);
+for (let i = 0; i < POOL; i++) {
+    particles[i] = { x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1, size: 1, sprite: glowWhite, drag: 1 };
+}
+let particleCursor = 0;
+
+function emit(x, y, vx, vy, life, size, sprite, drag) {
+    const p = particles[particleCursor];
+    particleCursor = (particleCursor + 1) % POOL;
+    p.x = x; p.y = y; p.vx = vx; p.vy = vy;
+    p.life = life; p.maxLife = life; p.size = size;
+    p.sprite = sprite; p.drag = drag;
+}
+
+function burst(x, y, sprite, count, power) {
+    for (let i = 0; i < count; i++) {
+        const a = Math.random() * 6.2832;
+        const sp = (Math.random() * 0.75 + 0.25) * power;
+        emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp,
+             Math.random() * 0.55 + 0.35,
+             Math.random() * 14 + 6, sprite, 0.90);
+    }
+    // bright flash core
+    emit(x, y, 0, 0, 0.18, 90, glowWhite, 1);
+}
+
+function updateParticles(dt) {
+    for (let i = 0; i < POOL; i++) {
+        const p = particles[i];
+        if (p.life <= 0) continue;
+        p.life -= dt;
+        const d = Math.pow(p.drag, dt * 60);
+        p.vx *= d; p.vy *= d;
+        p.vy += 60 * dt; // gentle gravity for ember feel
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+    }
+}
+
+function drawParticles() {
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < POOL; i++) {
+        const p = particles[i];
+        if (p.life <= 0) continue;
+        const t = p.life / p.maxLife;
+        ctx.globalAlpha = t * t;
+        const s = p.size * (0.4 + 0.6 * t);
+        ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ============================================================
+   ORBS — launched from the right edge; sine, spiral, or
+   chaotic-wobble flight paths at high velocity
+   ============================================================ */
+const MAX_ORBS = 14;
+const orbs = [];
+let score = 0, missed = 0;
+let spawnTimer = 1.0;
+let elapsed = 0;
+const TRAIL = 14;
+
+function spawnOrb() {
+    if (orbs.length >= MAX_ORBS) return;
+    const kind = ORB_SPRITES.length * Math.random() | 0;
+    const pattern = 3 * Math.random() | 0; // 0 sine, 1 spiral, 2 wobble
+    const o = {
+        // anchor path travels in a straight line; visual pos orbits/oscillates it
+        ax: W + 40,
+        ay: H * (0.12 + Math.random() * 0.72),
+        avx: -(280 + Math.random() * 320) * (1 + elapsed * 0.004), // ramps up over time
+        avy: (Math.random() - 0.5) * 90,
+        x: 0, y: 0, px: 0, py: 0,
+        r: 9 + Math.random() * 5,
+        phase: Math.random() * 6.2832,
+        freq: 2.2 + Math.random() * 4.5,
+        amp: 30 + Math.random() * 90,
+        spiralR: 18 + Math.random() * 55,
+        spiralW: (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 5),
+        pattern, kind,
+        t: 0, alive: true,
+        trail: new Float32Array(TRAIL * 2),
+        trailLen: 0, trailHead: 0, trailClock: 0
+    };
+    computeOrbPos(o);
+    o.px = o.x; o.py = o.y;
+    orbs.push(o);
+}
+
+function computeOrbPos(o) {
+    const t = o.t;
+    if (o.pattern === 0) {            // sine wave
+        o.x = o.ax;
+        o.y = o.ay + Math.sin(o.phase + t * o.freq) * o.amp;
+    } else if (o.pattern === 1) {     // spiral / corkscrew
+        const a = o.phase + t * o.spiralW;
+        const r = o.spiralR * (0.6 + 0.4 * Math.sin(t * 1.7));
+        o.x = o.ax + Math.cos(a) * r;
+        o.y = o.ay + Math.sin(a) * r;
+    } else {                          // chaotic wobble: two stacked sines
+        o.x = o.ax + Math.sin(o.phase * 2 + t * o.freq * 0.7) * o.spiralR * 0.6;
+        o.y = o.ay + Math.sin(o.phase + t * o.freq) * o.amp * 0.6
+                   + Math.sin(t * o.freq * 2.3) * o.amp * 0.35;
+    }
+}
+
+function updateOrbs(dt) {
+    const boundary = W * 0.5;
+    for (let i = orbs.length - 1; i >= 0; i--) {
+        const o = orbs[i];
+        o.t += dt;
+        o.ax += o.avx * dt;
+        o.ay += o.avy * dt;
+        // soft-bounce the anchor off top/bottom
+        if (o.ay < 50)      { o.ay = 50;      o.avy = Math.abs(o.avy); }
+        if (o.ay > H - 50)  { o.ay = H - 50;  o.avy = -Math.abs(o.avy); }
+        o.px = o.x; o.py = o.y;
+        computeOrbPos(o);
+
+        // trail ring-buffer (sampled, not per-frame, to keep spacing even)
+        o.trailClock += dt;
+        if (o.trailClock > 0.016) {
+            o.trailClock = 0;
+            o.trail[o.trailHead * 2] = o.x;
+            o.trail[o.trailHead * 2 + 1] = o.y;
+            o.trailHead = (o.trailHead + 1) % TRAIL;
+            if (o.trailLen < TRAIL) o.trailLen++;
+        }
+
+        // escape past the centre boundary
+        if (o.x < boundary - o.r) {
+            missed++;
+            missedEl.textContent = missed;
+            burst(o.x, o.y, ORB_SPRITES[o.kind], 18, 160);
+            orbs.splice(i, 1);
+        }
+    }
+}
+
+function drawOrbs() {
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < orbs.length; i++) {
+        const o = orbs[i];
+        const sprite = ORB_SPRITES[o.kind];
+        const col = ORB_COLORS[o.kind];
+
+        // trail
+        for (let j = 0; j < o.trailLen; j++) {
+            const idx = (o.trailHead - 1 - j + TRAIL * 2) % TRAIL;
+            const fade = 1 - j / TRAIL;
+            const s = o.r * 2.6 * fade;
+            ctx.globalAlpha = fade * 0.22;
+            ctx.drawImage(sprite, o.trail[idx * 2] - s / 2, o.trail[idx * 2 + 1] - s / 2, s, s);
+        }
+
+        // halo + pulsing core
+        const pulse = 1 + Math.sin(o.t * 9 + o.phase) * 0.12;
+        const hs = o.r * 7 * pulse;
+        ctx.globalAlpha = 0.85;
+        ctx.drawImage(sprite, o.x - hs / 2, o.y - hs / 2, hs, hs);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = col.core;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r * 0.62 * pulse, 0, 6.2832);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ============================================================
+   SERPENT — FABRIK-constrained chain anchored bottom-left.
+   The head is a predictive interceptor: it leads the most
+   urgent orb's motion and gains emergency speed so nothing
+   slips across the boundary.
+   ============================================================ */
+const serpent = {
+    segs: 52,
+    pts: null,        // Float32Array x,y pairs
+    segLen: 20,
+    anchorX: 0, anchorY: 0,
+    headX: 0, headY: 0,
+    hvx: 0, hvy: 0,
+    baseSpeed: 1500,
+    accel: 9000,
+    headR: 16,
+    wave: 0,
+
+    rebuild() {
+        this.anchorX = 26;
+        this.anchorY = H - 26;
+        // total reach must comfortably cover the right half of the screen
+        const reach = Math.hypot(W * 0.62, H) * 1.08;
+        this.segLen = reach / this.segs;
+        if (!this.pts) this.pts = new Float32Array((this.segs + 1) * 2);
+        // lay the body coiled near the anchor
+        for (let i = 0; i <= this.segs; i++) {
+            const t = i / this.segs;
+            this.pts[i * 2]     = this.anchorX + Math.cos(t * 9) * 60 * (1 - t);
+            this.pts[i * 2 + 1] = this.anchorY - t * 120;
+        }
+        this.headX = this.pts[this.segs * 2];
+        this.headY = this.pts[this.segs * 2 + 1];
+        this.hvx = this.hvy = 0;
+    },
+
+    /* Pick the orb with the least time before it crosses the
+       boundary; return a predicted interception point. */
+    acquireTarget() {
+        const boundary = W * 0.5;
+        let best = null, bestUrgency = Infinity;
+        for (let i = 0; i < orbs.length; i++) {
+            const o = orbs[i];
+            const speedX = Math.max(40, -o.avx);
+            const timeToBoundary = (o.x - boundary) / speedX;
+            if (timeToBoundary < bestUrgency) {
+                bestUrgency = timeToBoundary;
+                best = o;
+            }
+        }
+        if (!best) return null;
+
+        // two-pass predictive lead: estimate flight time, lead the anchor path
+        let tx = best.x, ty = best.y;
+        for (let k = 0; k < 2; k++) {
+            const d = Math.hypot(tx - this.headX, ty - this.headY);
+            const lead = Math.min(d / this.baseSpeed, 0.45);
+            tx = best.x + best.avx * lead;
+            ty = best.y + best.avy * lead;
+        }
+        return { orb: best, x: tx, y: ty, urgency: Math.max(bestUrgency, 0.01) };
+    },
+
+    update(dt) {
+        const target = this.acquireTarget();
+        let dx, dy;
+        if (target) {
+            dx = target.x - this.headX;
+            dy = target.y - this.headY;
+        } else {
+            // idle: weave gracefully near home
+            this.wave += dt;
+            dx = (W * 0.30 + Math.cos(this.wave * 0.9) * W * 0.13) - this.headX;
+            dy = (H * 0.45 + Math.sin(this.wave * 1.3) * H * 0.22) - this.headY;
+        }
+        const dist = Math.hypot(dx, dy) || 1;
+
+        /* Emergency throttle: if the orb will cross the boundary
+           sooner than we can fly there at base speed, scale speed
+           so interception always wins. */
+        let maxSpeed = this.baseSpeed;
+        if (target) {
+            const needed = dist / target.urgency;
+            if (needed > maxSpeed) maxSpeed = needed * 1.25;
+        }
+
+        // steering: accelerate toward target, capped at maxSpeed
+        const ux = dx / dist, uy = dy / dist;
+        const acc = target ? this.accel * Math.min(4, this.baseSpeed / (dist + 60) + 1) : this.accel * 0.25;
+        this.hvx += ux * acc * dt;
+        this.hvy += uy * acc * dt;
+        // organic serpentine sway perpendicular to motion (fades when close)
+        this.wave += dt * 7;
+        const sway = Math.sin(this.wave) * Math.min(1, dist / 320) * 320;
+        this.hvx += -uy * sway * dt;
+        this.hvy +=  ux * sway * dt;
+
+        const sp = Math.hypot(this.hvx, this.hvy);
+        if (sp > maxSpeed) {
+            this.hvx = this.hvx / sp * maxSpeed;
+            this.hvy = this.hvy / sp * maxSpeed;
+        }
+        this.headX += this.hvx * dt;
+        this.headY += this.hvy * dt;
+
+        // keep head on screen
+        this.headX = Math.max(10, Math.min(W - 6, this.headX));
+        this.headY = Math.max(10, Math.min(H - 6, this.headY));
+
+        // clamp head within total reach of the anchor
+        const reach = this.segLen * this.segs;
+        const adx = this.headX - this.anchorX, ady = this.headY - this.anchorY;
+        const ad = Math.hypot(adx, ady);
+        if (ad > reach) {
+            this.headX = this.anchorX + adx / ad * reach;
+            this.headY = this.anchorY + ady / ad * reach;
+        }
+
+        this.solveChain();
+        this.checkCaptures();
+    },
+
+    /* FABRIK: forward pass pins the head, backward pass pins the
+       anchor; three iterations is plenty for a smooth chain. */
+    solveChain() {
+        const p = this.pts, n = this.segs, L = this.segLen;
+        for (let iter = 0; iter < 3; iter++) {
+            // forward: head -> tail
+            p[n * 2] = this.headX;
+            p[n * 2 + 1] = this.headY;
+            for (let i = n - 1; i >= 0; i--) {
+                const dx = p[i * 2] - p[(i + 1) * 2];
+                const dy = p[i * 2 + 1] - p[(i + 1) * 2 + 1];
+                const d = Math.hypot(dx, dy) || 1;
+                p[i * 2]     = p[(i + 1) * 2] + dx / d * L;
+                p[i * 2 + 1] = p[(i + 1) * 2 + 1] + dy / d * L;
+            }
+            // backward: anchor -> head
+            p[0] = this.anchorX;
+            p[1] = this.anchorY;
+            for (let i = 1; i <= n; i++) {
+                const dx = p[i * 2] - p[(i - 1) * 2];
+                const dy = p[i * 2 + 1] - p[(i - 1) * 2 + 1];
+                const d = Math.hypot(dx, dy) || 1;
+                p[i * 2]     = p[(i - 1) * 2] + dx / d * L;
+                p[i * 2 + 1] = p[(i - 1) * 2 + 1] + dy / d * L;
+            }
+        }
+        this.headX = p[n * 2];
+        this.headY = p[n * 2 + 1];
+    },
+
+    checkCaptures() {
+        // capture with the head plus the front few segments (the "jaws")
+        const p = this.pts, n = this.segs;
+        for (let i = orbs.length - 1; i >= 0; i--) {
+            const o = orbs[i];
+            let caught = false;
+            for (let s = 0; s <= 4 && !caught; s++) {
+                const px = p[(n - s) * 2], py = p[(n - s) * 2 + 1];
+                const rr = this.headR + o.r + 4;
+                const ddx = o.x - px, ddy = o.y - py;
+                if (ddx * ddx + ddy * ddy < rr * rr) caught = true;
+                // swept test against orb's frame motion to never tunnel through
+                if (!caught) {
+                    const mx = (o.x + o.px) / 2, my = (o.y + o.py) / 2;
+                    const sdx = mx - px, sdy = my - py;
+                    if (sdx * sdx + sdy * sdy < rr * rr) caught = true;
+                }
+            }
+            if (caught) {
+                score++;
+                scoreEl.textContent = score;
+                burst(o.x, o.y, ORB_SPRITES[o.kind], 52, 420);
+                // ripple of sparks down the spine
+                for (let s = 0; s < 10; s++) {
+                    const idx = n - s * 3;
+                    if (idx < 0) break;
+                    emit(p[idx * 2], p[idx * 2 + 1],
+                         (Math.random() - .5) * 80, (Math.random() - .5) * 80,
+                         0.3 + s * 0.03, 18, ORB_SPRITES[o.kind], 0.92);
+                }
+                orbs.splice(i, 1);
+            }
+        }
+    },
+
+    draw(time) {
+        const p = this.pts, n = this.segs;
+
+        // --- tapered biomechanical body as a filled polygon ---
+        const left = [], right = [];
+        for (let i = 0; i <= n; i++) {
+            const t = i / n;
+            // width profile: slim tail, muscular mid, tapered neck, bulb head
+            let w = 3 + Math.sin(t * Math.PI) * 11 + t * t * 5;
+            if (i === n) w = this.headR * 0.85;
+            const x0 = p[Math.max(0, i - 1) * 2], y0 = p[Math.max(0, i - 1) * 2 + 1];
+            const x1 = p[Math.min(n, i + 1) * 2], y1 = p[Math.min(n, i + 1) * 2 + 1];
+            let nx = -(y1 - y0), ny = x1 - x0;
+            const nd = Math.hypot(nx, ny) || 1;
+            nx /= nd; ny /= nd;
+            left.push(p[i * 2] + nx * w, p[i * 2 + 1] + ny * w);
+            right.push(p[i * 2] - nx * w, p[i * 2 + 1] - ny * w);
+        }
+        ctx.beginPath();
+        ctx.moveTo(left[0], left[1]);
+        for (let i = 1; i <= n; i++) ctx.lineTo(left[i * 2], left[i * 2 + 1]);
+        for (let i = n; i >= 0; i--) ctx.lineTo(right[i * 2], right[i * 2 + 1]);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(this.anchorX, this.anchorY, this.headX, this.headY);
+        grad.addColorStop(0, '#0a2030');
+        grad.addColorStop(0.6, '#10394f');
+        grad.addColorStop(1, '#1b5d75');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(120, 230, 255, 0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // --- glowing spinal cord ---
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.beginPath();
+        ctx.moveTo(p[0], p[1]);
+        for (let i = 1; i <= n; i++) ctx.lineTo(p[i * 2], p[i * 2 + 1]);
+        ctx.strokeStyle = 'rgba(90, 220, 255, 0.30)';
+        ctx.lineWidth = 4;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(220, 255, 255, 0.5)';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        // --- pulsing vertebra nodes travelling toward the head ---
+        const flow = time * 0.012;
+        for (let i = 4; i < n; i += 4) {
+            const pulse = 0.5 + 0.5 * Math.sin(flow - i * 0.55);
+            const s = (6 + pulse * 14);
+            ctx.globalAlpha = 0.25 + pulse * 0.5;
+            ctx.drawImage(glowCyan, p[i * 2] - s / 2, p[i * 2 + 1] - s / 2, s, s);
+        }
+        ctx.globalAlpha = 1;
+
+        // --- mechanical rib fins every few segments ---
+        ctx.strokeStyle = 'rgba(140, 235, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 6; i < n - 3; i += 3) {
+            const t = i / n;
+            const w = (3 + Math.sin(t * Math.PI) * 11) + 7;
+            const x0 = p[(i - 1) * 2], y0 = p[(i - 1) * 2 + 1];
+            const x1 = p[(i + 1) * 2], y1 = p[(i + 1) * 2 + 1];
+            let nx = -(y1 - y0), ny = x1 - x0;
+            const nd = Math.hypot(nx, ny) || 1;
+            nx /= nd; ny /= nd;
+            ctx.moveTo(p[i * 2] + nx * w, p[i * 2 + 1] + ny * w);
+            ctx.lineTo(p[i * 2] - nx * w, p[i * 2 + 1] - ny * w);
+        }
+        ctx.stroke();
+
+        // --- head: armored skull + eyes ---
+        const hx = p[n * 2], hy = p[n * 2 + 1];
+        const ang = Math.atan2(hy - p[(n - 1) * 2 + 1], hx - p[(n - 1) * 2]);
+        const hs = this.headR * 5.5;
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(glowCyan, hx - hs / 2, hy - hs / 2, hs, hs);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.rotate(ang);
+        // skull plate
+        ctx.beginPath();
+        ctx.moveTo(this.headR * 1.5, 0);
+        ctx.quadraticCurveTo(this.headR * 0.9, -this.headR, -this.headR, -this.headR * 0.8);
+        ctx.quadraticCurveTo(-this.headR * 1.2, 0, -this.headR, this.headR * 0.8);
+        ctx.quadraticCurveTo(this.headR * 0.9, this.headR, this.headR * 1.5, 0);
+        ctx.closePath();
+        ctx.fillStyle = '#1d6a85';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(170, 245, 255, 0.7)';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        // jaw seam
+        ctx.beginPath();
+        ctx.moveTo(this.headR * 1.45, 0);
+        ctx.lineTo(-this.headR * 0.6, 0);
+        ctx.strokeStyle = 'rgba(120, 220, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // eyes
+        ctx.fillStyle = '#eafdff';
+        ctx.beginPath();
+        ctx.arc(this.headR * 0.35, -this.headR * 0.45, 3.2, 0, 6.2832);
+        ctx.arc(this.headR * 0.35,  this.headR * 0.45, 3.2, 0, 6.2832);
+        ctx.fill();
+        ctx.restore();
+
+        // anchor base — glowing mechanical socket
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.7;
+        ctx.drawImage(glowCyan, this.anchorX - 40, this.anchorY - 40, 80, 80);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.beginPath();
+        ctx.arc(this.anchorX, this.anchorY, 14, 0, 6.2832);
+        ctx.fillStyle = '#123247';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(150, 240, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+};
+
+/* ============================================================
+   BOUNDARY — the glowing centre line orbs must never cross
+   ============================================================ */
+function drawBoundary(time) {
+    const x = W * 0.5;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const pulse = 0.10 + 0.05 * Math.sin(time * 0.002);
+    const grad = ctx.createLinearGradient(x - 30, 0, x + 30, 0);
+    grad.addColorStop(0, 'rgba(255,80,80,0)');
+    grad.addColorStop(0.5, `rgba(255,90,90,${pulse})`);
+    grad.addColorStop(1, 'rgba(255,80,80,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - 30, 0, 60, H);
+    ctx.setLineDash([10, 14]);
+    ctx.lineDashOffset = -time * 0.04;
+    ctx.strokeStyle = `rgba(255, 120, 120, ${pulse + 0.18})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+    ctx.restore();
+}
+
+/* ============================================================
+   MAIN LOOP — fixed-timestep physics with an accumulator so
+   simulation stays deterministic and silky at any refresh rate
+   ============================================================ */
+const STEP = 1 / 240;          // 240 Hz physics for tunnel-free fast orbs
+const MAX_FRAME = 1 / 20;      // clamp tab-switch spikes
+let last = performance.now();
+let acc = 0;
+let fpsSmooth = 60, fpsTimer = 0;
+
+function physics(dt) {
+    elapsed += dt;
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+        spawnOrb();
+        // occasional double-launch volley
+        if (Math.random() < 0.30) spawnOrb();
+        spawnTimer = Math.max(0.55, 1.7 - elapsed * 0.012) * (0.7 + Math.random() * 0.6);
+    }
+    updateOrbs(dt);
+    serpent.update(dt);
+    updateParticles(dt);
+}
+
+function frame(now) {
+    requestAnimationFrame(frame);
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > MAX_FRAME) dt = MAX_FRAME;
+
+    // fps readout (smoothed)
+    fpsSmooth += (1 / Math.max(dt, 1e-4) - fpsSmooth) * 0.05;
+    fpsTimer += dt;
+    if (fpsTimer > 0.5) {
+        fpsTimer = 0;
+        fpsEl.textContent = Math.round(fpsSmooth);
+    }
+
+    acc += dt;
+    while (acc >= STEP) {
+        physics(STEP);
+        acc -= STEP;
+    }
+
+    // render
+    ctx.drawImage(starfield, 0, 0);
+    drawBoundary(now);
+    drawOrbs();
+    serpent.draw(now);
+    drawParticles();
+}
+
+serpent.rebuild();
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
