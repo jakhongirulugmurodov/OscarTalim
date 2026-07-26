@@ -2,3 +2,4 @@ out/frames/
 out/soundtrack.wav
 out/contact_sheet.png
 __pycache__/
+out/check*.png

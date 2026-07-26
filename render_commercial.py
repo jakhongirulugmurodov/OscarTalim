@@ -479,6 +479,13 @@ def fft_highpass(x, cutoff):
     return np.fft.irfft(X * gain, len(x))
 
 
+def add_at(buf, i0, sig):
+    """Add sig into buf starting at i0, clipping at the buffer end."""
+    m = min(len(sig), len(buf) - i0)
+    if m > 0:
+        buf[i0:i0 + m] += sig[:m]
+
+
 def synth_audio(path):
     print("synthesizing audio...")
     n = int(SR * DUR)
@@ -531,7 +538,7 @@ def synth_audio(path):
         kt = np.arange(kd) / SR
         f0 = 130 * np.exp(-kt * 26) + 44
         ph = 2 * np.pi * np.cumsum(f0) / SR
-        music[i0:i0 + kd] += 0.85 * np.sin(ph) * np.exp(-kt * 15)
+        add_at(music, i0, 0.85 * np.sin(ph) * np.exp(-kt * 15))
         b += beat
     # hats on offbeats
     b = start + beat / 2
@@ -539,8 +546,8 @@ def synth_audio(path):
         i0 = int(b * SR)
         hd = int(0.03 * SR)
         ht = np.arange(hd) / SR
-        music[i0:i0 + hd] += 0.16 * fft_highpass(
-            rng.normal(0, 1, hd) * np.exp(-ht * 220), 6000)
+        add_at(music, i0, 0.16 * fft_highpass(
+            rng.normal(0, 1, hd) * np.exp(-ht * 220), 6000))
         b += beat
     # arp — A minor pentatonic, rising
     notes = [220.0, 261.63, 293.66, 329.63, 392.0, 440.0, 523.25]
@@ -554,7 +561,7 @@ def synth_audio(path):
         f = notes[min(k % 8 if k % 8 < len(notes) else 14 - k % 8, len(notes) - 1)]
         saw = sum(np.sin(2 * np.pi * f * h * nt) / h for h in range(1, 5))
         env = np.minimum(nt / 0.01, 1) * np.exp(-nt * 9)
-        music[i0:i0 + nd] += 0.20 * saw * env
+        add_at(music, i0, 0.20 * saw * env)
         k += 1
         b += step
     # warm pad
