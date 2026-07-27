@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    margin: 0; padding: 0;
+    background-color: #191A1D; color: #D6D7DC;
+    font-family: "Segoe UI", "SF Pro Text", sans-serif;
+    font-size: 13px;
+  }
+  /* --- tablar --- */
+  .tabs {
+    display: flex; gap: 2px;
+    background-color: #212227;
+    border-bottom: 1px solid #303138;
+    padding: 0 8px;
+  }
+  .tab {
+    padding: 9px 13px; color: #8E909C;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.on {
+    color: #FFFFFF; border-bottom-color: #3BB8C9;
+  }
+  .tab.soon { opacity: 0.45; }
+  /* --- asosiy maydon --- */
+  .body { padding: 14px; }
+  .motor {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; margin-bottom: 12px;
+    background-color: #121316; border-radius: 6px;
+    color: #8E909C; font-size: 12px;
+  }
+  .motor .led {
+    width: 9px; height: 9px; border-radius: 50%;
+    background-color: #E05656;
+  }
+  .motor.ok .led { background-color: #4CC38A; }
+  .drop {
+    border: 1.5px dashed #45464F; border-radius: 8px;
+    padding: 16px; text-align: center; color: #8E909C;
+    margin-bottom: 12px;
+  }
+  .drop b { color: #C9CAD2; }
+  .files { margin-bottom: 12px; }
+  .file {
+    display: flex; align-items: center; gap: 10px;
+    background-color: #121316; border: 1px solid #2B2C33;
+    border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;
+  }
+  .file .nm { flex: 1; color: #E9EAEF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file .off { color: #7FD8E4; font-size: 12px; }
+  .file .conf { color: #8E909C; font-size: 11px; }
+  .file .rm { color: #8E909C; padding: 0 4px; }
+  .log {
+    background-color: #121316; border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 12px;
+    color: #8E909C; font-size: 12px; line-height: 1.5;
+    max-height: 120px; overflow-y: auto;
+    display: none;
+  }
+  .log.show { display: block; }
+  .log .warn { color: #E5A44A; }
+  .log .okline { color: #4CC38A; }
+  .foot { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    padding: 9px 16px; border-radius: 6px;
+    border: 1px solid #45464F; background-color: #2A2B31;
+    color: #C9CAD2; font-size: 13px; font-weight: 600;
+  }
+  .btn.primary {
+    background-color: #3BB8C9; border-color: #3BB8C9; color: #06272C;
+  }
+  .btn:disabled { opacity: 0.4; }
+  .hint { color: #8E909C; font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="tabs">
+    <div class="tab on">Sync</div>
+    <div class="tab soon" title="2-bosqichda">Cut</div>
+    <div class="tab soon" title="3-bosqichda">Switch</div>
+    <div class="tab soon" title="4-bosqichda">Captions</div>
+    <div class="tab soon" title="5-bosqichda">Shorts</div>
+  </div>
+
+  <div class="body">
+    <div id="motor" class="motor">
+      <span class="led"></span>
+      <span id="motorTxt">Motor qidirilmoqda…</span>
+    </div>
+
+    <div class="drop" id="pick">
+      <b>Fayllarni tanlash uchun bosing</b><br>
+      kamera videolari va rekorder audiosi (2+ fayl)
+    </div>
+
+    <div class="files" id="files"></div>
+
+    <div class="log" id="log"></div>
+
+    <div class="foot">
+      <button class="btn primary" id="syncBtn" disabled>Sinxronlash</button>
+      <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
+      <span class="hint" id="hint">0 fayl</span>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

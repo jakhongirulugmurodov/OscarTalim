@@ -232,44 +232,37 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height):
 
 # --------------------------------------------------------------------- main
 
-def main():
-    ap = argparse.ArgumentParser(
-        description="Multicam/podcast fayllarini audio orqali sinxronlab, "
-                    "Premiere Pro uchun XML sequence yasaydi.")
-    ap.add_argument("files", nargs="+", help="Video/audio fayllar (2 ta va undan ko'p)")
-    ap.add_argument("-o", "--output", default="synced.xml", help="Natija XML fayli")
-    ap.add_argument("--name", default="AutoSync Sequence", help="Sequence nomi")
-    ap.add_argument("--minutes", type=float, default=20,
-                    help="Tahlil uchun boshidan necha minut olinadi (0 = to'liq)")
-    args = ap.parse_args()
+def run_sync(files, output="synced.xml", name="AutoSync Sequence",
+             minutes=20.0, log=print):
+    """To'liq sinxronlash oqimi: tahlil -> siljishlar -> XML.
 
-    if len(args.files) < 2:
-        ap.error("Kamida 2 ta fayl kerak")
+    CLI ham, panel motori (server.py) ham shu funksiyani chaqiradi.
+    Natija: JSON'ga tayyor dict (kliplar, siljishlar, XML yo'li).
+    """
+    max_sec = minutes * 60 if minutes and minutes > 0 else None
 
-    max_sec = args.minutes * 60 if args.minutes > 0 else None
-
-    print("Fayllar tahlil qilinmoqda...")
+    log("Fayllar tahlil qilinmoqda...")
     clips = []
-    for f in args.files:
+    for f in files:
         info = ffprobe(f)
         if not info["has_audio"]:
-            print(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazib yuborildi")
+            log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazib yuborildi")
             continue
         info["analysis_audio"] = extract_audio(f, max_sec)
         clips.append(info)
         kind = "video" if info["has_video"] else "audio"
-        print(f"  {info['name']}: {info['duration']:.1f}s ({kind})")
+        log(f"  {info['name']}: {info['duration']:.1f}s ({kind})")
 
     if len(clips) < 2:
-        sys.exit("Sinxronlash uchun audioli kamida 2 ta fayl kerak.")
+        raise RuntimeError("Sinxronlash uchun audioli kamida 2 ta fayl kerak.")
 
     # Eng uzun audio — tayanch (reference)
     ref = max(clips, key=lambda c: len(c["analysis_audio"]))
-    print(f"\nTayanch fayl: {ref['name']}")
+    log(f"Tayanch fayl: {ref['name']}")
 
     for clip in clips:
         if clip is ref:
-            clip["offset_sec"], clip["confidence"] = 0.0, float("inf")
+            clip["offset_sec"], clip["confidence"] = 0.0, None
             continue
         clip["offset_sec"], clip["confidence"] = find_offset(
             ref["analysis_audio"], clip["analysis_audio"])
@@ -283,23 +276,59 @@ def main():
     timebase, ntsc = fps_to_timebase(fps)
     width = video_clip["width"] if video_clip else 1920
     height = video_clip["height"] if video_clip else 1080
+    log(f"Sequence: {timebase}fps (ntsc={ntsc}), {width}x{height}")
 
-    print(f"\nSequence: {timebase}fps (ntsc={ntsc}), {width}x{height}\n")
-    print(f"{'Fayl':<30} {'Siljish':>10} {'Ishonch':>9}")
     for clip in clips:
         rel = clip["offset_sec"] - base
+        clip["rel_offset"] = rel
         clip["start_frame"] = int(round(rel * fps))
         clip["dur_frames"] = int(round(clip["duration"] * fps))
         conf = "tayanch" if clip is ref else f"{clip['confidence']:.0f}x"
-        print(f"{clip['name']:<30} {rel:>9.3f}s {conf:>9}")
+        log(f"  {clip['name']}: +{rel:.3f}s ({conf})")
         if clip is not ref and clip["confidence"] < 15:
-            print(f"  OGOHLANTIRISH: {clip['name']} ishonch past — "
-                  "audio bir-biriga o'xshamasligi mumkin, natijani tekshiring")
+            log(f"  OGOHLANTIRISH: {clip['name']} ishonch past — "
+                "audio bir-biriga o'xshamasligi mumkin, natijani tekshiring")
 
-    xml = build_xml(clips, args.name, timebase, ntsc, width, height)
-    with open(args.output, "w", encoding="utf-8") as fh:
+    xml = build_xml(clips, name, timebase, ntsc, width, height)
+    output = os.path.abspath(output)
+    with open(output, "w", encoding="utf-8") as fh:
         fh.write(xml)
-    print(f"\nTayyor: {args.output}")
+    log(f"Tayyor: {output}")
+
+    return {
+        "output": output,
+        "sequence": {"name": name, "timebase": timebase, "ntsc": ntsc,
+                     "width": width, "height": height},
+        "clips": [{
+            "name": c["name"], "path": c["path"],
+            "duration": c["duration"],
+            "offset_sec": round(c["rel_offset"], 4),
+            "confidence": None if c["confidence"] is None
+                          else round(c["confidence"], 1),
+            "is_reference": c is ref,
+            "has_video": c["has_video"],
+        } for c in clips],
+    }
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Multicam/podcast fayllarini audio orqali sinxronlab, "
+                    "Premiere Pro uchun XML sequence yasaydi.")
+    ap.add_argument("files", nargs="+", help="Video/audio fayllar (2 ta va undan ko'p)")
+    ap.add_argument("-o", "--output", default="synced.xml", help="Natija XML fayli")
+    ap.add_argument("--name", default="AutoSync Sequence", help="Sequence nomi")
+    ap.add_argument("--minutes", type=float, default=20,
+                    help="Tahlil uchun boshidan necha minut olinadi (0 = to'liq)")
+    args = ap.parse_args()
+
+    if len(args.files) < 2:
+        ap.error("Kamida 2 ta fayl kerak")
+    try:
+        run_sync(args.files, output=args.output, name=args.name,
+                 minutes=args.minutes)
+    except RuntimeError as e:
+        sys.exit(str(e))
     print("Premiere Pro'da: File > Import > shu XML faylni tanlang.")
 
 
