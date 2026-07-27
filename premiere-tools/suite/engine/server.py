@@ -19,8 +19,13 @@ import sys
 import tempfile
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "autosync"))
+# autosync.py ni topish: repo tuzilishi (../../autosync) yoki tayyor paket (../autosync)
+_here = os.path.dirname(os.path.abspath(__file__))
+for _cand in (os.path.join(_here, "..", "..", "autosync"),
+              os.path.join(_here, "..", "autosync")):
+    if os.path.isfile(os.path.join(_cand, "autosync.py")):
+        sys.path.insert(0, _cand)
+        break
 from autosync import run_sync
 
 HOST, PORT = "127.0.0.1", 8765

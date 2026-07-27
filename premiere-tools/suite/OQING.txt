@@ -1,0 +1,49 @@
+PODCAST SUITE v0.1 — O'RNATISH (3 QADAM)
+=========================================
+
+Bu paketda Premiere Pro uchun Podcast Suite plugini bor.
+1-modul (Sync) ishlaydi: kamera va rekorder fayllarini
+audio orqali avtomatik sinxronlaydi.
+
+TALAB: Premiere Pro 25.6 yoki yangiroq (2026 versiyasi).
+
+
+1-QADAM: PLUGINNI O'RNATISH (bir martalik)
+------------------------------------------
+PodcastSuite.ccx faylini IKKI MARTA BOSING.
+Creative Cloud ochilib, "Install" deb so'raydi — roziligingizni bering.
+("Uchinchi tomon plugini" degan ogohlantirish chiqadi — bu normal.)
+
+
+2-QADAM: MOTORNI YOQISH (har safar, montaj oldidan)
+---------------------------------------------------
+Windows:  MOTORNI-YOQISH.bat ni ikki marta bosing
+Mac:      motorni-yoqish.command ni ikki marta bosing
+
+Qora oynada "Podcast Suite motori ishga tushdi" chiqsa — tayyor.
+Oynani yopmasdan qoldiring (montaj payti ishlab turadi).
+
+Birinchi safar Python yoki ffmpeg yo'q bo'lsa, oynaning o'zi
+nima qilishni yozib beradi (2 ta bepul dastur, 5 daqiqa).
+
+
+3-QADAM: PREMIERE'DA OCHISH
+---------------------------
+Premiere Pro > yuqori menyu > Window > UXP Plugins > Podcast Suite
+
+Panelda:
+  1. Indikator YASHIL ekanini tekshiring ("Motor ishlayapti")
+  2. "Fayllarni tanlash" — kamera videolari + rekorder audiosi
+  3. "Sinxronlash" — har fayl yonida siljish chiqadi
+  4. "Premiere'ga import" — sinxronlangan sequence loyihada!
+
+
+MUAMMO CHIQSA
+-------------
+- Indikator qizil        -> 2-qadamdagi qora oyna yopilgan, qayta oching
+- .ccx o'rnatilmadi      -> panel/ papkasi ham bor: UXP Developer Tools
+                            orqali panel/manifest.json ni Load qiling
+- "python topilmadi"     -> python.org dan o'rnating ("Add to PATH" belgilang!)
+- ffmpeg xatosi          -> gyan.dev/ffmpeg/builds (Win) / brew install ffmpeg (Mac)
+
+Savol bo'lsa — Claude'ga xato matnini yuboring, birga hal qilamiz.
