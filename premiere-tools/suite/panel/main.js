@@ -149,7 +149,8 @@ async function doImport() {
     const ppro = require("premierepro");
     const project = await ppro.Project.getActiveProject();
     if (!project) throw new Error("Ochiq loyiha topilmadi");
-    await project.importFiles([lastXml]);
+    // importFiles(filePaths, suppressUI, targetBin, asNumberedStills) — 25.6+
+    await project.importFiles([lastXml], true);
     logLine("Sequence loyihaga qo'shildi ✓", "okline");
   } catch (e) {
     // API mos kelmasa — qo'lda import yo'lini ko'rsatamiz
