@@ -180,8 +180,10 @@ function renderFiles(results) {
         const snd = document.createElement("span");
         const isMaster = audioMaster === p.path;
         snd.className = "snd" + (isMaster ? " on" : "");
-        snd.textContent = isMaster ? "♪ ovoz" : "♪";
-        snd.title = "Ovoz shu fayldan olinsin";
+        snd.textContent = isMaster ? "♪ ovoz manbasi" : "♪ ovoz?";
+        snd.title = isMaster
+          ? "Ovoz shu fayldan olinadi — bekor qilish uchun bosing"
+          : "Ovoz shu fayldan olinsin (yaxshi yozilgani)";
         snd.addEventListener("click", () => {
           audioMaster = isMaster ? null : p.path;
           renderFiles();
