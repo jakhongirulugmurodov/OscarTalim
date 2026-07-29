@@ -108,13 +108,28 @@ def have_model(model_key):
     return os.path.isfile(path) and os.path.getsize(path) > 1_000_000
 
 
-def ensure_model(model_key, log=print):
+def remote_size(url):
+    """Yuklanadigan faylning hajmi (bayt) — foizni ko'rsatish uchun."""
+    try:
+        out = subprocess.run(["curl", "-sIL", url], capture_output=True,
+                             text=True, timeout=20)
+        for line in reversed(out.stdout.splitlines()):
+            if line.lower().startswith("content-length:"):
+                return int(line.split(":", 1)[1].strip())
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return 0
+
+
+def ensure_model(model_key, log=print, progress=None):
     """Model faylini tekshiradi, yo'q bo'lsa yuklab oladi."""
+    say = progress or (lambda **k: None)
     if model_key not in MODELS:
         raise RuntimeError(f"Noma'lum model: {model_key}")
     fname, size = MODELS[model_key]
     path = os.path.join(models_dir(), fname)
     if os.path.isfile(path) and os.path.getsize(path) > 1_000_000:
+        say(stage="Model tayyorlanmoqda", percent=100, detail="model joyida")
         return path
 
     os.makedirs(models_dir(), exist_ok=True)
@@ -125,16 +140,26 @@ def ensure_model(model_key, log=print):
            "-o", tmp, MODEL_BASE + fname]
 
     # Yuklanish sekin bo'lsa foydalanuvchi «osilib qoldi» deb o'ylamasin —
-    # har 5 soniyada necha MB tushganini aytib turamiz.
+    # panelga necha MB tushganini uzatib turamiz.
+    total = remote_size(MODEL_BASE + fname)
     stop = threading.Event()
+    # Bosqich nomi ro'yxatdagidek qoladi, yuklanish esa tafsilotda ko'rinadi —
+    # panelda qadamlar ro'yxati bilan sarlavha bir-biriga mos tursin.
+    say(stage="Model tayyorlanmoqda", percent=0 if total else None,
+        detail=f"yuklanmoqda: 0 MB / {size}")
 
     def watch():
-        while not stop.wait(5):
+        spoke = 0
+        while not stop.wait(1):
             try:
                 mb = os.path.getsize(tmp) / 1_000_000
             except OSError:
                 continue
-            log(f"  yuklandi: {mb:.0f} MB / {size}")
+            say(percent=(mb * 1_000_000 / total * 100) if total else None,
+                detail=f"yuklanmoqda: {mb:.0f} MB / {size}")
+            spoke += 1
+            if spoke % 10 == 0:      # log'da har 10 soniyada bir qator yetadi
+                log(f"  yuklandi: {mb:.0f} MB / {size}")
 
     threading.Thread(target=watch, daemon=True).start()
     try:
@@ -150,24 +175,42 @@ def ensure_model(model_key, log=print):
     return path
 
 
-def to_wav16k(src, dest, start=None, duration=None):
-    """whisper.cpp 16 kHz mono WAV talab qiladi."""
+def to_wav16k(src, dest, start=None, duration=None, progress=None):
+    """whisper.cpp 16 kHz mono WAV talab qiladi.
+
+    Uzun rekorder yozuvida bu ham bir necha daqiqa oladi, shuning uchun
+    ffmpeg'ning o'z hisobotini o'qiymiz. Diqqat: `out_time_ms` nomiga
+    qaramay MIKROsoniyada keladi — foiz `out_time_us` dan olinadi.
+    """
     if not FFMPEG:
         raise RuntimeError(FFMPEG_YOQ)
+    say = progress or (lambda **k: None)
     cmd = [FFMPEG, "-v", "error", "-y"]
     if start:
         cmd += ["-ss", str(start)]
     cmd += ["-i", src]
     if duration:
         cmd += ["-t", str(duration)]
-    cmd += ["-map", "a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", dest]
-    out = subprocess.run(cmd, capture_output=True, text=True)
-    if out.returncode != 0:
-        raise RuntimeError(f"Audio ajratib bo'lmadi: {out.stderr.strip()[:200]}")
+    cmd += ["-map", "a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le",
+            "-progress", "pipe:1", "-nostats", dest]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, text=True, bufsize=1)
+    for line in proc.stdout:
+        if line.startswith("out_time_us=") and duration:
+            try:
+                done = int(line.split("=", 1)[1]) / 1e6
+            except ValueError:
+                continue
+            say(percent=max(0.0, min(99.0, done / duration * 100)))
+    err = proc.stderr.read()
+    if proc.wait() != 0:
+        raise RuntimeError(f"Audio ajratib bo'lmadi: {err.strip()[:200]}")
+    say(percent=100)
     return dest
 
 
-def run_whisper(wav, model_path, language, log=print, threads=None):
+def run_whisper(wav, model_path, language, log=print, threads=None,
+                progress=None):
     """whisper.cpp ni ishga tushirib, so'z darajasidagi natijani qaytaradi."""
     binary = find_whisper()
     if not binary:
@@ -185,19 +228,42 @@ def run_whisper(wav, model_path, language, log=print, threads=None):
 
     # Uzun yozuvda whisper 10-20 daqiqa ishlashi mumkin. Natijani oxirida
     # kutib o'tirmay, foizni o'sha zahoti uzatamiz — panel jim turmasin.
+    say = progress or (lambda **k: None)
     started = time.time()
+    audio_sec = 0.0
+    # Model xotiraga yuklanguncha (bir necha soniya) hech qanday belgi
+    # chiqmaydi — panel «to'xtab qoldi» deb ko'rinmasin uchun aytib qo'yamiz.
+    say(stage="Matnga aylantirilmoqda", percent=0,
+        detail="model xotiraga yuklanmoqda…")
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, bufsize=1)
     tail, shown = [], -10
     for line in proc.stdout:
         tail.append(line.rstrip())
         del tail[:-25]
+        # Birinchi foizgacha 3 soniyacha jimlik bo'ladi (model yuklanadi,
+        # mel-spektr hisoblanadi). Shu qatordan nima ustida ishlayotganini
+        # bilib, panelda ko'rsatib turamiz.
+        got = re.search(r"processing .*\(([\d]+) samples, ([\d.]+) sec\)", line)
+        if got:
+            audio_sec = float(got.group(2))
+            say(detail=f"{audio_sec / 60:.0f} daqiqalik ovoz o'qildi, "
+                       "tahlil boshlanmoqda…")
         m = re.search(r"progress\s*=\s*(\d+)\s*%", line)
         if m:
-            pct = int(m.group(1)) // 10 * 10
-            if pct > shown:
-                shown = pct
-                log(f"  {pct}% · {time.time() - started:.0f}s")
+            pct = int(m.group(1))
+            # Tafsilotda foiz emas, ovozning qayerigacha yetgani turadi —
+            # foiz baribir chiziqda ko'rinib turibdi.
+            if audio_sec:
+                done = audio_sec * pct / 100
+                say(percent=pct,
+                    detail=f"{done / 60:.0f}:{int(done % 60):02d} / "
+                           f"{audio_sec / 60:.0f}:{int(audio_sec % 60):02d} ovoz")
+            else:
+                say(percent=pct, detail=f"{time.time() - started:.0f}s")
+            if pct // 10 * 10 > shown:
+                shown = pct // 10 * 10
+                log(f"  {shown}% · {time.time() - started:.0f}s")
     if proc.wait() != 0:
         raise RuntimeError("whisper xatosi: " + "\n".join(tail)[-300:])
 
@@ -378,13 +444,15 @@ def search_archive(query, limit=50):
 
 def run_captions(audio_file, model="balans", language="uz", output=None,
                  sample_seconds=None, title=None, speaker_at=None,
-                 spans=None, fallback=None, log=print):
+                 spans=None, fallback=None, log=print, progress=None):
     """To'liq oqim: audio -> so'zlar -> qatorlar -> SRT + arxiv.
 
     `spans` berilsa (ochiq sequence'dan olingan bo'laklar:
     [{"start": montajdagi joyi, "in": xom fayldagi boshi, "out": oxiri}]),
     subtitr vaqtlari montajga moslanadi va kesilgan joylar tushib qoladi.
     """
+    say = progress or (lambda **k: None)
+    say(stage="Ovoz ajratilmoqda", percent=None, detail="fayl tekshirilmoqda")
     info = ffprobe(audio_file)
     if not info["has_audio"]:
         raise RuntimeError(f"{info['name']} da audio yo'q")
@@ -396,7 +464,7 @@ def run_captions(audio_file, model="balans", language="uz", output=None,
             raise RuntimeError("Bu fayl sequence boshida ishlatilmagan — "
                                "sinov uchun boshqa ovoz manbasini tanlang")
 
-    model_path = ensure_model(model, log)
+    model_path = ensure_model(model, log, progress=progress)
     if spans:
         # Xom faylning faqat montajda ishlatilgan oralig'ini eshitamiz —
         # uzun rekorder yozuvining qolgani bekorga vaqt olmasin.
@@ -412,9 +480,13 @@ def run_captions(audio_file, model="balans", language="uz", output=None,
         + (" · SINOV" if sample_seconds else ""))
 
     tmp_wav = os.path.join(models_dir(), "_ish.wav")
-    to_wav16k(audio_file, tmp_wav, start=window_start, duration=window_len)
+    say(stage="Ovoz ajratilmoqda", percent=None,
+        detail=f"{dur:.0f} soniyalik ovoz tayyorlanmoqda")
+    to_wav16k(audio_file, tmp_wav, start=window_start, duration=window_len,
+              progress=progress)
     try:
-        words = run_whisper(tmp_wav, model_path, language, log)
+        words = run_whisper(tmp_wav, model_path, language, log,
+                            progress=progress)
     finally:
         if os.path.exists(tmp_wav):
             os.remove(tmp_wav)
@@ -428,6 +500,8 @@ def run_captions(audio_file, model="balans", language="uz", output=None,
         if before != len(words):
             log(f"  kesilgan joylardagi {before - len(words)} so'z chiqarildi")
 
+    say(stage="Subtitr yig'ilmoqda", percent=None,
+        detail=f"{len(words)} so'z qatorlarga bo'linmoqda")
     lines = group_lines(words)
     attach_speakers(lines, speaker_at)
     log(f"{len(lines)} qator subtitr tayyor")

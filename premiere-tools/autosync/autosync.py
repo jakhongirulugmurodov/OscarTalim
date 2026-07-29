@@ -117,7 +117,7 @@ def ffprobe(path):
     return info
 
 
-def extract_envelope(path):
+def extract_envelope(path, duration=None, progress=None):
     """Audioning energiya «izi» (envelope) — to'liq fayl bo'yicha.
 
     Butun audioni xotiraga yig'ish o'rniga oqim bo'lib o'qiladi va har
@@ -132,12 +132,19 @@ def extract_envelope(path):
            "-ar", str(ANALYSIS_SR), "-f", "f32le", "-"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    parts, leftover = [], b""
+    # Uzun fayl bir necha daqiqa o'qiladi — bu Sync/Cut/Switch ishining eng
+    # og'ir qismi. Necha bayt o'qilganini bilamiz, demak foizni ham bilamiz.
+    say = progress or (lambda **k: None)
+    expect = (duration or 0) * ANALYSIS_SR * 4      # f32le: 4 bayt/namuna
+    parts, leftover, got = [], b"", 0
     read_bytes = bin_size * 4 * 20000
     while True:
         data = proc.stdout.read(read_bytes)
         if not data:
             break
+        got += len(data)
+        if expect:
+            say(percent=min(99.0, got / expect * 100))
         data = leftover + data
         usable = (len(data) // 4 // bin_size) * bin_size
         leftover = data[usable * 4:]
@@ -162,6 +169,18 @@ def extract_envelope(path):
     if std > 0:
         env /= std
     return env
+
+
+def sub_progress(say, index, total):
+    """Bitta fayl ichidagi foizni «i-fayl / jami» foiziga aylantiradi.
+
+    Shunda panelda bitta uzluksiz bar ko'rinadi: 3 fayldan ikkinchisining
+    yarmi — 50%, 4 fayldan uchinchisining oxiri — 75%.
+    """
+    def inner(percent=None, **kw):
+        if percent is not None and total:
+            say(percent=(index + percent / 100.0) / total * 100)
+    return inner
 
 
 # ------------------------------------------------------------- offset topish
@@ -387,7 +406,7 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
 # --------------------------------------------------------------------- main
 
 def run_sync(files, output="synced.xml", name="AutoSync Sequence",
-             minutes=None, fallback=None, log=print):
+             minutes=None, fallback=None, log=print, progress=None):
     """To'liq sinxronlash oqimi: tahlil -> siljishlar -> XML.
 
     CLI ham, panel motori (server.py) ham shu funksiyani chaqiradi.
@@ -395,14 +414,18 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
     ketadi (eski chaqiruvlar buzilmasligi uchun parametr saqlab qolindi).
     Natija: JSON'ga tayyor dict (kliplar, siljishlar, XML yo'li).
     """
+    say = progress or (lambda **k: None)
     log("Fayllar tahlil qilinmoqda...")
     clips = []
-    for f in files:
+    for i, f in enumerate(files):
+        say(stage="Ovoz tahlil qilinmoqda", percent=i / len(files) * 100,
+            detail=f"{i + 1}/{len(files)}: {os.path.basename(f)}")
         info = ffprobe(f)
         if not info["has_audio"]:
             log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazib yuborildi")
             continue
-        info["envelope"] = extract_envelope(f)
+        info["envelope"] = extract_envelope(
+            f, info["duration"], progress=sub_progress(say, i, len(files)))
         clips.append(info)
         kind = "video" if info["has_video"] else "audio"
         log(f"  {info['name']}: {info['duration']:.1f}s ({kind})")
@@ -414,7 +437,10 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
     ref = max(clips, key=lambda c: len(c["envelope"]))
     log(f"Tayanch fayl: {ref['name']}")
 
-    for clip in clips:
+    say(stage="Sinxron hisoblanmoqda", percent=0,
+        detail=f"tayanch: {ref['name']}")
+    for done, clip in enumerate(clips):
+        say(percent=done / len(clips) * 100)
         if clip is ref:
             clip["offset_sec"], clip["confidence"] = 0.0, None
             clip["reliable"] = True
@@ -451,8 +477,10 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
                 f"(ishonch {clip['confidence']:.1f}x). Boshiga qo'yildi, "
                 "qo'lda tekshiring: boshqa yozuvdan bo'lishi mumkin.")
 
+    say(stage="Timeline yozilmoqda", percent=50, detail=os.path.basename(output))
     xml = build_xml(clips, name, timebase, ntsc, width, height)
     output = write_xml(xml, output, fallback, log)
+    say(percent=100, detail="tayyor")
     log(f"Tayyor: {output}")
 
     return {

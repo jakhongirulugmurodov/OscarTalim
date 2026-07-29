@@ -42,20 +42,97 @@ PLUGIN_ID = "uz.oscartalim.podcastsuite"
 # papkasida yo'qolib ketmasin, foydalanuvchi Finder'dan topa olsin.
 RESULTS_DIR = os.path.join(_here, "..", "natijalar")
 
-# Ish jarayonidagi xabarlar. Uzun ishlarda (model yuklash, transkripsiya)
+# Ish jarayonining holati. Uzun ishlarda (model yuklash, transkripsiya)
 # javob oxirida kelgani uchun panel jim turardi va «osilib qoldi» degan
-# taassurot berardi. Endi panel shu ro'yxatni har necha soniyada o'qiydi.
-PROGRESS = {"busy": False, "job": "", "lines": [], "started": 0.0}
+# taassurot berardi. Endi panel shu holatni har ikki soniyada o'qiydi va
+# qaysi bosqich ketayotganini, foizini, qancha vaqt qolganini ko'rsatadi.
+PROGRESS = {
+    "busy": False, "job": "", "lines": [], "started": 0.0,
+    "steps": [],          # [{"label": ..., "weight": ...}] — rejadagi bosqichlar
+    "step": -1,           # hozirgi bosqich indeksi
+    "stage": "",          # hozirgi bosqich nomi
+    "percent": None,      # shu bosqichning foizi (bilinmasa — None)
+    "detail": "",         # jonli tafsilot: «340 MB / 1.5 GB»
+    "stage_started": 0.0,  # bosqich boshlangan payt — qolgan vaqt shundan
+}
+
+# Har ish uchun bosqichlar rejasi. Panel shu ro'yxatni ko'rsatib turadi:
+# qaysi biri tugagan, qaysi biri ketayapti, qaysilari navbatda.
+JOB_STEPS = {
+    "Captions": [{"label": "Ovoz ajratilmoqda", "short": "Ovoz", "weight": 6},
+                 {"label": "Model tayyorlanmoqda", "short": "Model", "weight": 4},
+                 {"label": "Matnga aylantirilmoqda", "short": "Matn", "weight": 85},
+                 {"label": "Subtitr yig'ilmoqda", "short": "Subtitr", "weight": 5}],
+    "Sync":     [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 70},
+                 {"label": "Sinxron hisoblanmoqda", "short": "Sinxron", "weight": 25},
+                 {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 5}],
+    "Cut":      [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 70},
+                 {"label": "Pauzalar qidirilmoqda", "short": "Pauzalar", "weight": 25},
+                 {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 5}],
+    "Switch":   [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 65},
+                 {"label": "Kadrlar rejalanmoqda", "short": "Kadrlar", "weight": 30},
+                 {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 5}],
+}
 
 
 def progress_start(job):
-    PROGRESS.update(busy=True, job=job, lines=[], started=time.time())
+    PROGRESS.update(busy=True, job=job, lines=[], started=time.time(),
+                    steps=[dict(s) for s in JOB_STEPS.get(job, [])],
+                    step=-1, stage="", percent=None, detail="",
+                    stage_started=time.time())
 
 
 def progress_note(text):
     PROGRESS["lines"].append(text)
     if len(PROGRESS["lines"]) > 400:
         del PROGRESS["lines"][:100]
+
+
+def progress_update(stage=None, percent=None, detail=None):
+    """Modullar shu funksiya orqali «qayerdaman» deb aytadi.
+
+    Bosqich nomi o'zgarsa — rejadagi o'rnini topib, sanoqni yangilaymiz.
+    Nomi ro'yxatda bo'lmasa ham yozilaveradi: panel baribir ko'rsatadi.
+    """
+    if stage and stage != PROGRESS["stage"]:
+        PROGRESS["stage"] = stage
+        PROGRESS["stage_started"] = time.time()
+        PROGRESS["percent"] = None
+        PROGRESS["detail"] = ""
+        for i, s in enumerate(PROGRESS["steps"]):
+            if s["label"] == stage:
+                PROGRESS["step"] = i
+                break
+        else:
+            PROGRESS["step"] = min(PROGRESS["step"] + 1,
+                                   len(PROGRESS["steps"]) - 1)
+    if percent is not None:
+        PROGRESS["percent"] = max(0.0, min(100.0, float(percent)))
+    if detail is not None:
+        PROGRESS["detail"] = detail
+
+
+def progress_snapshot():
+    """Panel uchun to'liq manzara — umumiy foiz shu yerda hisoblanadi."""
+    steps = PROGRESS["steps"]
+    total = sum(s["weight"] for s in steps) or 100
+    done = sum(s["weight"] for s in steps[:max(PROGRESS["step"], 0)])
+    cur = steps[PROGRESS["step"]]["weight"] if 0 <= PROGRESS["step"] < len(steps) else 0
+    pct = PROGRESS["percent"]
+    overall = (done + cur * (pct or 0) / 100.0) / total * 100.0 if steps else None
+    now = time.time()
+    return {
+        "busy": PROGRESS["busy"], "job": PROGRESS["job"],
+        "lines": PROGRESS["lines"],
+        "steps": [{"label": s["label"], "short": s.get("short", s["label"]),
+                   "weight": s["weight"]} for s in steps],
+        "step": PROGRESS["step"], "stage": PROGRESS["stage"],
+        "percent": pct, "detail": PROGRESS["detail"],
+        "overall": round(overall, 1) if steps else None,
+        "elapsed": (now - PROGRESS["started"]) if PROGRESS["started"] else 0,
+        "stage_elapsed": (now - PROGRESS["stage_started"])
+                         if PROGRESS["stage_started"] else 0,
+    }
 
 
 def default_output(files=None, kind="Sync"):
@@ -190,10 +267,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send(500, {"error": str(e)})
         elif self.path == "/progress":
-            self._send(200, {"busy": PROGRESS["busy"], "job": PROGRESS["job"],
-                             "lines": PROGRESS["lines"],
-                             "elapsed": (time.time() - PROGRESS["started"])
-                                        if PROGRESS["started"] else 0})
+            self._send(200, progress_snapshot())
         elif self.path == "/version":
             try:
                 self._send(200, version_info())
@@ -235,6 +309,7 @@ class Handler(BaseHTTPRequestHandler):
             logs = []
             progress_start(kind)
             record = lambda m: (logs.append(m), progress_note(m), print(m))
+            step = progress_update
 
             if self.path == "/captions":
                 # Sequence berilgan bo'lsa — shu bitta ovoz manbasining
@@ -248,7 +323,7 @@ class Handler(BaseHTTPRequestHandler):
                     language=req.get("language") or "uz",
                     sample_seconds=req.get("sample_seconds"),
                     title=req.get("title"), spans=spans,
-                    fallback=RESULTS_DIR, log=record)
+                    fallback=RESULTS_DIR, log=record, progress=step)
             elif self.path == "/switch":
                 result = run_switch(
                     files, output=output,
@@ -257,7 +332,8 @@ class Handler(BaseHTTPRequestHandler):
                     audio_master=req.get("audio_master"),
                     min_shot=float(req.get("min_shot", 2.5)),
                     max_shot=float(req.get("max_shot", 25.0)),
-                    timeline=seq_timeline, fallback=RESULTS_DIR, log=record)
+                    timeline=seq_timeline, fallback=RESULTS_DIR, log=record,
+                    progress=step)
             elif self.path == "/cut":
                 result = run_cut(
                     files, output=output,
@@ -265,12 +341,13 @@ class Handler(BaseHTTPRequestHandler):
                     threshold=float(req.get("threshold", 0.18)),
                     min_pause=float(req.get("min_pause", 0.7)),
                     padding=float(req.get("padding", 0.12)),
-                    timeline=seq_timeline, fallback=RESULTS_DIR, log=record)
+                    timeline=seq_timeline, fallback=RESULTS_DIR, log=record,
+                    progress=step)
             else:
                 result = run_sync(
                     files, output=output,
                     name=req.get("name") or "Podcast Suite — Sync",
-                    fallback=RESULTS_DIR, log=record)
+                    fallback=RESULTS_DIR, log=record, progress=step)
             result["logs"] = logs
             self._send(200, result)
         except RuntimeError as e:

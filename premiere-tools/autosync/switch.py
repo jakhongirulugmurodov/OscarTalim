@@ -20,7 +20,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, extract_envelope, ffprobe,
-                      find_offset, fps_to_timebase, write_xml, MIN_CONFIDENCE)
+                      find_offset, fps_to_timebase, write_xml, MIN_CONFIDENCE, sub_progress)
 
 # Kamera vazifalari
 SPEAKER, WIDE, ALT, INSERT = "speaker", "wide", "alt", "insert"
@@ -187,7 +187,7 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
                name="Podcast Suite — Switch", min_shot=DEFAULT_MIN_SHOT,
                max_shot=DEFAULT_MAX_SHOT, margin=DEFAULT_MARGIN,
                silence=DEFAULT_SILENCE, audio_master=None, timeline=None,
-               fallback=None, log=print):
+               fallback=None, log=print, progress=None):
     """Kamera almashtirish rejasini tuzib, sequence yasaydi.
 
     roles        — har fayl uchun vazifa: speaker / wide / alt / insert
@@ -200,14 +200,18 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
     if from_timeline:
         files = list(dict.fromkeys(c["path"] for c in timeline))
 
+    say = progress or (lambda **k: None)
     log("Fayllar tahlil qilinmoqda...")
     clips = []
     for idx, f in enumerate(files):
+        say(stage="Ovoz tahlil qilinmoqda", percent=idx / len(files) * 100,
+            detail=f"{idx + 1}/{len(files)}: {os.path.basename(f)}")
         info = ffprobe(f)
         if not info["has_audio"]:
             log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazildi")
             continue
-        info["envelope"] = extract_envelope(f)
+        info["envelope"] = extract_envelope(
+            f, info["duration"], progress=sub_progress(say, idx, len(files)))
         info["role"] = (roles[idx] if roles and idx < len(roles) else SPEAKER)
         info["speaker_idx"] = (speakers[idx] if speakers and idx < len(speakers)
                                else None)
@@ -285,6 +289,8 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
     height = video_clip["height"] if video_clip else 1080
 
     # --- Kamera rejasi ---
+    say(stage="Kadrlar rejalanmoqda", percent=None,
+        detail=f"{len(clips)} kamera")
     shots = plan_shots(active, clips, min_shot, max_shot, fps, log)
     if not shots:
         raise RuntimeError("Kamera rejasi tuzilmadi — vazifalarni tekshiring.")
@@ -387,9 +393,11 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
         if not c["segments"] and c["role"] != AUDIO:
             log(f"  Diqqat: {c['name']} umuman ishlatilmadi")
 
+    say(stage="Timeline yozilmoqda", percent=50)
     xml = build_xml(used, name, timebase, ntsc, width, height,
                     single_video_track=True)
     output = write_xml(xml, output, fallback, log)
+    say(percent=100, detail="tayyor")
     log(f"Tayyor: {output}")
 
     return {

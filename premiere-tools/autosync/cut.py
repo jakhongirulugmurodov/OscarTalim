@@ -19,7 +19,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, extract_envelope, ffprobe,
-                      find_offset, fps_to_timebase, write_xml, MIN_CONFIDENCE)
+                      find_offset, fps_to_timebase, sub_progress, write_xml,
+                      MIN_CONFIDENCE)
 
 # Standart sozlamalar — panel ularni o'zgartira oladi
 DEFAULT_THRESHOLD = 0.18   # jimlik chegarasi (0..1, normallashtirilgan energiya)
@@ -98,7 +99,8 @@ def keep_segments(pauses, total_sec):
 
 def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
             threshold=DEFAULT_THRESHOLD, min_pause=DEFAULT_MIN_PAUSE,
-            padding=DEFAULT_PADDING, timeline=None, fallback=None, log=print):
+            padding=DEFAULT_PADDING, timeline=None, fallback=None, log=print,
+            progress=None):
     """Pauzalarni kesish.
 
     Ikki rejim bor:
@@ -110,16 +112,21 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     if from_timeline:
         files = list(dict.fromkeys(c["path"] for c in timeline))
 
+    say = progress or (lambda **k: None)
     log("Fayllar tahlil qilinmoqda...")
     clips = []
-    for f in files:
+    for i, f in enumerate(files):
+        say(stage="Ovoz tahlil qilinmoqda", percent=i / len(files) * 100,
+            detail=f"{i + 1}/{len(files)}: {os.path.basename(f)}")
         info = ffprobe(f)
         if not info["has_audio"]:
             log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazildi")
             continue
-        info["envelope"] = extract_envelope(f)
+        info["envelope"] = extract_envelope(
+            f, info["duration"], progress=sub_progress(say, i, len(files)))
         clips.append(info)
         log(f"  {info['name']}: {info['duration']:.1f}s")
+    say(percent=100)
 
     if not clips:
         raise RuntimeError("Audioli fayl topilmadi.")
@@ -167,6 +174,8 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     total_bins = int(round(total_sec * ENV_RATE)) + 1
 
     # --- 2. Pauzalarni topish ---
+    say(stage="Pauzalar qidirilmoqda", percent=None,
+        detail=f"{total_sec / 60:.0f} daqiqalik montaj")
     mask = speech_mask(clips, total_bins, threshold)
     pauses = find_pauses(mask, min_pause, padding)
     saved = sum(b - a for a, b in pauses)
@@ -222,8 +231,10 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     if not clips:
         raise RuntimeError("Kesishdan keyin klip qolmadi.")
 
+    say(stage="Timeline yozilmoqda", percent=50)
     xml = build_xml(clips, name, timebase, ntsc, width, height)
     output = write_xml(xml, output, fallback, log)
+    say(percent=100, detail="tayyor")
     log(f"Tayyor: {output}")
 
     return {

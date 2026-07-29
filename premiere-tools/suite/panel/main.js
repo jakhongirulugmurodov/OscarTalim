@@ -32,6 +32,18 @@ const els = {
   capBtn: el("capBtn"),
   sampleBtn: el("sampleBtn"),
   capWarn: el("capWarn"),
+  body: document.querySelector(".body") || document.createElement("div"),
+  job: el("job"),
+  jobStage: el("jobStage"),
+  jobStep: el("jobStep"),
+  jobFill: el("jobFill"),
+  jobSeg: el("jobSeg"),
+  jobTicks: el("jobTicks"),
+  jobChips: el("jobChips"),
+  jobPulse: el("jobPulse"),
+  jobDetail: el("jobDetail"),
+  jobElapsed: el("jobElapsed"),
+  jobEta: el("jobEta"),
   capSearch: el("capSearch"),
   capSearchBtn: el("capSearchBtn"),
   seqBtn: el("seqBtn"),
@@ -313,6 +325,7 @@ function setupTabs() {
       els.importBtn.disabled = true;
       els.log.innerHTML = "";
       els.log.classList.remove("show");
+      if (!pollTimer) els.job.className = "job";
       applyTabText();
       renderFiles();
     });
@@ -558,34 +571,158 @@ function logLine(text, cls) {
  * Uzun ishlar (model yuklash, transkripsiya) bir necha o'n daqiqa ketishi
  * mumkin. Javob faqat oxirida keladi, shuning uchun motordan holatni
  * so'rab turamiz — panel jim qolmasin va sekundlar sanalib tursin. */
-let pollTimer = null;
+let pollTimer = null;    // motordan holat so'rash (2 s)
+let tickTimer = null;    // soat (1 s) — panel o'zi sanaydi, motorga bog'liq emas
 let shownLogs = 0;
+let jobT0 = 0;           // ish boshlangan payt
+let etaSec = null;       // silliqlangan «qancha qoldi»
+let lastChange = 0;      // motordan oxirgi marta yangilik kelgan payt
+let lastSig = "";        // holat o'zgarganini bilish uchun barmoq izi
+let stepsSig = "";       // bosqichlar ro'yxati o'zgarganda qayta chiziladi
 
-function startProgress() {
+function mmss(sec) {
+  sec = Math.max(0, Math.round(sec));
+  return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+}
+
+/* «≈ 8 daqiqa qoldi» — uzun ishda soniyagacha aniqlik keraksiz va yolg'on */
+function human(sec) {
+  if (sec < 90) return Math.max(5, Math.round(sec / 5) * 5) + " soniya";
+  if (sec < 3600) return Math.round(sec / 60) + " daqiqa";
+  const h = Math.floor(sec / 3600);
+  return h + " soat " + Math.round((sec - h * 3600) / 60) + " daqiqa";
+}
+
+function drawSteps(steps, index) {
+  // Bosqichlar bir marta chiziladi: chiziqdagi chegaralar va qisqa nomlar
+  const sig = steps.map((s) => s.label).join("|");
+  if (sig !== stepsSig) {
+    stepsSig = sig;
+    const total = steps.reduce((a, s) => a + s.weight, 0) || 1;
+    let acc = 0;
+    els.jobTicks.innerHTML = "";
+    steps.slice(0, -1).forEach((s) => {
+      acc += s.weight;
+      const t = document.createElement("span");
+      t.style.left = (acc / total * 100) + "%";
+      els.jobTicks.appendChild(t);
+    });
+    els.jobChips.innerHTML = "";
+    steps.forEach((s) => {
+      const c = document.createElement("span");
+      c.className = "c";
+      c.textContent = s.short || s.label;
+      els.jobChips.appendChild(c);
+    });
+  }
+  const chips = els.jobChips.querySelectorAll(".c");
+  chips.forEach((c, i) => {
+    c.className = "c" + (i < index ? " ok" : i === index ? " now" : "");
+    c.textContent = (i < index ? "✓ " : "") + c.textContent.replace(/^✓ /, "");
+  });
+}
+
+function paintJob(j) {
+  const steps = j.steps || [];
+  const idx = j.step >= 0 ? j.step : 0;
+  if (steps.length) drawSteps(steps, idx);
+
+  // Foizni bilmasak — shu bosqichda qancha turganimizni aytamiz: «qancha
+  // uzoq» degan raqam ham harakatda ekanini ko'rsatadi.
+  els.jobStage.textContent = (j.stage || "Boshlanmoqda…") +
+    (j.percent != null ? "  " + Math.round(j.percent) + "%"
+     : j.stage_elapsed > 3 ? "  " + mmss(j.stage_elapsed) : "");
+  els.jobStep.textContent = steps.length ? (idx + 1) + " / " + steps.length : "";
+  els.jobDetail.textContent = j.detail || "";
+
+  // Umumiy chiziq: tugagan bosqichlar + hozirgisining ulushi
+  const total = steps.reduce((a, s) => a + s.weight, 0) || 1;
+  const done = steps.slice(0, idx).reduce((a, s) => a + s.weight, 0);
+  const segw = steps[idx] ? steps[idx].weight : 0;
+  els.jobSeg.style.left = (done / total * 100) + "%";
+  els.jobSeg.style.width = (Math.max(segw, total * 0.04) / total * 100) + "%";
+  const overall = j.overall != null ? j.overall : done / total * 100;
+  els.jobFill.style.width = overall + "%";
+
+  // Qolgan vaqt: umumiy foiz va o'tgan vaqtdan. Sakrab turmasin uchun
+  // silliqlaymiz va ish boshida umuman ko'rsatmaymiz — u paytda taxmin yolg'on.
+  const el = (Date.now() - jobT0) / 1000;
+  if (overall > 4 && el > 8) {
+    const raw = el * (100 - overall) / overall;
+    etaSec = etaSec == null ? raw : etaSec * 0.7 + raw * 0.3;
+    els.jobEta.textContent = "· ≈ " + human(etaSec) + " qoldi";
+  } else {
+    els.jobEta.textContent = "";
+  }
+
+  // «Tirikmi?» — eng halol javob: har javobda chiziqqa bitta bo'lakcha
+  // qo'shiladi. Motor jim qolsa, chiziq ham o'sishdan to'xtaydi.
+  const sig = j.stage + "|" + j.percent + "|" + j.detail + "|" + (j.lines || []).length;
+  const changed = sig !== lastSig;
+  if (changed) { lastSig = sig; lastChange = Date.now(); }
+  const tick = document.createElement("i");
+  if (changed) tick.className = "hi";
+  els.jobPulse.appendChild(tick);
+  while (els.jobPulse.childNodes.length > 30) {
+    els.jobPulse.removeChild(els.jobPulse.firstChild);
+  }
+  els.job.classList.toggle("stale", Date.now() - lastChange > 45000);
+}
+
+function startProgress(kindLabel) {
   shownLogs = 0;
-  const t0 = Date.now();
-  const clock = () => {
-    const s = Math.round((Date.now() - t0) / 1000);
-    els.hint.textContent = "⏱ " + Math.floor(s / 60) + ":" +
-                           String(s % 60).padStart(2, "0");
-  };
-  clock();
-  pollTimer = setInterval(async () => {
-    clock();
+  jobT0 = Date.now();
+  etaSec = null;
+  lastChange = Date.now();
+  lastSig = "";
+  stepsSig = "";
+  els.job.className = "job on";
+  els.jobStage.textContent = kindLabel || "Boshlanmoqda…";
+  els.jobStep.textContent = "";
+  els.jobDetail.textContent = "";
+  els.jobEta.textContent = "";
+  els.jobFill.style.width = "0%";
+  els.jobSeg.style.width = "0%";
+  els.jobChips.innerHTML = "";
+  els.jobTicks.innerHTML = "";
+  els.jobPulse.innerHTML = "";
+  els.jobElapsed.textContent = "0:00";
+  if (els.body && els.body.scrollTo) els.body.scrollTo(0, 0);
+
+  // Soat panelning o'zida yuradi: motor javob bermay qolsa ham vaqt ko'rinadi
+  tickTimer = setInterval(() => {
+    els.jobElapsed.textContent = mmss((Date.now() - jobT0) / 1000);
+  }, 1000);
+
+  const poll = async () => {
     try {
       const r = await fetch(MOTOR + "/progress");
       const j = await r.json();
       const lines = j.lines || [];
       for (let i = shownLogs; i < lines.length; i++) logLine(lines[i]);
       if (lines.length > shownLogs) shownLogs = lines.length;
+      paintJob(j);
     } catch (e) { /* motor band bo'lishi mumkin — keyingi urinishda ko'ramiz */ }
-  }, 2000);
+  };
+  // Birinchi so'rovni kutmasdan yuboramiz: qisqa ishda karta bo'sh qolmasin
+  setTimeout(poll, 250);
+  pollTimer = setInterval(poll, 2000);
 }
 
-function stopProgress() {
+function stopProgress(ok, note) {
   if (pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
-  els.hint.textContent = picked.length + " fayl";
+  if (tickTimer) clearInterval(tickTimer);
+  pollTimer = tickTimer = null;
+  const spent = mmss((Date.now() - jobT0) / 1000);
+  els.job.className = "job on " + (ok ? "done" : "err");
+  els.jobStage.textContent = ok ? "Tayyor ✓" : "To'xtadi";
+  els.jobDetail.textContent = note || "";
+  els.jobEta.textContent = "";
+  els.jobStep.textContent = "";
+  if (ok) els.jobFill.style.width = "100%";
+  els.jobElapsed.textContent = spent;
+  const chips = els.jobChips.querySelectorAll(".c");
+  if (ok) chips.forEach((c) => { c.className = "c ok"; });
 }
 
 async function run(kind) {
@@ -639,7 +776,9 @@ async function run(kind) {
     body.padding = knobs.padding.val(+knobs.padding.el.value);
   }
 
-  startProgress();
+  startProgress(isCap ? "Transkripsiya boshlanmoqda…"
+              : isSwitch ? "Kamera rejasi tuzilmoqda…"
+              : isCut ? "Pauzalar qidirilmoqda…" : "Sinxronlash boshlandi…");
   try {
     const r = await fetch(MOTOR + "/" + endpoint, {
       method: "POST",
@@ -691,10 +830,12 @@ async function run(kind) {
       logLine("Fayl: " + j.output);
       els.importBtn.disabled = false;
     }
+    stopProgress(true, isCap ? (j.line_count + " qator subtitr")
+                             : "natija tayyor");
   } catch (e) {
     logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
   }
-  stopProgress();
   updateRunButtons();
 }
 

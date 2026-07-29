@@ -54,6 +54,103 @@
   }
   .motor.hasupd .upd { display: inline-block; }
   .motor.ok .upd { margin-left: auto; }
+  /* --- ish jarayoni kartasi ---
+     Uch savolga javob beradi: qaysi bosqich, qancha vaqt o'tdi, qancha qoldi.
+     Eng muhimi — «ishlayaptimi yo'qmi» degan savol: nuqta puls uradi, chiziq
+     ustidan yorug'lik yuguradi, soat har sekundda o'zgaradi. Karta tepada
+     yopishib turadi, shuning uchun pastga aylantirsangiz ham ko'rinaveradi. */
+  .job {
+    display: none; position: sticky; top: 0; z-index: 5;
+    background-color: #121316; border: 1px solid #2B2C33;
+    border-radius: 8px; padding: 11px 12px 10px; margin-bottom: 12px;
+  }
+  .job.on { display: block; }
+  .job-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .job-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: none;
+    background-color: #3BB8C9; animation: puls 1.4s ease-in-out infinite;
+  }
+  @keyframes puls { 0%,100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: .35; transform: scale(.72); } }
+  .job-stage {
+    flex: 1; color: #E9EAEF; font-weight: 600; font-size: 13px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .job-step {
+    color: #8E909C; font-size: 11px; font-family: ui-monospace, Consolas, monospace;
+    white-space: nowrap;
+  }
+  .job-bar {
+    position: relative; height: 7px; border-radius: 4px;
+    background-color: #24252B; overflow: hidden; margin-bottom: 8px;
+  }
+  .job-fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+    background-color: #3BB8C9; border-radius: 4px;
+    transition: width .45s ease-out;
+  }
+  /* Hozirgi bosqich oralig'i — ustidan yorug'lik yuguradi: foiz noma'lum
+     bo'lganda ham «qimirlayapti» degan belgi shu. */
+  .job-seg {
+    position: absolute; top: 0; bottom: 0; left: 0; width: 0;
+    background-color: rgba(255,255,255,.05); overflow: hidden;
+    transition: left .45s ease-out, width .45s ease-out;
+  }
+  .job-seg::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 45%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+    animation: yugur 1.6s linear infinite;
+  }
+  @keyframes yugur { from { left: -50%; } to { left: 105%; } }
+  .job-ticks span {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background-color: #121316;
+  }
+  .job-pulse {
+    display: flex; align-items: flex-end; gap: 2px; height: 11px;
+    margin-bottom: 7px; overflow: hidden;
+  }
+  .job-pulse i {
+    width: 3px; height: 3px; border-radius: 1px; flex: none;
+    background-color: #3A3B43; transition: height .25s ease-out;
+  }
+  .job-pulse i.hi { height: 11px; background-color: #3BB8C9; }
+  body.tab-cut .job-pulse i.hi { background-color: #E5A44A; }
+  body.tab-switch .job-pulse i.hi { background-color: #5BC46A; }
+  body.tab-captions .job-pulse i.hi { background-color: #E07BB0; }
+  .job.done .job-pulse, .job.err .job-pulse { display: none; }
+  .job-chips {
+    display: flex; flex-wrap: wrap; gap: 5px 8px; margin-bottom: 8px;
+    font-size: 11px; color: #6E707A;
+  }
+  .job-chips .c { white-space: nowrap; }
+  .job-chips .c.ok { color: #4CC38A; }
+  .job-chips .c.now { color: #E9EAEF; font-weight: 600; }
+  .job-ft {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 12px; color: #8E909C;
+  }
+  .job-detail {
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .job-time { white-space: nowrap; color: #C9CAD2;
+              font-family: ui-monospace, Consolas, monospace; }
+  .job-time b { color: #E9EAEF; font-weight: 700; }
+  .job-eta { white-space: nowrap; color: #8E909C; }
+  /* holatlar */
+  .job.stale .job-dot { animation-duration: 3s; background-color: #E5A44A; }
+  .job.done .job-dot, .job.err .job-dot { animation: none; }
+  .job.done .job-dot { background-color: #4CC38A; }
+  .job.err .job-dot { background-color: #E05656; }
+  .job.done .job-seg::after, .job.err .job-seg::after { animation: none; display: none; }
+  .job.done .job-fill { background-color: #4CC38A; }
+  .job.err .job-fill { background-color: #E05656; }
+  /* tab rangiga moslashish */
+  body.tab-cut .job-fill, body.tab-cut .job-dot { background-color: #E5A44A; }
+  body.tab-switch .job-fill, body.tab-switch .job-dot { background-color: #5BC46A; }
+  body.tab-captions .job-fill, body.tab-captions .job-dot { background-color: #E07BB0; }
+  body.tab-cut .job.done .job-fill, body.tab-switch .job.done .job-fill,
+  body.tab-captions .job.done .job-fill { background-color: #4CC38A; }
   .drop {
     border: 1.5px dashed #45464F; border-radius: 8px;
     padding: 16px; text-align: center; color: #8E909C;
@@ -206,6 +303,28 @@
       <span id="motorTxt">Motor qidirilmoqda…</span>
       <span class="diag" id="diagBtn">tekshirish</span>
       <span class="upd" id="updBtn">Yangilash</span>
+    </div>
+
+    <div class="job" id="job">
+      <div class="job-hd">
+        <span class="job-dot"></span>
+        <span class="job-stage" id="jobStage">Boshlanmoqda…</span>
+        <span class="job-step" id="jobStep"></span>
+      </div>
+      <div class="job-bar">
+        <div class="job-fill" id="jobFill"></div>
+        <div class="job-seg" id="jobSeg"></div>
+        <div class="job-ticks" id="jobTicks"></div>
+      </div>
+      <!-- Nafas chizig'i: har bir bo'lakcha motordan kelgan javob.
+           Animatsiya emas — ma'lumot kelmasa, o'sishi ham to'xtaydi. -->
+      <div class="job-pulse" id="jobPulse"></div>
+      <div class="job-chips" id="jobChips"></div>
+      <div class="job-ft">
+        <span class="job-detail" id="jobDetail"></span>
+        <span class="job-time"><b id="jobElapsed">0:00</b> o'tdi</span>
+        <span class="job-eta" id="jobEta"></span>
+      </div>
     </div>
 
     <div class="drop" id="pick">
