@@ -15,6 +15,7 @@ Endpointlar:
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -32,6 +33,7 @@ from autosync import run_sync, FFMPEG, FFPROBE
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
+PLUGIN_ID = "uz.oscartalim.podcastsuite"
 
 # Natijalar paket ichidagi «natijalar» papkasiga tushadi — vaqtinchalik tizim
 # papkasida yo'qolib ketmasin, foydalanuvchi Finder'dan topa olsin.
@@ -97,6 +99,39 @@ def version_info():
     return {"git": True, "current": current, "updates": behind}
 
 
+def installed_panel_dirs():
+    """Doimiy o'rnatilgan panel nusxalari (Adobe boshqaradigan papkada).
+
+    Panel .ccx orqali o'rnatilgan bo'lsa, uning fayllari alohida joyda
+    yotadi va git pull ularga tegmaydi. Shu papkalarni topamiz.
+    """
+    base = os.path.expanduser(
+        "~/Library/Application Support/Adobe/UXP/Plugins/External")
+    if not os.path.isdir(base):
+        return []
+    return [os.path.join(base, d) for d in os.listdir(base)
+            if d.startswith(PLUGIN_ID + "_")
+            and os.path.isfile(os.path.join(base, d, "manifest.json"))]
+
+
+def sync_installed_panel():
+    """Yangi panel fayllarini o'rnatilgan nusxaga ham ko'chiradi."""
+    src = os.path.join(_here, "..", "panel")
+    if not os.path.isdir(src):
+        return []
+    updated = []
+    for target in installed_panel_dirs():
+        try:
+            for name in os.listdir(src):
+                s = os.path.join(src, name)
+                if os.path.isfile(s):
+                    shutil.copy2(s, os.path.join(target, name))
+            updated.append(os.path.basename(target))
+        except OSError as e:
+            print(f"Panel nusxasini yangilab bo'lmadi ({target}): {e}")
+    return updated
+
+
 def do_update():
     root = repo_root()
     if not root:
@@ -106,7 +141,8 @@ def do_update():
     if code != 0:
         return {"ok": False, "error": "git pull xatosi: " + out[-400:]}
     _, current = git(root, "log", "-1", "--format=%h %cd", "--date=short")
-    return {"ok": True, "current": current, "log": out[-400:]}
+    return {"ok": True, "current": current, "log": out[-400:],
+            "panel_updated": sync_installed_panel()}
 
 
 class Handler(BaseHTTPRequestHandler):
