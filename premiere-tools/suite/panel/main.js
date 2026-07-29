@@ -173,6 +173,7 @@ async function doSync() {
     lastXml = j.output;
     renderFiles(j.clips);
     logLine("Tayyor ✓ — endi «Premiere'ga import» ni bosing", "okline");
+    logLine("Fayl: " + j.output);
     els.importBtn.disabled = false;
   } catch (e) {
     logLine("Xato: " + e.message, "warn");
@@ -190,7 +191,7 @@ async function doImport() {
     if (!project) throw new Error("Ochiq loyiha topilmadi");
     // importFiles(filePaths, suppressUI, targetBin, asNumberedStills) — 25.6+
     await project.importFiles([lastXml], true);
-    logLine("Sequence loyihaga qo'shildi ✓", "okline");
+    logLine("Sequence loyihaga qo'shildi ✓ — Project panelida qidiring", "okline");
   } catch (e) {
     // API mos kelmasa — qo'lda import yo'lini ko'rsatamiz
     logLine("Avtomatik import ishlamadi (" + e.message + ").", "warn");

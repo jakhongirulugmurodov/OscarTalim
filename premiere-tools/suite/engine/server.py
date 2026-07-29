@@ -16,7 +16,7 @@ Endpointlar:
 import json
 import os
 import sys
-import tempfile
+import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # autosync.py ni topish: repo tuzilishi (../../autosync) yoki tayyor paket (../autosync)
@@ -30,6 +30,16 @@ from autosync import run_sync, FFMPEG, FFPROBE
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
+
+# Natijalar paket ichidagi «natijalar» papkasiga tushadi — vaqtinchalik tizim
+# papkasida yo'qolib ketmasin, foydalanuvchi Finder'dan topa olsin.
+RESULTS_DIR = os.path.join(_here, "..", "natijalar")
+
+
+def default_output():
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    stamp = time.strftime("%Y-%m-%d_%H-%M")
+    return os.path.abspath(os.path.join(RESULTS_DIR, "sync_" + stamp + ".xml"))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -67,8 +77,7 @@ class Handler(BaseHTTPRequestHandler):
             if missing:
                 return self._send(400, {"error": f"Fayl topilmadi: {missing[0]}"})
 
-            output = req.get("output") or os.path.join(
-                tempfile.gettempdir(), "podcast-suite-sync.xml")
+            output = req.get("output") or default_output()
             logs = []
             result = run_sync(
                 files, output=output,
