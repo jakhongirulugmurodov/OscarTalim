@@ -37,6 +37,11 @@
     background-color: #E05656;
   }
   .motor.ok .led { background-color: #4CC38A; }
+  .motor .diag {
+    margin-left: auto; padding: 3px 9px; border-radius: 5px;
+    background-color: #2A2B31; color: #C9CAD2; font-size: 11px;
+  }
+  .motor.ok .diag { display: none; }
   .drop {
     border: 1.5px dashed #45464F; border-radius: 8px;
     padding: 16px; text-align: center; color: #8E909C;
@@ -89,6 +94,7 @@
     <div id="motor" class="motor">
       <span class="led"></span>
       <span id="motorTxt">Motor qidirilmoqda…</span>
+      <span class="diag" id="diagBtn">tekshirish</span>
     </div>
 
     <div class="drop" id="pick">

@@ -5,7 +5,11 @@
  * ko'rsatadi va tayyor XML'ni Premiere loyihasiga import qiladi.
  */
 
-const MOTOR = "http://127.0.0.1:8765";
+/* Motor manzili. UXP ba'zi holatlarda 127.0.0.1 ni bloklaydi, shuning uchun
+ * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
+const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
+let MOTOR = MOTOR_URLS[0];
+let lastMotorError = "";
 
 const uxp = require("uxp");
 const lfs = uxp.storage.localFileSystem;
@@ -19,6 +23,7 @@ const els = {
   syncBtn: document.getElementById("syncBtn"),
   importBtn: document.getElementById("importBtn"),
   hint: document.getElementById("hint"),
+  diagBtn: document.getElementById("diagBtn"),
 };
 
 let picked = [];   // [{name, path}]
@@ -27,19 +32,45 @@ let lastXml = null;
 /* ---------------------------------------------------- motor holati */
 
 async function checkMotor() {
-  try {
-    const r = await fetch(MOTOR + "/health");
-    const j = await r.json();
-    if (j.ok) {
-      els.motor.classList.add("ok");
-      els.motorTxt.textContent = "Motor ishlayapti (v" + j.version + ")";
-      return true;
+  const errors = [];
+  for (const base of MOTOR_URLS) {
+    try {
+      const r = await fetch(base + "/health");
+      const j = await r.json();
+      if (j.ok) {
+        MOTOR = base;
+        els.motor.classList.add("ok");
+        els.motorTxt.textContent = "Motor ishlayapti (v" + j.version + ")";
+        return true;
+      }
+    } catch (e) {
+      errors.push(base.replace("http://", "") + ": " + (e.message || e));
     }
-  } catch (e) { /* motor o'chiq */ }
+  }
+  lastMotorError = errors.join(" · ");
   els.motor.classList.remove("ok");
-  els.motorTxt.textContent =
-    "Motor topilmadi — engine papkasida «python3 server.py» ni ishga tushiring";
+  // Ruxsat xatosi va «motor o'chiq» — butunlay boshqa muammolar, ajratib ko'rsatamiz
+  const denied = /permission|denied|manifest/i.test(lastMotorError);
+  els.motorTxt.textContent = denied
+    ? "Motorga ruxsat berilmadi — panelni UDT'da Unload/Load qiling"
+    : "Motor topilmadi — motorni yoqing (motorni-yoqish.command)";
+  els.motorTxt.title = lastMotorError;
   return false;
+}
+
+/* Tashxis: aniq xato matnini log oynasida ko'rsatadi */
+async function showDiagnostics() {
+  els.log.innerHTML = "";
+  logLine("Tashxis:");
+  for (const base of MOTOR_URLS) {
+    try {
+      const r = await fetch(base + "/health");
+      const j = await r.json();
+      logLine("  " + base + " → OK, v" + j.version, "okline");
+    } catch (e) {
+      logLine("  " + base + " → " + (e.message || e), "warn");
+    }
+  }
 }
 
 /* ---------------------------------------------------- fayl tanlash */
@@ -161,6 +192,7 @@ async function doImport() {
 
 /* ---------------------------------------------------- ulanishlar */
 
+els.diagBtn.addEventListener("click", showDiagnostics);
 els.pick.addEventListener("click", pickFiles);
 els.syncBtn.addEventListener("click", doSync);
 els.importBtn.addEventListener("click", doImport);
