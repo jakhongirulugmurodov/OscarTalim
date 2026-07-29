@@ -3,15 +3,21 @@
 <head>
 <meta charset="utf-8">
 <style>
+  /* Panel har qanday balandlikda ishlashi kerak: tablar tepada, tugmalar
+     pastda qotib turadi, o'rtadagi maydon aylantiriladi. Aks holda panel
+     past bo'lsa tugmalarga yetib bo'lmaydi. */
+  html, body { height: 100%; }
   body {
     margin: 0; padding: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
     background-color: #191A1D; color: #D6D7DC;
     font-family: "Segoe UI", "SF Pro Text", sans-serif;
     font-size: 13px;
   }
   /* --- tablar --- */
   .tabs {
-    display: flex; gap: 2px;
+    display: flex; gap: 2px; flex: none;
     background-color: #212227;
     border-bottom: 1px solid #303138;
     padding: 0 8px;
@@ -25,7 +31,7 @@
   }
   .tab.soon { opacity: 0.45; }
   /* --- asosiy maydon --- */
-  .body { padding: 14px; }
+  .body { padding: 14px; flex: 1; overflow-y: auto; min-height: 0; }
   .motor {
     display: flex; align-items: center; gap: 8px;
     padding: 8px 12px; margin-bottom: 12px;
@@ -76,7 +82,11 @@
   .log.show { display: block; }
   .log .warn { color: #E5A44A; }
   .log .okline { color: #4CC38A; }
-  .foot { display: flex; gap: 10px; align-items: center; }
+  .foot {
+    display: flex; gap: 10px; align-items: center; flex: none;
+    flex-wrap: wrap; padding: 12px 14px;
+    background-color: #212227; border-top: 1px solid #303138;
+  }
   .btn {
     padding: 9px 16px; border-radius: 6px;
     border: 1px solid #45464F; background-color: #2A2B31;
@@ -143,13 +153,13 @@
     </div>
 
     <div class="log" id="log"></div>
+  </div>
 
-    <div class="foot">
-      <button class="btn primary" id="syncBtn" disabled>Sinxronlash</button>
-      <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
-      <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
-      <span class="hint" id="hint">0 fayl</span>
-    </div>
+  <div class="foot">
+    <button class="btn primary" id="syncBtn" disabled>Sinxronlash</button>
+    <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
+    <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
+    <span class="hint" id="hint">0 fayl</span>
   </div>
 
   <script src="main.js"></script>
