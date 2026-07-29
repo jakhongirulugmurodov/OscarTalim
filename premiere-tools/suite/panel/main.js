@@ -14,15 +14,21 @@ let lastMotorError = "";
 const uxp = require("uxp");
 const lfs = uxp.storage.localFileSystem;
 
+/* Element topilmasa — bo'sh o'rinbosar qaytadi, shunda panel hech qachon
+ * qulamaydi (masalan index.html eski versiyada qolib ketgan bo'lsa ham). */
+function el(id) {
+  return document.getElementById(id) || document.createElement("div");
+}
+
 const els = {
-  motor: document.getElementById("motor"),
-  motorTxt: document.getElementById("motorTxt"),
-  pick: document.getElementById("pick"),
-  files: document.getElementById("files"),
-  log: document.getElementById("log"),
-  syncBtn: document.getElementById("syncBtn"),
-  importBtn: document.getElementById("importBtn"),
-  hint: document.getElementById("hint"),
+  motor: el("motor"),
+  motorTxt: el("motorTxt"),
+  pick: el("pick"),
+  files: el("files"),
+  log: el("log"),
+  syncBtn: el("syncBtn"),
+  importBtn: el("importBtn"),
+  hint: el("hint"),
   diagBtn: document.getElementById("diagBtn"),
 };
 
@@ -192,10 +198,14 @@ async function doImport() {
 
 /* ---------------------------------------------------- ulanishlar */
 
-els.diagBtn.addEventListener("click", showDiagnostics);
-els.pick.addEventListener("click", pickFiles);
-els.syncBtn.addEventListener("click", doSync);
-els.importBtn.addEventListener("click", doImport);
+/* Element topilmasa ham panel qulamasin — eski index.html bilan ham ochilaveradi */
+function on(el, fn) {
+  if (el) el.addEventListener("click", fn);
+}
+on(els.diagBtn, showDiagnostics);
+on(els.pick, pickFiles);
+on(els.syncBtn, doSync);
+on(els.importBtn, doImport);
 
 checkMotor();
 setInterval(checkMotor, 5000);
