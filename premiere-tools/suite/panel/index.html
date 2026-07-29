@@ -42,6 +42,12 @@
     background-color: #2A2B31; color: #C9CAD2; font-size: 11px;
   }
   .motor.ok .diag { display: none; }
+  .motor .upd {
+    display: none; margin-left: 8px; padding: 3px 10px; border-radius: 5px;
+    background-color: #3BB8C9; color: #06272C; font-size: 11px; font-weight: 700;
+  }
+  .motor.hasupd .upd { display: inline-block; }
+  .motor.ok .upd { margin-left: auto; }
   .drop {
     border: 1.5px dashed #45464F; border-radius: 8px;
     padding: 16px; text-align: center; color: #8E909C;
@@ -97,6 +103,7 @@
       <span class="led"></span>
       <span id="motorTxt">Motor qidirilmoqda…</span>
       <span class="diag" id="diagBtn">tekshirish</span>
+      <span class="upd" id="updBtn">Yangilash</span>
     </div>
 
     <div class="drop" id="pick">

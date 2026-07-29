@@ -30,6 +30,7 @@ const els = {
   importBtn: el("importBtn"),
   hint: el("hint"),
   diagBtn: document.getElementById("diagBtn"),
+  updBtn: el("updBtn"),
 };
 
 let picked = [];   // [{name, path}]
@@ -64,6 +65,46 @@ async function checkMotor() {
     : "Motor topilmadi — motorni yoqing (motorni-yoqish.command)";
   els.motorTxt.title = lastMotorError;
   return false;
+}
+
+/* ------------------------------------------------- yangilanish tekshiruvi */
+
+async function checkUpdates() {
+  try {
+    const r = await fetch(MOTOR + "/version");
+    const j = await r.json();
+    if (j.git && j.updates > 0) {
+      els.motor.classList.add("hasupd");
+      els.updBtn.textContent = "Yangilash (" + j.updates + ")";
+    } else {
+      els.motor.classList.remove("hasupd");
+    }
+  } catch (e) { /* motor o'chiq — indikator o'zi aytadi */ }
+}
+
+async function doUpdate() {
+  els.log.innerHTML = "";
+  logLine("Yangilanish yuklanmoqda…");
+  try {
+    const r = await fetch(MOTOR + "/update", { method: "POST" });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "yangilanmadi");
+    logLine("Yangilandi: " + j.current, "okline");
+    logLine("Motor qayta ishga tushmoqda…");
+    els.motor.classList.remove("hasupd");
+    // Motor qaytishini kutamiz, so'ng panelni yangi kod bilan qayta ochamiz
+    for (let i = 0; i < 20; i++) {
+      await new Promise((res) => setTimeout(res, 1000));
+      if (await checkMotor()) {
+        logLine("Tayyor ✓ Panel yangilanmoqda…", "okline");
+        setTimeout(() => location.reload(), 800);
+        return;
+      }
+    }
+    logLine("Motor qaytmadi — motorni-yoqish.command ni ishlating", "warn");
+  } catch (e) {
+    logLine("Xato: " + e.message, "warn");
+  }
 }
 
 /* Tashxis: aniq xato matnini log oynasida ko'rsatadi */
@@ -208,10 +249,12 @@ function on(el, fn) {
   if (el) el.addEventListener("click", fn);
 }
 on(els.diagBtn, showDiagnostics);
+on(els.updBtn, doUpdate);
 on(els.pick, pickFiles);
 on(els.syncBtn, doSync);
 on(els.importBtn, doImport);
 
-checkMotor();
+checkMotor().then(function (ok) { if (ok) checkUpdates(); });
 setInterval(checkMotor, 5000);
+setInterval(checkUpdates, 10 * 60 * 1000);   // har 10 daqiqada bir tekshiradi
 renderFiles();

@@ -15,7 +15,9 @@ Endpointlar:
 
 import json
 import os
+import subprocess
 import sys
+import threading
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -42,6 +44,57 @@ def default_output():
     return os.path.abspath(os.path.join(RESULTS_DIR, "sync_" + stamp + ".xml"))
 
 
+# ------------------------------------------------------------- yangilanish
+
+def repo_root():
+    """Papka git klonimi? Bo'lsa — ildizini qaytaradi."""
+    path = os.path.abspath(_here)
+    for _ in range(6):
+        if os.path.isdir(os.path.join(path, ".git")):
+            return path
+        parent = os.path.dirname(path)
+        if parent == path:
+            break
+        path = parent
+    return None
+
+
+def git(root, *args, timeout=60):
+    out = subprocess.run(["git", "-C", root, *args],
+                         capture_output=True, text=True, timeout=timeout)
+    return out.returncode, (out.stdout + out.stderr).strip()
+
+
+def version_info():
+    """Hozirgi versiya va yangilanish bor-yo'qligi."""
+    root = repo_root()
+    if not root:
+        return {"git": False,
+                "note": "Papka git klon emas — yangilanish tugmasi ishlamaydi"}
+
+    _, current = git(root, "log", "-1", "--format=%h %cd", "--date=short")
+    code, _ = git(root, "fetch", "--quiet", "origin")
+    behind = 0
+    if code == 0:
+        _, branch = git(root, "rev-parse", "--abbrev-ref", "HEAD")
+        c, count = git(root, "rev-list", "--count", f"HEAD..origin/{branch}")
+        if c == 0 and count.isdigit():
+            behind = int(count)
+    return {"git": True, "current": current, "updates": behind}
+
+
+def do_update():
+    root = repo_root()
+    if not root:
+        return {"ok": False, "error": "Papka git klon emas. Yangilash uchun "
+                                      "ORNATISH.command orqali o'rnating."}
+    code, out = git(root, "pull", "--ff-only", timeout=180)
+    if code != 0:
+        return {"ok": False, "error": "git pull xatosi: " + out[-400:]}
+    _, current = git(root, "log", "-1", "--format=%h %cd", "--date=short")
+    return {"ok": True, "current": current, "log": out[-400:]}
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -60,10 +113,23 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION, "modules": ["sync"],
                              "ffmpeg": bool(FFMPEG and FFPROBE)})
+        elif self.path == "/version":
+            try:
+                self._send(200, version_info())
+            except Exception as e:
+                self._send(200, {"git": False, "note": str(e)})
         else:
             self._send(404, {"error": "Bunday endpoint yo'q"})
 
     def do_POST(self):
+        if self.path == "/update":
+            result = do_update()
+            self._send(200, result)
+            if result.get("ok"):
+                # Yangi kod bilan qayta yonishi uchun chiqamiz — launchd
+                # (DOIMIY-ORNATISH.command o'rnatgan) motorni o'zi ko'taradi.
+                threading.Timer(0.5, lambda: os._exit(0)).start()
+            return
         if self.path != "/sync":
             return self._send(404, {"error": "Bunday endpoint yo'q"})
         try:
