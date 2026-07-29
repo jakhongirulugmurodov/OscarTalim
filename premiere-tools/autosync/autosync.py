@@ -244,18 +244,25 @@ def file_xml(clip, file_id, timebase, ntsc, full=True):
     return "\n".join(lines)
 
 
-def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use):
-    cid = f"clipitem-{media_type}-{idx}"
+def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg, seg_no=0):
+    """Timeline'dagi bitta bo'lak.
+
+    `seg` — {start, in, out} (freymlarda): klip timeline'ning qayeriga
+    tushishi va manba faylning qaysi qismidan olinishi. Sinxronlashda bitta
+    bo'lak bo'ladi, kesishda esa pauzalar olib tashlangani uchun bir nechta.
+    """
+    cid = f"clipitem-{media_type}-{idx}-{seg_no}"
     file_id = f"file-{idx}"
+    length = seg["out"] - seg["in"]
     lines = [f'\t\t\t\t\t<clipitem id="{cid}">',
              f"\t\t\t\t\t\t<name>{escape(clip['name'])}</name>",
              "\t\t\t\t\t\t<enabled>TRUE</enabled>",
              f"\t\t\t\t\t\t<duration>{clip['dur_frames']}</duration>",
              rate_xml(timebase, ntsc, 6).replace(" " * 6, "\t" * 6),
-             f"\t\t\t\t\t\t<start>{clip['start_frame']}</start>",
-             f"\t\t\t\t\t\t<end>{clip['start_frame'] + clip['dur_frames']}</end>",
-             "\t\t\t\t\t\t<in>0</in>",
-             f"\t\t\t\t\t\t<out>{clip['dur_frames']}</out>",
+             f"\t\t\t\t\t\t<start>{seg['start']}</start>",
+             f"\t\t\t\t\t\t<end>{seg['start'] + length}</end>",
+             f"\t\t\t\t\t\t<in>{seg['in']}</in>",
+             f"\t\t\t\t\t\t<out>{seg['out']}</out>",
              file_xml(clip, file_id, timebase, ntsc, full=first_use)]
     if media_type == "audio":
         lines += ["\t\t\t\t\t\t<sourcetrack>",
@@ -267,22 +274,30 @@ def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use):
 
 
 def build_xml(clips, seq_name, timebase, ntsc, width, height):
-    total = max(c["start_frame"] + c["dur_frames"] for c in clips)
+    """Sequence XML. Har klipda `segments` bo'lmasa — butun fayl bitta bo'lak."""
+    for clip in clips:
+        if not clip.get("segments"):
+            clip["segments"] = [{"start": clip["start_frame"], "in": 0,
+                                 "out": clip["dur_frames"]}]
+
+    total = max(s["start"] + (s["out"] - s["in"])
+                for c in clips for s in c["segments"])
 
     video_tracks, audio_tracks = [], []
     for i, clip in enumerate(clips, start=1):
+        segs = clip["segments"]
         # <file> to'liq tavsifi birinchi ishlatilgan joyda yoziladi
         if clip["has_video"]:
-            video_tracks.append(
-                "\t\t\t\t<track>\n"
-                + clipitem_xml(clip, i, "video", timebase, ntsc, True)
-                + "\n\t\t\t\t</track>")
+            items = [clipitem_xml(clip, i, "video", timebase, ntsc, n == 0, s, n)
+                     for n, s in enumerate(segs)]
+            video_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
+                                + "\n\t\t\t\t</track>")
         if clip["has_audio"]:
-            audio_tracks.append(
-                "\t\t\t\t<track>\n"
-                + clipitem_xml(clip, i, "audio", timebase, ntsc,
-                               not clip["has_video"])
-                + "\n\t\t\t\t</track>")
+            items = [clipitem_xml(clip, i, "audio", timebase, ntsc,
+                                  n == 0 and not clip["has_video"], s, n)
+                     for n, s in enumerate(segs)]
+            audio_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
+                                + "\n\t\t\t\t</track>")
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xmeml>

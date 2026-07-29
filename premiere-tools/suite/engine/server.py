@@ -27,9 +27,10 @@ _here = os.path.dirname(os.path.abspath(__file__))
 for _cand in (os.path.join(_here, "..", "..", "autosync"),
               os.path.join(_here, "..", "autosync")):
     if os.path.isfile(os.path.join(_cand, "autosync.py")):
-        sys.path.insert(0, _cand)
+        sys.path.insert(0, os.path.abspath(_cand))
         break
 from autosync import run_sync, FFMPEG, FFPROBE
+from cut import run_cut
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -40,7 +41,7 @@ PLUGIN_ID = "uz.oscartalim.podcastsuite"
 RESULTS_DIR = os.path.join(_here, "..", "natijalar")
 
 
-def default_output(files=None):
+def default_output(files=None, kind="Sync"):
     """Natija fayl qayerga saqlansin.
 
     Eng qulayi — materiallar turgan papka: montajchi uni izlab yurmaydi va
@@ -49,7 +50,7 @@ def default_output(files=None):
     tushadi.
     """
     stamp = time.strftime("%Y-%m-%d_%H-%M")
-    fname = "PodcastSuite_Sync_" + stamp + ".xml"
+    fname = f"PodcastSuite_{kind}_{stamp}.xml"
 
     if files:
         media_dir = os.path.dirname(os.path.abspath(files[0]))
@@ -161,7 +162,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self._send(200, {"ok": True, "version": VERSION, "modules": ["sync"],
+            self._send(200, {"ok": True, "version": VERSION,
+                             "modules": ["sync", "cut"],
                              "ffmpeg": bool(FFMPEG and FFPROBE)})
         elif self.path == "/version":
             try:
@@ -180,26 +182,38 @@ class Handler(BaseHTTPRequestHandler):
                 # (DOIMIY-ORNATISH.command o'rnatgan) motorni o'zi ko'taradi.
                 threading.Timer(0.5, lambda: os._exit(0)).start()
             return
-        if self.path != "/sync":
+        if self.path not in ("/sync", "/cut"):
             return self._send(404, {"error": "Bunday endpoint yo'q"})
         try:
             length = int(self.headers.get("Content-Length", 0))
             req = json.loads(self.rfile.read(length) or b"{}")
 
             files = req.get("files") or []
-            if len(files) < 2:
-                return self._send(400, {"error": "Kamida 2 ta fayl kerak"})
+            least = 1 if self.path == "/cut" else 2
+            if len(files) < least:
+                return self._send(400, {"error": f"Kamida {least} ta fayl kerak"})
             missing = [f for f in files if not os.path.isfile(f)]
             if missing:
                 return self._send(400, {"error": f"Fayl topilmadi: {missing[0]}"})
 
-            output = req.get("output") or default_output(files)
+            kind = "Cut" if self.path == "/cut" else "Sync"
+            output = req.get("output") or default_output(files, kind)
             logs = []
-            result = run_sync(
-                files, output=output,
-                name=req.get("name") or "AutoSync Sequence",
-                minutes=float(req.get("minutes", 20)),
-                log=lambda m: (logs.append(m), print(m)))
+            record = lambda m: (logs.append(m), print(m))
+
+            if self.path == "/cut":
+                result = run_cut(
+                    files, output=output,
+                    name=req.get("name") or "Podcast Suite — Cut",
+                    threshold=float(req.get("threshold", 0.18)),
+                    min_pause=float(req.get("min_pause", 0.7)),
+                    padding=float(req.get("padding", 0.12)),
+                    log=record)
+            else:
+                result = run_sync(
+                    files, output=output,
+                    name=req.get("name") or "Podcast Suite — Sync",
+                    log=record)
             result["logs"] = logs
             self._send(200, result)
         except RuntimeError as e:

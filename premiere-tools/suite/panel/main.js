@@ -1,4 +1,4 @@
-/* Podcast Suite — panel mantiqi (1-bosqich: Sync moduli).
+/* Podcast Suite — panel mantiqi (Sync va Cut modullari).
  *
  * Panel o'zi hech qanday og'ir ish qilmaydi: fayllarni tanlatadi,
  * lokal motorga (server.py, 127.0.0.1:8765) yuboradi, natijani
@@ -27,6 +27,7 @@ const els = {
   files: el("files"),
   log: el("log"),
   syncBtn: el("syncBtn"),
+  cutBtn: el("cutBtn"),
   importBtn: el("importBtn"),
   hint: el("hint"),
   diagBtn: document.getElementById("diagBtn"),
@@ -176,7 +177,47 @@ function renderFiles(results) {
     els.files.appendChild(row);
   }
   els.hint.textContent = picked.length + " fayl";
-  els.syncBtn.disabled = picked.length < 2;
+  updateRunButtons();
+}
+
+/* ------------------------------------------------------------ tablar */
+
+let activeTab = "sync";
+
+function setupTabs() {
+  const tabs = document.querySelectorAll(".tab[data-tab]");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      activeTab = tab.dataset.tab;
+      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("on"));
+      tab.classList.add("on");
+      document.body.className = "tab-" + activeTab;
+      lastXml = null;
+      els.importBtn.disabled = true;
+      els.log.innerHTML = "";
+      els.log.classList.remove("show");
+      renderFiles();
+    });
+  });
+}
+
+/* Cut sozlamalari — slayderlar qiymatini ko'rsatib turadi */
+const knobs = {
+  threshold: { el: el("kThreshold"), out: el("vThreshold"),
+               fmt: (v) => (v / 100).toFixed(2), val: (v) => v / 100 },
+  minPause: { el: el("kMinPause"), out: el("vMinPause"),
+              fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
+  padding: { el: el("kPadding"), out: el("vPadding"),
+             fmt: (v) => v * 10 + " ms", val: (v) => v / 100 },
+};
+
+function setupKnobs() {
+  Object.values(knobs).forEach((k) => {
+    if (!k.el.addEventListener) return;
+    const show = () => { k.out.textContent = k.fmt(+k.el.value); };
+    k.el.addEventListener("input", show);
+    show();
+  });
 }
 
 /* ---------------------------------------------------- sinxronlash */
@@ -190,22 +231,31 @@ function logLine(text, cls) {
   els.log.scrollTop = els.log.scrollHeight;
 }
 
-async function doSync() {
+async function run(kind) {
   if (!(await checkMotor())) return;
 
+  const isCut = kind === "cut";
   els.log.innerHTML = "";
   els.syncBtn.disabled = true;
+  els.cutBtn.disabled = true;
   els.importBtn.disabled = true;
-  logLine("Sinxronlash boshlandi…");
+  logLine(isCut ? "Pauzalar qidirilmoqda…" : "Sinxronlash boshlandi…");
+
+  const body = {
+    files: picked.map((p) => p.path),
+    name: isCut ? "Podcast Suite — Cut" : "Podcast Suite — Sync",
+  };
+  if (isCut) {
+    body.threshold = knobs.threshold.val(+knobs.threshold.el.value);
+    body.min_pause = knobs.minPause.val(+knobs.minPause.el.value);
+    body.padding = knobs.padding.val(+knobs.padding.el.value);
+  }
 
   try {
-    const r = await fetch(MOTOR + "/sync", {
+    const r = await fetch(MOTOR + "/" + kind, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        files: picked.map((p) => p.path),
-        name: "Podcast Suite — Sync",
-      }),
+      body: JSON.stringify(body),
     });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Motor xatosi");
@@ -214,14 +264,26 @@ async function doSync() {
       logLine(line, line.indexOf("OGOHLANTIRISH") >= 0 ? "warn" : null);
     }
     lastXml = j.output;
-    renderFiles(j.clips);
+    if (isCut) {
+      const mins = (s) => Math.floor(s / 60) + " daq " + Math.round(s % 60) + " s";
+      logLine(j.pauses.length + " pauza kesildi — " + mins(j.saved_sec) +
+              " qisqardi", "okline");
+      logLine("Uzunlik: " + mins(j.total_sec) + " → " + mins(j.new_length_sec));
+    } else {
+      renderFiles(j.clips);
+    }
     logLine("Tayyor ✓ — endi «Premiere'ga import» ni bosing", "okline");
     logLine("Fayl: " + j.output);
     els.importBtn.disabled = false;
   } catch (e) {
     logLine("Xato: " + e.message, "warn");
   }
+  updateRunButtons();
+}
+
+function updateRunButtons() {
   els.syncBtn.disabled = picked.length < 2;
+  els.cutBtn.disabled = picked.length < 1;
 }
 
 /* ------------------------------------------- Premiere'ga import */
@@ -272,9 +334,13 @@ function on(el, fn) {
 on(els.diagBtn, showDiagnostics);
 on(els.updBtn, doUpdate);
 on(els.pick, pickFiles);
-on(els.syncBtn, doSync);
+on(els.syncBtn, function () { run("sync"); });
+on(els.cutBtn, function () { run("cut"); });
 on(els.importBtn, doImport);
 
+setupTabs();
+setupKnobs();
+document.body.className = "tab-sync";
 checkMotor().then(function (ok) { if (ok) checkUpdates(); });
 setInterval(checkMotor, 5000);
 setInterval(checkUpdates, 10 * 60 * 1000);   // har 10 daqiqada bir tekshiradi
