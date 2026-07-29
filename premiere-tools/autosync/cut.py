@@ -30,8 +30,10 @@ DEFAULT_PADDING = 0.12     # gap chetlaridan qoldiriladigan zaxira (soniya)
 def speech_mask(clips, total_bins, threshold):
     """Har bin uchun: shu lahzada kimdir gapiryaptimi?
 
-    Har fayl o'z siljishi bilan umumiy timeline'ga joylashtiriladi va
-    energiyalarning eng kattasi olinadi — ya'ni bittasi gapirsa yetarli.
+    Har klip timeline'dagi o'z joyiga qo'yiladi va energiyalarning eng
+    kattasi olinadi — ya'ni bittasi gapirsa, bu pauza emas. Timeline'da
+    klip bir necha marta turgan bo'lsa (montaj bo'lingan bo'lsa), har
+    bo'lagi alohida hisobga olinadi.
     """
     loudest = np.zeros(total_bins)
     for clip in clips:
@@ -41,10 +43,15 @@ def speech_mask(clips, total_bins, threshold):
         peak = np.percentile(e, 99) or 1.0
         e = np.clip(e / peak, 0, 1)
 
-        start = int(round(clip["rel_offset"] * ENV_RATE))
-        end = min(total_bins, start + len(e))
-        if end > start:
-            loudest[start:end] = np.maximum(loudest[start:end], e[:end - start])
+        for place in clip["placements"]:
+            src_a = int(round(place["in"] * ENV_RATE))
+            src_b = min(len(e), int(round(place["out"] * ENV_RATE)))
+            start = int(round(place["start"] * ENV_RATE))
+            piece = e[src_a:src_b]
+            end = min(total_bins, start + len(piece))
+            if end > start:
+                loudest[start:end] = np.maximum(loudest[start:end],
+                                                piece[:end - start])
     return loudest >= threshold
 
 
@@ -91,8 +98,18 @@ def keep_segments(pauses, total_sec):
 
 def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
             threshold=DEFAULT_THRESHOLD, min_pause=DEFAULT_MIN_PAUSE,
-            padding=DEFAULT_PADDING, log=print):
-    """Sinxronlash + pauzalarni kesish. Natija: JSON'ga tayyor dict."""
+            padding=DEFAULT_PADDING, timeline=None, log=print):
+    """Pauzalarni kesish.
+
+    Ikki rejim bor:
+      * `timeline` berilsa — Premiere'dagi tayyor sequence'ning joylashuvi
+        ishlatiladi (qayta sinxronlamaymiz, sizning montajingizga tegmaymiz);
+      * berilmasa — fayllar avval o'zaro sinxronlanadi, keyin kesiladi.
+    """
+    from_timeline = bool(timeline)
+    if from_timeline:
+        files = list(dict.fromkeys(c["path"] for c in timeline))
+
     log("Fayllar tahlil qilinmoqda...")
     clips = []
     for f in files:
@@ -107,25 +124,46 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     if not clips:
         raise RuntimeError("Audioli fayl topilmadi.")
 
-    # --- 1. Sinxronlash (bitta fayl bo'lsa — shart emas) ---
-    ref = max(clips, key=lambda c: len(c["envelope"]))
-    for clip in clips:
-        if clip is ref or len(clips) == 1:
-            clip["offset_sec"], clip["confidence"], clip["reliable"] = 0.0, None, True
-            continue
-        offset, conf = find_offset(ref["envelope"], clip["envelope"])
-        clip["confidence"] = conf
-        clip["reliable"] = conf >= MIN_CONFIDENCE
-        clip["offset_sec"] = offset if clip["reliable"] else 0.0
-        if not clip["reliable"]:
-            log(f"  OGOHLANTIRISH: {clip['name']} — mos joy topilmadi "
-                f"(ishonch {conf:.1f}x), boshiga qo'yildi")
+    if from_timeline:
+        # Sequence'dagi joylashuvni o'z holicha olamiz
+        by_path = {c["path"]: c for c in clips}
+        for c in clips:
+            c["placements"] = []
+            c["confidence"], c["reliable"] = None, True
+        for item in timeline:
+            clip = by_path.get(item["path"])
+            if clip:
+                clip["placements"].append(
+                    {"start": float(item["start"]), "in": float(item["in"]),
+                     "out": float(item["out"])})
+        clips = [c for c in clips if c["placements"]]
+        for c in clips:
+            c["rel_offset"] = min(p["start"] - p["in"] for p in c["placements"])
+        log(f"Sequence'dan {sum(len(c['placements']) for c in clips)} ta klip olindi")
+    else:
+        # --- Sinxronlash (bitta fayl bo'lsa — shart emas) ---
+        ref = max(clips, key=lambda c: len(c["envelope"]))
+        for clip in clips:
+            if clip is ref or len(clips) == 1:
+                clip["offset_sec"] = 0.0
+                clip["confidence"], clip["reliable"] = None, True
+                continue
+            offset, conf = find_offset(ref["envelope"], clip["envelope"])
+            clip["confidence"] = conf
+            clip["reliable"] = conf >= MIN_CONFIDENCE
+            clip["offset_sec"] = offset if clip["reliable"] else 0.0
+            if not clip["reliable"]:
+                log(f"  OGOHLANTIRISH: {clip['name']} — mos joy topilmadi "
+                    f"(ishonch {conf:.1f}x), boshiga qo'yildi")
 
-    base = min(c["offset_sec"] for c in clips)
-    for clip in clips:
-        clip["rel_offset"] = clip["offset_sec"] - base
+        base = min(c["offset_sec"] for c in clips)
+        for clip in clips:
+            clip["rel_offset"] = clip["offset_sec"] - base
+            clip["placements"] = [{"start": clip["rel_offset"], "in": 0.0,
+                                   "out": clip["duration"]}]
 
-    total_sec = max(c["rel_offset"] + c["duration"] for c in clips)
+    total_sec = max(p["start"] + (p["out"] - p["in"])
+                    for c in clips for p in c["placements"])
     total_bins = int(round(total_sec * ENV_RATE)) + 1
 
     # --- 2. Pauzalarni topish ---
@@ -161,19 +199,22 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     for clip in clips:
         clip["dur_frames"] = int(round(clip["duration"] * fps))
         clip["start_frame"] = int(round(clip["rel_offset"] * fps))
-        off_f = clip["start_frame"]
         clip["segments"] = []
-        for a_f, b_f, tl_f in keeps_f:
-            # bo'lakning shu klipga tegishli qismi
-            clip_a = max(a_f, off_f)
-            clip_b = min(b_f, off_f + clip["dur_frames"])
-            if clip_b > clip_a:
-                src_in = clip_a - off_f
-                clip["segments"].append({
-                    "start": tl_f + (clip_a - a_f),
-                    "in": src_in,
-                    "out": src_in + (clip_b - clip_a),
-                })
+        for place in clip["placements"]:
+            p_start = int(round(place["start"] * fps))
+            p_in = int(round(place["in"] * fps))
+            p_out = int(round(place["out"] * fps))
+            for a_f, b_f, tl_f in keeps_f:
+                # bo'lakning shu joylashuvga tegishli qismi
+                clip_a = max(a_f, p_start)
+                clip_b = min(b_f, p_start + (p_out - p_in))
+                if clip_b > clip_a:
+                    src_in = p_in + (clip_a - p_start)
+                    clip["segments"].append({
+                        "start": tl_f + (clip_a - a_f),
+                        "in": src_in,
+                        "out": src_in + (clip_b - clip_a),
+                    })
         if not clip["segments"]:
             log(f"  {clip['name']}: butunlay kesildi — o'tkazib yuborildi")
 

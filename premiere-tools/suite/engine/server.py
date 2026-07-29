@@ -185,6 +185,9 @@ class Handler(BaseHTTPRequestHandler):
             req = json.loads(self.rfile.read(length) or b"{}")
 
             files = req.get("files") or []
+            seq_timeline = req.get("timeline") if self.path == "/cut" else None
+            if seq_timeline:
+                files = list(dict.fromkeys(c["path"] for c in seq_timeline))
             least = 1 if self.path == "/cut" else 2
             if len(files) < least:
                 return self._send(400, {"error": f"Kamida {least} ta fayl kerak"})
@@ -204,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
                     threshold=float(req.get("threshold", 0.18)),
                     min_pause=float(req.get("min_pause", 0.7)),
                     padding=float(req.get("padding", 0.12)),
-                    log=record)
+                    timeline=seq_timeline, log=record)
             else:
                 result = run_sync(
                     files, output=output,

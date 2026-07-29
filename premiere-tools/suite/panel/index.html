@@ -100,6 +100,14 @@
   /* Cut sozlamalari — faqat Cut tabida ko'rinadi */
   .knobs { display: none; margin-bottom: 12px; }
   body.tab-cut .knobs { display: block; }
+  .seqpick { display: none; }
+  body.tab-cut .seqpick {
+    display: block; text-align: center; margin-bottom: 12px;
+    padding: 11px; border-radius: 8px;
+    border: 1px solid #6A4A18; background-color: #221C11;
+  }
+  .seqpick b { display: block; color: #E5A44A; }
+  .seqpick span { color: #8E909C; font-size: 12px; }
   body.tab-cut #syncBtn, body:not(.tab-cut) #cutBtn { display: none; }
   .knobs label {
     display: flex; align-items: center; gap: 10px;
@@ -136,6 +144,11 @@
     </div>
 
     <div class="files" id="files"></div>
+
+    <div class="seqpick" id="seqBtn">
+      <b>Ochiq sequence'ni olish</b>
+      <span>montajingiz saqlanadi — faqat pauzalar kesiladi</span>
+    </div>
 
     <div class="knobs" id="cutKnobs">
       <label>Jimlik chegarasi

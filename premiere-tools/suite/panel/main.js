@@ -28,6 +28,7 @@ const els = {
   log: el("log"),
   syncBtn: el("syncBtn"),
   cutBtn: el("cutBtn"),
+  seqBtn: el("seqBtn"),
   importBtn: el("importBtn"),
   hint: el("hint"),
   diagBtn: document.getElementById("diagBtn"),
@@ -129,6 +130,7 @@ async function pickFiles() {
   const files = await lfs.getFileForOpening({ allowMultiple: true });
   if (!files) return;
   const list = Array.isArray(files) ? files : [files];
+  timeline = null;   // qo'lda tanlansa — sequence rejimidan chiqamiz
   for (const f of list) {
     if (f && f.nativePath && !picked.some((p) => p.path === f.nativePath)) {
       picked.push({ name: f.name, path: f.nativePath });
@@ -193,6 +195,7 @@ function setupTabs() {
       tab.classList.add("on");
       document.body.className = "tab-" + activeTab;
       lastXml = null;
+      timeline = null;
       els.importBtn.disabled = true;
       els.log.innerHTML = "";
       els.log.classList.remove("show");
@@ -218,6 +221,82 @@ function setupKnobs() {
     k.el.addEventListener("input", show);
     show();
   });
+}
+
+/* ------------------------------------- ochiq sequence'ni o'qish (Cut) */
+
+let timeline = null;   // [{path, start, in, out}] yoki null
+
+/* TickTime → soniya. API versiyalari turlicha nom ishlatadi, shuning
+ * uchun uchala yo'lni ham sinab ko'ramiz (oxirgisi — xom tiklar). */
+const TICKS_PER_SECOND = 254016000000;
+function secs(t) {
+  if (t == null) return 0;
+  if (typeof t.seconds === "number") return t.seconds;
+  if (typeof t.getSeconds === "function") return t.getSeconds();
+  if (t.ticks != null) return Number(t.ticks) / TICKS_PER_SECOND;
+  return Number(t) || 0;
+}
+
+async function readSequence() {
+  els.log.innerHTML = "";
+  logLine("Ochiq sequence o'qilmoqda…");
+  try {
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    const seq = project && (await project.getActiveSequence());
+    if (!seq) throw new Error("Ochiq sequence topilmadi — timeline'ni oching");
+
+    const items = [];
+    const vCount = await seq.getVideoTrackCount();
+    const aCount = await seq.getAudioTrackCount();
+    const clipType = ppro.Constants.TrackItemType.Clip;
+
+    for (let i = 0; i < vCount + aCount; i++) {
+      const track = i < vCount
+        ? await seq.getVideoTrack(i)
+        : await seq.getAudioTrack(i - vCount);
+      const trackItems = await track.getTrackItems(clipType, false);
+      for (const it of trackItems) {
+        const pItem = await it.getProjectItem();
+        const path = pItem && (await pItem.getMediaFilePath());
+        if (!path) continue;
+        const inP = secs(await it.getInPoint());
+        items.push({
+          path: path,
+          start: secs(await it.getStartTime()),
+          in: inP,
+          out: inP + (secs(await it.getEndTime()) - secs(await it.getStartTime())),
+        });
+      }
+    }
+
+    if (!items.length) throw new Error("Sequence'da klip topilmadi");
+
+    // Bir xil fayl video va audio trekda takrorlanadi — dublikatlarni olib tashlaymiz
+    const seen = new Set();
+    timeline = items.filter((it) => {
+      const key = it.path + "|" + it.start.toFixed(3) + "|" + it.in.toFixed(3);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    picked = [];
+    const names = new Set();
+    for (const it of timeline) {
+      const nm = it.path.split("/").pop();
+      if (!names.has(nm)) { names.add(nm); picked.push({ name: nm, path: it.path }); }
+    }
+    renderFiles();
+    logLine("Sequence olindi: " + timeline.length + " klip, " +
+            picked.length + " fayl ✓", "okline");
+    logLine("Endi «Pauzalarni kesish» ni bosing — montajingiz saqlanadi");
+  } catch (e) {
+    timeline = null;
+    logLine("Sequence o'qilmadi: " + e.message, "warn");
+    logLine("Fayllarni qo'lda tanlashingiz mumkin — natija bir xil bo'ladi");
+  }
 }
 
 /* ---------------------------------------------------- sinxronlash */
@@ -246,6 +325,7 @@ async function run(kind) {
     name: isCut ? "Podcast Suite — Cut" : "Podcast Suite — Sync",
   };
   if (isCut) {
+    if (timeline) body.timeline = timeline;
     body.threshold = knobs.threshold.val(+knobs.threshold.el.value);
     body.min_pause = knobs.minPause.val(+knobs.minPause.el.value);
     body.padding = knobs.padding.val(+knobs.padding.el.value);
@@ -336,6 +416,7 @@ on(els.updBtn, doUpdate);
 on(els.pick, pickFiles);
 on(els.syncBtn, function () { run("sync"); });
 on(els.cutBtn, function () { run("cut"); });
+on(els.seqBtn, readSequence);
 on(els.importBtn, doImport);
 
 setupTabs();
