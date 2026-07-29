@@ -19,7 +19,7 @@ import subprocess
 import sys
 import threading
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 # autosync.py ni topish: repo tuzilishi (../../autosync) yoki tayyor paket (../autosync)
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +31,8 @@ for _cand in (os.path.join(_here, "..", "..", "autosync"),
 from autosync import run_sync, FFMPEG, FFPROBE
 from cut import run_cut
 from switch import run_switch
-from captions import run_captions, search_archive, find_whisper
+from captions import (run_captions, search_archive, find_whisper,
+                      have_model, MODELS)
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -40,6 +41,21 @@ PLUGIN_ID = "uz.oscartalim.podcastsuite"
 # Natijalar paket ichidagi «natijalar» papkasiga tushadi — vaqtinchalik tizim
 # papkasida yo'qolib ketmasin, foydalanuvchi Finder'dan topa olsin.
 RESULTS_DIR = os.path.join(_here, "..", "natijalar")
+
+# Ish jarayonidagi xabarlar. Uzun ishlarda (model yuklash, transkripsiya)
+# javob oxirida kelgani uchun panel jim turardi va «osilib qoldi» degan
+# taassurot berardi. Endi panel shu ro'yxatni har necha soniyada o'qiydi.
+PROGRESS = {"busy": False, "job": "", "lines": [], "started": 0.0}
+
+
+def progress_start(job):
+    PROGRESS.update(busy=True, job=job, lines=[], started=time.time())
+
+
+def progress_note(text):
+    PROGRESS["lines"].append(text)
+    if len(PROGRESS["lines"]) > 400:
+        del PROGRESS["lines"][:100]
 
 
 def default_output(files=None, kind="Sync"):
@@ -163,6 +179,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"ok": True, "version": VERSION,
                              "modules": ["sync", "cut", "switch", "captions"],
                              "whisper": bool(find_whisper()),
+                             # qaysi model tayyor — panel yuklab olish
+                             "models": {k: have_model(k) for k in MODELS},
                              "ffmpeg": bool(FFMPEG and FFPROBE)})
         elif self.path.startswith("/search"):
             from urllib.parse import urlparse, parse_qs
@@ -171,6 +189,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, {"hits": search_archive(q)})
             except Exception as e:
                 self._send(500, {"error": str(e)})
+        elif self.path == "/progress":
+            self._send(200, {"busy": PROGRESS["busy"], "job": PROGRESS["job"],
+                             "lines": PROGRESS["lines"],
+                             "elapsed": (time.time() - PROGRESS["started"])
+                                        if PROGRESS["started"] else 0})
         elif self.path == "/version":
             try:
                 self._send(200, version_info())
@@ -210,7 +233,8 @@ class Handler(BaseHTTPRequestHandler):
                     "/captions": "Captions"}.get(self.path, "Sync")
             output = req.get("output") or default_output(files, kind)
             logs = []
-            record = lambda m: (logs.append(m), print(m))
+            progress_start(kind)
+            record = lambda m: (logs.append(m), progress_note(m), print(m))
 
             if self.path == "/captions":
                 # Sequence berilgan bo'lsa — shu bitta ovoz manbasining
@@ -253,6 +277,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": str(e)})
         except Exception as e:
             self._send(500, {"error": f"Kutilmagan xato: {e}"})
+        finally:
+            PROGRESS["busy"] = False
 
     def log_message(self, *args):
         pass  # standart HTTP loglari shovqin qilmasin
@@ -260,9 +286,12 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     print(f"Podcast Suite motori — {os.path.abspath(__file__)}")
-    print(f"Modullar: sync, cut · ffmpeg: {bool(FFMPEG and FFPROBE)}")
+    print(f"Modullar: sync, cut, switch, captions · "
+          f"ffmpeg: {bool(FFMPEG and FFPROBE)} · whisper: {bool(find_whisper())}")
     try:
-        server = HTTPServer((HOST, PORT), Handler)
+        # Ko'p oqimli: uzun transkripsiya ketayotganda ham panel holatni
+        # (/health, /progress) so'ray oladi — aks holda navbatda qotib turardi.
+        server = ThreadingHTTPServer((HOST, PORT), Handler)
     except OSError as e:
         # Eng chalkash holat: eski motor portni ushlab turadi, yangisi
         # jimgina o'lib ketadi va panel eski modullarni ko'rsatib turaveradi.

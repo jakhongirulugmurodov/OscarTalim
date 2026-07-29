@@ -15,9 +15,11 @@ import argparse
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -75,6 +77,15 @@ WHISPER_YOQ = (
 )
 
 
+def have_model(model_key):
+    """Model allaqachon yuklanganmi (panel oldindan ogohlantirishi uchun)."""
+    entry = MODELS.get(model_key)
+    if not entry:
+        return False
+    path = os.path.join(models_dir(), entry[0])
+    return os.path.isfile(path) and os.path.getsize(path) > 1_000_000
+
+
 def ensure_model(model_key, log=print):
     """Model faylini tekshiradi, yo'q bo'lsa yuklab oladi."""
     if model_key not in MODELS:
@@ -86,10 +97,28 @@ def ensure_model(model_key, log=print):
 
     os.makedirs(models_dir(), exist_ok=True)
     log(f"Model yuklanmoqda ({size}, bir martalik): {fname}")
+    log("  Bu bir marta bo'ladi — keyingi safar darhol boshlanadi.")
     tmp = path + ".yuklanmoqda"
     cmd = ["curl", "-L", "--fail", "--silent", "--show-error",
            "-o", tmp, MODEL_BASE + fname]
-    out = subprocess.run(cmd, capture_output=True, text=True)
+
+    # Yuklanish sekin bo'lsa foydalanuvchi «osilib qoldi» deb o'ylamasin —
+    # har 5 soniyada necha MB tushganini aytib turamiz.
+    stop = threading.Event()
+
+    def watch():
+        while not stop.wait(5):
+            try:
+                mb = os.path.getsize(tmp) / 1_000_000
+            except OSError:
+                continue
+            log(f"  yuklandi: {mb:.0f} MB / {size}")
+
+    threading.Thread(target=watch, daemon=True).start()
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True)
+    finally:
+        stop.set()
     if out.returncode != 0 or not os.path.isfile(tmp):
         if os.path.exists(tmp):
             os.remove(tmp)
@@ -125,16 +154,30 @@ def run_whisper(wav, model_path, language, log=print, threads=None):
     out_base = os.path.splitext(wav)[0] + "_wsp"
     cmd = [binary, "-m", model_path, "-f", wav,
            "-oj", "-ml", "1",              # -ml 1 → har so'z alohida bo'lak
+           "-pp",                          # foizni chiqarib tursin
            "--output-file", out_base]
     if language and language != "avto":
         cmd += ["-l", language]
     if threads:
         cmd += ["-t", str(threads)]
 
+    # Uzun yozuvda whisper 10-20 daqiqa ishlashi mumkin. Natijani oxirida
+    # kutib o'tirmay, foizni o'sha zahoti uzatamiz — panel jim turmasin.
     started = time.time()
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError("whisper xatosi: " + (proc.stderr or "")[-300:])
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, bufsize=1)
+    tail, shown = [], -10
+    for line in proc.stdout:
+        tail.append(line.rstrip())
+        del tail[:-25]
+        m = re.search(r"progress\s*=\s*(\d+)\s*%", line)
+        if m:
+            pct = int(m.group(1)) // 10 * 10
+            if pct > shown:
+                shown = pct
+                log(f"  {pct}% · {time.time() - started:.0f}s")
+    if proc.wait() != 0:
+        raise RuntimeError("whisper xatosi: " + "\n".join(tail)[-300:])
 
     js = out_base + ".json"
     if not os.path.isfile(js):

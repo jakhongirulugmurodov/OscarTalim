@@ -56,6 +56,7 @@ async function checkMotor() {
       const j = await r.json();
       if (j.ok) {
         MOTOR = base;
+        markModels(j.models);
         els.motor.classList.add("ok");
         els.motorTxt.textContent = j.ffmpeg === false
           ? "Motor ishlayapti, lekin ffmpeg yo'q — motorni-yoqish.command ni ishlating"
@@ -349,6 +350,29 @@ function setupCaptionPills() {
   });
 }
 
+/* Qaysi model kompyuterda bor — yo'g'ining ostiga hajmini yozib qo'yamiz.
+ * Birinchi ishlatishda 1.5 GB yuklanishi kutilmagan uzoq pauza bo'lib
+ * ko'rinardi; endi tanlashdan oldin ko'rinib turadi. */
+const MODEL_SIZE = { tez: "0.5 GB", balans: "1.5 GB", aniq: "1.6 GB" };
+
+function markModels(have) {
+  if (!have) return;
+  document.querySelectorAll("#capModel .opill").forEach((pill) => {
+    const v = pill.dataset.v;
+    const em = pill.querySelector("em");
+    if (!em) return;
+    if (!em.dataset.base) em.dataset.base = em.textContent;
+    if (have[v]) {
+      em.textContent = em.dataset.base;
+      pill.title = "Model tayyor — darhol boshlanadi";
+    } else {
+      em.textContent = "⬇ " + (MODEL_SIZE[v] || "");
+      pill.title = "Birinchi ishlatishda " + (MODEL_SIZE[v] || "model") +
+                   " yuklab olinadi (bir martalik)";
+    }
+  });
+}
+
 /* Arxivdan qidirish — barcha transkripsiya qilingan sonlar bo'ylab */
 async function searchArchive() {
   const q = (els.capSearch.value || "").trim();
@@ -519,6 +543,41 @@ function logLine(text, cls) {
   els.log.scrollTop = els.log.scrollHeight;
 }
 
+/* ------------------------------------------- ish jarayonini ko'rsatish
+ *
+ * Uzun ishlar (model yuklash, transkripsiya) bir necha o'n daqiqa ketishi
+ * mumkin. Javob faqat oxirida keladi, shuning uchun motordan holatni
+ * so'rab turamiz — panel jim qolmasin va sekundlar sanalib tursin. */
+let pollTimer = null;
+let shownLogs = 0;
+
+function startProgress() {
+  shownLogs = 0;
+  const t0 = Date.now();
+  const clock = () => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    els.hint.textContent = "⏱ " + Math.floor(s / 60) + ":" +
+                           String(s % 60).padStart(2, "0");
+  };
+  clock();
+  pollTimer = setInterval(async () => {
+    clock();
+    try {
+      const r = await fetch(MOTOR + "/progress");
+      const j = await r.json();
+      const lines = j.lines || [];
+      for (let i = shownLogs; i < lines.length; i++) logLine(lines[i]);
+      if (lines.length > shownLogs) shownLogs = lines.length;
+    } catch (e) { /* motor band bo'lishi mumkin — keyingi urinishda ko'ramiz */ }
+  }, 2000);
+}
+
+function stopProgress() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
+  els.hint.textContent = picked.length + " fayl";
+}
+
 async function run(kind) {
   if (!(await checkMotor())) return;
 
@@ -570,6 +629,7 @@ async function run(kind) {
     body.padding = knobs.padding.val(+knobs.padding.el.value);
   }
 
+  startProgress();
   try {
     const r = await fetch(MOTOR + "/" + endpoint, {
       method: "POST",
@@ -579,7 +639,8 @@ async function run(kind) {
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Motor xatosi");
 
-    for (const line of j.logs || []) {
+    // Jarayon davomida ko'rsatilganlarini qayta yozmaymiz
+    for (const line of (j.logs || []).slice(shownLogs)) {
       logLine(line, line.indexOf("OGOHLANTIRISH") >= 0 ? "warn" : null);
     }
     lastXml = isCap ? null : j.output;
@@ -623,6 +684,7 @@ async function run(kind) {
   } catch (e) {
     logLine("Xato: " + e.message, "warn");
   }
+  stopProgress();
   updateRunButtons();
 }
 
