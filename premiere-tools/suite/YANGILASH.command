@@ -24,10 +24,12 @@ git -C "$ROOT" pull --ff-only || {
   echo "  [XATO] git pull bo'lmadi."
   read -r -p "Yopish uchun Enter..."; exit 1; }
 
-# O'rnatilgan panel nusxasi (.ccx orqali) — git unga tegmaydi, qo'lda ko'chiramiz
+# Doimiy o'rnatilgan panel (.ccx) — unga tegmaymiz: Adobe boshqaradigan
+# fayllarni almashtirish pluginni ro'yxatdan tushirib yuboradi.
 DEST=$(ls -d "$HOME/Library/Application Support/Adobe/UXP/Plugins/External"/uz.oscartalim.podcastsuite_* 2>/dev/null | head -1)
 if [ -n "$DEST" ]; then
-  cp -f "$SUITE/panel/"* "$DEST/" 2>/dev/null && echo "▶ Panel yangilandi"
+  echo "ℹ️  Doimiy o'rnatilgan panel eski kodda qoladi."
+  echo "    Yangilash uchun: UDT > ••• > Package, so'ng PANELNI-DOIMIY-QILISH.command"
 fi
 
 echo "▶ Motor qayta ishga tushmoqda..."

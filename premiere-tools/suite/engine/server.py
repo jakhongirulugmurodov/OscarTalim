@@ -15,7 +15,6 @@ Endpointlar:
 
 import json
 import os
-import shutil
 import subprocess
 import sys
 import threading
@@ -116,21 +115,18 @@ def installed_panel_dirs():
 
 
 def sync_installed_panel():
-    """Yangi panel fayllarini o'rnatilgan nusxaga ham ko'chiradi."""
-    src = os.path.join(_here, "..", "panel")
-    if not os.path.isdir(src):
-        return []
-    updated = []
-    for target in installed_panel_dirs():
-        try:
-            for name in os.listdir(src):
-                s = os.path.join(src, name)
-                if os.path.isfile(s):
-                    shutil.copy2(s, os.path.join(target, name))
-            updated.append(os.path.basename(target))
-        except OSError as e:
-            print(f"Panel nusxasini yangilab bo'lmadi ({target}): {e}")
-    return updated
+    """Doimiy o'rnatilgan panel eskirganini xabar qiladi.
+
+    Bu papka Adobe o'rnatuvchisiga tegishli. Fayllarni to'g'ridan-to'g'ri
+    almashtirib ko'rdik va plugin Premiere ro'yxatidan yo'qoldi, shuning
+    uchun endi tegmaymiz: o'rnatilgan nusxa mavjud bo'lsa, uni qayta
+    qadoqlash kerakligini aytamiz, xolos.
+    """
+    stale = [os.path.basename(d) for d in installed_panel_dirs()]
+    if stale:
+        print("Diqqat: doimiy o'rnatilgan panel eski kodda qoldi — "
+              "yangilash uchun UDT > Package > .ccx ni qayta o'rnating.")
+    return stale
 
 
 def do_update():
