@@ -72,30 +72,76 @@ if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
 fi
 
 # ---------- 3b. whisper.cpp (Captions moduli uchun) ----------
+#
+# Uch xil yo'l bor, eng osonidan boshlaymiz:
+#   1. Homebrew bo'lsa — bitta buyruq;
+#   2. bo'lmasa — manbadan quramiz. Buning uchun kompilyator (Xcode Command
+#      Line Tools — git bilan birga keladi) va cmake kerak;
+#   3. cmake yo'q bo'lsa — uni cmake.org dan tayyor holda olamiz. Admin
+#      paroli ham, Homebrew ham shart emas: papkaga ochib, o'sha yerdan
+#      ishlatamiz va ishimiz bitgach o'chirib tashlaymiz.
+
+whisper_qur() {    # $1 — cmake yo'li
+  local CM="$1"
+  rm -rf "$SUITE/whisper-src"
+  git clone -q --depth 1 https://github.com/ggerganov/whisper.cpp \
+        "$SUITE/whisper-src" || return 1
+  # Avval Metal bilan (Apple chipida bir necha barobar tez). Metal
+  # shaderlarini qurish uchun to'liq Xcode kerak bo'lishi mumkin —
+  # bo'lmasa, protsessor rejimida qayta urinamiz.
+  local FLAGS=""
+  for FLAGS in "" "-DGGML_METAL=OFF"; do
+    rm -rf "$SUITE/whisper-src/build"
+    if "$CM" -S "$SUITE/whisper-src" -B "$SUITE/whisper-src/build" \
+             -DCMAKE_BUILD_TYPE=Release $FLAGS >>"$SUITE/qurilish.log" 2>&1 && \
+       "$CM" --build "$SUITE/whisper-src/build" -j --target whisper-cli \
+             >>"$SUITE/qurilish.log" 2>&1 && \
+       [ -x "$SUITE/whisper-src/build/bin/whisper-cli" ]; then
+      mkdir -p "$SUITE/bin"
+      cp "$SUITE/whisper-src/build/bin/whisper-cli" "$SUITE/bin/"
+      [ -n "$FLAGS" ] && echo "  (Metal ishlamadi — protsessor rejimida qurildi)"
+      rm -rf "$SUITE/whisper-src"
+      return 0
+    fi
+  done
+  return 1
+}
+
 if ! command -v whisper-cli >/dev/null && ! command -v whisper-cpp >/dev/null \
    && [ ! -x "$SUITE/bin/whisper-cli" ]; then
   echo "▶ whisper.cpp o'rnatilmoqda (subtitr uchun)..."
+  : > "$SUITE/qurilish.log"
+
   if command -v brew >/dev/null; then
     brew install whisper-cpp 2>&1 | tail -2
+  elif ! xcode-select -p >/dev/null 2>&1; then
+    echo "  [XATO] Xcode Command Line Tools yo'q."
+    echo "  Terminalda «xcode-select --install» ni qo'ying, o'rnatilgach"
+    echo "  shu faylni qayta bosing."
   else
-    echo "  Homebrew topilmadi — manbadan quriladi (bir necha daqiqa)..."
-    if command -v cmake >/dev/null; then
-      rm -rf "$SUITE/whisper-src"
-      git clone -q --depth 1 https://github.com/ggerganov/whisper.cpp "$SUITE/whisper-src" && \
-      cmake -S "$SUITE/whisper-src" -B "$SUITE/whisper-src/build" \
-            -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 && \
-      cmake --build "$SUITE/whisper-src/build" -j --target whisper-cli >/dev/null 2>&1 && \
-      mkdir -p "$SUITE/bin" && \
-      cp "$SUITE/whisper-src/build/bin/whisper-cli" "$SUITE/bin/" && \
-      echo "  whisper.cpp tayyor ✓" || echo "  [XATO] qurib bo'lmadi"
-    else
-      echo "  cmake ham yo'q — avtomatik o'rnatib bo'lmaydi."
-      echo "  Terminalda quyidagi ikki buyruqni ketma-ket qo'ying:"
-      echo '     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
-      echo "     brew install whisper-cpp"
-      echo "  So'ng shu faylni qayta bosing."
-      echo "  (Captions modulisiz qolgan modullar baribir ishlayveradi.)"
+    CMAKE_BIN="$(command -v cmake || true)"
+    if [ -z "$CMAKE_BIN" ]; then
+      echo "  cmake yuklab olinmoqda (~80 MB, faqat qurish uchun)..."
+      # Versiya ataylab qotirilgan: cmake 4.x eski CMakeLists fayllarini rad
+      # etadi, 3.31 esa whisper.cpp bilan ishlashi tekshirilgan.
+      TGZ="cmake-3.31.6-macos-universal.tar.gz"
+      BASE="https://cmake.org/files/v3.31/"
+      rm -rf "$SUITE/qurilma"; mkdir -p "$SUITE/qurilma"
+      if curl -L --progress-bar -o "$SUITE/qurilma/cmake.tar.gz" "$BASE$TGZ" && \
+         tar -xzf "$SUITE/qurilma/cmake.tar.gz" -C "$SUITE/qurilma"; then
+        CMAKE_BIN=$(find "$SUITE/qurilma" -type f -path "*/Contents/bin/cmake" | head -1)
+        xattr -dr com.apple.quarantine "$SUITE/qurilma" 2>/dev/null
+      fi
     fi
+
+    if [ -n "$CMAKE_BIN" ] && [ -x "$CMAKE_BIN" ]; then
+      echo "  Manbadan qurilmoqda — 3-10 daqiqa, kutib turing..."
+      whisper_qur "$CMAKE_BIN" && echo "  whisper.cpp tayyor ✓" \
+        || echo "  [XATO] qurib bo'lmadi — tafsilot: $SUITE/qurilish.log"
+    else
+      echo "  [XATO] cmake ni yuklab bo'lmadi — internetni tekshiring."
+    fi
+    rm -rf "$SUITE/qurilma"     # 80 MB ni ushlab turishning hojati yo'q
   fi
 fi
 
