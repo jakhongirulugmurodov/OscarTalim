@@ -19,7 +19,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, extract_envelope, ffprobe,
-                      find_offset, fps_to_timebase, MIN_CONFIDENCE)
+                      find_offset, fps_to_timebase, write_xml, MIN_CONFIDENCE)
 
 # Standart sozlamalar — panel ularni o'zgartira oladi
 DEFAULT_THRESHOLD = 0.18   # jimlik chegarasi (0..1, normallashtirilgan energiya)
@@ -98,7 +98,7 @@ def keep_segments(pauses, total_sec):
 
 def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
             threshold=DEFAULT_THRESHOLD, min_pause=DEFAULT_MIN_PAUSE,
-            padding=DEFAULT_PADDING, timeline=None, log=print):
+            padding=DEFAULT_PADDING, timeline=None, fallback=None, log=print):
     """Pauzalarni kesish.
 
     Ikki rejim bor:
@@ -223,9 +223,7 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
         raise RuntimeError("Kesishdan keyin klip qolmadi.")
 
     xml = build_xml(clips, name, timebase, ntsc, width, height)
-    output = os.path.abspath(output)
-    with open(output, "w", encoding="utf-8") as fh:
-        fh.write(xml)
+    output = write_xml(xml, output, fallback, log)
     log(f"Tayyor: {output}")
 
     return {

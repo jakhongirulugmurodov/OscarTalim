@@ -195,6 +195,30 @@ def find_offset(ref, sig):
     return lag / ENV_RATE, confidence
 
 
+def write_xml(xml, output, fallback=None, log=print):
+    """XML'ni yozadi; joy yozishga yopiq bo'lsa — zaxira papkaga.
+
+    macOS tashqi disklarga yozishni bloklashi mumkin (Operation not
+    permitted), shuning uchun butun ish shu sababdan bekor bo'lib
+    ketmasin: natijani zaxira papkaga saqlab, yo'lini aytamiz.
+    """
+    output = os.path.abspath(output)
+    try:
+        with open(output, "w", encoding="utf-8") as fh:
+            fh.write(xml)
+        return output
+    except OSError as e:
+        if not fallback:
+            raise RuntimeError(f"Faylni yozib bo'lmadi ({output}): {e}")
+        log(f"OGOHLANTIRISH: {os.path.dirname(output)} ga yozib bo'lmadi "
+            f"({e.strerror}) — natija zaxira papkaga saqlandi")
+        os.makedirs(fallback, exist_ok=True)
+        alt = os.path.abspath(os.path.join(fallback, os.path.basename(output)))
+        with open(alt, "w", encoding="utf-8") as fh:
+            fh.write(xml)
+        return alt
+
+
 # ----------------------------------------------------------- XML generatsiya
 
 def fps_to_timebase(fps):
@@ -336,7 +360,7 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height):
 # --------------------------------------------------------------------- main
 
 def run_sync(files, output="synced.xml", name="AutoSync Sequence",
-             minutes=None, log=print):
+             minutes=None, fallback=None, log=print):
     """To'liq sinxronlash oqimi: tahlil -> siljishlar -> XML.
 
     CLI ham, panel motori (server.py) ham shu funksiyani chaqiradi.
@@ -401,9 +425,7 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
                 "qo'lda tekshiring: boshqa yozuvdan bo'lishi mumkin.")
 
     xml = build_xml(clips, name, timebase, ntsc, width, height)
-    output = os.path.abspath(output)
-    with open(output, "w", encoding="utf-8") as fh:
-        fh.write(xml)
+    output = write_xml(xml, output, fallback, log)
     log(f"Tayyor: {output}")
 
     return {

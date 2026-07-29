@@ -207,12 +207,12 @@ class Handler(BaseHTTPRequestHandler):
                     threshold=float(req.get("threshold", 0.18)),
                     min_pause=float(req.get("min_pause", 0.7)),
                     padding=float(req.get("padding", 0.12)),
-                    timeline=seq_timeline, log=record)
+                    timeline=seq_timeline, fallback=RESULTS_DIR, log=record)
             else:
                 result = run_sync(
                     files, output=output,
                     name=req.get("name") or "Podcast Suite — Sync",
-                    log=record)
+                    fallback=RESULTS_DIR, log=record)
             result["logs"] = logs
             self._send(200, result)
         except RuntimeError as e:
