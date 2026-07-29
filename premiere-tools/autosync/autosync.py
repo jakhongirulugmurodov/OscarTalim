@@ -316,8 +316,15 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
     video_tracks, audio_tracks, program = [], [], []
     for i, clip in enumerate(clips, start=1):
         segs = clip["segments"]
+        # Ovoz manbasi videodan boshqacha bo'lishi mumkin: kamera almashsa ham
+        # ovoz bitta yaxshi yozuvdan kelishi kerak, shuning uchun audio
+        # bo'laklari alohida berilishi mumkin (`audio_segments`).
+        asegs = clip.get("audio_segments", segs)
+        show_video = clip["has_video"] and clip.get("emit_video", True) and segs
+        play_audio = clip["has_audio"] and clip.get("emit_audio", True) and asegs
+
         # <file> to'liq tavsifi birinchi ishlatilgan joyda yoziladi
-        if clip["has_video"]:
+        if show_video:
             items = [clipitem_xml(clip, i, "video", timebase, ntsc, n == 0, s, n)
                      for n, s in enumerate(segs)]
             if single_video_track:
@@ -325,10 +332,10 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
             else:
                 video_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
                                     + "\n\t\t\t\t</track>")
-        if clip["has_audio"]:
+        if play_audio:
             items = [clipitem_xml(clip, i, "audio", timebase, ntsc,
-                                  n == 0 and not clip["has_video"], s, n)
-                     for n, s in enumerate(segs)]
+                                  n == 0 and not show_video, s, n)
+                     for n, s in enumerate(asegs)]
             audio_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
                                 + "\n\t\t\t\t</track>")
 

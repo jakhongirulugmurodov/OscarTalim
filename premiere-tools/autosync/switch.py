@@ -24,6 +24,7 @@ from autosync import (ENV_RATE, build_xml, extract_envelope, ffprobe,
 
 # Kamera vazifalari
 SPEAKER, WIDE, ALT, INSERT = "speaker", "wide", "alt", "insert"
+AUDIO = "audio"     # faqat ovoz manbasi (kamera sifatida ishlatilmaydi)
 
 # Rejissyor qoidalari (panel ularni o'zgartira oladi)
 DEFAULT_MIN_SHOT = 2.5     # eng qisqa kadr, soniya
@@ -112,7 +113,9 @@ def plan_shots(active, cams, min_shot, max_shot, fps=25.0, log=print):
             speaker_cams.setdefault(cam["speaker_idx"], []).append(i)
     wides = [i for i, c in enumerate(cams) if c["role"] == WIDE]
     inserts = [i for i, c in enumerate(cams) if c["role"] == INSERT]
-    fallback = wides or inserts or [0]
+    # AUDIO vazifasidagi fayl ekranga chiqmaydi — u faqat ovoz beradi
+    on_screen = [i for i, c in enumerate(cams) if c["role"] != AUDIO]
+    fallback = wides or inserts or on_screen[:1] or [0]
 
     def cams_for(state, current):
         """Shu holatda qaysi kameralar mos keladi (birinchisi — afzal)."""
@@ -306,11 +309,32 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
             })
             clip["shot_count"] += 1
 
-    used = [c for c in clips if c["segments"]]
+    # --- Ovoz manbasi ---
+    # Odatda bitta yaxshi yozuv bo'ladi (rekorder yoki bitta kamera), qolgan
+    # kameralarda esa o'zining past sifatli mikrofoni. Kamera almashganda ovoz
+    # ham almashib ketmasin: belgilangan manba butun timeline bo'ylab uzluksiz
+    # ketadi, boshqalarining audiosi umuman chiqarilmaydi.
+    masters = [c for c in clips if c["role"] == AUDIO]
+    if masters:
+        master = masters[0]
+        for c in clips:
+            c["emit_audio"] = c is master
+        master["emit_video"] = master["role"] != AUDIO or bool(master["segments"])
+        if master["role"] == AUDIO:
+            master["emit_video"] = False
+        master["audio_segments"] = [
+            {"start": int(round(p["start"] * fps)),
+             "in": int(round(p["in"] * fps)),
+             "out": int(round(p["out"] * fps))}
+            for p in master["placements"]]
+        log(f"Ovoz manbasi: {master['name']} (butun davomiylik bo'ylab)")
+
+    used = [c for c in clips
+            if c["segments"] or (c.get("emit_audio") and c.get("audio_segments"))]
     if not used:
         raise RuntimeError("Hech qaysi kamera ishlatilmadi.")
     for c in clips:
-        if not c["segments"]:
+        if not c["segments"] and c["role"] != AUDIO:
             log(f"  Diqqat: {c['name']} umuman ishlatilmadi")
 
     xml = build_xml(used, name, timebase, ntsc, width, height,

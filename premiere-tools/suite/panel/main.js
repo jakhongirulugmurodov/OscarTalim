@@ -206,6 +206,7 @@ function roleOptions() {
   for (let i = 0; i < n; i++)
     out.push({ role: "alt", sid: i, label: "Rakurs " + (i + 1), cls: "alt" });
   out.push({ role: "insert", sid: null, label: "Detal", cls: "insert" });
+  out.push({ role: "audio", sid: null, label: "Asosiy ovoz", cls: "audio" });
   return out;
 }
 
