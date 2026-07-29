@@ -44,8 +44,11 @@ cat > "$PLIST" <<PLISTEOF
 </plist>
 PLISTEOF
 
-launchctl unload "$PLIST" 2>/dev/null
-launchctl load "$PLIST" 2>/dev/null || echo "  (launchctl ishlamadi — motorni qo'lda yoqasiz)"
+LABEL="uz.oscartalim.podcastsuite.motor"
+GUI="gui/$(id -u)"
+launchctl bootout "$GUI/$LABEL" 2>/dev/null || launchctl unload "$PLIST" 2>/dev/null
+launchctl bootstrap "$GUI" "$PLIST" 2>/dev/null || launchctl load "$PLIST" 2>/dev/null
+launchctl kickstart -k "$GUI/$LABEL" 2>/dev/null
 
 for i in $(seq 1 15); do
   sleep 1

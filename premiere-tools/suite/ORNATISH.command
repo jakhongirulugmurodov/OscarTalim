@@ -98,8 +98,13 @@ cat > "$PLIST" <<PLISTEOF
 </dict>
 </plist>
 PLISTEOF
-launchctl unload "$PLIST" 2>/dev/null
-launchctl load "$PLIST" 2>/dev/null
+# Yangi macOS'da bootstrap/kickstart ishonchli ishlaydi; unload/load esa
+# ba'zan jimgina o'tib ketadi va eski jarayon ishlab turaveradi.
+LABEL="uz.oscartalim.podcastsuite.motor"
+GUI="gui/$(id -u)"
+launchctl bootout "$GUI/$LABEL" 2>/dev/null || launchctl unload "$PLIST" 2>/dev/null
+launchctl bootstrap "$GUI" "$PLIST" 2>/dev/null || launchctl load "$PLIST" 2>/dev/null
+launchctl kickstart -k "$GUI/$LABEL" 2>/dev/null
 
 for i in $(seq 1 20); do
   sleep 1
