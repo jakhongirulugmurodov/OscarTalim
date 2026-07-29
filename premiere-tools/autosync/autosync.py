@@ -85,6 +85,11 @@ def ffprobe(path):
         raise RuntimeError(f"ffprobe xatosi ({path}): {out.stderr.strip()}")
     data = json.loads(out.stdout)
 
+    if not data.get("streams") or "duration" not in data.get("format", {}):
+        raise RuntimeError(
+            f"{os.path.basename(path)}: fayl buzuq yoki media emas "
+            "(davomiyligi o'qilmadi)")
+
     info = {
         "path": os.path.abspath(path),
         "name": os.path.basename(path),

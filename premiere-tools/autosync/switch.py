@@ -105,16 +105,21 @@ def plan_shots(active, cams, min_shot, max_shot, fps=25.0, log=print):
     min_bins = int(np.ceil(min_shot * ENV_RATE)) + bins_per_frame
     max_bins = int(round(max_shot * ENV_RATE))
 
+    # Ekranga faqat videosi bor fayllar chiqa oladi. Rekorder (audio-only)
+    # fayl spiker deb belgilangan bo'lsa ham kadr bo'la olmaydi — aks holda
+    # programmada teshik qolib ketadi.
+    def usable(c):
+        return c["has_video"] and c["role"] != AUDIO
+
     speaker_cams = {}          # spiker raqami -> shu spikerning kameralari
     for i, cam in enumerate(cams):
-        if cam["role"] == SPEAKER and cam.get("speaker_idx") is not None:
+        if not usable(cam) or cam.get("speaker_idx") is None:
+            continue
+        if cam["role"] in (SPEAKER, ALT):
             speaker_cams.setdefault(cam["speaker_idx"], []).append(i)
-        elif cam["role"] == ALT and cam.get("speaker_idx") is not None:
-            speaker_cams.setdefault(cam["speaker_idx"], []).append(i)
-    wides = [i for i, c in enumerate(cams) if c["role"] == WIDE]
-    inserts = [i for i, c in enumerate(cams) if c["role"] == INSERT]
-    # AUDIO vazifasidagi fayl ekranga chiqmaydi — u faqat ovoz beradi
-    on_screen = [i for i, c in enumerate(cams) if c["role"] != AUDIO]
+    wides = [i for i, c in enumerate(cams) if c["role"] == WIDE and usable(c)]
+    inserts = [i for i, c in enumerate(cams) if c["role"] == INSERT and usable(c)]
+    on_screen = [i for i, c in enumerate(cams) if usable(c)]
     fallback = wides or inserts or on_screen[:1] or [0]
 
     def cams_for(state, current):
@@ -296,22 +301,60 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
         c["segments"] = []
         c["shot_count"] = 0
 
-    for start_bin, end_bin, cam_idx in shots:
-        clip = clips[cam_idx]
-        a = start_bin / ENV_RATE
-        b = end_bin / ENV_RATE
-        for place in clip["placements"]:
-            p_end = place["start"] + (place["out"] - place["in"])
-            lo, hi = max(a, place["start"]), min(b, p_end)
-            if hi - lo <= 1.0 / fps:
+    def covering(cam_idx, at):
+        """Shu kamera `at` lahzada mavjudmi? Mavjud bo'lsa joylashuvi."""
+        for place in clips[cam_idx]["placements"]:
+            if place["start"] <= at < place["start"] + (place["out"] - place["in"]):
+                return place
+        return None
+
+    def any_covering(at, prefer):
+        """`at` lahzada mavjud bo'lgan istalgan kamera (afzali — `prefer`)."""
+        order = [prefer] + [i for i in range(len(clips)) if i != prefer]
+        for i in order:
+            if clips[i]["role"] == AUDIO or not clips[i]["has_video"]:
                 continue
-            src_in = place["in"] + (lo - place["start"])
+            place = covering(i, at)
+            if place:
+                return i, place
+        return None, None
+
+    # Kadrni bo'laklarga aylantiramiz. Tanlangan kamera o'sha vaqtda
+    # yozilmagan bo'lishi mumkin (masalan qisqaroq fayl) — u holda
+    # programmada teshik qolib ketmasin: o'sha lahzada mavjud boshqa
+    # kameraga o'tamiz.
+    step = 1.0 / fps
+    filled = 0.0
+    for start_bin, end_bin, cam_idx in shots:
+        a, b = start_bin / ENV_RATE, end_bin / ENV_RATE
+        cursor = a
+        while cursor < b - step / 2:
+            use_idx, place = cam_idx, covering(cam_idx, cursor)
+            if place is None:
+                use_idx, place = any_covering(cursor, cam_idx)
+                if place is None:      # hech bir kamera yo'q — o'tkazamiz
+                    cursor += step
+                    continue
+                filled += 0.0          # quyida aniq uzunlik qo'shiladi
+            p_end = place["start"] + (place["out"] - place["in"])
+            hi = min(b, p_end)
+            if hi - cursor <= step / 2:
+                cursor += step
+                continue
+            clip = clips[use_idx]
+            src_in = place["in"] + (cursor - place["start"])
             clip["segments"].append({
-                "start": int(round(lo * fps)),
+                "start": int(round(cursor * fps)),
                 "in": int(round(src_in * fps)),
-                "out": int(round((src_in + (hi - lo)) * fps)),
+                "out": int(round((src_in + (hi - cursor)) * fps)),
             })
             clip["shot_count"] += 1
+            if use_idx != cam_idx:
+                filled += hi - cursor
+            cursor = hi
+    if filled > 0.5:
+        log(f"  {filled:.0f}s da tanlangan kamera yozuvi yo'q edi — "
+            "boshqa kamera bilan to'ldirildi")
 
     # --- Ovoz manbasi ---
     # Odatda bitta yaxshi yozuv bo'ladi (rekorder yoki bitta kamera), qolgan
