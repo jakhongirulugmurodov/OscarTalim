@@ -1,54 +1,20 @@
 #!/bin/bash
-# Podcast Suite — doimiy o'rnatish (Mac).
+# Podcast Suite — motorni doimiy qilish + panelni o'rnatishga urinish (Mac).
 #
-# Ikki narsani hal qiladi:
-#   1. Panel Premiere'ga doimiy o'rnatiladi — endi har safar UXP Developer
-#      Tools'dan Load qilish shart emas, Window > UXP Plugins da doim turadi.
-#   2. Motor kompyuter yonganda o'zi ishga tushadi — Terminal ochish shart emas.
+# 1. Motor kompyuter yonganda o'zi ishga tushadi (Terminal kerak emas).
+# 2. Agar yonida to'g'ri qadoqlangan .ccx bo'lsa, panelni Adobe'ning o'z
+#    o'rnatuvchisi (UPIA) orqali doimiy o'rnatadi.
 #
-# Ikki marta bosing. Qayta ishga tushirsangiz, eskisini yangilaydi.
+# .ccx ni UXP Developer Tools yasaydi: plugin qatorida ••• > Package.
+# Qo'lda zip qilingan .ccx ishlamaydi — Adobe imzoni tekshiradi.
 
 set -u
 cd "$(dirname "$0")" || exit 1
 BASE="$PWD"
-PANEL="$BASE/panel"
-MANIFEST="$PANEL/manifest.json"
 
 echo "===== Podcast Suite — doimiy o'rnatish ====="
 
-if [ ! -f "$MANIFEST" ]; then
-  echo "[XATO] panel/manifest.json topilmadi. Bu fayl PodcastSuite papkasida turishi kerak."
-  read -r -p "Yopish uchun Enter..."; exit 1
-fi
-
-# --- manifestdan id va versiyani olamiz (papka nomi shu ikkisidan yasaladi) ---
-read -r PLUGIN_ID PLUGIN_VER <<EOF
-$(python3 -c "
-import json
-m = json.load(open('$MANIFEST'))
-print(m['id'], m['version'])
-")
-EOF
-
-if [ -z "${PLUGIN_ID:-}" ]; then
-  echo "[XATO] manifest.json o'qib bo'lmadi."
-  read -r -p "Yopish uchun Enter..."; exit 1
-fi
-
-# --- 1. Panelni Premiere ko'radigan papkaga ko'chirish ---
-EXTERNAL="$HOME/Library/Application Support/Adobe/UXP/Plugins/External"
-TARGET="$EXTERNAL/${PLUGIN_ID}_${PLUGIN_VER}"
-
-echo "▶ Panel o'rnatilmoqda..."
-mkdir -p "$EXTERNAL"
-# Eski versiyalarni tozalaymiz — ro'yxatda ikkilanish bo'lmasin
-find "$EXTERNAL" -maxdepth 1 -type d -name "${PLUGIN_ID}_*" -exec rm -rf {} + 2>/dev/null
-mkdir -p "$TARGET"
-cp -R "$PANEL/." "$TARGET/"
-xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null
-echo "  → $TARGET"
-
-# --- 2. Motorni tizimga ro'yxatdan o'tkazish (login'da o'zi yonadi) ---
+# ---------- 1. Motor: login'da o'zi yonsin ----------
 echo "▶ Motor avtomatik ishga tushirishga qo'yilmoqda..."
 AGENTS="$HOME/Library/LaunchAgents"
 PLIST="$AGENTS/uz.oscartalim.podcastsuite.motor.plist"
@@ -79,34 +45,71 @@ cat > "$PLIST" <<PLISTEOF
 PLISTEOF
 
 launchctl unload "$PLIST" 2>/dev/null
-launchctl load "$PLIST" 2>/dev/null || {
-  echo "  (launchctl load ishlamadi — motorni qo'lda yoqasiz)"
-}
+launchctl load "$PLIST" 2>/dev/null || echo "  (launchctl ishlamadi — motorni qo'lda yoqasiz)"
 
-# --- 3. Tekshiruv ---
-echo "▶ Motor tekshirilmoqda..."
 for i in $(seq 1 15); do
   sleep 1
   curl -s --max-time 2 http://127.0.0.1:8765/health >/dev/null 2>&1 && break
 done
-
 HEALTH=$(curl -s --max-time 3 http://127.0.0.1:8765/health 2>/dev/null)
-echo
 if [ -n "$HEALTH" ]; then
-  echo "✅ Motor ishlayapti: $HEALTH"
+  echo "  ✅ Motor ishlayapti: $HEALTH"
   case "$HEALTH" in
     *'"ffmpeg": false'*)
-      echo "⚠️  ffmpeg topilmadi — «motorni-yoqish.command» ni bir marta ishga tushiring,"
-      echo "    u ffmpeg'ni yuklab oladi, keyin shu faylni qayta bosing." ;;
+      echo "  ⚠️  ffmpeg yo'q — «motorni-yoqish.command» ni bir marta ishlating." ;;
   esac
 else
-  echo "⚠️  Motor javob bermadi. Sabab: $BASE/motor.log"
+  echo "  ⚠️  Motor javob bermadi. Sabab: $BASE/motor.log"
   tail -5 "$BASE/motor.log" 2>/dev/null
 fi
 
+# ---------- 2. Panel: Adobe o'rnatuvchisi orqali ----------
 echo
-echo "✅ Panel o'rnatildi. Premiere Pro'ni YOPIB QAYTA OCHING, so'ng:"
-echo "   Window > UXP Plugins > Podcast Suite"
+echo "▶ Panel o'rnatilmoqda..."
+
+UPIA="/Library/Application Support/Adobe/Adobe Desktop Common/RemoteComponents/UPI/UnifiedPluginInstallerAgent/UnifiedPluginInstallerAgent.app/Contents/MacOS/UnifiedPluginInstallerAgent"
+# UDT «Package» yasagan .ccx ni qidiramiz (qo'lda zip qilingani emas)
+CCX=$(ls -t "$BASE"/*.ccx ~/Desktop/*.ccx ~/Downloads/*.ccx 2>/dev/null \
+      | grep -iv "PodcastSuite.ccx$" | head -1)
+
+if [ -z "$CCX" ]; then
+  echo "  ℹ️  Qadoqlangan .ccx topilmadi — panel hozircha UDT orqali yuklanadi."
+  NEED_PACKAGE=1
+elif [ ! -x "$UPIA" ]; then
+  echo "  ℹ️  Adobe o'rnatuvchisi topilmadi — .ccx ni ikki marta bosib o'rnating:"
+  echo "     $CCX"
+  NEED_PACKAGE=0
+else
+  echo "  .ccx: $CCX"
+  if "$UPIA" --install "$CCX"; then
+    echo "  ✅ Panel o'rnatildi!"
+    NEED_PACKAGE=0
+  else
+    echo "  ⚠️  O'rnatuvchi rad etdi — pastdagi yo'riqnomaga qarang."
+    NEED_PACKAGE=1
+  fi
+fi
+
 echo
-echo "Endi UXP Developer Tools ham, Terminal ham kerak emas."
+if [ "${NEED_PACKAGE:-1}" = "1" ]; then
+  cat <<'GUIDE'
+── Panelni DOIMIY qilish uchun (bir martalik, 2 daqiqa) ──
+1. UXP Developer Tools'ni oching
+2. Podcast Suite qatorida:  •••  >  Package
+3. Saqlash joyi so'raganda — Desktop'ni tanlang
+4. Yasalgan .ccx faylni IKKI MARTA BOSING (Creative Cloud o'rnatadi)
+5. Premiere'ni yopib qayta oching
+
+Shundan keyin panel doim shu yerda turadi:
+   Window > UXP Plugins > Podcast Suite
+
+Agar 4-qadamda xato chiqsa — shu faylni qayta ishga tushiring, u .ccx ni
+Adobe o'rnatuvchisi orqali o'zi o'rnatib ko'radi.
+GUIDE
+else
+  echo "✅ Tayyor. Premiere'ni yopib qayta oching:"
+  echo "   Window > UXP Plugins > Podcast Suite"
+fi
+
+echo
 read -r -p "Yopish uchun Enter..."
