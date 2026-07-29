@@ -232,9 +232,30 @@ async function doImport() {
     const ppro = require("premierepro");
     const project = await ppro.Project.getActiveProject();
     if (!project) throw new Error("Ochiq loyiha topilmadi");
+
+    // Import oldidan mavjud sequence'larni eslab qolamiz — yangisini
+    // shu ro'yxat bilan solishtirib topamiz (nomlar takrorlanishi mumkin).
+    let before = [];
+    try {
+      before = (await project.getSequences()).map((s) => s.guid.toString());
+    } catch (e) { /* eski API — pastda nom bo'yicha qidiramiz */ }
+
     // importFiles(filePaths, suppressUI, targetBin, asNumberedStills) — 25.6+
     await project.importFiles([lastXml], true);
-    logLine("Sequence loyihaga qo'shildi ✓ — Project panelida qidiring", "okline");
+    logLine("Sequence loyihaga qo'shildi ✓", "okline");
+
+    // Yangi sequence'ni topib, darhol ochamiz — qo'lda qidirish shart bo'lmasin
+    try {
+      const after = await project.getSequences();
+      const fresh = after.filter((s) => before.indexOf(s.guid.toString()) < 0);
+      const target = fresh.length ? fresh[fresh.length - 1] : after[after.length - 1];
+      if (target) {
+        await project.openSequence(target);
+        logLine("Sequence ochildi — montajni boshlayvering ✓", "okline");
+      }
+    } catch (e) {
+      logLine("Sequence Project panelida — ikki bosib oching.", "warn");
+    }
   } catch (e) {
     // API mos kelmasa — qo'lda import yo'lini ko'rsatamiz
     logLine("Avtomatik import ishlamadi (" + e.message + ").", "warn");

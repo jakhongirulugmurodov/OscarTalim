@@ -38,10 +38,24 @@ VERSION = "0.1.0"
 RESULTS_DIR = os.path.join(_here, "..", "natijalar")
 
 
-def default_output():
-    os.makedirs(RESULTS_DIR, exist_ok=True)
+def default_output(files=None):
+    """Natija fayl qayerga saqlansin.
+
+    Eng qulayi — materiallar turgan papka: montajchi uni izlab yurmaydi va
+    loyiha ko'chirilsa XML ham birga ketadi. Papkaga yozib bo'lmasa (masalan
+    tashqi disk faqat o'qish uchun ulangan), paket ichidagi «natijalar» ga
+    tushadi.
+    """
     stamp = time.strftime("%Y-%m-%d_%H-%M")
-    return os.path.abspath(os.path.join(RESULTS_DIR, "sync_" + stamp + ".xml"))
+    fname = "PodcastSuite_Sync_" + stamp + ".xml"
+
+    if files:
+        media_dir = os.path.dirname(os.path.abspath(files[0]))
+        if os.path.isdir(media_dir) and os.access(media_dir, os.W_OK):
+            return os.path.join(media_dir, fname)
+
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    return os.path.abspath(os.path.join(RESULTS_DIR, fname))
 
 
 # ------------------------------------------------------------- yangilanish
@@ -143,7 +157,7 @@ class Handler(BaseHTTPRequestHandler):
             if missing:
                 return self._send(400, {"error": f"Fayl topilmadi: {missing[0]}"})
 
-            output = req.get("output") or default_output()
+            output = req.get("output") or default_output(files)
             logs = []
             result = run_sync(
                 files, output=output,
