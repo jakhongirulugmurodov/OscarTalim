@@ -203,6 +203,45 @@ def group_lines(words, max_chars=MAX_LINE_CHARS, max_sec=MAX_LINE_SEC,
     return [ln for ln in lines if ln["text"]]
 
 
+def clip_spans(spans, seconds):
+    """Sinov uchun: montaj vaqtining birinchi `seconds` qismini qoldiradi."""
+    out = []
+    for sp in sorted(spans, key=lambda s: s["start"]):
+        if sp["start"] >= seconds:
+            break
+        keep = min(sp["out"] - sp["in"], seconds - sp["start"])
+        if keep > 0:
+            out.append({"start": sp["start"], "in": sp["in"],
+                        "out": sp["in"] + keep})
+    return out
+
+
+def remap_words(words, spans):
+    """Xom fayl vaqtini montaj (sequence) vaqtiga ko'chiradi.
+
+    Tayyor sequence'da xom yozuvning ba'zi joylari kesib tashlangan bo'ladi.
+    Subtitr xom fayl vaqti bilan chiqsa, montajga qo'yilganda siljib ketadi —
+    shuning uchun har so'zni o'zi turgan bo'lakning siljishi bilan ko'chiramiz,
+    kesilgan joyga tushganlarini esa tashlab yuboramiz.
+
+    So'z qaysi bo'lakka tegishli ekani o'rtasi bo'yicha aniqlanadi: shunda
+    chegaraga tushgan so'z ikki marta chiqmaydi.
+    """
+    out = []
+    for sp in sorted(spans, key=lambda s: s["start"]):
+        shift = sp["start"] - sp["in"]
+        for w in words:
+            mid = (w["start"] + w["end"]) / 2 if w["end"] > w["start"] else w["start"]
+            if sp["in"] <= mid < sp["out"]:
+                out.append({
+                    "text": w["text"],
+                    "start": max(w["start"], sp["in"]) + shift,
+                    "end": min(w["end"], sp["out"]) + shift,
+                })
+    out.sort(key=lambda w: w["start"])
+    return out
+
+
 def attach_speakers(lines, speaker_at):
     """Har qatorga spiker nomini qo'yadi (Switch tahlilidan kelgan funksiya)."""
     if not speaker_at:
@@ -274,25 +313,55 @@ def search_archive(query, limit=50):
 
 def run_captions(audio_file, model="balans", language="uz", output=None,
                  sample_seconds=None, title=None, speaker_at=None,
-                 fallback=None, log=print):
-    """To'liq oqim: audio -> so'zlar -> qatorlar -> SRT + arxiv."""
+                 spans=None, fallback=None, log=print):
+    """To'liq oqim: audio -> so'zlar -> qatorlar -> SRT + arxiv.
+
+    `spans` berilsa (ochiq sequence'dan olingan bo'laklar:
+    [{"start": montajdagi joyi, "in": xom fayldagi boshi, "out": oxiri}]),
+    subtitr vaqtlari montajga moslanadi va kesilgan joylar tushib qoladi.
+    """
     info = ffprobe(audio_file)
     if not info["has_audio"]:
         raise RuntimeError(f"{info['name']} da audio yo'q")
 
+    spans = [s for s in (spans or []) if s.get("out", 0) > s.get("in", 0)]
+    if spans and sample_seconds:
+        spans = clip_spans(spans, sample_seconds)
+        if not spans:
+            raise RuntimeError("Bu fayl sequence boshida ishlatilmagan — "
+                               "sinov uchun boshqa ovoz manbasini tanlang")
+
     model_path = ensure_model(model, log)
-    dur = info["duration"] if not sample_seconds else min(sample_seconds,
-                                                          info["duration"])
+    if spans:
+        # Xom faylning faqat montajda ishlatilgan oralig'ini eshitamiz —
+        # uzun rekorder yozuvining qolgani bekorga vaqt olmasin.
+        window_start = min(s["in"] for s in spans)
+        window_len = max(s["out"] for s in spans) - window_start
+        dur = sum(s["out"] - s["in"] for s in spans)
+    else:
+        window_start, window_len = None, sample_seconds
+        dur = info["duration"] if not sample_seconds else min(sample_seconds,
+                                                              info["duration"])
     log(f"Transkripsiya: {info['name']} · {dur:.0f}s · model «{model}»"
+        + (f" · sequence ({len(spans)} bo'lak)" if spans else "")
         + (" · SINOV" if sample_seconds else ""))
 
     tmp_wav = os.path.join(models_dir(), "_ish.wav")
-    to_wav16k(audio_file, tmp_wav, duration=sample_seconds)
+    to_wav16k(audio_file, tmp_wav, start=window_start, duration=window_len)
     try:
         words = run_whisper(tmp_wav, model_path, language, log)
     finally:
         if os.path.exists(tmp_wav):
             os.remove(tmp_wav)
+
+    if spans:
+        for w in words:                      # oyna boshidan xom fayl vaqtiga
+            w["start"] += window_start
+            w["end"] += window_start
+        before = len(words)
+        words = remap_words(words, spans)
+        if before != len(words):
+            log(f"  kesilgan joylardagi {before - len(words)} so'z chiqarildi")
 
     lines = group_lines(words)
     attach_speakers(lines, speaker_at)
@@ -305,12 +374,14 @@ def run_captions(audio_file, model="balans", language="uz", output=None,
         "model": model,
         "duration": round(dur, 2),
         "sample": bool(sample_seconds),
+        "from_sequence": bool(spans),
         "lines": [{k: v for k, v in ln.items() if k != "words"} for ln in lines],
         "words": words,
     }
 
     result = {"lines": data["lines"], "word_count": len(words),
               "line_count": len(lines), "sample": bool(sample_seconds),
+              "from_sequence": bool(spans),
               "preview": " ".join(ln["text"] for ln in lines[:6])[:400]}
 
     if not sample_seconds:

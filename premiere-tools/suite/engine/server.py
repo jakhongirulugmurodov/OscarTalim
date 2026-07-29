@@ -213,12 +213,17 @@ class Handler(BaseHTTPRequestHandler):
             record = lambda m: (logs.append(m), print(m))
 
             if self.path == "/captions":
+                # Sequence berilgan bo'lsa — shu bitta ovoz manbasining
+                # montajda ishlatilgan bo'laklarini ajratamiz.
+                spans = [{"start": c["start"], "in": c["in"], "out": c["out"]}
+                         for c in (req.get("timeline") or [])
+                         if c.get("path") == files[0]]
                 result = run_captions(
                     files[0], output=output,
                     model=req.get("model") or "balans",
                     language=req.get("language") or "uz",
                     sample_seconds=req.get("sample_seconds"),
-                    title=req.get("title"),
+                    title=req.get("title"), spans=spans,
                     fallback=RESULTS_DIR, log=record)
             elif self.path == "/switch":
                 result = run_switch(

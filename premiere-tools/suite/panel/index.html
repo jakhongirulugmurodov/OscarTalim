@@ -130,7 +130,6 @@
     padding: 7px 13px; border-radius: 6px; background-color: #2A2B31;
     color: #C9CAD2; font-size: 12.5px; font-weight: 600; white-space: nowrap;
   }
-  body.tab-switch .seqpick { display: block; }
   body:not(.tab-switch) #switchBtn, body.tab-switch #syncBtn,
   body.tab-switch #cutBtn { display: none; }
   body.tab-switch .tab.on { border-bottom-color: #5BC46A; }
@@ -156,12 +155,16 @@
     color: #8FD0E8; font-weight: 700;
   }
   .seqpick { display: none; }
-  body.tab-cut .seqpick {
+  body.tab-cut .seqpick, body.tab-switch .seqpick, body.tab-captions .seqpick {
     display: block; text-align: center; margin-bottom: 12px;
     padding: 11px; border-radius: 8px;
-    border: 1px solid #6A4A18; background-color: #221C11;
+    border: 1px solid #45464F; background-color: #17181C;
   }
-  .seqpick b { display: block; color: #E5A44A; }
+  .seqpick b { display: block; color: #C9CAD2; }
+  body.tab-cut .seqpick { border-color: #6A4A18; background-color: #221C11; }
+  body.tab-cut .seqpick b { color: #E5A44A; }
+  body.tab-switch .seqpick b { color: #8FD9A0; }
+  body.tab-captions .seqpick b { color: #E9A8CB; }
   .seqpick span { color: #8E909C; font-size: 12px; }
   body.tab-cut #syncBtn, body:not(.tab-cut) #cutBtn { display: none; }
   .knobs label {
@@ -197,14 +200,14 @@
 
     <div class="drop" id="pick">
       <b>Fayllarni tanlash uchun bosing</b><br>
-      kamera videolari va rekorder audiosi (2+ fayl)
+      <span id="pickHint">kamera videolari va rekorder audiosi (2+ fayl)</span>
     </div>
 
     <div class="files" id="files"></div>
 
     <div class="seqpick" id="seqBtn">
-      <b>Ochiq sequence'ni olish</b>
-      <span>montajingiz saqlanadi — faqat pauzalar kesiladi</span>
+      <b id="seqTitle">Ochiq sequence'ni olish</b>
+      <span id="seqHint">montajingiz saqlanadi — faqat pauzalar kesiladi</span>
     </div>
 
     <div class="knobs" id="cutKnobs">
@@ -242,7 +245,8 @@
       </div>
       <p class="tip">Avval <b>«2 daqiqani sinash»</b> ni bosing — model bir marta
       yuklanadi va o'z ovozingizda sifatni ko'rasiz. Yoqsa, to'liq transkripsiya
-      qilasiz.</p>
+      qilasiz.<br>Sequence olinsa, subtitr vaqtlari montajga moslanadi —
+      kesilgan joylar tushib qoladi.</p>
       <div class="searchbox">
         <input type="text" id="capSearch" placeholder="Arxivdan qidirish: mavzu yoki gap…">
         <span class="sbtn" id="capSearchBtn">Qidirish</span>

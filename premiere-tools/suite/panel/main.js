@@ -34,6 +34,9 @@ const els = {
   capSearch: el("capSearch"),
   capSearchBtn: el("capSearchBtn"),
   seqBtn: el("seqBtn"),
+  seqTitle: el("seqTitle"),
+  seqHint: el("seqHint"),
+  pickHint: el("pickHint"),
   importBtn: el("importBtn"),
   hint: el("hint"),
   diagBtn: document.getElementById("diagBtn"),
@@ -145,6 +148,8 @@ async function pickFiles() {
 }
 
 function renderFiles(results) {
+  // Ovoz manbasi ro'yxatdan olib tashlangan bo'lsa — eski yo'l qolib ketmasin
+  if (audioMaster && !picked.some((p) => p.path === audioMaster)) audioMaster = null;
   els.files.innerHTML = "";
   for (const p of picked) {
     const row = document.createElement("div");
@@ -179,14 +184,18 @@ function renderFiles(results) {
         pill.textContent = r.label;
         pill.addEventListener("click", () => cycleRole(p, picked.indexOf(p)));
         row.appendChild(pill);
-
-        // Ovoz manbasi — vazifadan alohida: kamera ham, ovoz ham bo'lishi mumkin
-        const snd = document.createElement("span");
+      }
+      // Ovoz manbasi — vazifadan alohida: Switch'da kamera almashsa ham ovoz
+      // shundan keladi, Captions'da esa aynan shu fayl matnga aylanadi.
+      if (activeTab === "switch" || activeTab === "captions") {
         const isMaster = audioMaster === p.path;
+        const snd = document.createElement("span");
         snd.className = "snd" + (isMaster ? " on" : "");
         snd.textContent = isMaster ? "♪ ovoz manbasi" : "♪ ovoz?";
         snd.title = isMaster
           ? "Ovoz shu fayldan olinadi — bekor qilish uchun bosing"
+          : activeTab === "captions"
+          ? "Subtitr shu faylning ovozidan yozilsin"
           : "Ovoz shu fayldan olinsin (yaxshi yozilgani)";
         snd.addEventListener("click", () => {
           audioMaster = isMaster ? null : p.path;
@@ -250,6 +259,36 @@ function cycleRole(p, index) {
 
 let activeTab = "sync";
 
+/* Har tab o'z tilida gapirsin — bir xil tugma turli ish qiladi */
+const TAB_TEXT = {
+  sync: { pick: "kamera videolari va rekorder audiosi (2+ fayl)" },
+  cut: {
+    pick: "yoki fayllarni qo'lda tanlang",
+    seqTitle: "Ochiq sequence'ni olish",
+    seqHint: "montajingiz saqlanadi — faqat pauzalar kesiladi",
+    next: "Endi «Pauzalarni kesish» ni bosing — montajingiz saqlanadi",
+  },
+  switch: {
+    pick: "kamera videolari (2+ fayl)",
+    seqTitle: "Ochiq sequence'ni olish",
+    seqHint: "sinxronlangan timeline'dan kameralar olinadi",
+    next: "Endi kameralarga vazifa bering va «Kameralarni taqsimlash» ni bosing",
+  },
+  captions: {
+    pick: "ovozi yaxshi yozilgan fayl (1 ta yetadi)",
+    seqTitle: "Ochiq sequence'dan ovozni olish",
+    seqHint: "montajdagi fayllar chiqadi — qaysi biridan yozishni ♪ bilan tanlaysiz",
+    next: "♪ bilan belgilangan fayl matnga aylanadi — «2 daqiqani sinash» ni bosing",
+  },
+};
+
+function applyTabText() {
+  const t = TAB_TEXT[activeTab] || TAB_TEXT.sync;
+  els.pickHint.textContent = t.pick;
+  if (t.seqTitle) els.seqTitle.textContent = t.seqTitle;
+  if (t.seqHint) els.seqHint.textContent = t.seqHint;
+}
+
 function setupTabs() {
   const tabs = document.querySelectorAll(".tab[data-tab]");
   tabs.forEach((tab) => {
@@ -263,6 +302,7 @@ function setupTabs() {
       els.importBtn.disabled = true;
       els.log.innerHTML = "";
       els.log.classList.remove("show");
+      applyTabText();
       renderFiles();
     });
   });
@@ -371,6 +411,33 @@ async function mediaPathOf(ppro, trackItem) {
   return null;
 }
 
+/* Sequence'dagi ovoz manbasini taxmin qilamiz.
+ *
+ * Eng ishonchli belgi — fayl alohida audio trekda tursa-yu, video trekda
+ * umuman uchramasa: bu deyarli har doim rekorder yozuvi (mikrofon). Bunday
+ * fayl bo'lmasa, birinchi faylni olamiz — foydalanuvchi ♪ bilan almashtira
+ * oladi. Tanlangan manbani qaytaramiz, xabarni chaqiruvchi yozadi. */
+function pickAudioSource() {
+  if (!timeline || !timeline.length) return null;
+  const onVideo = new Set();
+  const onAudio = [];
+  for (const it of timeline) {
+    if (it.atrack) {
+      if (onAudio.indexOf(it.path) < 0) onAudio.push(it.path);
+    } else {
+      onVideo.add(it.path);
+    }
+  }
+  const mic = onAudio.filter((p) => !onVideo.has(p));
+  const guess = mic[0] || onAudio[0] || (picked[0] && picked[0].path) || null;
+  if (!guess) return null;
+  audioMaster = guess;
+  const nm = guess.split("/").pop();
+  return mic.length
+    ? "Ovoz manbasi: " + nm + " (alohida audio trekda — mikrofon shu bo'lsa kerak)"
+    : "Ovoz manbasi: " + nm + " — boshqasi kerak bo'lsa ♪ ni bosing";
+}
+
 async function readSequence() {
   els.log.innerHTML = "";
   logLine("Ochiq sequence o'qilmoqda…");
@@ -391,9 +458,10 @@ async function readSequence() {
 
     for (let i = 0; i < vCount + aCount; i++) {
       step = "trek " + (i + 1) + " ni o'qish";
-      const track = i < vCount
-        ? await seq.getVideoTrack(i)
-        : await seq.getAudioTrack(i - vCount);
+      const onAudioTrack = i >= vCount;
+      const track = onAudioTrack
+        ? await seq.getAudioTrack(i - vCount)
+        : await seq.getVideoTrack(i);
       if (!track) continue;
       const trackItems = await track.getTrackItems(clipType, false);
       for (const it of trackItems) {
@@ -404,7 +472,8 @@ async function readSequence() {
         const end = secs(await it.getEndTime());
         const inP = secs(await it.getInPoint());
         if (end <= start) continue;
-        items.push({ path: path, start: start, in: inP, out: inP + (end - start) });
+        items.push({ path: path, start: start, in: inP, out: inP + (end - start),
+                     atrack: onAudioTrack });
       }
     }
 
@@ -425,10 +494,13 @@ async function readSequence() {
       const nm = it.path.split("/").pop();
       if (!names.has(nm)) { names.add(nm); picked.push({ name: nm, path: it.path }); }
     }
+    const sound = activeTab === "captions" ? pickAudioSource() : null;
     renderFiles();
     logLine("Sequence olindi: " + timeline.length + " klip, " +
             picked.length + " fayl ✓", "okline");
-    logLine("Endi «Pauzalarni kesish» ni bosing — montajingiz saqlanadi");
+    if (sound) logLine(sound);
+    const t = TAB_TEXT[activeTab] || {};
+    if (t.next) logLine(t.next);
   } catch (e) {
     timeline = null;
     logLine("Sequence o'qilmadi (" + step + "): " + e.message, "warn");
@@ -475,6 +547,9 @@ async function run(kind) {
   if (isCap) {
     const src = audioMaster || (picked[0] && picked[0].path);
     body.files = [src];
+    // Sequence'dan olingan bo'lsa — vaqtlar montajga moslanishi uchun
+    // shu faylning bo'laklari ham ketadi (motor o'zi ajratib oladi).
+    if (timeline) body.timeline = timeline;
     body.language = capOpts.language;
     body.model = capOpts.model;
     body.title = (src || "").split("/").pop().replace(/\.[^.]+$/, "");
@@ -510,6 +585,7 @@ async function run(kind) {
     lastXml = isCap ? null : j.output;
     if (isCap) {
       logLine(j.line_count + " qator · " + j.word_count + " so'z" +
+              (j.from_sequence ? "  (montaj vaqti bo'yicha)" : "") +
               (j.sample ? "  (sinov)" : ""), "okline");
       if (j.preview) logLine("Namuna: " + j.preview);
       if (j.sample) {
@@ -619,6 +695,7 @@ setupTabs();
 setupKnobs();
 setupCaptionPills();
 document.body.className = "tab-sync";
+applyTabText();
 checkMotor().then(function (ok) { if (ok) checkUpdates(); });
 setInterval(checkMotor, 5000);
 setInterval(checkUpdates, 10 * 60 * 1000);   // har 10 daqiqada bir tekshiradi
