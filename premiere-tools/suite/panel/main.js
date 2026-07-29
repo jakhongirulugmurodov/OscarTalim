@@ -31,6 +31,7 @@ const els = {
   switchBtn: el("switchBtn"),
   capBtn: el("capBtn"),
   sampleBtn: el("sampleBtn"),
+  capWarn: el("capWarn"),
   capSearch: el("capSearch"),
   capSearchBtn: el("capSearchBtn"),
   seqBtn: el("seqBtn"),
@@ -45,6 +46,7 @@ const els = {
 
 let picked = [];   // [{name, path}]
 let lastXml = null;
+let whisperReady = true;   // motor aytmaguncha to'sqinlik qilmaymiz
 
 /* ---------------------------------------------------- motor holati */
 
@@ -57,6 +59,11 @@ async function checkMotor() {
       if (j.ok) {
         MOTOR = base;
         markModels(j.models);
+        // whisper.cpp yo'qligi faqat tugmani bosgandan keyin bilinardi —
+        // endi Captions tabining tepasida turadi va tugma ochilmaydi.
+        whisperReady = j.whisper !== false;
+        els.capWarn.classList.toggle("show", !whisperReady);
+        if (!pollTimer) updateRunButtons();
         els.motor.classList.add("ok");
         els.motorTxt.textContent = j.ffmpeg === false
           ? "Motor ishlayapti, lekin ffmpeg yo'q — motorni-yoqish.command ni ishlating"
@@ -695,8 +702,8 @@ function updateRunButtons() {
   els.syncBtn.disabled = picked.length < 2;
   els.cutBtn.disabled = picked.length < 1;
   els.switchBtn.disabled = picked.length < 2;
-  els.capBtn.disabled = picked.length < 1;
-  els.sampleBtn.disabled = picked.length < 1;
+  els.capBtn.disabled = picked.length < 1 || !whisperReady;
+  els.sampleBtn.disabled = picked.length < 1 || !whisperReady;
 }
 
 /* ------------------------------------------- Premiere'ga import */

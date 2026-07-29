@@ -89,11 +89,22 @@ if ! command -v whisper-cli >/dev/null && ! command -v whisper-cpp >/dev/null \
       cp "$SUITE/whisper-src/build/bin/whisper-cli" "$SUITE/bin/" && \
       echo "  whisper.cpp tayyor ✓" || echo "  [XATO] qurib bo'lmadi"
     else
-      echo "  cmake yo'q. Eng oson yo'l — Homebrew o'rnatib, keyin:"
+      echo "  cmake ham yo'q — avtomatik o'rnatib bo'lmaydi."
+      echo "  Terminalda quyidagi ikki buyruqni ketma-ket qo'ying:"
+      echo '     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
       echo "     brew install whisper-cpp"
+      echo "  So'ng shu faylni qayta bosing."
       echo "  (Captions modulisiz qolgan modullar baribir ishlayveradi.)"
     fi
   fi
+fi
+
+# Natijani aytamiz — «o'rnatildimi?» degan savol qolmasin
+if command -v whisper-cli >/dev/null || command -v whisper-cpp >/dev/null \
+   || [ -x "$SUITE/bin/whisper-cli" ]; then
+  echo "  whisper.cpp: bor ✓ (Captions ishlaydi)"
+else
+  echo "  whisper.cpp: YO'Q — Captions tabi yopiq turadi, qolgani ishlaydi"
 fi
 
 # ---------- 4. Motor: login'da o'zi yonsin ----------
