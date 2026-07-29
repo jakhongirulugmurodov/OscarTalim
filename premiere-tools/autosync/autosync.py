@@ -13,8 +13,10 @@ Talablar: Python 3.8+, numpy, ffmpeg/ffprobe (PATH da bo'lishi kerak).
 """
 
 import argparse
+import glob
 import json
 import os
+import shutil
 import subprocess
 import sys
 from urllib.request import pathname2url
@@ -25,12 +27,55 @@ import numpy as np
 ANALYSIS_SR = 8000  # audio tahlil uchun namuna chastotasi (past = tez, yetarli aniq)
 
 
+def _find_tool(name):
+    """ffmpeg/ffprobe ni topish — PATH bo'sh bo'lsa ham ishlashi uchun.
+
+    Motor qaysi papkadan yoqilganidan qat'i nazar topilsin: paket ichidagi
+    bin/, Homebrew joylari va foydalanuvchining odatdagi papkalari qaraladi.
+    """
+    found = shutil.which(name)
+    if found:
+        return found
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    home = os.path.expanduser("~")
+    candidates = [
+        os.path.join(here, "..", "bin", name),      # paket: autosync/../bin
+        os.path.join(here, "..", "suite", "bin", name),
+        os.path.join(here, "bin", name),
+        "/opt/homebrew/bin/" + name,                # Apple Silicon Homebrew
+        "/usr/local/bin/" + name,                   # Intel Homebrew / qo'lda
+        "/opt/local/bin/" + name,                   # MacPorts
+    ]
+    # Har qanday joydagi PodcastSuite/bin — foydalanuvchi qayerga ochgan bo'lsa ham
+    for folder in ("Desktop", "Downloads", "Documents", ""):
+        candidates.append(os.path.join(home, folder, "PodcastSuite", "bin", name))
+    candidates += glob.glob(os.path.join(home, "*", "PodcastSuite", "bin", name))
+
+    for path in candidates:
+        path = os.path.abspath(path)
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    return None
+
+
+FFMPEG = _find_tool("ffmpeg")
+FFPROBE = _find_tool("ffprobe")
+
+FFMPEG_YOQ = (
+    "ffmpeg topilmadi. Motorni «motorni-yoqish.command» orqali ishga tushiring "
+    "— u ffmpeg'ni o'zi yuklab oladi. Yoki terminalda: brew install ffmpeg"
+)
+
+
 # ---------------------------------------------------------------- media info
 
 def ffprobe(path):
     """Fayl haqida ma'lumot: davomiylik, fps, o'lcham, audio bor-yo'qligi."""
+    if not FFPROBE:
+        raise RuntimeError(FFMPEG_YOQ)
     cmd = [
-        "ffprobe", "-v", "error", "-print_format", "json",
+        FFPROBE, "-v", "error", "-print_format", "json",
         "-show_streams", "-show_format", path,
     ]
     out = subprocess.run(cmd, capture_output=True, text=True)
@@ -67,7 +112,9 @@ def ffprobe(path):
 
 def extract_audio(path, max_seconds):
     """Audioni mono float32 ko'rinishida o'qib olish (tahlil uchun)."""
-    cmd = ["ffmpeg", "-v", "error", "-i", path]
+    if not FFMPEG:
+        raise RuntimeError(FFMPEG_YOQ)
+    cmd = [FFMPEG, "-v", "error", "-i", path]
     if max_seconds:
         cmd += ["-t", str(max_seconds)]
     cmd += ["-map", "a:0", "-ac", "1", "-ar", str(ANALYSIS_SR), "-f", "f32le", "-"]

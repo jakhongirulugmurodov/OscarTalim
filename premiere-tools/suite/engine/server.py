@@ -26,7 +26,7 @@ for _cand in (os.path.join(_here, "..", "..", "autosync"),
     if os.path.isfile(os.path.join(_cand, "autosync.py")):
         sys.path.insert(0, _cand)
         break
-from autosync import run_sync
+from autosync import run_sync, FFMPEG, FFPROBE
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -48,7 +48,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self._send(200, {"ok": True, "version": VERSION, "modules": ["sync"]})
+            self._send(200, {"ok": True, "version": VERSION, "modules": ["sync"],
+                             "ffmpeg": bool(FFMPEG and FFPROBE)})
         else:
             self._send(404, {"error": "Bunday endpoint yo'q"})
 

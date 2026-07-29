@@ -46,7 +46,9 @@ async function checkMotor() {
       if (j.ok) {
         MOTOR = base;
         els.motor.classList.add("ok");
-        els.motorTxt.textContent = "Motor ishlayapti (v" + j.version + ")";
+        els.motorTxt.textContent = j.ffmpeg === false
+          ? "Motor ishlayapti, lekin ffmpeg yo'q — motorni-yoqish.command ni ishlating"
+          : "Motor ishlayapti (v" + j.version + ")";
         return true;
       }
     } catch (e) {
