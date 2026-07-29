@@ -175,6 +175,18 @@ function renderFiles(results) {
         pill.textContent = r.label;
         pill.addEventListener("click", () => cycleRole(p, picked.indexOf(p)));
         row.appendChild(pill);
+
+        // Ovoz manbasi — vazifadan alohida: kamera ham, ovoz ham bo'lishi mumkin
+        const snd = document.createElement("span");
+        const isMaster = audioMaster === p.path;
+        snd.className = "snd" + (isMaster ? " on" : "");
+        snd.textContent = isMaster ? "♪ ovoz" : "♪";
+        snd.title = "Ovoz shu fayldan olinsin";
+        snd.addEventListener("click", () => {
+          audioMaster = isMaster ? null : p.path;
+          renderFiles();
+        });
+        row.appendChild(snd);
       }
       const rm = document.createElement("span");
       rm.className = "rm";
@@ -196,6 +208,7 @@ function renderFiles(results) {
 /* Har fayl uchun vazifa: pill bosilganda navbatdagisiga o'tadi.
  * Spikerlar avtomatik raqamlanadi — birinchi fayl 1-spiker va hokazo. */
 let roles = {};        // path -> {role, sid, label}
+let audioMaster = null;  // ovozi ishlatiladigan fayl yo'li (vazifadan mustaqil)
 
 function roleOptions() {
   const n = Math.max(picked.length, 1);
@@ -206,7 +219,6 @@ function roleOptions() {
   for (let i = 0; i < n; i++)
     out.push({ role: "alt", sid: i, label: "Rakurs " + (i + 1), cls: "alt" });
   out.push({ role: "insert", sid: null, label: "Detal", cls: "insert" });
-  out.push({ role: "audio", sid: null, label: "Asosiy ovoz", cls: "audio" });
   return out;
 }
 
@@ -407,6 +419,7 @@ async function run(kind) {
     if (timeline) body.timeline = timeline;
     body.roles = picked.map((p, i) => roleOf(p, i).role);
     body.speakers = picked.map((p, i) => roleOf(p, i).sid);
+    if (audioMaster) body.audio_master = audioMaster;
     body.min_shot = knobs.minShot.val(+knobs.minShot.el.value);
     body.max_shot = knobs.maxShot.val(+knobs.maxShot.el.value);
   }
@@ -433,6 +446,10 @@ async function run(kind) {
     if (isSwitch) {
       logLine(j.shots + " kadr tuzildi · birga gapirish " +
               Math.round(j.together_sec) + "s", "okline");
+      if (!audioMaster) {
+        logLine("Ovoz manbasi tanlanmagan — har kamera o'z audiosi bilan " +
+                "keladi. Yaxshi yozilgan fayl yonidagi ♪ ni bosing.", "warn");
+      }
       for (const c of j.clips) {
         logLine("  " + c.name + " — " + c.shots + " kadr, " +
                 Math.round(c.screen_sec) + "s ekranda" +

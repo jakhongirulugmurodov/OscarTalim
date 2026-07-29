@@ -207,6 +207,7 @@ class Handler(BaseHTTPRequestHandler):
                     files, output=output,
                     name=req.get("name") or "Podcast Suite — Switch",
                     roles=req.get("roles"), speakers=req.get("speakers"),
+                    audio_master=req.get("audio_master"),
                     min_shot=float(req.get("min_shot", 2.5)),
                     max_shot=float(req.get("max_shot", 25.0)),
                     timeline=seq_timeline, fallback=RESULTS_DIR, log=record)

@@ -181,11 +181,15 @@ def plan_shots(active, cams, min_shot, max_shot, fps=25.0, log=print):
 def run_switch(files, roles=None, speakers=None, output="switch.xml",
                name="Podcast Suite — Switch", min_shot=DEFAULT_MIN_SHOT,
                max_shot=DEFAULT_MAX_SHOT, margin=DEFAULT_MARGIN,
-               silence=DEFAULT_SILENCE, timeline=None, fallback=None, log=print):
+               silence=DEFAULT_SILENCE, audio_master=None, timeline=None,
+               fallback=None, log=print):
     """Kamera almashtirish rejasini tuzib, sequence yasaydi.
 
-    roles    — har fayl uchun vazifa: speaker / wide / alt / insert
-    speakers — spiker kamerasi qaysi spikerga tegishli (alt kadrlar uchun ham)
+    roles        — har fayl uchun vazifa: speaker / wide / alt / insert
+    speakers     — spiker kamerasi qaysi spikerga tegishli (alt kadrlar uchun ham)
+    audio_master — ovozi butun timeline bo'ylab ishlatiladigan fayl yo'li.
+                   Bu kamera bo'lishi ham mumkin: u ekranga chiqaveradi,
+                   ovozi esa kadr almashsa ham uzluksiz qolaveradi.
     """
     from_timeline = bool(timeline)
     if from_timeline:
@@ -314,12 +318,15 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
     # kameralarda esa o'zining past sifatli mikrofoni. Kamera almashganda ovoz
     # ham almashib ketmasin: belgilangan manba butun timeline bo'ylab uzluksiz
     # ketadi, boshqalarining audiosi umuman chiqarilmaydi.
-    masters = [c for c in clips if c["role"] == AUDIO]
+    masters = [c for c in clips if c["path"] == os.path.abspath(audio_master or "")]
+    if not masters:
+        masters = [c for c in clips if c["role"] == AUDIO]
     if masters:
         master = masters[0]
         for c in clips:
             c["emit_audio"] = c is master
-        master["emit_video"] = master["role"] != AUDIO or bool(master["segments"])
+        # AUDIO vazifasidagi fayl faqat ovoz beradi; kamera bo'lsa — ekranda
+        # ham qolaveradi, ovozi esa alohida, uzluksiz trek bo'lib ketadi.
         if master["role"] == AUDIO:
             master["emit_video"] = False
         master["audio_segments"] = [

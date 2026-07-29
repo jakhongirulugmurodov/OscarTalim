@@ -115,7 +115,11 @@
   .file .role.wide { background-color: #2E3038; color: #C9CAD2; }
   .file .role.alt { background-color: #2C2A38; color: #B9AEE8; }
   .file .role.insert { background-color: #33291F; color: #E0B98A; }
-  .file .role.audio { background-color: #1F3038; color: #8FD0E8; }
+  .file .snd {
+    font-size: 11.5px; padding: 3px 9px; border-radius: 99px;
+    background-color: #2A2B31; color: #6E7078; white-space: nowrap;
+  }
+  .file .snd.on { background-color: #1F3038; color: #8FD0E8; font-weight: 700; }
   .seqpick { display: none; }
   body.tab-cut .seqpick {
     display: block; text-align: center; margin-bottom: 12px;
@@ -192,8 +196,9 @@
         <input type="range" id="kMaxShot" min="8" max="60" value="25">
         <span id="vMaxShot">25 s</span>
       </label>
-      <p class="tip">Ovozi yaxshi yozilgan faylni <b>«Asosiy ovoz»</b> deb
-      belgilang — kamera almashsa ham ovoz o'sha bitta manbadan keladi.</p>
+      <p class="tip">Ovozi yaxshi yozilgan fayl yonidagi <b>♪</b> belgisini
+      bosing — kamera almashsa ham ovoz o'sha bitta manbadan keladi. O'sha fayl
+      kamera sifatida ham ishlatilaveradi.</p>
     </div>
 
     <div class="log" id="log"></div>
