@@ -71,6 +71,31 @@ if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
   fi
 fi
 
+# ---------- 3b. whisper.cpp (Captions moduli uchun) ----------
+if ! command -v whisper-cli >/dev/null && ! command -v whisper-cpp >/dev/null \
+   && [ ! -x "$SUITE/bin/whisper-cli" ]; then
+  echo "▶ whisper.cpp o'rnatilmoqda (subtitr uchun)..."
+  if command -v brew >/dev/null; then
+    brew install whisper-cpp 2>&1 | tail -2
+  else
+    echo "  Homebrew topilmadi — manbadan quriladi (bir necha daqiqa)..."
+    if command -v cmake >/dev/null; then
+      rm -rf "$SUITE/whisper-src"
+      git clone -q --depth 1 https://github.com/ggerganov/whisper.cpp "$SUITE/whisper-src" && \
+      cmake -S "$SUITE/whisper-src" -B "$SUITE/whisper-src/build" \
+            -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 && \
+      cmake --build "$SUITE/whisper-src/build" -j --target whisper-cli >/dev/null 2>&1 && \
+      mkdir -p "$SUITE/bin" && \
+      cp "$SUITE/whisper-src/build/bin/whisper-cli" "$SUITE/bin/" && \
+      echo "  whisper.cpp tayyor ✓" || echo "  [XATO] qurib bo'lmadi"
+    else
+      echo "  cmake yo'q. Eng oson yo'l — Homebrew o'rnatib, keyin:"
+      echo "     brew install whisper-cpp"
+      echo "  (Captions modulisiz qolgan modullar baribir ishlayveradi.)"
+    fi
+  fi
+fi
+
 # ---------- 4. Motor: login'da o'zi yonsin ----------
 echo "▶ Motor sozlanmoqda..."
 AGENTS="$HOME/Library/LaunchAgents"
