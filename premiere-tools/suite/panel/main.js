@@ -70,9 +70,12 @@ async function checkMotor() {
   lastMotorError = errors.join(" · ");
   els.motor.classList.remove("ok");
   // Ruxsat xatosi va «motor o'chiq» — butunlay boshqa muammolar, ajratib ko'rsatamiz
+  // «Manifest entry not found» — UXP panelni qayta yuklaganda tarmoq
+  // ruxsatini yo'qotgan. Reload yetmaydi, Unload + Load kerak.
   const denied = /permission|denied|manifest/i.test(lastMotorError);
   els.motorTxt.textContent = denied
-    ? "Motorga ruxsat berilmadi — panelni UDT'da Unload/Load qiling"
+    ? "Motorga ruxsat berilmadi — UDT'da ••• > Unload, so'ng Load & Watch "
+      + "(Reload yetmaydi). Motorning o'zi ishlab turibdi."
     : "Motor topilmadi — motorni yoqing (motorni-yoqish.command)";
   els.motorTxt.title = lastMotorError;
   return false;
