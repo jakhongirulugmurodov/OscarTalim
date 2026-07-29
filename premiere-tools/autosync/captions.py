@@ -46,13 +46,35 @@ def models_dir():
     return os.path.abspath(path)
 
 
+_WHISPER_OK = {}
+
+
+def whisper_runs(path):
+    """Fayl bor bo'lishi yetmaydi — ishga tushishini ham tekshiramiz.
+
+    Manbadan noto'g'ri qurilgan nusxa kutubxonalarini topa olmay yiqiladi;
+    bu holat faqat transkripsiya o'rtasida bilinardi. Natija saqlanadi —
+    har chaqiruvda jarayon ochmaymiz.
+    """
+    if path in _WHISPER_OK:
+        return _WHISPER_OK[path]
+    try:
+        out = subprocess.run([path, "--help"], capture_output=True, timeout=30)
+        text = (out.stdout + out.stderr).decode("utf-8", "replace").lower()
+        ok = out.returncode == 0 or "usage:" in text
+    except (OSError, subprocess.SubprocessError):
+        ok = False
+    _WHISPER_OK[path] = ok
+    return ok
+
+
 def find_whisper():
     """whisper.cpp ijro fayli: paket ichida, PATH da yoki Homebrew joyida."""
     here = os.path.dirname(os.path.abspath(__file__))
     names = ("whisper-cli", "whisper-cpp", "main")
     for name in names:
         found = shutil.which(name)
-        if found:
+        if found and whisper_runs(found):
             return found
     candidates = []
     for name in names:
@@ -66,7 +88,7 @@ def find_whisper():
             os.path.expanduser("~"), "*", "whisper.cpp", "build", "bin", name))
     for path in candidates:
         path = os.path.abspath(path)
-        if os.path.isfile(path) and os.access(path, os.X_OK):
+        if os.path.isfile(path) and os.access(path, os.X_OK) and whisper_runs(path):
             return path
     return None
 

@@ -102,26 +102,50 @@ whisper_qur() {    # $1 — cmake yo'li
   # Avval Metal bilan (Apple chipida bir necha barobar tez). Metal
   # shaderlarini qurish uchun to'liq Xcode kerak bo'lishi mumkin —
   # bo'lmasa, protsessor rejimida qayta urinamiz.
+  # BUILD_SHARED_LIBS=OFF — muhim: aks holda whisper-cli o'zi bilan birga
+  # libwhisper.dylib va ggml kutubxonalarini qurilish papkasida qoldiradi,
+  # biz esa o'sha papkani o'chiramiz va dastur ishga tushmay qoladi.
   local FLAGS=""
   for FLAGS in "" "-DGGML_METAL=OFF"; do
     rm -rf "$SUITE/whisper-src/build"
     if "$CM" -S "$SUITE/whisper-src" -B "$SUITE/whisper-src/build" \
-             -DCMAKE_BUILD_TYPE=Release $FLAGS >>"$SUITE/qurilish.log" 2>&1 && \
+             -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
+             -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON \
+             $FLAGS >>"$SUITE/qurilish.log" 2>&1 && \
        "$CM" --build "$SUITE/whisper-src/build" -j --target whisper-cli \
              >>"$SUITE/qurilish.log" 2>&1 && \
        [ -x "$SUITE/whisper-src/build/bin/whisper-cli" ]; then
       mkdir -p "$SUITE/bin"
       cp "$SUITE/whisper-src/build/bin/whisper-cli" "$SUITE/bin/"
-      [ -n "$FLAGS" ] && echo "  (Metal ishlamadi — protsessor rejimida qurildi)"
+      # Manbani o'chirishdan oldin tekshiramiz: dastur yakka o'zi ishlaydimi
       rm -rf "$SUITE/whisper-src"
-      return 0
+      if "$SUITE/bin/whisper-cli" --help >/dev/null 2>&1; then
+        [ -n "$FLAGS" ] && echo "  (Metal ishlamadi — protsessor rejimida qurildi)"
+        return 0
+      fi
+      echo "  [XATO] qurilgan dastur ishga tushmadi — qayta urinilmoqda" \
+        >>"$SUITE/qurilish.log"
+      rm -f "$SUITE/bin/whisper-cli"
+      git clone -q --depth 1 https://github.com/ggerganov/whisper.cpp \
+            "$SUITE/whisper-src" || return 1
     fi
   done
   return 1
 }
 
-if ! command -v whisper-cli >/dev/null && ! command -v whisper-cpp >/dev/null \
-   && [ ! -x "$SUITE/bin/whisper-cli" ]; then
+# Bor-yo'g'ini emas, ishlashini tekshiramiz: nuqson bilan qurilgan nusxa
+# fayl sifatida turaveradi, lekin ishga tushmaydi.
+whisper_ishlaydimi() {
+  for W in "$SUITE/bin/whisper-cli" \
+           "$(command -v whisper-cli || true)" \
+           "$(command -v whisper-cpp || true)"; do
+    [ -n "$W" ] && [ -x "$W" ] && "$W" --help >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+if ! whisper_ishlaydimi; then
+  rm -f "$SUITE/bin/whisper-cli"        # nosoz nusxa yo'lni to'sib turmasin
   echo "▶ whisper.cpp o'rnatilmoqda (subtitr uchun)..."
   : > "$SUITE/qurilish.log"
 
@@ -159,8 +183,7 @@ if ! command -v whisper-cli >/dev/null && ! command -v whisper-cpp >/dev/null \
 fi
 
 # Natijani aytamiz — «o'rnatildimi?» degan savol qolmasin
-if command -v whisper-cli >/dev/null || command -v whisper-cpp >/dev/null \
-   || [ -x "$SUITE/bin/whisper-cli" ]; then
+if whisper_ishlaydimi; then
   echo "  whisper.cpp: bor ✓ (Captions ishlaydi)"
 else
   echo "  whisper.cpp: YO'Q — Captions tabi yopiq turadi, qolgani ishlaydi"
