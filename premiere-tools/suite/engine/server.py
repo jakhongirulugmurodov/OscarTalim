@@ -30,6 +30,7 @@ for _cand in (os.path.join(_here, "..", "..", "autosync"),
         break
 from autosync import run_sync, FFMPEG, FFPROBE
 from cut import run_cut
+from switch import run_switch
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -159,7 +160,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION,
-                             "modules": ["sync", "cut"],
+                             "modules": ["sync", "cut", "switch"],
                              "ffmpeg": bool(FFMPEG and FFPROBE)})
         elif self.path == "/version":
             try:
@@ -178,14 +179,15 @@ class Handler(BaseHTTPRequestHandler):
                 # (DOIMIY-ORNATISH.command o'rnatgan) motorni o'zi ko'taradi.
                 threading.Timer(0.5, lambda: os._exit(0)).start()
             return
-        if self.path not in ("/sync", "/cut"):
+        if self.path not in ("/sync", "/cut", "/switch"):
             return self._send(404, {"error": "Bunday endpoint yo'q"})
         try:
             length = int(self.headers.get("Content-Length", 0))
             req = json.loads(self.rfile.read(length) or b"{}")
 
             files = req.get("files") or []
-            seq_timeline = req.get("timeline") if self.path == "/cut" else None
+            seq_timeline = (req.get("timeline")
+                            if self.path in ("/cut", "/switch") else None)
             if seq_timeline:
                 files = list(dict.fromkeys(c["path"] for c in seq_timeline))
             least = 1 if self.path == "/cut" else 2
@@ -195,12 +197,20 @@ class Handler(BaseHTTPRequestHandler):
             if missing:
                 return self._send(400, {"error": f"Fayl topilmadi: {missing[0]}"})
 
-            kind = "Cut" if self.path == "/cut" else "Sync"
+            kind = {"/cut": "Cut", "/switch": "Switch"}.get(self.path, "Sync")
             output = req.get("output") or default_output(files, kind)
             logs = []
             record = lambda m: (logs.append(m), print(m))
 
-            if self.path == "/cut":
+            if self.path == "/switch":
+                result = run_switch(
+                    files, output=output,
+                    name=req.get("name") or "Podcast Suite — Switch",
+                    roles=req.get("roles"), speakers=req.get("speakers"),
+                    min_shot=float(req.get("min_shot", 2.5)),
+                    max_shot=float(req.get("max_shot", 25.0)),
+                    timeline=seq_timeline, fallback=RESULTS_DIR, log=record)
+            elif self.path == "/cut":
                 result = run_cut(
                     files, output=output,
                     name=req.get("name") or "Podcast Suite — Cut",

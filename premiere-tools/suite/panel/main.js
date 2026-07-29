@@ -1,4 +1,4 @@
-/* Podcast Suite — panel mantiqi (Sync va Cut modullari).
+/* Podcast Suite — panel mantiqi (Sync, Cut va Switch modullari).
  *
  * Panel o'zi hech qanday og'ir ish qilmaydi: fayllarni tanlatadi,
  * lokal motorga (server.py, 127.0.0.1:8765) yuboradi, natijani
@@ -28,6 +28,7 @@ const els = {
   log: el("log"),
   syncBtn: el("syncBtn"),
   cutBtn: el("cutBtn"),
+  switchBtn: el("switchBtn"),
   seqBtn: el("seqBtn"),
   importBtn: el("importBtn"),
   hint: el("hint"),
@@ -167,6 +168,14 @@ function renderFiles(results) {
         if (bad) row.classList.add("badrow");
       }
     } else {
+      if (activeTab === "switch") {
+        const r = roleOf(p, picked.indexOf(p));
+        const pill = document.createElement("span");
+        pill.className = "role " + r.cls;
+        pill.textContent = r.label;
+        pill.addEventListener("click", () => cycleRole(p, picked.indexOf(p)));
+        row.appendChild(pill);
+      }
       const rm = document.createElement("span");
       rm.className = "rm";
       rm.textContent = "✕";
@@ -180,6 +189,42 @@ function renderFiles(results) {
   }
   els.hint.textContent = picked.length + " fayl";
   updateRunButtons();
+}
+
+/* ------------------------------------------- kamera vazifalari (Switch) */
+
+/* Har fayl uchun vazifa: pill bosilganda navbatdagisiga o'tadi.
+ * Spikerlar avtomatik raqamlanadi — birinchi fayl 1-spiker va hokazo. */
+let roles = {};        // path -> {role, sid, label}
+
+function roleOptions() {
+  const n = Math.max(picked.length, 1);
+  const out = [];
+  for (let i = 0; i < n; i++)
+    out.push({ role: "speaker", sid: i, label: "Spiker " + (i + 1), cls: "speaker" });
+  out.push({ role: "wide", sid: null, label: "Keng plan", cls: "wide" });
+  for (let i = 0; i < n; i++)
+    out.push({ role: "alt", sid: i, label: "Rakurs " + (i + 1), cls: "alt" });
+  out.push({ role: "insert", sid: null, label: "Detal", cls: "insert" });
+  return out;
+}
+
+function defaultRole(index) {
+  const opts = roleOptions();
+  return opts[Math.min(index, opts.length - 1)];
+}
+
+function roleOf(p, index) {
+  if (!roles[p.path]) roles[p.path] = defaultRole(index);
+  return roles[p.path];
+}
+
+function cycleRole(p, index) {
+  const opts = roleOptions();
+  const cur = roleOf(p, index);
+  let at = opts.findIndex((o) => o.role === cur.role && o.sid === cur.sid);
+  roles[p.path] = opts[(at + 1) % opts.length];
+  renderFiles();
 }
 
 /* ------------------------------------------------------------ tablar */
@@ -212,6 +257,10 @@ const knobs = {
               fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
   padding: { el: el("kPadding"), out: el("vPadding"),
              fmt: (v) => v * 10 + " ms", val: (v) => v / 100 },
+  minShot: { el: el("kMinShot"), out: el("vMinShot"),
+             fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
+  maxShot: { el: el("kMaxShot"), out: el("vMaxShot"),
+             fmt: (v) => v + " s", val: (v) => v },
 };
 
 function setupKnobs() {
@@ -339,16 +388,27 @@ async function run(kind) {
   if (!(await checkMotor())) return;
 
   const isCut = kind === "cut";
+  const isSwitch = kind === "switch";
   els.log.innerHTML = "";
   els.syncBtn.disabled = true;
   els.cutBtn.disabled = true;
+  els.switchBtn.disabled = true;
   els.importBtn.disabled = true;
-  logLine(isCut ? "Pauzalar qidirilmoqda…" : "Sinxronlash boshlandi…");
+  logLine(isSwitch ? "Kamera rejasi tuzilmoqda…"
+        : isCut ? "Pauzalar qidirilmoqda…" : "Sinxronlash boshlandi…");
 
   const body = {
     files: picked.map((p) => p.path),
-    name: isCut ? "Podcast Suite — Cut" : "Podcast Suite — Sync",
+    name: isSwitch ? "Podcast Suite — Switch"
+        : isCut ? "Podcast Suite — Cut" : "Podcast Suite — Sync",
   };
+  if (isSwitch) {
+    if (timeline) body.timeline = timeline;
+    body.roles = picked.map((p, i) => roleOf(p, i).role);
+    body.speakers = picked.map((p, i) => roleOf(p, i).sid);
+    body.min_shot = knobs.minShot.val(+knobs.minShot.el.value);
+    body.max_shot = knobs.maxShot.val(+knobs.maxShot.el.value);
+  }
   if (isCut) {
     if (timeline) body.timeline = timeline;
     body.threshold = knobs.threshold.val(+knobs.threshold.el.value);
@@ -369,7 +429,16 @@ async function run(kind) {
       logLine(line, line.indexOf("OGOHLANTIRISH") >= 0 ? "warn" : null);
     }
     lastXml = j.output;
-    if (isCut) {
+    if (isSwitch) {
+      logLine(j.shots + " kadr tuzildi · birga gapirish " +
+              Math.round(j.together_sec) + "s", "okline");
+      for (const c of j.clips) {
+        logLine("  " + c.name + " — " + c.shots + " kadr, " +
+                Math.round(c.screen_sec) + "s ekranda" +
+                (c.shots === 0 ? "  (ishlatilmadi)" : ""),
+                c.shots === 0 ? "warn" : null);
+      }
+    } else if (isCut) {
       const mins = (s) => Math.floor(s / 60) + " daq " + Math.round(s % 60) + " s";
       logLine(j.pauses.length + " pauza kesildi — " + mins(j.saved_sec) +
               " qisqardi", "okline");
@@ -389,6 +458,7 @@ async function run(kind) {
 function updateRunButtons() {
   els.syncBtn.disabled = picked.length < 2;
   els.cutBtn.disabled = picked.length < 1;
+  els.switchBtn.disabled = picked.length < 2;
 }
 
 /* ------------------------------------------- Premiere'ga import */
@@ -441,6 +511,7 @@ on(els.updBtn, doUpdate);
 on(els.pick, pickFiles);
 on(els.syncBtn, function () { run("sync"); });
 on(els.cutBtn, function () { run("cut"); });
+on(els.switchBtn, function () { run("switch"); });
 on(els.seqBtn, readSequence);
 on(els.importBtn, doImport);
 

@@ -297,8 +297,14 @@ def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg, seg_no=0
     return "\n".join(lines)
 
 
-def build_xml(clips, seq_name, timebase, ntsc, width, height):
-    """Sequence XML. Har klipda `segments` bo'lmasa — butun fayl bitta bo'lak."""
+def build_xml(clips, seq_name, timebase, ntsc, width, height,
+              single_video_track=False):
+    """Sequence XML. Har klipda `segments` bo'lmasa — butun fayl bitta bo'lak.
+
+    `single_video_track` — Switch uchun: hamma kamera bo'laklari bitta
+    «programma» trekiga ketma-ket teriladi (ular vaqt bo'yicha kesishmaydi),
+    audio esa har fayl uchun alohida trekda qoladi.
+    """
     for clip in clips:
         if not clip.get("segments"):
             clip["segments"] = [{"start": clip["start_frame"], "in": 0,
@@ -307,21 +313,30 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height):
     total = max(s["start"] + (s["out"] - s["in"])
                 for c in clips for s in c["segments"])
 
-    video_tracks, audio_tracks = [], []
+    video_tracks, audio_tracks, program = [], [], []
     for i, clip in enumerate(clips, start=1):
         segs = clip["segments"]
         # <file> to'liq tavsifi birinchi ishlatilgan joyda yoziladi
         if clip["has_video"]:
             items = [clipitem_xml(clip, i, "video", timebase, ntsc, n == 0, s, n)
                      for n, s in enumerate(segs)]
-            video_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
-                                + "\n\t\t\t\t</track>")
+            if single_video_track:
+                program += [(s["start"], item) for s, item in zip(segs, items)]
+            else:
+                video_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
+                                    + "\n\t\t\t\t</track>")
         if clip["has_audio"]:
             items = [clipitem_xml(clip, i, "audio", timebase, ntsc,
                                   n == 0 and not clip["has_video"], s, n)
                      for n, s in enumerate(segs)]
             audio_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
                                 + "\n\t\t\t\t</track>")
+
+    if single_video_track and program:
+        program.sort(key=lambda x: x[0])
+        video_tracks = ["\t\t\t\t<track>\n"
+                        + "\n".join(item for _, item in program)
+                        + "\n\t\t\t\t</track>"]
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xmeml>

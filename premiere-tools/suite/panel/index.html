@@ -99,7 +99,22 @@
   .hint { color: #8E909C; font-size: 12px; }
   /* Cut sozlamalari — faqat Cut tabida ko'rinadi */
   .knobs { display: none; margin-bottom: 12px; }
-  body.tab-cut .knobs { display: block; }
+  body.tab-cut #cutKnobs, body.tab-switch #switchKnobs { display: block; }
+  body.tab-switch .seqpick { display: block; }
+  body:not(.tab-switch) #switchBtn, body.tab-switch #syncBtn,
+  body.tab-switch #cutBtn { display: none; }
+  body.tab-switch .tab.on { border-bottom-color: #5BC46A; }
+  body.tab-switch .btn.primary { background-color: #5BC46A; border-color: #5BC46A; color: #07230D; }
+  body.tab-switch .knobs input[type="range"] { accent-color: #5BC46A; }
+  /* kamera vazifasi */
+  .file .role {
+    font-size: 11.5px; padding: 3px 10px; border-radius: 99px;
+    background-color: #2A2B31; color: #C9CAD2; white-space: nowrap;
+  }
+  .file .role.speaker { background-color: #25332A; color: #8FD9A0; }
+  .file .role.wide { background-color: #2E3038; color: #C9CAD2; }
+  .file .role.alt { background-color: #2C2A38; color: #B9AEE8; }
+  .file .role.insert { background-color: #33291F; color: #E0B98A; }
   .seqpick { display: none; }
   body.tab-cut .seqpick {
     display: block; text-align: center; margin-bottom: 12px;
@@ -125,7 +140,7 @@
   <div class="tabs">
     <div class="tab on" data-tab="sync">Sync</div>
     <div class="tab" data-tab="cut">Cut</div>
-    <div class="tab soon" title="3-bosqichda">Switch</div>
+    <div class="tab" data-tab="switch">Switch</div>
     <div class="tab soon" title="4-bosqichda">Captions</div>
     <div class="tab soon" title="5-bosqichda">Shorts</div>
   </div>
@@ -165,12 +180,24 @@
       </label>
     </div>
 
+    <div class="knobs" id="switchKnobs">
+      <label>Eng qisqa kadr
+        <input type="range" id="kMinShot" min="10" max="80" value="25">
+        <span id="vMinShot">2.5 s</span>
+      </label>
+      <label>Eng uzun kadr
+        <input type="range" id="kMaxShot" min="8" max="60" value="25">
+        <span id="vMaxShot">25 s</span>
+      </label>
+    </div>
+
     <div class="log" id="log"></div>
   </div>
 
   <div class="foot">
     <button class="btn primary" id="syncBtn" disabled>Sinxronlash</button>
     <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
+    <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
     <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
     <span class="hint" id="hint">0 fayl</span>
   </div>
