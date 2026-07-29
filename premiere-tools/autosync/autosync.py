@@ -24,7 +24,9 @@ from xml.sax.saxutils import escape
 
 import numpy as np
 
-ANALYSIS_SR = 8000  # audio tahlil uchun namuna chastotasi (past = tez, yetarli aniq)
+ANALYSIS_SR = 8000   # audio o'qish chastotasi (past = tez, tahlilga yetarli)
+ENV_RATE = 200       # envelope namunalari/sekund → 5 ms aniqlik (kadrdan mayda)
+MIN_CONFIDENCE = 2.5  # shundan past bo'lsa siljish ishonchsiz deb belgilanadi
 
 
 def _find_tool(name):
@@ -110,25 +112,51 @@ def ffprobe(path):
     return info
 
 
-def extract_audio(path, max_seconds):
-    """Audioni mono float32 ko'rinishida o'qib olish (tahlil uchun)."""
+def extract_envelope(path):
+    """Audioning energiya «izi» (envelope) — to'liq fayl bo'yicha.
+
+    Butun audioni xotiraga yig'ish o'rniga oqim bo'lib o'qiladi va har
+    5 ms uchun bitta RMS qiymat saqlanadi. Shu tufayli 1 soatlik yozuv ham
+    bir necha megabaytga sig'adi — fayl uzunligiga cheklov qo'yish shart emas.
+    """
     if not FFMPEG:
         raise RuntimeError(FFMPEG_YOQ)
-    cmd = [FFMPEG, "-v", "error", "-i", path]
-    if max_seconds:
-        cmd += ["-t", str(max_seconds)]
-    cmd += ["-map", "a:0", "-ac", "1", "-ar", str(ANALYSIS_SR), "-f", "f32le", "-"]
-    out = subprocess.run(cmd, capture_output=True)
-    if out.returncode != 0:
-        raise RuntimeError(f"ffmpeg xatosi ({path}): {out.stderr.decode().strip()}")
-    audio = np.frombuffer(out.stdout, dtype=np.float32).astype(np.float64)
-    if audio.size == 0:
-        raise RuntimeError(f"{path}: audio o'qib bo'lmadi")
-    audio -= audio.mean()
-    peak = np.abs(audio).max()
-    if peak > 0:
-        audio /= peak
-    return audio
+
+    bin_size = ANALYSIS_SR // ENV_RATE
+    cmd = [FFMPEG, "-v", "error", "-i", path, "-map", "a:0", "-ac", "1",
+           "-ar", str(ANALYSIS_SR), "-f", "f32le", "-"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    parts, leftover = [], b""
+    read_bytes = bin_size * 4 * 20000
+    while True:
+        data = proc.stdout.read(read_bytes)
+        if not data:
+            break
+        data = leftover + data
+        usable = (len(data) // 4 // bin_size) * bin_size
+        leftover = data[usable * 4:]
+        if usable:
+            block = np.frombuffer(data[:usable * 4], dtype=np.float32)
+            block = block.astype(np.float64).reshape(-1, bin_size)
+            parts.append(np.sqrt((block * block).mean(axis=1)))
+    proc.stdout.close()
+    err = proc.stderr.read().decode(errors="replace").strip()
+    proc.wait()
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg xatosi ({os.path.basename(path)}): {err}")
+    if not parts:
+        raise RuntimeError(f"{os.path.basename(path)}: audio o'qib bo'lmadi")
+
+    env = np.concatenate(parts)
+    # Logarifmik siqish: turli mikrofon va masofalardagi yozuvlar solishtirsa
+    # bo'ladigan bo'lsin (baland tovushlar tahlilni bosib ketmasin).
+    env = np.log1p(env / (np.median(env) + 1e-9))
+    env -= env.mean()
+    std = env.std()
+    if std > 0:
+        env /= std
+    return env
 
 
 # ------------------------------------------------------------- offset topish
@@ -136,22 +164,35 @@ def extract_audio(path, max_seconds):
 def find_offset(ref, sig):
     """sig yozuvi ref'dan necha soniya KEYIN boshlanganini topadi.
 
-    FFT orqali kross-korrelyatsiya: ref[t] ~ sig[t - lag] bo'lgan lag topiladi.
-    Musbat natija = sig keyinroq boshlangan. Qaytadi: (soniya, ishonch).
+    Envelope'lar kross-korrelyatsiyasi. Musbat natija = sig keyinroq
+    boshlangan. Ishonch — cho'qqining eng kuchli raqibiga nisbati: mos
+    kelmagan yozuvlarda bu ko'rsatkich 1 ga yaqin bo'lib qoladi, shuning
+    uchun u eski «median» o'lchovidan ancha ishonchli.
+    Qaytadi: (soniya, ishonch).
     """
     n = len(ref) + len(sig) - 1
     nfft = 1 << (n - 1).bit_length()
-    R = np.fft.rfft(ref, nfft)
-    S = np.fft.rfft(sig, nfft)
-    corr = np.fft.irfft(R * np.conj(S), nfft)
+    corr = np.fft.irfft(np.fft.rfft(ref, nfft) * np.conj(np.fft.rfft(sig, nfft)),
+                        nfft)
 
     peak_idx = int(np.argmax(corr))
+    peak = float(corr[peak_idx])
     lag = peak_idx if peak_idx <= nfft // 2 else peak_idx - nfft
+    if peak <= 0:
+        return lag / ENV_RATE, 0.0
 
-    peak = corr[peak_idx]
-    noise = np.median(np.abs(corr)) + 1e-12
-    confidence = float(peak / noise)
-    return lag / ANALYSIS_SR, confidence
+    # Cho'qqi atrofidagi ±1 soniyani chiqarib tashlab, eng kuchli raqibni topamiz
+    guard = ENV_RATE
+    rival = corr.copy()
+    rival[max(0, peak_idx - guard):peak_idx + guard + 1] = 0
+    if peak_idx < guard:                      # aylanma chetlar
+        rival[nfft - (guard - peak_idx):] = 0
+    if peak_idx + guard >= nfft:
+        rival[:peak_idx + guard - nfft + 1] = 0
+
+    second = float(np.max(rival))
+    confidence = peak / second if second > 0 else float("inf")
+    return lag / ENV_RATE, confidence
 
 
 # ----------------------------------------------------------- XML generatsiya
@@ -280,14 +321,14 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height):
 # --------------------------------------------------------------------- main
 
 def run_sync(files, output="synced.xml", name="AutoSync Sequence",
-             minutes=20.0, log=print):
+             minutes=None, log=print):
     """To'liq sinxronlash oqimi: tahlil -> siljishlar -> XML.
 
     CLI ham, panel motori (server.py) ham shu funksiyani chaqiradi.
+    `minutes` endi ishlatilmaydi — tahlil har doim to'liq fayl bo'yicha
+    ketadi (eski chaqiruvlar buzilmasligi uchun parametr saqlab qolindi).
     Natija: JSON'ga tayyor dict (kliplar, siljishlar, XML yo'li).
     """
-    max_sec = minutes * 60 if minutes and minutes > 0 else None
-
     log("Fayllar tahlil qilinmoqda...")
     clips = []
     for f in files:
@@ -295,7 +336,7 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
         if not info["has_audio"]:
             log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazib yuborildi")
             continue
-        info["analysis_audio"] = extract_audio(f, max_sec)
+        info["envelope"] = extract_envelope(f)
         clips.append(info)
         kind = "video" if info["has_video"] else "audio"
         log(f"  {info['name']}: {info['duration']:.1f}s ({kind})")
@@ -303,16 +344,21 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
     if len(clips) < 2:
         raise RuntimeError("Sinxronlash uchun audioli kamida 2 ta fayl kerak.")
 
-    # Eng uzun audio — tayanch (reference)
-    ref = max(clips, key=lambda c: len(c["analysis_audio"]))
+    # Eng uzun yozuv — tayanch (reference)
+    ref = max(clips, key=lambda c: len(c["envelope"]))
     log(f"Tayanch fayl: {ref['name']}")
 
     for clip in clips:
         if clip is ref:
             clip["offset_sec"], clip["confidence"] = 0.0, None
+            clip["reliable"] = True
             continue
-        clip["offset_sec"], clip["confidence"] = find_offset(
-            ref["analysis_audio"], clip["analysis_audio"])
+        offset, conf = find_offset(ref["envelope"], clip["envelope"])
+        clip["confidence"] = conf
+        clip["reliable"] = conf >= MIN_CONFIDENCE
+        # Ishonchsiz natijani timeline'ga qo'yish — noto'g'ri joyga qo'yish
+        # demak. Bunday fayl 0 nuqtada qoladi va aniq belgilanadi.
+        clip["offset_sec"] = offset if clip["reliable"] else 0.0
 
     # Eng erta boshlangan fayl timeline'da 0 nuqtada tursin
     base = min(c["offset_sec"] for c in clips)
@@ -330,11 +376,14 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
         clip["rel_offset"] = rel
         clip["start_frame"] = int(round(rel * fps))
         clip["dur_frames"] = int(round(clip["duration"] * fps))
-        conf = "tayanch" if clip is ref else f"{clip['confidence']:.0f}x"
-        log(f"  {clip['name']}: +{rel:.3f}s ({conf})")
-        if clip is not ref and clip["confidence"] < 15:
-            log(f"  OGOHLANTIRISH: {clip['name']} ishonch past — "
-                "audio bir-biriga o'xshamasligi mumkin, natijani tekshiring")
+        if clip is ref:
+            log(f"  {clip['name']}: +{rel:.3f}s (tayanch)")
+        elif clip["reliable"]:
+            log(f"  {clip['name']}: +{rel:.3f}s (ishonch {clip['confidence']:.1f}x)")
+        else:
+            log(f"  OGOHLANTIRISH: {clip['name']} — mos joy topilmadi "
+                f"(ishonch {clip['confidence']:.1f}x). Boshiga qo'yildi, "
+                "qo'lda tekshiring: boshqa yozuvdan bo'lishi mumkin.")
 
     xml = build_xml(clips, name, timebase, ntsc, width, height)
     output = os.path.abspath(output)
@@ -352,6 +401,7 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
             "offset_sec": round(c["rel_offset"], 4),
             "confidence": None if c["confidence"] is None
                           else round(c["confidence"], 1),
+            "reliable": c["reliable"],
             "is_reference": c is ref,
             "has_video": c["has_video"],
         } for c in clips],

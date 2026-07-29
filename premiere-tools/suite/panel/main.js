@@ -109,16 +109,18 @@ function renderFiles(results) {
     const res = results && results.find((c) => c.path === p.path);
     if (res) {
       const off = document.createElement("span");
-      off.className = "off";
-      off.textContent = res.is_reference
-        ? "tayanch"
+      const bad = res.reliable === false;
+      off.className = bad ? "off bad" : "off";
+      off.textContent = res.is_reference ? "tayanch"
+        : bad ? "mos kelmadi"
         : "+" + res.offset_sec.toFixed(3) + "s";
       row.appendChild(off);
       if (!res.is_reference) {
         const conf = document.createElement("span");
         conf.className = "conf";
-        conf.textContent = Math.round(res.confidence) + "×";
+        conf.textContent = res.confidence.toFixed(1) + "×";
         row.appendChild(conf);
+        if (bad) row.classList.add("badrow");
       }
     } else {
       const rm = document.createElement("span");
