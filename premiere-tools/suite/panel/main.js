@@ -227,47 +227,72 @@ function setupKnobs() {
 
 let timeline = null;   // [{path, start, in, out}] yoki null
 
-/* TickTime → soniya. API versiyalari turlicha nom ishlatadi, shuning
- * uchun uchala yo'lni ham sinab ko'ramiz (oxirgisi — xom tiklar). */
+/* TickTime → soniya. `seconds` — 25.6+ dagi rasmiy yo'l; qolgani zaxira. */
 const TICKS_PER_SECOND = 254016000000;
 function secs(t) {
   if (t == null) return 0;
   if (typeof t.seconds === "number") return t.seconds;
-  if (typeof t.getSeconds === "function") return t.getSeconds();
+  if (typeof t.ticksNumber === "number") return t.ticksNumber / TICKS_PER_SECOND;
   if (t.ticks != null) return Number(t.ticks) / TICKS_PER_SECOND;
   return Number(t) || 0;
+}
+
+/* Konstanta nomi API versiyasiga qarab farq qiladi — topganini olamiz. */
+function clipTypeConst(ppro) {
+  const t = (ppro.Constants && ppro.Constants.TrackItemType) || {};
+  for (const key of ["CLIP", "Clip", "clip"]) {
+    if (typeof t[key] === "number") return t[key];
+  }
+  return 1;   // TrackItemType.CLIP ning qiymati
+}
+
+/* Klip ortidagi fayl yo'li: ProjectItem'ni ClipProjectItem'ga o'tkazish kerak. */
+async function mediaPathOf(ppro, trackItem) {
+  const pItem = await trackItem.getProjectItem();
+  if (!pItem) return null;
+  const clipItem = ppro.ClipProjectItem && ppro.ClipProjectItem.cast
+    ? ppro.ClipProjectItem.cast(pItem)
+    : pItem;
+  if (clipItem && typeof clipItem.getMediaFilePath === "function") {
+    return await clipItem.getMediaFilePath();
+  }
+  return null;
 }
 
 async function readSequence() {
   els.log.innerHTML = "";
   logLine("Ochiq sequence o'qilmoqda…");
+  let step = "boshlanish";
   try {
     const ppro = require("premierepro");
+    step = "loyihani ochish";
     const project = await ppro.Project.getActiveProject();
+    step = "sequence topish";
     const seq = project && (await project.getActiveSequence());
     if (!seq) throw new Error("Ochiq sequence topilmadi — timeline'ni oching");
 
     const items = [];
+    step = "treklarni sanash";
     const vCount = await seq.getVideoTrackCount();
     const aCount = await seq.getAudioTrackCount();
-    const clipType = ppro.Constants.TrackItemType.Clip;
+    const clipType = clipTypeConst(ppro);
 
     for (let i = 0; i < vCount + aCount; i++) {
+      step = "trek " + (i + 1) + " ni o'qish";
       const track = i < vCount
         ? await seq.getVideoTrack(i)
         : await seq.getAudioTrack(i - vCount);
+      if (!track) continue;
       const trackItems = await track.getTrackItems(clipType, false);
       for (const it of trackItems) {
-        const pItem = await it.getProjectItem();
-        const path = pItem && (await pItem.getMediaFilePath());
+        step = "klip ma'lumotini olish";
+        const path = await mediaPathOf(ppro, it);
         if (!path) continue;
+        const start = secs(await it.getStartTime());
+        const end = secs(await it.getEndTime());
         const inP = secs(await it.getInPoint());
-        items.push({
-          path: path,
-          start: secs(await it.getStartTime()),
-          in: inP,
-          out: inP + (secs(await it.getEndTime()) - secs(await it.getStartTime())),
-        });
+        if (end <= start) continue;
+        items.push({ path: path, start: start, in: inP, out: inP + (end - start) });
       }
     }
 
@@ -294,7 +319,7 @@ async function readSequence() {
     logLine("Endi «Pauzalarni kesish» ni bosing — montajingiz saqlanadi");
   } catch (e) {
     timeline = null;
-    logLine("Sequence o'qilmadi: " + e.message, "warn");
+    logLine("Sequence o'qilmadi (" + step + "): " + e.message, "warn");
     logLine("Fayllarni qo'lda tanlashingiz mumkin — natija bir xil bo'ladi");
   }
 }
