@@ -31,6 +31,7 @@ for _cand in (os.path.join(_here, "..", "..", "autosync"),
 from autosync import run_sync, FFMPEG, FFPROBE
 from cut import run_cut
 from switch import run_switch
+from captions import run_captions, search_archive, find_whisper
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -160,8 +161,16 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION,
-                             "modules": ["sync", "cut", "switch"],
+                             "modules": ["sync", "cut", "switch", "captions"],
+                             "whisper": bool(find_whisper()),
                              "ffmpeg": bool(FFMPEG and FFPROBE)})
+        elif self.path.startswith("/search"):
+            from urllib.parse import urlparse, parse_qs
+            q = parse_qs(urlparse(self.path).query).get("q", [""])[0]
+            try:
+                self._send(200, {"hits": search_archive(q)})
+            except Exception as e:
+                self._send(500, {"error": str(e)})
         elif self.path == "/version":
             try:
                 self._send(200, version_info())
@@ -179,7 +188,7 @@ class Handler(BaseHTTPRequestHandler):
                 # (DOIMIY-ORNATISH.command o'rnatgan) motorni o'zi ko'taradi.
                 threading.Timer(0.5, lambda: os._exit(0)).start()
             return
-        if self.path not in ("/sync", "/cut", "/switch"):
+        if self.path not in ("/sync", "/cut", "/switch", "/captions"):
             return self._send(404, {"error": "Bunday endpoint yo'q"})
         try:
             length = int(self.headers.get("Content-Length", 0))
@@ -190,19 +199,28 @@ class Handler(BaseHTTPRequestHandler):
                             if self.path in ("/cut", "/switch") else None)
             if seq_timeline:
                 files = list(dict.fromkeys(c["path"] for c in seq_timeline))
-            least = 1 if self.path == "/cut" else 2
+            least = 1 if self.path in ("/cut", "/captions") else 2
             if len(files) < least:
                 return self._send(400, {"error": f"Kamida {least} ta fayl kerak"})
             missing = [f for f in files if not os.path.isfile(f)]
             if missing:
                 return self._send(400, {"error": f"Fayl topilmadi: {missing[0]}"})
 
-            kind = {"/cut": "Cut", "/switch": "Switch"}.get(self.path, "Sync")
+            kind = {"/cut": "Cut", "/switch": "Switch",
+                    "/captions": "Captions"}.get(self.path, "Sync")
             output = req.get("output") or default_output(files, kind)
             logs = []
             record = lambda m: (logs.append(m), print(m))
 
-            if self.path == "/switch":
+            if self.path == "/captions":
+                result = run_captions(
+                    files[0], output=output,
+                    model=req.get("model") or "balans",
+                    language=req.get("language") or "uz",
+                    sample_seconds=req.get("sample_seconds"),
+                    title=req.get("title"),
+                    fallback=RESULTS_DIR, log=record)
+            elif self.path == "/switch":
                 result = run_switch(
                     files, output=output,
                     name=req.get("name") or "Podcast Suite — Switch",

@@ -1,4 +1,4 @@
-/* Podcast Suite — panel mantiqi (Sync, Cut va Switch modullari).
+/* Podcast Suite — panel mantiqi (Sync, Cut, Switch, Captions).
  *
  * Panel o'zi hech qanday og'ir ish qilmaydi: fayllarni tanlatadi,
  * lokal motorga (server.py, 127.0.0.1:8765) yuboradi, natijani
@@ -29,6 +29,10 @@ const els = {
   syncBtn: el("syncBtn"),
   cutBtn: el("cutBtn"),
   switchBtn: el("switchBtn"),
+  capBtn: el("capBtn"),
+  sampleBtn: el("sampleBtn"),
+  capSearch: el("capSearch"),
+  capSearchBtn: el("capSearchBtn"),
   seqBtn: el("seqBtn"),
   importBtn: el("importBtn"),
   hint: el("hint"),
@@ -287,6 +291,50 @@ function setupKnobs() {
   });
 }
 
+/* ------------------------------------------------- Captions sozlamalari */
+
+const capOpts = { language: "uz", model: "balans" };
+
+function setupCaptionPills() {
+  [["capLang", "language"], ["capModel", "model"]].forEach(([id, key]) => {
+    const box = document.getElementById(id);
+    if (!box) return;
+    box.querySelectorAll(".opill").forEach((pill) => {
+      pill.addEventListener("click", () => {
+        box.querySelectorAll(".opill").forEach((x) => x.classList.remove("on"));
+        pill.classList.add("on");
+        capOpts[key] = pill.dataset.v;
+      });
+    });
+  });
+}
+
+/* Arxivdan qidirish — barcha transkripsiya qilingan sonlar bo'ylab */
+async function searchArchive() {
+  const q = (els.capSearch.value || "").trim();
+  if (!q) return;
+  els.log.innerHTML = "";
+  logLine("Arxivdan qidirilmoqda: «" + q + "»");
+  try {
+    const r = await fetch(MOTOR + "/search?q=" + encodeURIComponent(q));
+    const j = await r.json();
+    const hits = j.hits || [];
+    if (!hits.length) {
+      logLine("Topilmadi. Faqat transkripsiya qilingan sonlar qidiriladi.", "warn");
+      return;
+    }
+    logLine(hits.length + " ta topildi:", "okline");
+    for (const h of hits.slice(0, 20)) {
+      const m = Math.floor(h.start / 60), s = Math.round(h.start % 60);
+      logLine("  " + h.title + " · " +
+              String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") +
+              "  «" + h.text + "»");
+    }
+  } catch (e) {
+    logLine("Qidiruv xatosi: " + e.message, "warn");
+  }
+}
+
 /* ------------------------------------- ochiq sequence'ni o'qish (Cut) */
 
 let timeline = null;   // [{path, start, in, out}] yoki null
@@ -404,19 +452,34 @@ async function run(kind) {
 
   const isCut = kind === "cut";
   const isSwitch = kind === "switch";
+  const isCap = kind === "captions" || kind === "sample";
   els.log.innerHTML = "";
   els.syncBtn.disabled = true;
   els.cutBtn.disabled = true;
   els.switchBtn.disabled = true;
+  els.capBtn.disabled = true;
+  els.sampleBtn.disabled = true;
   els.importBtn.disabled = true;
-  logLine(isSwitch ? "Kamera rejasi tuzilmoqda…"
+  logLine(kind === "sample" ? "2 daqiqalik sinov — model birinchi marta yuklansa kutiladi…"
+        : isCap ? "Transkripsiya boshlandi — uzun yozuvda bir necha daqiqa ketadi…"
+        : isSwitch ? "Kamera rejasi tuzilmoqda…"
         : isCut ? "Pauzalar qidirilmoqda…" : "Sinxronlash boshlandi…");
 
+  const endpoint = isCap ? "captions" : kind;
   const body = {
     files: picked.map((p) => p.path),
-    name: isSwitch ? "Podcast Suite — Switch"
+    name: isCap ? "Podcast Suite — Captions"
+        : isSwitch ? "Podcast Suite — Switch"
         : isCut ? "Podcast Suite — Cut" : "Podcast Suite — Sync",
   };
+  if (isCap) {
+    const src = audioMaster || (picked[0] && picked[0].path);
+    body.files = [src];
+    body.language = capOpts.language;
+    body.model = capOpts.model;
+    body.title = (src || "").split("/").pop().replace(/\.[^.]+$/, "");
+    if (kind === "sample") body.sample_seconds = 120;
+  }
   if (isSwitch) {
     if (timeline) body.timeline = timeline;
     body.roles = picked.map((p, i) => roleOf(p, i).role);
@@ -433,7 +496,7 @@ async function run(kind) {
   }
 
   try {
-    const r = await fetch(MOTOR + "/" + kind, {
+    const r = await fetch(MOTOR + "/" + endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -444,8 +507,18 @@ async function run(kind) {
     for (const line of j.logs || []) {
       logLine(line, line.indexOf("OGOHLANTIRISH") >= 0 ? "warn" : null);
     }
-    lastXml = j.output;
-    if (isSwitch) {
+    lastXml = isCap ? null : j.output;
+    if (isCap) {
+      logLine(j.line_count + " qator · " + j.word_count + " so'z" +
+              (j.sample ? "  (sinov)" : ""), "okline");
+      if (j.preview) logLine("Namuna: " + j.preview);
+      if (j.sample) {
+        logLine("Sifat yoqsa — «To'liq transkripsiya» ni bosing.");
+      } else {
+        if (j.srt) logLine("SRT: " + j.srt);
+        if (j.archive) logLine("Arxivga qo'shildi — endi qidiruvda topiladi ✓", "okline");
+      }
+    } else if (isSwitch) {
       logLine(j.shots + " kadr tuzildi · birga gapirish " +
               Math.round(j.together_sec) + "s", "okline");
       if (!audioMaster) {
@@ -466,9 +539,11 @@ async function run(kind) {
     } else {
       renderFiles(j.clips);
     }
-    logLine("Tayyor ✓ — endi «Premiere'ga import» ni bosing", "okline");
-    logLine("Fayl: " + j.output);
-    els.importBtn.disabled = false;
+    if (!isCap) {
+      logLine("Tayyor ✓ — endi «Premiere'ga import» ni bosing", "okline");
+      logLine("Fayl: " + j.output);
+      els.importBtn.disabled = false;
+    }
   } catch (e) {
     logLine("Xato: " + e.message, "warn");
   }
@@ -479,6 +554,8 @@ function updateRunButtons() {
   els.syncBtn.disabled = picked.length < 2;
   els.cutBtn.disabled = picked.length < 1;
   els.switchBtn.disabled = picked.length < 2;
+  els.capBtn.disabled = picked.length < 1;
+  els.sampleBtn.disabled = picked.length < 1;
 }
 
 /* ------------------------------------------- Premiere'ga import */
@@ -532,11 +609,15 @@ on(els.pick, pickFiles);
 on(els.syncBtn, function () { run("sync"); });
 on(els.cutBtn, function () { run("cut"); });
 on(els.switchBtn, function () { run("switch"); });
+on(els.capBtn, function () { run("captions"); });
+on(els.sampleBtn, function () { run("sample"); });
+on(els.capSearchBtn, searchArchive);
 on(els.seqBtn, readSequence);
 on(els.importBtn, doImport);
 
 setupTabs();
 setupKnobs();
+setupCaptionPills();
 document.body.className = "tab-sync";
 checkMotor().then(function (ok) { if (ok) checkUpdates(); });
 setInterval(checkMotor, 5000);

@@ -99,7 +99,37 @@
   .hint { color: #8E909C; font-size: 12px; }
   /* Cut sozlamalari — faqat Cut tabida ko'rinadi */
   .knobs { display: none; margin-bottom: 12px; }
-  body.tab-cut #cutKnobs, body.tab-switch #switchKnobs { display: block; }
+  body.tab-cut #cutKnobs, body.tab-switch #switchKnobs,
+  body.tab-captions #capKnobs { display: block; }
+  body:not(.tab-captions) #capBtn, body:not(.tab-captions) #sampleBtn { display: none; }
+  body.tab-captions #syncBtn, body.tab-captions #cutBtn,
+  body.tab-captions #switchBtn { display: none; }
+  body.tab-captions .tab.on { border-bottom-color: #E07BB0; }
+  body.tab-captions .btn.primary {
+    background-color: #E07BB0; border-color: #E07BB0; color: #2B0A1D;
+  }
+  /* Captions sozlamalari */
+  .opts { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .olbl {
+    font-size: 11px; color: #8E909C; letter-spacing: .05em; text-transform: uppercase;
+    font-family: ui-monospace, Consolas, monospace; min-width: 44px;
+  }
+  .opills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .opill {
+    padding: 4px 11px; border-radius: 99px; border: 1px solid #45464F;
+    color: #9DA0AC; font-size: 12px; text-align: center;
+  }
+  .opill em { display: block; font-style: normal; font-size: 10px; opacity: .75; }
+  .opill.on { background-color: #E07BB0; border-color: transparent; color: #2B0A1D; font-weight: 700; }
+  .searchbox { display: flex; gap: 8px; margin-top: 10px; }
+  .searchbox input {
+    flex: 1; min-width: 0; padding: 7px 11px; border-radius: 6px;
+    border: 1px solid #45464F; background-color: #121316; color: #E9EAEF; font-size: 12.5px;
+  }
+  .sbtn {
+    padding: 7px 13px; border-radius: 6px; background-color: #2A2B31;
+    color: #C9CAD2; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  }
   body.tab-switch .seqpick { display: block; }
   body:not(.tab-switch) #switchBtn, body.tab-switch #syncBtn,
   body.tab-switch #cutBtn { display: none; }
@@ -153,7 +183,7 @@
     <div class="tab on" data-tab="sync">Sync</div>
     <div class="tab" data-tab="cut">Cut</div>
     <div class="tab" data-tab="switch">Switch</div>
-    <div class="tab soon" title="4-bosqichda">Captions</div>
+    <div class="tab" data-tab="captions">Captions</div>
     <div class="tab soon" title="5-bosqichda">Shorts</div>
   </div>
 
@@ -192,6 +222,33 @@
       </label>
     </div>
 
+    <div class="knobs" id="capKnobs">
+      <div class="opts">
+        <span class="olbl">Til</span>
+        <span class="opills" id="capLang">
+          <span class="opill on" data-v="uz">O'zbek</span>
+          <span class="opill" data-v="ru">Rus</span>
+          <span class="opill" data-v="en">Ingliz</span>
+          <span class="opill" data-v="avto">Avto</span>
+        </span>
+      </div>
+      <div class="opts">
+        <span class="olbl">Model</span>
+        <span class="opills" id="capModel">
+          <span class="opill" data-v="tez">Tez<em>~5 daq</em></span>
+          <span class="opill on" data-v="balans">Balans<em>~12 daq</em></span>
+          <span class="opill" data-v="aniq">Aniq<em>~15 daq</em></span>
+        </span>
+      </div>
+      <p class="tip">Avval <b>«2 daqiqani sinash»</b> ni bosing — model bir marta
+      yuklanadi va o'z ovozingizda sifatni ko'rasiz. Yoqsa, to'liq transkripsiya
+      qilasiz.</p>
+      <div class="searchbox">
+        <input type="text" id="capSearch" placeholder="Arxivdan qidirish: mavzu yoki gap…">
+        <span class="sbtn" id="capSearchBtn">Qidirish</span>
+      </div>
+    </div>
+
     <div class="knobs" id="switchKnobs">
       <label>Eng qisqa kadr
         <input type="range" id="kMinShot" min="10" max="80" value="25">
@@ -213,6 +270,8 @@
     <button class="btn primary" id="syncBtn" disabled>Sinxronlash</button>
     <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
     <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
+    <button class="btn primary" id="sampleBtn" disabled>2 daqiqani sinash</button>
+    <button class="btn primary" id="capBtn" disabled>To'liq transkripsiya</button>
     <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
     <span class="hint" id="hint">0 fayl</span>
   </div>
