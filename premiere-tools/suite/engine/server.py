@@ -226,8 +226,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    server = HTTPServer((HOST, PORT), Handler)
-    print(f"Podcast Suite motori ishga tushdi: http://{HOST}:{PORT}")
+    print(f"Podcast Suite motori — {os.path.abspath(__file__)}")
+    print(f"Modullar: sync, cut · ffmpeg: {bool(FFMPEG and FFPROBE)}")
+    try:
+        server = HTTPServer((HOST, PORT), Handler)
+    except OSError as e:
+        # Eng chalkash holat: eski motor portni ushlab turadi, yangisi
+        # jimgina o'lib ketadi va panel eski modullarni ko'rsatib turaveradi.
+        print(f"[XATO] {HOST}:{PORT} band — eski motor ishlab turibdi ({e}).")
+        print("Uni to'xtatish: lsof -ti tcp:8765 | xargs kill")
+        sys.exit(1)
+    print(f"Ishga tushdi: http://{HOST}:{PORT}")
     print("Premiere Pro'dagi panel endi motorni ko'ra oladi.")
     print("To'xtatish: Ctrl+C")
     try:

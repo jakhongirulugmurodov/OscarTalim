@@ -31,6 +31,10 @@ if [ -n "$DEST" ]; then
 fi
 
 echo "▶ Motor qayta ishga tushmoqda..."
+# Portni ushlab turgan har qanday eski jarayonni to'xtatamiz — aks holda
+# yangi motor portni band ko'rib o'chadi va eskisi javob beraveradi.
+lsof -ti tcp:8765 2>/dev/null | xargs -r kill 2>/dev/null
+sleep 1
 # kickstart -k — jarayonni majburan qayta yoqadi; unload/load yangi macOS'da
 # ba'zan jimgina o'tib ketadi va eski jarayon ishlab turaveradi.
 launchctl kickstart -k "$GUI/$LABEL" 2>/dev/null || {
