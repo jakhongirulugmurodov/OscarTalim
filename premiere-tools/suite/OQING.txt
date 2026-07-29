@@ -47,3 +47,5 @@ MUAMMO CHIQSA
 - ffmpeg xatosi          -> gyan.dev/ffmpeg/builds (Win) / brew install ffmpeg (Mac)
 
 Savol bo'lsa — Claude'ga xato matnini yuboring, birga hal qilamiz.
+
+# Yangilanish sinovi uchun belgi
