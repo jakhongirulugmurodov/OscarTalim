@@ -26,6 +26,12 @@ if ! command -v git >/dev/null; then
 fi
 
 # ---------- 1. Klon yoki yangilash ----------
+# Skriptning o'zi ham repo ichida yotadi. git pull uni almashtirsa, ishlab
+# turgan bash eski nusxani ushlab qolaveradi va foydalanuvchi yangi kodni
+# ko'rmaydi. Shuning uchun pull'dan keyin o'zimizni tekshiramiz.
+OZI="$0"
+SUM_OLDIN=$(shasum "$OZI" 2>/dev/null | cut -d' ' -f1)
+
 if [ -d "$ROOT/.git" ]; then
   echo "▶ Mavjud nusxa yangilanmoqda: $ROOT"
   git -C "$ROOT" fetch --quiet origin "$BRANCH" && \
@@ -40,6 +46,13 @@ else
     read -r -p "Yopish uchun Enter..."; exit 1; }
 fi
 echo "  → $ROOT"
+
+SUM_KEYIN=$(shasum "$OZI" 2>/dev/null | cut -d' ' -f1)
+if [ -n "$SUM_OLDIN" ] && [ "$SUM_OLDIN" != "$SUM_KEYIN" ] && [ -z "${SUITE_QAYTA:-}" ]; then
+  echo "▶ O'rnatuvchining o'zi yangilandi — yangi nusxa bilan qayta boshlanmoqda..."
+  echo
+  SUITE_QAYTA=1 exec bash "$OZI"
+fi
 
 # ---------- 2. numpy ----------
 if ! command -v python3 >/dev/null; then
