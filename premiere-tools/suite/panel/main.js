@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 13:10";
+const PANEL_BUILD = "30-Jul 13:16";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -725,10 +725,7 @@ async function goToTime(sec) {
     const project = await ppro.Project.getActiveProject();
     const seq = project && (await project.getActiveSequence());
     if (!seq) throw new Error("ochiq sequence yo'q");
-    const tt = ppro.TickTime.createWithSeconds
-      ? ppro.TickTime.createWithSeconds(sec)
-      : ppro.TickTime.createWithSeconds;
-    await seq.setPlayerPosition(tt);
+    await seq.setPlayerPosition(tickTime(ppro, sec));
   } catch (e) {
     logLine("Playhead'ni ko'chirib bo'lmadi (" + (e.message || e) + ") — "
             + "vaqtni qo'lda kiriting: " + tc(sec), "warn");
@@ -1074,6 +1071,55 @@ async function cutRanges() {
  * ishlamasa, qaysi qadamda to'xtaganini ko'rasiz va bo'laklar baribir
  * loyihada qoladi. */
 
+/* TickTime yasash. Diqqat: `const f = ppro.TickTime.createWithSeconds`
+ * deb ajratib olib, keyin `f(x)` deb chaqirish MUMKIN EMAS — UXP'da statik
+ * metod `this` ni talab qiladi va ajratilgan chaqiruv «The script object is
+ * no longer valid» xatosini beradi. Aynan shu xato edi. */
+const TICKS_PER_SEC = 254016000000;
+
+function tickTime(ppro, sec) {
+  const T = ppro.TickTime;
+  if (!T) throw new Error("TickTime klassi yo'q");
+  if (typeof T.createWithSeconds === "function") {
+    return T.createWithSeconds(Number(sec));       // to'g'ri: T orqali
+  }
+  if (typeof T.createWithTicks === "function") {
+    return T.createWithTicks(String(Math.round(Number(sec) * TICKS_PER_SEC)));
+  }
+  throw new Error("TickTime yasash yo'li topilmadi: "
+                  + Object.getOwnPropertyNames(T).join(","));
+}
+
+/* In/out qo'yish: avval hujjatdagi action yo'li, bo'lmasa to'g'ridan-to'g'ri
+ * setter. Qaysi biri ishlaganini bir marta yozib qo'yamiz. */
+let inOutWay = "";
+
+async function setSeqInOut(ppro, project, seq, a, b) {
+  const tIn = tickTime(ppro, a);
+  const tOut = tickTime(ppro, b);
+  if (inOutWay !== "setter" && typeof seq.createSetInPointAction === "function") {
+    try {
+      await runActions(project, () => [
+        seq.createSetInPointAction(tIn),
+        seq.createSetOutPointAction(tOut),
+      ], "In/Out");
+      if (!inOutWay) { inOutWay = "action"; logLine("  (in/out: action yo'li)"); }
+      return;
+    } catch (e) {
+      if (inOutWay === "action") throw e;          // ishlagan yo'l buzildi
+      logLine("  action yo'li ishlamadi (" + (e.message || e)
+              + ") — to'g'ridan-to'g'ri sinaladi", "warn");
+    }
+  }
+  if (typeof seq.setInPoint === "function") {
+    await seq.setInPoint(tIn);
+    await seq.setOutPoint(tOut);
+    if (!inOutWay) { inOutWay = "setter"; logLine("  (in/out: to'g'ridan-to'g'ri)"); }
+    return;
+  }
+  throw new Error("in/out qo'yish yo'li yo'q");
+}
+
 async function runActions(project, build, label) {
   /* Adobe hujjatidagi yagona shakl: executeTransaction(callback, label).
    *
@@ -1101,22 +1147,44 @@ async function freshSequence(ppro) {
 
 /* Nosozlik bo'lganda API'ning aynan qanday ekanini log'ga chiqaramiz —
  * shu ma'lumot bir bosishda muammoni aniqlashga yetadi. */
-function dumpApi(ppro, seq) {
-  try {
-    const top = Object.keys(ppro || {}).join(", ");
-    logLine("API (premierepro): " + top.slice(0, 300));
-  } catch (e) { /* bo'lmasa ham davom etamiz */ }
-  try {
-    const names = [];
-    let o = seq;
-    while (o && o !== Object.prototype) {
-      for (const k of Object.getOwnPropertyNames(o)) {
-        if (typeof seq[k] === "function" && names.indexOf(k) < 0) names.push(k);
-      }
-      o = Object.getPrototypeOf(o);
+function methodNames(obj) {
+  const names = [];
+  let o = obj;
+  while (o && o !== Object.prototype) {
+    for (const k of Object.getOwnPropertyNames(o)) {
+      try {
+        if (typeof obj[k] === "function" && names.indexOf(k) < 0) names.push(k);
+      } catch (e) { /* getter xato bersa — o'tkazamiz */ }
     }
-    logLine("Sequence metodlari: " + names.sort().join(", ").slice(0, 500));
-  } catch (e) { /* xato bermasin */ }
+    o = Object.getPrototypeOf(o);
+  }
+  return names.sort();
+}
+
+/* Uzun ro'yxat ekranda kesilib qolmasin: bo'laklab yozamiz va oxirida
+ * hammasini faylga saqlaymiz — o'sha faylni yuborish yetadi. */
+function logLong(label, text) {
+  const size = 110;
+  for (let i = 0; i < text.length; i += size) {
+    logLine((i === 0 ? label + ": " : "   ") + text.slice(i, i + size));
+  }
+}
+
+async function dumpApi(ppro, seq) {
+  try {
+    logLong("API (premierepro)", Object.keys(ppro || {}).join(", "));
+    if (ppro && ppro.TickTime) {
+      logLong("TickTime", Object.getOwnPropertyNames(ppro.TickTime).join(", "));
+    }
+    if (ppro && ppro.SequenceEditor) {
+      logLong("SequenceEditor",
+              Object.getOwnPropertyNames(ppro.SequenceEditor).join(", "));
+    }
+    if (seq) logLong("Sequence metodlari", methodNames(seq).join(", "));
+  } catch (e) {
+    logLine("Tashxis to'liq chiqmadi: " + (e.message || e), "warn");
+  }
+  await copyLog();        // to'liq matnni faylga (yoki buferga) olib qo'yamiz
 }
 
 async function cutInPremiere() {
@@ -1145,17 +1213,19 @@ async function cutInPremiere() {
                  percent: i / timeRanges.length * 100,
                  detail: tc(a) + " → " + tc(b) });
 
-      step = (i + 1) + "-oraliq: in/out qo'yish (" + tc(a) + "–" + tc(b) + ")";
+      step = (i + 1) + "-oraliq: sequence olish";
       const cur = await freshSequence(ppro);
       lastSeq = cur.seq;
-      const tt = ppro.TickTime.createWithSeconds;
-      await runActions(cur.project, () => [
-        cur.seq.createSetInPointAction(tt(a)),
-        cur.seq.createSetOutPointAction(tt(b)),
-      ], "Kadr " + (i + 1) + " in/out");
+      step = (i + 1) + "-oraliq: in/out qo'yish (" + tc(a) + "–" + tc(b) + ")";
+      await setSeqInOut(ppro, cur.project, cur.seq, a, b);
 
       step = (i + 1) + "-oraliq: subsequence yasash";
-      const sub = await cur.seq.createSubsequence(true);
+      let sub = null;
+      try {
+        sub = await cur.seq.createSubsequence(true);
+      } catch (e) {
+        sub = await cur.seq.createSubsequence();   // argumentsiz shakl
+      }
       if (!sub) throw new Error("subsequence bo'sh qaytdi");
       made.push(sub);
       if (i === 0) logLine("Birinchi kadr qirqildi ✓ — qolganlari ketmoqda");
@@ -1163,7 +1233,7 @@ async function cutInPremiere() {
     logLine(made.length + " kadr Premiere'da qirqildi ✓", "okline");
 
     // Hammasini bittasiga yig'amiz: birinchisi asos bo'ladi
-    if (made.length > 1) {
+    if (made.length > 1) try {
       step = "yig'ish uchun editor";
       const target = made[0];
       let joined = 0;
@@ -1176,9 +1246,17 @@ async function cutInPremiere() {
         const editor = ppro.SequenceEditor.getEditor(target);
         const item = await made[i].getProjectItem();
         const end = await target.getEndTime();
-        await runActions(project,
-          () => [editor.createInsertProjectItemAction(item, end, 0, 0, false)],
-          "Kadr qo'shish");
+        try {
+          await runActions(project,
+            () => [editor.createInsertProjectItemAction(item, end, 0, 0, false)],
+            "Kadr qo'shish");
+        } catch (e) {
+          if (typeof editor.createOverwriteItemAction !== "function") throw e;
+          logLine("  insert ishlamadi — overwrite bilan qo'yiladi", "warn");
+          await runActions(project,
+            () => [editor.createOverwriteItemAction(item, end, 0, 0)],
+            "Kadr qo'shish");
+        }
         joined++;
       }
       logLine("Bitta sequence'ga yig'ildi: «" + (target.name || "1-kadr")
@@ -1187,6 +1265,14 @@ async function cutInPremiere() {
         const project = await ppro.Project.getActiveProject();
         await project.openSequence(target);
       } catch (e) { /* ochilmasa ham loyihada turadi */ }
+    } catch (e) {
+      // Kadrlar qirqilgan — faqat yig'ish bo'lmadi. Bu yo'qotish emas.
+      logLine("Kadrlar qirqildi, lekin bitta sequence'ga yig'ilmadi ("
+              + (e.message || e) + ")", "warn");
+      logLine("Project panelida «Kadr 1…" + made.length + "» turadi: "
+              + "hammasini tanlab, yangi sequence'ga tashlasangiz ketma-ket "
+              + "joylashadi.", "warn");
+      await dumpApi(ppro, made[0]);
     }
     logLine("Tayyor. Kerak bo'lmagan bo'laklarni Project panelidan "
             + "o'chirib tashlashingiz mumkin.");
@@ -1196,7 +1282,7 @@ async function cutInPremiere() {
     if (made.length) {
       logLine(made.length + " kadr yasalgan — Project panelida turadi.", "warn");
     }
-    dumpApi(ppro, lastSeq);
+    await dumpApi(ppro, lastSeq);
     logLine("Shu xabarni menga yuboring — aynan shu qadamni tuzataman.");
     stopProgress(false, (e.message || "").slice(0, 90));
   }
