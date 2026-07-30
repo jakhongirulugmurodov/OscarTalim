@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 13:28";
+const PANEL_BUILD = "30-Jul 13:34";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1264,6 +1264,12 @@ async function cutInPremiere(onlyFirst) {
     step = "ochiq sequence";
     const first = await freshSequence(ppro);
     lastSeq = first.seq;
+    // Montajning o'z in/out nuqtalarini eslab qolamiz — oxirida tiklaymiz
+    let oldIn = null, oldOut = null;
+    try {
+      oldIn = await first.seq.getInPoint();
+      oldOut = await first.seq.getOutPoint();
+    } catch (e) { /* o'qilmasa — tiklamaymiz */ }
     logLine("Manba: " + (first.seq.name || "sequence") + " · "
             + list.length + " oraliq" + (onlyFirst ? " (sinov)" : ""));
 
@@ -1291,11 +1297,29 @@ async function cutInPremiere(onlyFirst) {
       }
       if (!sub) throw new Error("subsequence bo'sh qaytdi");
       made.push(sub);
-      if (i === 0) {
-        logLine(onlyFirst
-          ? "Bitta kadr qirqildi ✓ — Project panelida ko'ring. To'g'ri "
-            + "chiqqan bo'lsa, «Premiere ichida qirqish» bilan hammasini olasiz."
-          : "Birinchi kadr qirqildi ✓ — qolganlari ketmoqda", "okline");
+
+      // Nomini tushunarli qilamiz: Project panelida qidirib yurmaslik uchun
+      const nomi = "Kadr " + (i + 1) + " · " + tc(r.start);
+      try {
+        const item = await sub.getProjectItem();
+        if (item && typeof item.createSetNameAction === "function") {
+          runActions(cur.project, () => [item.createSetNameAction(nomi)], "Nom");
+        }
+      } catch (e) { /* nom qo'yilmasa ham kadr joyida */ }
+      if (i === 0 && onlyFirst) {
+        // Sinovda darhol ochamiz — qidirish shart bo'lmasin
+        try {
+          await cur.project.openSequence(sub);
+          logLine("Kadr qirqildi va ochildi ✓ — timeline'da ko'ring "
+                  + "(«" + nomi + "»)", "okline");
+        } catch (e) {
+          logLine("Kadr qirqildi ✓ — Project panelida «" + nomi
+                  + "» nomi bilan turadi", "okline");
+        }
+        logLine("To'g'ri chiqqan bo'lsa, «Premiere ichida qirqish» bilan "
+                + "hammasini olasiz.");
+      } else if (i === 0) {
+        logLine("Birinchi kadr qirqildi ✓ — qolganlari ketmoqda", "okline");
       }
     }
     logLine(made.length + " kadr Premiere'da qirqildi ✓", "okline");
@@ -1327,12 +1351,25 @@ async function cutInPremiere(onlyFirst) {
         }
         joined++;
       }
-      logLine("Bitta sequence'ga yig'ildi: «" + (target.name || "1-kadr")
-              + "» — " + (joined + 1) + " kadr ✓", "okline");
+      const project = await ppro.Project.getActiveProject();
+      let natijaNomi = target.name || "Kadrlar";
       try {
-        const project = await ppro.Project.getActiveProject();
+        const item = await target.getProjectItem();
+        if (item && typeof item.createSetNameAction === "function") {
+          natijaNomi = "Podcast Suite — Kadrlar";
+          runActions(project, () => [item.createSetNameAction(natijaNomi)],
+                     "Nom");
+        }
+      } catch (e) { /* nom qo'yilmasa ham bo'ladi */ }
+      logLine("Bitta sequence'ga yig'ildi: «" + natijaNomi + "» — "
+              + (joined + 1) + " kadr ✓", "okline");
+      try {
         await project.openSequence(target);
-      } catch (e) { /* ochilmasa ham loyihada turadi */ }
+        logLine("Natija ochildi — timeline'da ko'ring ✓", "okline");
+      } catch (e) {
+        logLine("Project panelida «" + natijaNomi + "» nomi bilan turadi "
+                + "(Window > Project)");
+      }
     } catch (e) {
       // Kadrlar qirqilgan — faqat yig'ish bo'lmadi. Bu yo'qotish emas.
       logLine("Kadrlar qirqildi, lekin bitta sequence'ga yig'ilmadi ("
@@ -1342,8 +1379,18 @@ async function cutInPremiere(onlyFirst) {
               + "joylashadi.", "warn");
       await dumpApi(ppro, made[0]);
     }
+    // Montajning in/out nuqtalarini joyiga qaytaramiz
+    if (oldIn && oldOut) {
+      try {
+        const back = await freshSequence(ppro);
+        runActions(back.project, () => [
+          back.seq.createSetInPointAction(oldIn),
+          back.seq.createSetOutPointAction(oldOut),
+        ], "In/out tiklash");
+      } catch (e) { /* muhim emas */ }
+    }
     logLine("Tayyor. Kerak bo'lmagan bo'laklarni Project panelidan "
-            + "o'chirib tashlashingiz mumkin.");
+            + "o'chirib tashlashingiz mumkin (Window > Project).");
     stopProgress(true, made.length + " kadr");
   } catch (e) {
     logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
