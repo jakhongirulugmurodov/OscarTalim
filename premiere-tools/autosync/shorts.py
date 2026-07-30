@@ -109,9 +109,55 @@ def expand_to_short(center, gaps, total_sec):
     return max(0.0, start - 0.2), min(total_sec, end + 0.3)
 
 
-def run_shorts(files, timeline=None, markers=None, limit=8, log=print,
-               progress=None):
-    """Nomzod bo'laklarni topadi (XML yozmaydi)."""
+KECHIKISH = 2.0    # M bosgunimizcha o'tadigan vaqt — shuncha orqaga suramiz
+
+
+def markerdan_bolak(marker, gaps, total_sec):
+    """Bitta markerdan bo'lak chegaralarini chiqaradi.
+
+    Ikki holat bor:
+
+      * marker UZUNLIGI bilan qo'yilgan (timeline'da cho'zib belgilangan) —
+        aynan o'sha oraliq olinadi, faqat chetlari jimlikka tortiladi;
+      * oddiy marker — bu «shu yerda qiziq gap boshlandi» degani. Odam
+        eshitib turib M ni bosguncha bir-ikki soniya o'tadi, shuning uchun
+        biroz ORQAGA suriladi va oldinga qarab tugallangan bo'lakka
+        cho'ziladi. Markazga qo'ysak, bo'lak markerdan 15 soniya oldin
+        boshlanib ketardi — bu kutilganidan butunlay boshqa joy.
+    """
+    t = float(marker.get("start", 0.0))
+    uzunlik = float(marker.get("duration") or 0.0)
+
+    def yaqin_jimlik(nuqta, oldin=True, chegara=6.0):
+        nomzod = [g for g in gaps
+                  if (g <= nuqta if oldin else g >= nuqta)
+                  and abs(g - nuqta) <= chegara]
+        if not nomzod:
+            return nuqta
+        return max(nomzod) if oldin else min(nomzod)
+
+    if uzunlik >= MIN_SHORT * 0.5:
+        s0 = yaqin_jimlik(max(0.0, t), oldin=True)
+        s1 = yaqin_jimlik(min(total_sec, t + uzunlik), oldin=False)
+        return max(0.0, s0 - 0.2), min(total_sec, s1 + 0.3)
+
+    boshi = max(0.0, t - KECHIKISH)
+    s0 = yaqin_jimlik(boshi, oldin=True, chegara=4.0)
+    keyingi = [g for g in gaps if g >= s0 + MIN_SHORT]
+    s1 = min(keyingi[0], s0 + MAX_SHORT) if keyingi else min(total_sec,
+                                                             s0 + MIN_SHORT * 1.5)
+    return max(0.0, s0 - 0.2), min(total_sec, s1 + 0.3)
+
+
+def run_shorts(files, timeline=None, markers=None, limit=8,
+               faqat_markerlar=False, log=print, progress=None):
+    """Nomzod bo'laklarni topadi (XML yozmaydi).
+
+    `faqat_markerlar=True` — mashina o'zi qidirmaydi, faqat siz
+    timeline'ga qo'ygan markerlardan bo'lak yasaydi. Musiqa, jingle va
+    boshqa chalg'ituvchi narsalar bo'lgan yozuvda eng ishonchli yo'l shu:
+    tanlovni odam qiladi.
+    """
     say = progress or (lambda **k: None)
     if timeline:
         files = list(dict.fromkeys(c["path"] for c in timeline))
@@ -127,54 +173,87 @@ def run_shorts(files, timeline=None, markers=None, limit=8, log=print,
     data = load_transcript([c["path"] for c in clips])
     lines = transcript_on_timeline(data, clips) if data else []
 
-    # Poydevor — Intro bilan bir xil: kuchli lahzalar. Ularning atrofini
-    # tugallangan bo'lakka kengaytiramiz.
-    seeds = find_moments(clips, total_sec, lines, markers,
-                         limit=limit * 3, log=log)
     quiet = quiet_mask(clips, total_bins, log=log)
     gaps = gap_points(quiet)
     log(f"  {len(gaps)} ta jimlik nuqtasi (kesish uchun)")
 
+    markers = [m if isinstance(m, dict) else {"start": float(m)}
+               for m in (markers or [])]
+
+    def matn_oraliqda(s0, s1):
+        return " ".join(ln["text"] for ln in lines
+                        if ln["start"] < s1 and ln["end"] > s0)[:260]
+
+    def qoshish(s0, s1, kind, why, score, seed):
+        """Bo'lakni ro'yxatga qo'shadi — ustma-ust bo'lsa o'tkazib yuboradi."""
+        if s1 - s0 < 1.0:
+            return False
+        if any(s0 < sh["end"] and s1 > sh["start"] for sh in shorts):
+            return False
+        shorts.append({
+            "start": round(s0, 2), "end": round(s1, 2),
+            "length": round(s1 - s0, 2), "kind": kind, "why": why,
+            "score": score, "text": matn_oraliqda(s0, s1),
+            "seed": round(seed, 2),
+        })
+        return True
+
     shorts = []
+    if faqat_markerlar:
+        # Mashina umuman qidirmaydi: tanlovni siz qilgansiz. Musiqa,
+        # jingle, qarsak — hech biri chalg'itmaydi.
+        if not markers:
+            raise RuntimeError(
+                "Timeline'da marker topilmadi. Yozuvni eshitib chiqing va "
+                "yoqqan joyingizda M tugmasini bosing — har marker bitta "
+                "bo'lak bo'ladi.")
+        log(f"Faqat markerlar rejimi: {len(markers)} ta marker")
+        for n, mk in enumerate(sorted(markers, key=lambda m: m["start"]),
+                               start=1):
+            s0, s1 = markerdan_bolak(mk, gaps, total_sec)
+            qoshish(s0, s1, "marker", "siz belgilagan joy", 100.0 - n,
+                    float(mk["start"]))
+        return _natija(shorts, clips, total_sec, lines, log, say)
+
+    # Poydevor — Intro bilan bir xil: kuchli lahzalar. Ularning atrofini
+    # tugallangan bo'lakka kengaytiramiz.
+    seeds = find_moments(clips, total_sec, lines, markers,
+                         limit=limit * 3, log=log)
     for m in seeds:
         center = (float(m["start"]) + float(m["end"])) / 2
         s0, s1 = expand_to_short(center, gaps, total_sec)
         if s1 - s0 < MIN_SHORT * 0.7:
             continue
-        if any(s0 < sh["end"] and s1 > sh["start"] for sh in shorts):
-            continue                       # ustma-ust bo'laklar kerak emas
-        text = " ".join(ln["text"] for ln in lines
-                        if ln["start"] < s1 and ln["end"] > s0)[:260]
-        shorts.append({
-            "start": round(s0, 2), "end": round(s1, 2),
-            "length": round(s1 - s0, 2),
-            "kind": m["kind"], "why": m["why"], "score": m["score"],
-            "text": text, "seed": round(center, 2),
-        })
+        qoshish(s0, s1, m["kind"], m["why"], m["score"], center)
         if len(shorts) >= limit:
             break
 
+    if not shorts:
+        if total_sec < MIN_SHORT * 2:
+            log(f"Bo'lak topilmadi — yozuv qisqa ({total_sec:.0f}s). "
+                f"Bir bo'lak uchun kamida {MIN_SHORT:.0f}s kerak.")
+        elif not seeds:
+            log("Bo'lak topilmadi: kuchli lahza topilmadi — yozuvda ovoz "
+                "darajasi deyarli o'zgarmaydi.")
+            log("Nima qilish mumkin: qiziq joylarga timeline'da marker "
+                "qo'ying (M tugmasi) va «Mening markerlarim» rejimini "
+                "tanlang — ular to'g'ridan-to'g'ri bo'lakka aylanadi.")
+        else:
+            log(f"Bo'lak topilmadi: {len(seeds)} ta lahza bor, lekin atrofida "
+                f"kesish uchun jimlik yo'q ({len(gaps)} ta nuqta topildi). "
+                "Yozuv juda zich — pauzasiz gapirilgan bo'lishi mumkin.")
+    return _natija(shorts, clips, total_sec, lines, log, say)
+
+
+def _natija(shorts, clips, total_sec, lines, log, say):
+    """Bo'laklarni tartiblab, panel kutgan ko'rinishda qaytaradi."""
     for i, sh in enumerate(sorted(shorts, key=lambda x: -x["score"]), start=1):
         sh["rank"] = i
     shorts.sort(key=lambda sh: sh["start"])
     if shorts:
         log(f"{len(shorts)} bo'lak topildi "
-            f"({MIN_SHORT:.0f}-{MAX_SHORT:.0f}s, o'rtacha "
-            f"{np.mean([s['length'] for s in shorts]):.0f}s)")
-    elif total_sec < MIN_SHORT * 2:
-        log(f"Bo'lak topilmadi — yozuv qisqa ({total_sec:.0f}s). "
-            f"Bir bo'lak uchun kamida {MIN_SHORT:.0f}s kerak.")
-    elif not seeds:
-        log("Bo'lak topilmadi: kuchli lahza topilmadi — yozuvda ovoz "
-            "darajasi deyarli o'zgarmaydi.")
-        log("Nima qilish mumkin: qiziq joylarga timeline'da marker "
-            "qo'ying (M tugmasi) — ular to'g'ridan-to'g'ri bo'lakka aylanadi.")
-    else:
-        log(f"Bo'lak topilmadi: {len(seeds)} ta lahza bor, lekin atrofida "
-            f"kesish uchun jimlik yo'q ({len(gaps)} ta nuqta topildi). "
-            "Yozuv juda zich — pauzasiz gapirilgan bo'lishi mumkin.")
+            f"(o'rtacha {np.mean([s['length'] for s in shorts]):.0f}s)")
     say(percent=100, detail=f"{len(shorts)} bo'lak")
-
     return {
         "shorts": shorts,
         "total_sec": round(total_sec, 2),
@@ -201,6 +280,19 @@ def build_shorts(arrangement, shorts, output="shorts.xml",
         info["rel_offset"] = float(item.get("rel_offset", 0.0))
         info["confidence"], info["reliable"] = None, True
         base.append(info)
+
+    # Natijada video bormi? Bu tekshiruv jimgina o'tib ketmasligi kerak:
+    # kamera kliplari tushib qolsa, short «faqat ovoz» bo'lib chiqadi va
+    # buni faqat Premiere'da ochganda bilib qolasiz.
+    videoli = [c for c in base if c.get("has_video")]
+    if not videoli:
+        raise RuntimeError(
+            "Bo'laklarda video yo'q — natija faqat ovozdan iborat bo'lardi. "
+            "Sabab: tahlilga faqat ovoz fayli tushgan. Ko'p uchraydigan ikki "
+            "holat: (1) sequence'dagi kadrlar MULTICAM yoki nested — ular "
+            "ortida fayl yo'q; (2) kamera fayllarida audio yo'q, shuning "
+            "uchun ular tahlildan chiqib ketgan. Yechim: multicam bo'lsa "
+            "«Flatten» qiling yoki kamera fayllarini qo'lda tanlang.")
 
     fmt = sequence_format(base, log=log)
     fps, timebase, ntsc = fmt["fps"], fmt["timebase"], fmt["ntsc"]

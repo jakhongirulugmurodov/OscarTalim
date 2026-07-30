@@ -297,13 +297,18 @@ def find_moments(clips, total_sec, lines, markers=None, limit=18, log=print):
     #    Faqat mikrofonlar bir-biridan farq qilsa ishonchli: bitta xonada
     #    hamma mikrofon hammani yozadi va bu belgi ma'nosiz bo'lib qoladi.
     together = np.zeros(total_bins)
-    if len(lanes) >= 2:
-        stack = np.vstack([smooth(l, SMOOTH_SEC) for l in lanes])
+    # Jim yo'laklar (audiosiz kamera) hisobga olinmaydi: ularning
+    # o'zgarishi nol, korrelyatsiya esa NaN chiqadi va butun o'lchovni
+    # buzadi.
+    tirik = [smooth(l, SMOOTH_SEC) for l in lanes]
+    tirik = [l for l in tirik if float(np.std(l)) > 1e-9]
+    if len(tirik) >= 2:
+        stack = np.vstack(tirik)
         corr = np.corrcoef(stack)
-        distinct = np.nanmin(corr[np.triu_indices(len(lanes), 1)]) < 0.9
+        distinct = np.nanmin(corr[np.triu_indices(len(tirik), 1)]) < 0.9
         if distinct:
             hot = (stack > 0.5).sum(axis=0)
-            together = np.clip((hot - 1) / max(1, len(lanes) - 1), 0, 1)
+            together = np.clip((hot - 1) / max(1, len(tirik) - 1), 0, 1)
         else:
             log("  (mikrofonlar bir-biriga juda o'xshash — «birga kulgi» "
                 "belgisi ishlatilmadi)")

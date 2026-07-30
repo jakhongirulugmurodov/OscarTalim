@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 19:05";
+const PANEL_BUILD = "30-Jul 20:10";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -470,14 +470,16 @@ function setupKnobs() {
 
 const capOpts = { language: "uz", model: "balans" };
 
-function setupPills(boxId, apply) {
+/* `matn` — qiymat SON emas, matn bo'lsa (masalan "avto"/"marker").
+   Aks holda +"marker" NaN bo'lib, tanlov ishlamay qoladi. */
+function setupPills(boxId, apply, matn) {
   const box = document.getElementById(boxId);
   if (!box) return;
   box.querySelectorAll(".opill").forEach((pill) => {
     pill.addEventListener("click", () => {
       box.querySelectorAll(".opill").forEach((x) => x.classList.remove("on"));
       pill.classList.add("on");
-      apply(+pill.dataset.v);
+      apply(matn ? pill.dataset.v : +pill.dataset.v);
     });
   });
 }
@@ -863,18 +865,38 @@ async function readMarkers() {
     } else if (seq.getMarkers) {
       list = await seq.getMarkers();
     }
-    if (!list || !list.length) return [];
+    if (!list || !list.length) {
+      markerHolat = "Timeline'da marker topilmadi";
+      return [];
+    }
     const out = [];
     for (const mk of list) {
       const t = mk.start !== undefined ? mk.start
               : mk.getStart ? await mk.getStart() : null;
-      if (t != null) out.push({ start: secs(t) });
+      if (t == null) continue;
+      // Marker timeline'da cho'zib belgilangan bo'lsa — uzunligi ham bor.
+      // Shunda bo'lak chegaralari taxmin qilinmaydi, aynan o'sha oraliq olinadi.
+      let d = null;
+      try {
+        d = mk.duration !== undefined ? mk.duration
+          : mk.getDuration ? await mk.getDuration() : null;
+      } catch (e) { d = null; }
+      const rec = { start: secs(t) };
+      const ds = d == null ? 0 : secs(d);
+      if (ds > 0.05) rec.duration = ds;
+      out.push(rec);
     }
+    markerHolat = out.length + " ta marker o'qildi";
     return out;
   } catch (e) {
+    // Ilgari bu xato jimgina yutilardi: markerlar o'qilmasa ham
+    // foydalanuvchi buni bilmasdi va «nega ishlamayapti» deb qolardi.
+    markerHolat = "Markerlarni o'qib bo'lmadi: " + (e.message || e);
     return [];
   }
 }
+
+let markerHolat = "";
 
 async function findMoments() {
   if (!(await checkMotor())) return;
@@ -958,6 +980,7 @@ async function buildIntro(review) {
 let shorts = [];
 let shortsArr = null;
 let shortsLimit = 8;
+let shortsMode = "avto";
 
 function renderShorts() {
   els.shortsList.innerHTML = "";
@@ -1020,7 +1043,9 @@ async function findShorts() {
   startProgress("Bo'laklar qidirilmoqda…");
   const markers = await readMarkers();
   try {
+    logLine(markerHolat || "Markerlar tekshirilmadi");
     const body = { limit: shortsLimit, markers: markers };
+    if (shortsMode === "marker") body.faqat_markerlar = true;
     if (timeline) body.timeline = timeline;
     body.files = picked.map((p) => p.path);
     const r = await fetch(MOTOR + "/shorts", {
@@ -1744,6 +1769,14 @@ setupMatn();
 setupCaptionPills();
 setupIntroPills();
 setupPills("shortsLimit", (v) => { shortsLimit = v; });
+setupPills("shortsMode", (v) => {
+  shortsMode = v;
+  const marker = v === "marker";
+  const a = document.getElementById("shortsTipAuto");
+  const m = document.getElementById("shortsTipMarker");
+  if (a) a.style.display = marker ? "none" : "";
+  if (m) m.style.display = marker ? "" : "none";
+}, true);
 document.body.className = "tab-sync";
 applyTabText();
 checkMotor().then(function (ok) { if (ok) { checkUpdates(); loadFonts(); } });

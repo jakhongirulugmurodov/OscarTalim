@@ -665,7 +665,25 @@ def prepare_clips(files, timeline=None, log=print, progress=None):
             detail=f"{i + 1}/{len(files)}: {os.path.basename(f)}")
         info = ffprobe(f)
         if not info["has_audio"]:
-            log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazildi")
+            # Audiosiz kamera. Ilgari butunlay tashlab yuborilardi va
+            # natija «faqat ovoz» bo'lib chiqardi — buni foydalanuvchi
+            # faqat Premiere'da ochganda bilardi.
+            #
+            # Tayyor sequence'dan ishlayotgan bo'lsak, klipning joyi
+            # allaqachon ma'lum: tahlilga qo'shmaymiz (jim envelope),
+            # lekin timeline'ga qo'yamiz. Fayllardan ishlayotganda esa
+            # uni sinxronlash mumkin emas — qayerga qo'yishni bilmaymiz.
+            if info["has_video"] and timeline:
+                info["envelope"] = np.zeros(
+                    max(1, int(round(info["duration"] * ENV_RATE))))
+                info["ovozsiz"] = True
+                clips.append(info)
+                log(f"  {info['name']}: audio yo'q — tahlilga kirmaydi, "
+                    "lekin kadr sifatida qoladi")
+            else:
+                log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — "
+                    "o'tkazildi (sinxronlash uchun ovoz kerak). Tayyor "
+                    "sequence'dan olsangiz, kadr saqlanadi.")
             continue
         info["envelope"] = extract_envelope(
             f, info["duration"], progress=sub_progress(say, i, len(files)))

@@ -581,6 +581,13 @@
 
     <div class="knobs" id="shortsKnobs">
       <div class="opts">
+        <span class="olbl">Rejim</span>
+        <span class="opills" id="shortsMode">
+          <span class="opill on" data-v="avto">Avtomatik topish</span>
+          <span class="opill" data-v="marker">Mening markerlarim</span>
+        </span>
+      </div>
+      <div class="opts">
         <span class="olbl">Bo'lak</span>
         <span class="opills" id="shortsLimit">
           <span class="opill" data-v="5">5 ta</span>
@@ -588,7 +595,15 @@
           <span class="opill" data-v="14">14 ta</span>
         </span>
       </div>
-      <p class="tip">Har bo'lak — <b>tugallangan fikr</b> (20–60 s), chegaralari
+      <p class="tip" id="shortsTipMarker" style="display:none">
+      <b>Mening markerlarim</b> — tanlovni siz qilasiz, mashina taxmin
+      qilmaydi. Podcastni eshitib boring, yoqqan joyingizda <b>M</b> tugmasini
+      bosing. Har marker bitta bo'lak bo'ladi: boshi markerdan
+      <b>2 soniya oldin</b> olinadi (M ni bosgunimizcha vaqt ketadi) va
+      keyingi jimlikkacha cho'ziladi.<br>
+      Timeline'da markerni <b>cho'zib</b> belgilasangiz — aynan o'sha oraliq
+      olinadi. Musiqa, jingle bo'lgan yozuvda eng ishonchli yo'l shu.</p>
+      <p class="tip" id="shortsTipAuto">Har bo'lak — <b>tugallangan fikr</b> (20–60 s), chegaralari
       jimlik bo'yicha kesiladi: gap o'rtasidan boshlanmaydi.<br>
       Tanlanganlarning har biri <b>alohida sequence</b> bo'lib chiqadi.
       Vertikal (9:16) qilish uchun Premiere'da o'sha sequence'larni tanlab,

@@ -474,6 +474,7 @@ class Handler(BaseHTTPRequestHandler):
                     files, timeline=seq_timeline,
                     markers=req.get("markers"),
                     limit=int(req.get("limit", 8)),
+                    faqat_markerlar=bool(req.get("faqat_markerlar")),
                     log=record, progress=step)
             elif self.path == "/intro":
                 result = run_intro(
