@@ -276,6 +276,23 @@
     overflow: hidden;
   }
   .mom .why { color: #6E707A; font-size: 11px; margin-top: 2px; }
+  /* --- Shorts: Intro bilan bir xil ro'yxat, boshqa rang --- */
+  body.tab-shorts #shortsKnobs { display: block; }
+  body.tab-shorts .seqpick { display: block; text-align: center; margin-bottom: 12px;
+    padding: 11px; border-radius: 8px; border: 1px solid #45464F;
+    background-color: #17181C; }
+  body.tab-shorts .seqpick b { color: #8FD0E8; }
+  body:not(.tab-shorts) #shortsBtn, body:not(.tab-shorts) #shortsBuildBtn { display: none; }
+  body.tab-shorts #syncBtn, body.tab-shorts #cutBtn, body.tab-shorts #switchBtn,
+  body.tab-shorts #capBtn, body.tab-shorts #sampleBtn, body.tab-shorts #introBtn,
+  body.tab-shorts #buildBtn, body.tab-shorts #reviewBtn { display: none; }
+  body.tab-shorts .tab.on { border-bottom-color: #4EA8DE; }
+  body.tab-shorts .btn.primary { background-color: #4EA8DE; border-color: #4EA8DE;
+                                 color: #06202E; }
+  body.tab-shorts .job-fill, body.tab-shorts .job-dot,
+  body.tab-shorts .job-pulse i.hi { background-color: #4EA8DE; }
+  body.tab-shorts .mom.on .box { background-color: #4EA8DE; border-color: #4EA8DE; }
+  body.tab-shorts .mom .tc { color: #8FD0E8; }
   .searchbox { display: flex; gap: 8px; margin-top: 10px; }
   .searchbox input {
     flex: 1; min-width: 0; padding: 7px 11px; border-radius: 6px;
@@ -343,7 +360,7 @@
     <div class="tab" data-tab="switch">Switch</div>
     <div class="tab" data-tab="intro">Intro</div>
     <div class="tab" data-tab="captions">Captions</div>
-    <div class="tab soon" title="5-bosqichda">Shorts</div>
+    <div class="tab" data-tab="shorts">Shorts</div>
   </div>
 
   <div class="body">
@@ -456,6 +473,24 @@
       <div class="moments" id="moments"></div>
     </div>
 
+    <div class="knobs" id="shortsKnobs">
+      <div class="opts">
+        <span class="olbl">Bo'lak</span>
+        <span class="opills" id="shortsLimit">
+          <span class="opill" data-v="5">5 ta</span>
+          <span class="opill on" data-v="8">8 ta</span>
+          <span class="opill" data-v="14">14 ta</span>
+        </span>
+      </div>
+      <p class="tip">Har bo'lak — <b>tugallangan fikr</b> (20–60 s), chegaralari
+      jimlik bo'yicha kesiladi: gap o'rtasidan boshlanmaydi.<br>
+      Tanlanganlarning har biri <b>alohida sequence</b> bo'lib chiqadi.
+      Vertikal (9:16) qilish uchun Premiere'da o'sha sequence'larni tanlab,
+      o'ng tugma → <b>Auto Reframe Sequence</b> → 9:16. Yuzni Adobe'ning o'zi
+      kuzatadi — bizdan yaxshi qiladi.</p>
+      <div class="moments" id="shortsList"></div>
+    </div>
+
     <div class="knobs" id="switchKnobs">
       <label>Eng qisqa kadr
         <input type="range" id="kMinShot" min="10" max="80" value="25">
@@ -477,6 +512,8 @@
     <button class="btn primary" id="syncBtn" disabled>Sinxronlash</button>
     <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
     <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
+    <button class="btn primary" id="shortsBtn" disabled>Bo'laklarni topish</button>
+    <button class="btn" id="shortsBuildBtn" disabled>Shorts yasash</button>
     <button class="btn primary" id="introBtn" disabled>Lahzalarni topish</button>
     <button class="btn" id="reviewBtn" disabled>Nomzodlarni ko'rish</button>
     <button class="btn" id="buildBtn" disabled>Intro yasash</button>

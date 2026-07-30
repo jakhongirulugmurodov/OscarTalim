@@ -292,7 +292,8 @@ def file_xml(clip, file_id, timebase, ntsc, full=True):
     return "\n".join(lines)
 
 
-def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg, seg_no=0):
+def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg,
+                 seg_no=0, file_id=None):
     """Timeline'dagi bitta bo'lak.
 
     `seg` — {start, in, out} (freymlarda): klip timeline'ning qayeriga
@@ -300,7 +301,7 @@ def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg, seg_no=0
     bo'lak bo'ladi, kesishda esa pauzalar olib tashlangani uchun bir nechta.
     """
     cid = f"clipitem-{media_type}-{idx}-{seg_no}"
-    file_id = f"file-{idx}"
+    file_id = file_id or f"file-{idx}"
     length = seg["out"] - seg["in"]
     lines = [f'\t\t\t\t\t<clipitem id="{cid}">',
              f"\t\t\t\t\t\t<name>{escape(clip['name'])}</name>",
@@ -322,7 +323,7 @@ def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg, seg_no=0
 
 
 def build_xml(clips, seq_name, timebase, ntsc, width, height,
-              single_video_track=False, markers=None):
+              single_video_track=False, markers=None, file_ids=None):
     """Sequence XML. Har klipda `segments` bo'lmasa — butun fayl bitta bo'lak.
 
     `single_video_track` — Switch uchun: hamma kamera bo'laklari bitta
@@ -331,6 +332,11 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
 
     `markers` — sequence markerlari: [{"frame": ..., "name": ...}]. Intro
     nomzodlarini ko'rib chiqishda har bo'lak nomi bilan belgilanadi.
+
+    `file_ids` — {fayl yo'li: "file-N"}. Bitta XML'da bir nechta sequence
+    bo'lganda (Shorts) fayl id'lari barqaror bo'lishi SHART: har sequence
+    o'z tartibi bilan raqamlasa, ikkinchi sequence'ning «file-1» i boshqa
+    faylga tegib, Premiere xato media ulab qo'yadi.
     """
     for clip in clips:
         if not clip.get("segments"):
@@ -350,9 +356,12 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
         show_video = clip["has_video"] and clip.get("emit_video", True) and segs
         play_audio = clip["has_audio"] and clip.get("emit_audio", True) and asegs
 
-        # <file> to'liq tavsifi birinchi ishlatilgan joyda yoziladi
+        # <file> to'liq tavsifi birinchi ishlatilgan joyda yoziladi.
+        # file_ids berilgan bo'lsa — id yo'l bo'yicha, tartib bo'yicha emas.
+        fid = (file_ids or {}).get(clip["path"])
         if show_video:
-            items = [clipitem_xml(clip, i, "video", timebase, ntsc, n == 0, s, n)
+            items = [clipitem_xml(clip, i, "video", timebase, ntsc, n == 0, s, n,
+                                  file_id=fid)
                      for n, s in enumerate(segs)]
             if single_video_track:
                 program += [(s["start"], item) for s, item in zip(segs, items)]
@@ -361,7 +370,7 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
                                     + "\n\t\t\t\t</track>")
         if play_audio:
             items = [clipitem_xml(clip, i, "audio", timebase, ntsc,
-                                  n == 0 and not show_video, s, n)
+                                  n == 0 and not show_video, s, n, file_id=fid)
                      for n, s in enumerate(asegs)]
             audio_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
                                 + "\n\t\t\t\t</track>")
@@ -416,6 +425,32 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
 
 
 # --------------------------------------------------------------------- main
+
+def sequence_block(xml_doc):
+    """To'liq XML'dan faqat <sequence>…</sequence> qismini ajratadi."""
+    a = xml_doc.index("<sequence")
+    b = xml_doc.index("</sequence>") + len("</sequence>")
+    return xml_doc[a:b]
+
+
+def wrap_project(project_name, sequence_blocks):
+    """Bir nechta sequence'ni bitta XML'ga yig'adi (Premiere bin qilib oladi).
+
+    Shorts moduli uchun: har bo'lak alohida sequence bo'lishi kerak, aks
+    holda ularni alohida eksport qilib bo'lmaydi.
+    """
+    inner = "\n".join("\t\t" + b.replace("\n", "\n\t") for b in sequence_blocks)
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            "<!DOCTYPE xmeml>\n"
+            '<xmeml version="4">\n'
+            "\t<project>\n"
+            f"\t\t<name>{escape(project_name)}</name>\n"
+            "\t\t<children>\n"
+            f"{inner}\n"
+            "\t\t</children>\n"
+            "\t</project>\n"
+            "</xmeml>\n")
+
 
 # ------------------------------------------- kliplarni timeline'ga joylash
 #

@@ -49,6 +49,9 @@ const els = {
   introBtn: el("introBtn"),
   buildBtn: el("buildBtn"),
   reviewBtn: el("reviewBtn"),
+  shortsBtn: el("shortsBtn"),
+  shortsBuildBtn: el("shortsBuildBtn"),
+  shortsList: el("shortsList"),
   moments: el("moments"),
   seqBtn: el("seqBtn"),
   seqTitle: el("seqTitle"),
@@ -307,6 +310,12 @@ const TAB_TEXT = {
     seqHint: "montajingiz bo'yicha qidiriladi — markerlaringiz ham hisobga olinadi",
     next: "Endi «Lahzalarni topish» ni bosing",
   },
+  shorts: {
+    pick: "yozuvlar yoki ochiq sequence",
+    seqTitle: "Ochiq sequence'dan bo'laklarni izlash",
+    seqHint: "har bo'lak tugallangan fikr bo'ladi — 20-60 soniya",
+    next: "Endi «Bo'laklarni topish» ni bosing",
+  },
   captions: {
     pick: "ovozi yaxshi yozilgan fayl (1 ta yetadi)",
     seqTitle: "Ochiq sequence'dan ovozni olish",
@@ -334,7 +343,10 @@ function setupTabs() {
       timeline = null;
       moments = [];
       arrangement = null;
+      shorts = [];
+      shortsArr = null;
       if (els.moments) els.moments.innerHTML = "";
+      if (els.shortsList) els.shortsList.innerHTML = "";
       els.importBtn.disabled = true;
       els.log.innerHTML = "";
       els.log.classList.remove("show");
@@ -371,6 +383,18 @@ function setupKnobs() {
 /* ------------------------------------------------- Captions sozlamalari */
 
 const capOpts = { language: "uz", model: "balans" };
+
+function setupPills(boxId, apply) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  box.querySelectorAll(".opill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      box.querySelectorAll(".opill").forEach((x) => x.classList.remove("on"));
+      pill.classList.add("on");
+      apply(+pill.dataset.v);
+    });
+  });
+}
 
 function setupIntroPills() {
   const box = document.getElementById("introLimit");
@@ -732,6 +756,7 @@ async function findMoments() {
     stopProgress(false, (e.message || "").slice(0, 90));
   }
   els.introBtn.disabled = picked.length < 1;
+  els.shortsBtn.disabled = picked.length < 1;
 }
 
 async function buildIntro(review) {
@@ -766,6 +791,127 @@ async function buildIntro(review) {
     stopProgress(false, (e.message || "").slice(0, 90));
   }
   renderMoments();
+}
+
+
+/* --------------------------------------------------------------- Shorts
+ *
+ * Intro bilan bir xil ishlaydi: motor nomzod bo'laklarni topadi, tanlovni
+ * odam qiladi. Farqi — uzunlik (20-60 s, tugallangan fikr) va har bo'lak
+ * alohida sequence bo'lib chiqishi. */
+let shorts = [];
+let shortsArr = null;
+let shortsLimit = 8;
+
+function renderShorts() {
+  els.shortsList.innerHTML = "";
+  for (const sh of shorts) {
+    const row = document.createElement("div");
+    row.className = "mom " + (sh.on ? "on" : "off");
+
+    const box = document.createElement("span");
+    box.className = "box";
+    box.textContent = sh.on ? "✓" : "";
+    row.appendChild(box);
+
+    const mid = document.createElement("div");
+    mid.className = "mid";
+    const top = document.createElement("div");
+    top.className = "top";
+    const t = document.createElement("span");
+    t.className = "tc";
+    t.textContent = tc(sh.start);
+    const k = document.createElement("span");
+    k.className = "kind " + (sh.kind || "");
+    k.textContent = sh.kind || "bo'lak";
+    const len = document.createElement("span");
+    len.className = "len";
+    len.textContent = Math.round(sh.length) + "s";
+    top.appendChild(t); top.appendChild(k); top.appendChild(len);
+    mid.appendChild(top);
+    if (sh.text) {
+      const tx = document.createElement("div");
+      tx.className = "txt";
+      tx.textContent = "«" + sh.text + "»";
+      mid.appendChild(tx);
+    }
+    const why = document.createElement("div");
+    why.className = "why";
+    why.textContent = sh.why;
+    mid.appendChild(why);
+    row.appendChild(mid);
+
+    row.addEventListener("click", () => { sh.on = !sh.on; renderShorts(); });
+    row.addEventListener("dblclick", () => goToTime(sh.start));
+    els.shortsList.appendChild(row);
+  }
+  const on = shorts.filter((x) => x.on);
+  els.shortsBuildBtn.disabled = !on.length;
+  els.shortsBuildBtn.textContent = on.length
+    ? "Shorts yasash (" + on.length + " ta)" : "Shorts yasash";
+  if (shorts.length) {
+    els.hint.textContent = shorts.length + " bo'lak · " + on.length + " tanlangan";
+  }
+}
+
+async function findShorts() {
+  if (!(await checkMotor())) return;
+  shorts = [];
+  shortsArr = null;
+  renderShorts();
+  els.log.innerHTML = "";
+  els.shortsBtn.disabled = true;
+  startProgress("Bo'laklar qidirilmoqda…");
+  const markers = await readMarkers();
+  try {
+    const body = { limit: shortsLimit, markers: markers };
+    if (timeline) body.timeline = timeline;
+    body.files = picked.map((p) => p.path);
+    const r = await fetch(MOTOR + "/shorts", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const line of (j.logs || []).slice(shownLogs)) logLine(line);
+    shorts = (j.shorts || []).map((sh) => ({ ...sh, on: sh.rank <= 3 }));
+    shortsArr = j.arrangement;
+    renderShorts();
+    logLine(shorts.length + " bo'lak topildi — keraklisini belgilab, "
+            + "«Shorts yasash» ni bosing", "okline");
+    stopProgress(true, shorts.length + " bo'lak");
+  } catch (e) {
+    logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+  els.shortsBtn.disabled = picked.length < 1;
+}
+
+async function buildShorts() {
+  const chosen = shorts.filter((sh) => sh.on);
+  if (!chosen.length || !shortsArr) return;
+  els.log.innerHTML = "";
+  els.shortsBuildBtn.disabled = true;
+  startProgress("Bo'laklar yig'ilmoqda…");
+  try {
+    const r = await fetch(MOTOR + "/shorts-yasash", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ arrangement: shortsArr, moments: chosen }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const line of (j.logs || []).slice(shownLogs)) logLine(line);
+    lastXml = j.output;
+    logLine(j.shorts + " sequence tayyor · jami "
+            + Math.round(j.length_sec) + "s ✓", "okline");
+    for (const nm of j.names || []) logLine("  " + nm);
+    els.importBtn.disabled = false;
+    stopProgress(true, j.shorts + " sequence");
+  } catch (e) {
+    logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+  renderShorts();
 }
 
 /* ---------------------------------------------------- sinxronlash */
@@ -1057,6 +1203,7 @@ function updateRunButtons() {
   els.cutBtn.disabled = picked.length < 1;
   els.switchBtn.disabled = picked.length < 2;
   els.introBtn.disabled = picked.length < 1;
+  els.shortsBtn.disabled = picked.length < 1;
   els.capBtn.disabled = picked.length < 1 || !whisperReady;
   els.sampleBtn.disabled = picked.length < 1 || !whisperReady;
 }
@@ -1115,6 +1262,8 @@ on(els.switchBtn, function () { run("switch"); });
 on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
+on(els.shortsBtn, findShorts);
+on(els.shortsBuildBtn, buildShorts);
 on(els.buildBtn, function () { buildIntro(false); });
 on(els.reviewBtn, function () { buildIntro(true); });
 on(els.capSearchBtn, searchArchive);
@@ -1125,6 +1274,7 @@ setupTabs();
 setupKnobs();
 setupCaptionPills();
 setupIntroPills();
+setupPills("shortsLimit", (v) => { shortsLimit = v; });
 document.body.className = "tab-sync";
 applyTabText();
 checkMotor().then(function (ok) { if (ok) checkUpdates(); });
