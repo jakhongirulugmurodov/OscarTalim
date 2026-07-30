@@ -19,16 +19,24 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, cut_to_segments, fps_to_timebase,
-                      prepare_clips, timeline_length, write_xml)
+                      prepare_clips, sequence_format, timeline_length,
+                      write_xml)
 
 # Standart sozlamalar — panel ularni o'zgartira oladi
-DEFAULT_THRESHOLD = 0.18   # jimlik chegarasi (0..1, normallashtirilgan energiya)
+DEFAULT_THRESHOLD = "auto"  # chegara yozuvning o'zidan olinadi (pastga qarang)
+MANUAL_THRESHOLD = 0.18     # «auto» ishlamasa ishlatiladigan eski qiymat
 DEFAULT_MIN_PAUSE = 0.7    # shundan qisqa pauzalar tegilmaydi (soniya)
 DEFAULT_PADDING = 0.12     # gap chetlaridan qoldiriladigan zaxira (soniya)
 
 
-def speech_mask(clips, total_bins, threshold):
-    """Har bin uchun: shu lahzada kimdir gapiryaptimi?
+# Qat'iylik: chegarani jimlik tomonga yoki gap tomonga suradi.
+# «qattiq» — faqat baland, aniq gap qoladi; past tondagi ovozlar kesiladi.
+STRICTNESS = {"yumshoq": 0.7, "orta": 1.0, "qattiq": 1.45}
+DEFAULT_STRICTNESS = "orta"
+
+
+def loudness_lane(clips, total_bins):
+    """Timeline bo'ylab eng baland ovoz darajasi (0..1).
 
     Har klip timeline'dagi o'z joyiga qo'yiladi va energiyalarning eng
     kattasi olinadi — ya'ni bittasi gapirsa, bu pauza emas. Timeline'da
@@ -38,8 +46,11 @@ def speech_mask(clips, total_bins, threshold):
     loudest = np.zeros(total_bins)
     for clip in clips:
         env = clip["envelope"]
-        # envelope log-normallashtirilgan; 0..1 oralig'iga keltiramiz
-        e = env - env.min()
+        # envelope log-normallashtirilgan; 0..1 oralig'iga keltiramiz.
+        # Tayanch sifatida eng past NAMUNA emas, past FOIZ olinadi: bir
+        # soatlik yozuvda eng past nuqta tasodifiy chetlashish bo'ladi va
+        # butun shkalani surib yuboradi.
+        e = env - np.percentile(env, 2)
         peak = np.percentile(e, 99) or 1.0
         e = np.clip(e / peak, 0, 1)
 
@@ -52,7 +63,91 @@ def speech_mask(clips, total_bins, threshold):
             if end > start:
                 loudest[start:end] = np.maximum(loudest[start:end],
                                                 piece[:end - start])
-    return loudest >= threshold
+    return loudest
+
+
+def otsu_split(values, bins=256):
+    """Ikki to'da orasidagi eng chuqur «vodiy» (Otsu usuli).
+
+    Yozuvda ikki xil daraja bor: jimlik/shovqin va gap. Ularning orasidagi
+    chegarani qidiramiz — qaysi nuqtada bo'linsa, ikki to'da bir-biridan
+    eng uzoq ajraladi. Rasm qayta ishlashdagi klassik usul; bu yerda ham
+    vazifa aynan shu: bitta sonli chegara topish.
+    """
+    hist, edges = np.histogram(values, bins=bins, range=(0.0, 1.0))
+    w = hist.astype(np.float64)
+    total = w.sum()
+    if total <= 0:
+        return None
+    centers = (edges[:-1] + edges[1:]) / 2.0
+    w0 = np.cumsum(w)[:-1]                     # chegaradan pastdagilar
+    w1 = total - w0
+    m0 = np.cumsum(w * centers)[:-1]
+    m_all = float((w * centers).sum())
+    ok = (w0 > 0) & (w1 > 0)
+    if not ok.any():
+        return None
+    mu0 = m0 / np.where(w0 > 0, w0, 1.0)
+    mu1 = (m_all - m0) / np.where(w1 > 0, w1, 1.0)
+    between = w0 * w1 * (mu0 - mu1) ** 2
+    between[~ok] = -1.0
+    return float(edges[int(np.argmax(between)) + 1])
+
+
+def auto_threshold(loud, strictness=DEFAULT_STRICTNESS, log=print):
+    """Jimlik chegarasini yozuvning O'ZIGA qarab tanlaydi.
+
+    Nega kerak: qat'iy 0.18 har yozuvga to'g'ri kelmaydi. Mikrofon yaqin
+    turgan, xonasi jim yozuvda u juda past qolib ketadi — past tondagi
+    shovqin, nafas, stul g'ichirlashi ham «gap» deb hisoblanadi va
+    kesilmay qoladi. Aynan siz aytgan muammo shu.
+
+    Ish tartibi:
+      1. Yozuvning o'z shovqin darajasi (past foiz) va gap darajasi
+         (yuqori foiz) o'lchanadi;
+      2. Ular orasidagi eng chuqur vodiy Otsu bilan topiladi;
+      3. Natija shu ikki daraja orasida ushlab turiladi — na juda past,
+         na hamma gapni yeb qo'yadigan darajada baland;
+      4. Qat'iylik chegarani shu oraliqda suradi: «qattiq» — gap tomonga,
+         ya'ni faqat baland, aniq gapirilgan joylar qoladi.
+    """
+    floor = float(np.percentile(loud, 10))     # shovqin darajasi
+    speech = float(np.percentile(loud, 92))    # gap darajasi
+    span = speech - floor
+    if span < 0.02:
+        # Daraja bir tekis — ajratadigan narsa yo'q (doimiy shovqin/musiqa)
+        log(f"  chegara: {MANUAL_THRESHOLD:.2f} (daraja bir tekis, "
+            "avtomatik tanlab bo'lmadi)")
+        return MANUAL_THRESHOLD
+
+    t = otsu_split(loud)
+    if t is None:
+        t = floor + 0.35 * span
+    # Vodiy tasodifan chetga tushib qolmasin
+    t = min(max(t, floor + 0.12 * span), floor + 0.75 * span)
+
+    frac = (t - floor) / span
+    frac = min(0.90, max(0.08, frac * STRICTNESS.get(strictness, 1.0)))
+    thr = floor + frac * span
+    log(f"  chegara: {thr:.2f} (avtomatik — shovqin {floor:.2f}, "
+        f"gap {speech:.2f}, qat'iylik «{strictness}»)")
+    return thr
+
+
+def resolve_threshold(loud, threshold, strictness=DEFAULT_STRICTNESS,
+                      log=print):
+    """Berilgan chegarani sonli qiymatga aylantiradi.
+
+    `threshold` "auto"/bo'sh bo'lsa — yozuvdan hisoblanadi; son bo'lsa
+    qo'lda kiritilgan qiymat aynan ishlatiladi (eski xatti-harakat).
+    """
+    if threshold is None or (isinstance(threshold, str)
+                             and threshold.strip().lower() in ("", "auto")):
+        return auto_threshold(loud, strictness, log=log)
+    try:
+        return float(threshold)
+    except (TypeError, ValueError):
+        return auto_threshold(loud, strictness, log=log)
 
 
 def find_pauses(mask, min_pause, padding):
@@ -98,7 +193,8 @@ def keep_segments(pauses, total_sec):
 
 def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
             threshold=DEFAULT_THRESHOLD, min_pause=DEFAULT_MIN_PAUSE,
-            padding=DEFAULT_PADDING, timeline=None, fallback=None, log=print,
+            padding=DEFAULT_PADDING, strictness=DEFAULT_STRICTNESS,
+            timeline=None, seq_format=None, fallback=None, log=print,
             progress=None):
     """Pauzalarni kesish.
 
@@ -121,8 +217,9 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     # --- 2. Pauzalarni topish ---
     say(stage="Pauzalar qidirilmoqda", percent=None,
         detail=f"{total_sec / 60:.0f} daqiqalik montaj")
-    mask = speech_mask(clips, total_bins, threshold)
-    pauses = find_pauses(mask, min_pause, padding)
+    loud = loudness_lane(clips, total_bins)
+    threshold = resolve_threshold(loud, threshold, strictness, log=log)
+    pauses = find_pauses(loud >= threshold, min_pause, padding)
     saved = sum(b - a for a, b in pauses)
     log(f"Pauzalar: {len(pauses)} ta, jami {saved:.1f}s "
         f"({saved / total_sec * 100:.0f}%) qisqaradi")
@@ -132,12 +229,11 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
         raise RuntimeError("Kesishdan keyin hech narsa qolmadi — "
                            "jimlik chegarasini pasaytiring.")
 
-    # --- 3. Sequence parametrlari ---
-    video_clip = next((c for c in clips if c["has_video"]), None)
-    fps = video_clip["fps"] if video_clip else 25.0
-    timebase, ntsc = fps_to_timebase(fps)
-    width = video_clip["width"] if video_clip else 1920
-    height = video_clip["height"] if video_clip else 1080
+    # --- 3. Sequence parametrlari (o'lcham manbadan avtomatik olinadi) ---
+    fmt = sequence_format(clips, log=log,
+                          prefer=seq_format if from_timeline else None)
+    fps, timebase, ntsc = fmt["fps"], fmt["timebase"], fmt["ntsc"]
+    width, height = fmt["width"], fmt["height"]
 
     # --- 4. Har klipni saqlanadigan bo'laklarga bo'lamiz ---
     # Butun hisob freymlarda ketadi: soniyalarni har bo'lakda alohida
@@ -159,6 +255,12 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
                     "length": round(b - a, 3)} for a, b in pauses],
         "total_sec": round(total_sec, 2),
         "saved_sec": round(saved, 2),
+        "threshold": round(float(threshold), 3),
+        "strictness": strictness,
+        "format": {"width": width, "height": height,
+                   "shape": "vertikal" if height > width else
+                            ("kvadrat" if height == width else "gorizontal"),
+                   "fps": round(float(fps), 3), "mixed": fmt["mixed"]},
         "new_length_sec": round(total_sec - saved, 2),
         "clips": [{"name": c["name"], "path": c["path"],
                    "segments": len(c["segments"]),
@@ -173,8 +275,11 @@ def main():
     ap.add_argument("files", nargs="+", help="Video/audio fayllar")
     ap.add_argument("-o", "--output", default="kesilgan.xml")
     ap.add_argument("--name", default="Podcast Suite — Cut")
-    ap.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
-                    help="jimlik chegarasi 0..1 (kichik = kamroq kesadi)")
+    ap.add_argument("--threshold", default=DEFAULT_THRESHOLD,
+                    help="jimlik chegarasi 0..1, yoki «auto» (standart)")
+    ap.add_argument("--strictness", default=DEFAULT_STRICTNESS,
+                    choices=sorted(STRICTNESS),
+                    help="«auto» chegarasi qanchalik qattiq bo'lsin")
     ap.add_argument("--min-pause", type=float, default=DEFAULT_MIN_PAUSE,
                     help="shundan qisqa pauzalarga tegilmaydi (soniya)")
     ap.add_argument("--padding", type=float, default=DEFAULT_PADDING,
@@ -184,7 +289,7 @@ def main():
     try:
         r = run_cut(args.files, output=args.output, name=args.name,
                     threshold=args.threshold, min_pause=args.min_pause,
-                    padding=args.padding)
+                    padding=args.padding, strictness=args.strictness)
     except RuntimeError as e:
         sys.exit(str(e))
     print(f"{r['total_sec']:.0f}s → {r['new_length_sec']:.0f}s")

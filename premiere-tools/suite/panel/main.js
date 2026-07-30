@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 17:40";
+const PANEL_BUILD = "30-Jul 18:20";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -221,6 +221,7 @@ async function pickFiles() {
   if (!files) return;
   const list = Array.isArray(files) ? files : [files];
   timeline = null;   // qo'lda tanlansa — sequence rejimidan chiqamiz
+  seqFormat = null;
   for (const f of list) {
     if (f && f.nativePath && !picked.some((p) => p.path === f.nativePath)) {
       picked.push({ name: f.name, path: f.nativePath });
@@ -398,6 +399,7 @@ function setupTabs() {
       document.body.className = "tab-" + activeTab;
       lastXml = null;
       timeline = null;
+      seqFormat = null;
       moments = [];
       arrangement = null;
       shorts = [];
@@ -416,8 +418,6 @@ function setupTabs() {
 
 /* Cut sozlamalari — slayderlar qiymatini ko'rsatib turadi */
 const knobs = {
-  threshold: { el: el("kThreshold"), out: el("vThreshold"),
-               fmt: (v) => (v / 100).toFixed(2), val: (v) => v / 100 },
   minPause: { el: el("kMinPause"), out: el("vMinPause"),
               fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
   padding: { el: el("kPadding"), out: el("vPadding"),
@@ -428,12 +428,27 @@ const knobs = {
              fmt: (v) => v + " s", val: (v) => v },
 };
 
+/* Ovoz qat'iyligi — «jimlik chegarasi 0.18» degan son o'rniga. Chegarani
+   endi motor har yozuvning o'z ovoz darajasidan hisoblaydi; bu yerda faqat
+   uni jimlik tomonga yoki gap tomonga surib qo'yamiz. */
+let strictness = "orta";
+
 function setupKnobs() {
   Object.values(knobs).forEach((k) => {
-    if (!k.el.addEventListener) return;
+    if (!k.el || !k.el.addEventListener) return;
     const show = () => { k.out.textContent = k.fmt(+k.el.value); };
     k.el.addEventListener("input", show);
     show();
+  });
+
+  const box = el("kStrict");
+  if (!box || !box.querySelectorAll) return;
+  box.querySelectorAll(".pick").forEach((pick) => {
+    pick.addEventListener("click", () => {
+      box.querySelectorAll(".pick").forEach((p) => p.classList.remove("on"));
+      pick.classList.add("on");
+      strictness = pick.getAttribute("data-v") || "orta";
+    });
   });
 }
 
@@ -531,6 +546,7 @@ async function searchArchive() {
 /* ------------------------------------- ochiq sequence'ni o'qish (Cut) */
 
 let timeline = null;   // [{path, start, in, out}] yoki null
+let seqFormat = null;  // ochiq sequence'ning kadr o'lchami (bo'lsa)
 
 /* TickTime → soniya. `seconds` — 25.6+ dagi rasmiy yo'l; qolgani zaxira. */
 const TICKS_PER_SECOND = 254016000000;
@@ -591,6 +607,33 @@ function pickAudioSource() {
     : "Ovoz manbasi: " + nm + " — boshqasi kerak bo'lsa ♪ ni bosing";
 }
 
+/* Ochiq sequence'ning kadr o'lchami.
+ *
+ * UXP versiyalarida bu ma'lumot turli nomlar ostida turadi, shuning uchun
+ * bir nechta shakl sinab ko'riladi. Topilmasa — muammo emas: `null`
+ * qaytadi va motor o'lchamni manba fayllardan o'zi aniqlaydi. Shu sababli
+ * butun blok o'z try/catch ida: bu yerdagi xato sequence o'qishni
+ * to'xtatib qo'ymasligi kerak. */
+async function readSeqFormat(seq) {
+  const num = (v) => {
+    const n = typeof v === "function" ? NaN : Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+  };
+  try {
+    let s = null;
+    if (typeof seq.getSettings === "function") s = await seq.getSettings();
+    for (const src of [s, seq]) {
+      if (!src) continue;
+      const w = num(src.videoFrameWidth) || num(src.frameSizeHorizontal) ||
+                num(src.videoFrameSizeHorizontal) || num(src.width);
+      const h = num(src.videoFrameHeight) || num(src.frameSizeVertical) ||
+                num(src.videoFrameSizeVertical) || num(src.height);
+      if (w && h) return { width: w, height: h };
+    }
+  } catch (e) { /* o'lcham o'qilmadi — manbadan olinadi */ }
+  return null;
+}
+
 async function readSequence() {
   els.log.innerHTML = "";
   logLine("Ochiq sequence o'qilmoqda…");
@@ -602,6 +645,15 @@ async function readSequence() {
     step = "sequence topish";
     const seq = project && (await project.getActiveSequence());
     if (!seq) throw new Error("Ochiq sequence topilmadi — timeline'ni oching");
+
+    // Ochiq sequence'ning o'z o'lchami. Topilsa — natija shu formatda
+    // bo'ladi (siz tanlagan formatni buzmaymiz). Topilmasa ham hech narsa
+    // yo'qolmaydi: motor o'lchamni manba fayllarning o'zidan oladi.
+    seqFormat = await readSeqFormat(seq);
+    if (seqFormat) {
+      logLine("Sequence formati: " + seqFormat.width + "×" + seqFormat.height +
+              (seqFormat.height > seqFormat.width ? " (vertikal)" : ""));
+    }
 
     const items = [];
     let unresolved = 0;
@@ -677,6 +729,7 @@ async function readSequence() {
     if (t.next) logLine(t.next);
   } catch (e) {
     timeline = null;
+    seqFormat = null;
     logLine("Sequence o'qilmadi (" + step + "): " + e.message, "warn");
     logLine("Fayllarni qo'lda tanlashingiz mumkin — natija bir xil bo'ladi");
   }
@@ -1251,7 +1304,10 @@ async function run(kind) {
   }
   if (isCut) {
     if (timeline) body.timeline = timeline;
-    body.threshold = knobs.threshold.val(+knobs.threshold.el.value);
+    // Tayyor sequence'dan kesayotgan bo'lsak, uning formatini saqlaymiz;
+    // fayllardan kesayotganda motor o'lchamni manbaning o'zidan oladi.
+    if (timeline && seqFormat) body.seq_format = seqFormat;
+    body.strictness = strictness;
     body.min_pause = knobs.minPause.val(+knobs.minPause.el.value);
     body.padding = knobs.padding.val(+knobs.padding.el.value);
   }
@@ -1302,6 +1358,16 @@ async function run(kind) {
       logLine(j.pauses.length + " pauza kesildi — " + mins(j.saved_sec) +
               " qisqardi", "okline");
       logLine("Uzunlik: " + mins(j.total_sec) + " → " + mins(j.new_length_sec));
+      if (j.format) {
+        logLine("Sequence: " + j.format.width + "×" + j.format.height +
+                " (" + j.format.shape + ", manbadan avtomatik) · chegara " +
+                j.threshold + " («" + j.strictness + "»)");
+        if (j.format.mixed) {
+          logLine("Manbalarda turli formatlar bor — ko'p vaqt egallagani " +
+                  "tanlandi. Boshqacha kerak bo'lsa, Premiere'da sequence " +
+                  "ustiga o'ng tugma > Auto Reframe.", "warn");
+        }
+      }
     } else {
       renderFiles(j.clips);
     }

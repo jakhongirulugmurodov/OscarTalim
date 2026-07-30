@@ -31,7 +31,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, cut_to_segments, ffprobe,
                       fps_to_timebase, prepare_clips, sequence_block,
-                      timeline_length, wrap_project, write_xml)
+                      sequence_format, timeline_length, wrap_project,
+                      write_xml)
 from intro import (find_moments, lane_energy, load_transcript, smooth,
                    transcript_on_timeline)
 
@@ -183,11 +184,9 @@ def build_shorts(arrangement, shorts, output="shorts.xml",
         info["confidence"], info["reliable"] = None, True
         base.append(info)
 
-    video_clip = next((c for c in base if c["has_video"]), None)
-    fps = video_clip["fps"] if video_clip else 25.0
-    timebase, ntsc = fps_to_timebase(fps)
-    width = video_clip["width"] if video_clip else 1920
-    height = video_clip["height"] if video_clip else 1080
+    fmt = sequence_format(base, log=log)
+    fps, timebase, ntsc = fmt["fps"], fmt["timebase"], fmt["ntsc"]
+    width, height = fmt["width"], fmt["height"]
 
     # Fayl id'lari hamma sequence bo'ylab bir xil bo'lishi kerak: bo'lakda
     # ba'zi kamera ishlatilmasa, tartib siljib, id boshqa faylga tegib qoladi.
@@ -218,8 +217,12 @@ def build_shorts(arrangement, shorts, output="shorts.xml",
     say(percent=100, detail="tayyor")
     total = sum(float(s["end"]) - float(s["start"]) for s in shorts)
     log(f"{len(blocks)} ta bo'lak, jami {total:.0f}s — {output}")
-    log("Premiere'da: har sequence'ni tanlab, o'ng tugma > Auto Reframe "
-        "Sequence > 9:16 — Adobe yuzni o'zi kuzatib, vertikal qiladi.")
+    if height > width:
+        log("Manba allaqachon vertikal — sequence ham vertikal yasaldi, "
+            "qayta ramkalash shart emas.")
+    else:
+        log("Premiere'da: har sequence'ni tanlab, o'ng tugma > Auto Reframe "
+            "Sequence > 9:16 — Adobe yuzni o'zi kuzatib, vertikal qiladi.")
     return {"output": output, "shorts": len(blocks),
             "length_sec": round(total, 2),
             "names": [b.split("<name>")[1].split("</name>")[0] for b in blocks]}

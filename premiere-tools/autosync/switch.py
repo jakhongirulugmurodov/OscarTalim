@@ -20,7 +20,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, extract_envelope, ffprobe,
-                      find_offset, fps_to_timebase, write_xml, MIN_CONFIDENCE, sub_progress)
+                      find_offset, fps_to_timebase, sequence_format, write_xml,
+                      MIN_CONFIDENCE, sub_progress)
 
 # Kamera vazifalari
 SPEAKER, WIDE, ALT, INSERT = "speaker", "wide", "alt", "insert"
@@ -282,11 +283,9 @@ def run_switch(files, roles=None, speakers=None, output="switch.xml",
     active = active_speaker(lanes, margin, silence)
 
     # --- Sequence parametrlari (kadr rejasi freymlarni bilishi kerak) ---
-    video_clip = next((c for c in clips if c["has_video"]), None)
-    fps = video_clip["fps"] if video_clip else 25.0
-    timebase, ntsc = fps_to_timebase(fps)
-    width = video_clip["width"] if video_clip else 1920
-    height = video_clip["height"] if video_clip else 1080
+    fmt = sequence_format(clips, log=log)
+    fps, timebase, ntsc = fmt["fps"], fmt["timebase"], fmt["ntsc"]
+    width, height = fmt["width"], fmt["height"]
 
     # --- Kamera rejasi ---
     say(stage="Kadrlar rejalanmoqda", percent=None,

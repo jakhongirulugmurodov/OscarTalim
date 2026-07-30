@@ -33,8 +33,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, cut_to_segments, ffprobe,
-                      fps_to_timebase, prepare_clips, timeline_length,
-                      write_xml)
+                      fps_to_timebase, prepare_clips, sequence_format,
+                      timeline_length, write_xml)
 
 # Nomzod uzunligi: undan qisqasi tushunarsiz, uzunidan intro cho'zilib ketadi
 MIN_MOMENT = 3.5
@@ -450,11 +450,9 @@ def build_intro(arrangement, moments, output="intro.xml",
         info["confidence"], info["reliable"] = None, True
         clips.append(info)
 
-    video_clip = next((c for c in clips if c["has_video"]), None)
-    fps = video_clip["fps"] if video_clip else 25.0
-    timebase, ntsc = fps_to_timebase(fps)
-    width = video_clip["width"] if video_clip else 1920
-    height = video_clip["height"] if video_clip else 1080
+    fmt = sequence_format(clips, log=log)
+    fps, timebase, ntsc = fmt["fps"], fmt["timebase"], fmt["ntsc"]
+    width, height = fmt["width"], fmt["height"]
 
     keeps = [(float(m["start"]), float(m["end"])) for m in moments]
     keeps = [(a, b) for a, b in keeps if b > a]

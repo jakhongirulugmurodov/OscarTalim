@@ -444,9 +444,13 @@ class Handler(BaseHTTPRequestHandler):
                 result = run_cut(
                     files, output=output,
                     name=req.get("name") or "Podcast Suite — Cut",
-                    threshold=float(req.get("threshold", 0.18)),
+                    # threshold berilmasa «auto» — chegara yozuvning o'z
+                    # ovoz darajasidan olinadi (panel qat'iylikni yuboradi)
+                    threshold=req.get("threshold") or "auto",
+                    strictness=req.get("strictness") or "orta",
                     min_pause=float(req.get("min_pause", 0.7)),
                     padding=float(req.get("padding", 0.12)),
+                    seq_format=req.get("seq_format") or None,
                     timeline=seq_timeline, fallback=RESULTS_DIR, log=record,
                     progress=step)
             else:

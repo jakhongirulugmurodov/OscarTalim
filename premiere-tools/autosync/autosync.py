@@ -72,8 +72,39 @@ FFMPEG_YOQ = (
 
 # ---------------------------------------------------------------- media info
 
+def stream_rotation(stream):
+    """Video oqimining ekranda ko'rsatish burchagi (0/90/180/270).
+
+    Telefonda tik (reels) olingan video ko'pincha 1920x1080 bo'lib yoziladi
+    va yoniga «90 daraja burib ko'rsat» belgisi qo'yiladi. Shu belgini
+    o'qimasak, fayl gorizontal ko'rinadi — sequence ham gorizontal
+    yasaladi, vertikal kadr esa yon tomonga cho'zilib qoladi.
+
+    Yangi fayllarda belgi `side_data_list` ichida (display matrix), eskisida
+    `tags.rotate` da bo'ladi — ikkalasi ham qaraladi.
+    """
+    for side in stream.get("side_data_list") or []:
+        if "rotation" in side:
+            try:
+                return int(round(float(side["rotation"]))) % 360
+            except (TypeError, ValueError):
+                pass
+    tag = (stream.get("tags") or {}).get("rotate")
+    if tag is not None:
+        try:
+            return int(round(float(tag))) % 360
+        except (TypeError, ValueError):
+            pass
+    return 0
+
+
 def ffprobe(path):
-    """Fayl haqida ma'lumot: davomiylik, fps, o'lcham, audio bor-yo'qligi."""
+    """Fayl haqida ma'lumot: davomiylik, fps, o'lcham, audio bor-yo'qligi.
+
+    `width`/`height` — EKRANDAGI o'lcham (burilish hisobga olingan holda),
+    ya'ni odam ko'radigan kadr. Faylga qanday yozilgani `raw_width`/
+    `raw_height` da qoladi.
+    """
     if not FFPROBE:
         raise RuntimeError(FFMPEG_YOQ)
     cmd = [
@@ -99,6 +130,9 @@ def ffprobe(path):
         "fps": None,
         "width": None,
         "height": None,
+        "raw_width": None,
+        "raw_height": None,
+        "rotation": 0,
         "audio_rate": 48000,
         "audio_channels": 2,
     }
@@ -108,8 +142,15 @@ def ffprobe(path):
             if float(den or 1) > 0 and float(num) > 0:
                 info["fps"] = float(num) / float(den or 1)
             info["has_video"] = True
-            info["width"] = s.get("width")
-            info["height"] = s.get("height")
+            w, h = s.get("width"), s.get("height")
+            rot = stream_rotation(s)
+            info["raw_width"], info["raw_height"] = w, h
+            info["rotation"] = rot
+            # 90/270 da tomonlar almashadi: yozilgani 1920x1080, ko'rinishi
+            # 1080x1920. Sequence ko'rinadigan o'lcham bo'yicha yasaladi.
+            if rot in (90, 270) and w and h:
+                w, h = h, w
+            info["width"], info["height"] = w, h
         elif s["codec_type"] == "audio" and not info["has_audio"]:
             info["has_audio"] = True
             info["audio_rate"] = int(s.get("sample_rate", 48000))
@@ -253,6 +294,92 @@ def fps_to_timebase(fps):
         if abs(fps - real) < 0.01:
             return base, "TRUE"
     return int(round(fps)), "FALSE"
+
+
+def shape_name(width, height):
+    """Kadr shakli — logda odam tilida ko'rinsin."""
+    if not width or not height:
+        return "noma'lum"
+    if height > width:
+        return "vertikal"
+    if height == width:
+        return "kvadrat"
+    return "gorizontal"
+
+
+def _clip_weight(clip):
+    """Klip timeline'da necha soniya turadi — format ovoz berishida vazni."""
+    places = clip.get("placements")
+    if places:
+        return sum(max(0.0, float(p["out"]) - float(p["in"])) for p in places)
+    return float(clip.get("duration") or 0.0)
+
+
+def sequence_format(clips, log=print, prefer=None):
+    """Sequence o'lchami va fps'ini manbalarning O'ZIGA qarab tanlaydi.
+
+    Ilgari har modul «ro'yxatdagi birinchi videoli fayl»ni olardi. Bu ikki
+    joyda yiqilardi: reels (vertikal) yozuv gorizontal sequence'ga tushib
+    qolardi, aralash materialda esa formatni fayllar tartibi hal qilardi.
+
+    Endi ovoz beriladi: har format timeline'da necha soniya turgan bo'lsa,
+    shuncha vazn oladi va eng ko'p vaqt egallagani yutadi. Sozlamadan
+    hech narsa kiritish shart emas — reels tashlansangiz, sequence ham
+    vertikal bo'ladi.
+
+    `prefer` — {"width": .., "height": ..}: Premiere'dagi ochiq sequence'ning
+    o'z o'lchami. Montaj tayyor sequence'dan olinayotgan bo'lsa, formatni
+    siz allaqachon tanlagansiz — biz uni buzmaymiz.
+
+    Qaytadi: {"fps", "timebase", "ntsc", "width", "height", "mixed"}.
+    """
+    videos = [c for c in clips
+              if c.get("has_video") and c.get("width") and c.get("height")]
+    if not videos:
+        log("Sequence: videoli fayl yo'q — 1920x1080, 25fps")
+        return {"fps": 25.0, "timebase": 25, "ntsc": "FALSE",
+                "width": 1920, "height": 1080, "mixed": False}
+
+    tally = {}
+    for c in videos:
+        key = (int(c["width"]), int(c["height"]),
+               round(float(c["fps"] or 25.0), 3))
+        tally[key] = tally.get(key, 0.0) + _clip_weight(c)
+
+    # Teng bo'lsa — kattaroq kadr yutsin (kichigini kattaga cho'zgandan
+    # ko'ra, kattasini kichikka sig'dirgan afzal).
+    width, height, fps = max(tally.items(),
+                             key=lambda kv: (kv[1], kv[0][0] * kv[0][1]))[0]
+    timebase, ntsc = fps_to_timebase(fps)
+
+    # Ochiq sequence'dan olinayotgan bo'lsa — uning o'lchamini saqlaymiz.
+    # fps manbadan qoladi: kadr chegaralari shu bo'yicha hisoblangan.
+    if prefer:
+        try:
+            pw, ph = int(prefer.get("width") or 0), int(prefer.get("height") or 0)
+        except (TypeError, ValueError):
+            pw = ph = 0
+        if pw > 0 and ph > 0 and (pw, ph) != (width, height):
+            log(f"Sequence: {pw}x{ph} ({shape_name(pw, ph)}) — Premiere'dagi "
+                f"ochiq sequence'dan (manba {width}x{height})")
+            return {"fps": float(fps), "timebase": timebase, "ntsc": ntsc,
+                    "width": pw, "height": ph, "mixed": len(tally) > 1}
+
+    shapes = {shape_name(w, h) for w, h, _ in tally}
+    rotated = [c["name"] for c in videos if c.get("rotation")]
+    log(f"Sequence: {width}x{height} ({shape_name(width, height)}), "
+        f"{timebase}fps (ntsc={ntsc}) — manbadan avtomatik")
+    if rotated:
+        log(f"  burilgan (telefon/reels) fayl: {', '.join(rotated[:3])}"
+            + (" ..." if len(rotated) > 3 else ""))
+    if len(shapes) > 1:
+        log("  OGOHLANTIRISH: manbalar aralash (" + ", ".join(sorted(shapes))
+            + ") — ko'p vaqt egallagani tanlandi, qolganlari kadrga "
+              "moslanadi (Premiere'da Auto Reframe yordam beradi)")
+
+    return {"fps": float(fps), "timebase": timebase, "ntsc": ntsc,
+            "width": int(width), "height": int(height),
+            "mixed": len(tally) > 1}
 
 
 def rate_xml(timebase, ntsc, indent):
@@ -615,13 +742,10 @@ def run_sync(files, output="synced.xml", name="AutoSync Sequence",
     # Eng erta boshlangan fayl timeline'da 0 nuqtada tursin
     base = min(c["offset_sec"] for c in clips)
 
-    # Sequence parametrlari — videoli tayanchdan, bo'lmasa birinchi videodan
-    video_clip = next((c for c in [ref] + clips if c["has_video"]), None)
-    fps = video_clip["fps"] if video_clip else 25.0
-    timebase, ntsc = fps_to_timebase(fps)
-    width = video_clip["width"] if video_clip else 1920
-    height = video_clip["height"] if video_clip else 1080
-    log(f"Sequence: {timebase}fps (ntsc={ntsc}), {width}x{height}")
+    # Sequence parametrlari — manbaning o'ziga qarab (vertikal/gorizontal)
+    fmt = sequence_format(clips, log=log)
+    fps, timebase, ntsc = fmt["fps"], fmt["timebase"], fmt["ntsc"]
+    width, height = fmt["width"], fmt["height"]
 
     for clip in clips:
         rel = clip["offset_sec"] - base

@@ -368,6 +368,18 @@
     color: #E9EAEF; font-size: 12px; min-width: 62px; text-align: right;
   }
   .knobs input[type="range"] { flex: 1; accent-color: #E5A44A; }
+  /* Qat'iylik tanlagichi — son o'rniga odam tilidagi uchta variant */
+  .knobs label.pickrow { align-items: center; }
+  .picks { display: flex; gap: 6px; flex: 1; }
+  .pick {
+    flex: 1; text-align: center; font-size: 11.5px; padding: 5px 4px;
+    border-radius: 6px; border: 1px solid #45464F;
+    background-color: #2A2B31; color: #C9CAD2;
+  }
+  .pick.on {
+    background-color: #E5A44A; border-color: #E5A44A; color: #2A1B04;
+    font-weight: 600;
+  }
   .knobs .tip { margin: 9px 0 0; color: #8E909C; font-size: 11.5px; line-height: 1.5; }
   .knobs .tip b { color: #8FD0E8; }
   body.tab-cut .tab.on { border-bottom-color: #E5A44A; }
@@ -434,10 +446,17 @@
     </div>
 
     <div class="knobs" id="cutKnobs">
-      <label>Jimlik chegarasi
-        <input type="range" id="kThreshold" min="5" max="40" value="18">
-        <span id="vThreshold">0.18</span>
+      <label class="pickrow">Ovoz qat'iyligi
+        <div class="picks" id="kStrict">
+          <div class="pick" data-v="yumshoq">Yumshoq</div>
+          <div class="pick on" data-v="orta">O'rtacha</div>
+          <div class="pick" data-v="qattiq">Faqat baland</div>
+        </div>
       </label>
+      <p class="tip" id="strictTip">Chegara har yozuvning <b>o'z ovoz
+        darajasidan</b> avtomatik olinadi — qo'lda son kiritish shart emas.
+        <b>Faqat baland</b>: past tondagi shovqin, nafas, uzoqdan kelgan
+        ovozlar kesiladi, faqat aniq gapirilgan joylar qoladi.</p>
       <label>Eng qisqa pauza
         <input type="range" id="kMinPause" min="2" max="30" value="7">
         <span id="vMinPause">0.7 s</span>
