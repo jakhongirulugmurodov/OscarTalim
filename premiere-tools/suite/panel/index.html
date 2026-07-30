@@ -177,6 +177,14 @@
     display: none;
   }
   .log.show { display: block; }
+  .log.big { max-height: none; }
+  /* Tashxis matnini menga yuborish uchun: nusxalash yoki faylga yozish */
+  .logbar { display: none; gap: 7px; margin-bottom: 6px; }
+  .logbar.show { display: flex; }
+  .logbar span {
+    padding: 3px 9px; border-radius: 5px; background-color: #2A2B31;
+    color: #C9CAD2; font-size: 11px; white-space: nowrap;
+  }
   .log .warn { color: #E5A44A; }
   .log .okline { color: #4CC38A; }
   .foot {
@@ -571,6 +579,10 @@
       kamera sifatida ham ishlatilaveradi.</p>
     </div>
 
+    <div class="logbar" id="logBar">
+      <span id="logCopy">Log'ni nusxalash</span>
+      <span id="logBig">Kattalashtirish</span>
+    </div>
     <div class="log" id="log"></div>
   </div>
 

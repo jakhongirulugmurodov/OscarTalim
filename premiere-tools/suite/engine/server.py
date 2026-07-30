@@ -299,6 +299,22 @@ class Handler(BaseHTTPRequestHandler):
                 # (DOIMIY-ORNATISH.command o'rnatgan) motorni o'zi ko'taradi.
                 threading.Timer(0.5, lambda: os._exit(0)).start()
             return
+        if self.path == "/log-saqlash":
+            # Panel log'ini faylga yozamiz: uzun tashxis matnini ekrandan
+            # o'qib olish qiyin, faylni esa ochib nusxalash oson.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                os.makedirs(RESULTS_DIR, exist_ok=True)
+                path = os.path.abspath(os.path.join(
+                    RESULTS_DIR,
+                    "panel-log_" + time.strftime("%Y-%m-%d_%H-%M-%S") + ".txt"))
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write(req.get("text") or "")
+                return self._send(200, {"ok": True, "path": path})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+
         if self.path == "/vaqtlar":
             try:
                 length = int(self.headers.get("Content-Length", 0))

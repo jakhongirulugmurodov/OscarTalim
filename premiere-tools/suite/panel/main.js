@@ -57,6 +57,9 @@ const els = {
   timeList: el("timeList"),
   timeBtn: el("timeBtn"),
   premBtn: el("premBtn"),
+  logBar: el("logBar"),
+  logCopy: el("logCopy"),
+  logBig: el("logBig"),
   moments: el("moments"),
   seqBtn: el("seqBtn"),
   seqTitle: el("seqTitle"),
@@ -1194,6 +1197,36 @@ async function cutInPremiere() {
   renderTimes();
 }
 
+/* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
+async function copyLog() {
+  const text = Array.from(els.log.querySelectorAll("div"))
+    .map((d) => d.textContent).join("\n");
+  if (!text) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      logLine("Log buferga olindi — menga qo'yib yuborsangiz bo'ladi ✓",
+              "okline");
+      return;
+    }
+    throw new Error("bufer yo'q");
+  } catch (e) {
+    try {
+      const r = await fetch(MOTOR + "/log-saqlash", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text }),
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "yozilmadi");
+      logLine("Log faylga yozildi: " + j.path, "okline");
+      logLine("Shu faylni ochib, matnini menga yuborsangiz bo'ladi.");
+    } catch (e2) {
+      logLine("Nusxalab bo'lmadi (" + (e2.message || e2)
+              + ") — ekran rasmini yuborsangiz ham bo'ladi.", "warn");
+    }
+  }
+}
+
 /* ---------------------------------------------------- sinxronlash */
 
 function logLine(text, cls) {
@@ -1202,6 +1235,7 @@ function logLine(text, cls) {
   div.textContent = text;
   els.log.appendChild(div);
   els.log.classList.add("show");
+  els.logBar.classList.add("show");
   els.log.scrollTop = els.log.scrollHeight;
 }
 
@@ -1544,6 +1578,8 @@ on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
 on(els.timeBtn, cutRanges);
 on(els.premBtn, cutInPremiere);
+on(els.logCopy, copyLog);
+on(els.logBig, function () { els.log.classList.toggle("big"); });
 on(els.shortsBtn, findShorts);
 on(els.shortsBuildBtn, buildShorts);
 on(els.buildBtn, function () { buildIntro(false); });
