@@ -296,6 +296,72 @@ def fps_to_timebase(fps):
     return int(round(fps)), "FALSE"
 
 
+# ------------------------------------------------- ovoz darajasi chegaralari
+#
+# Qat'iy son («0.12 dan past — jimlik») har yozuvga to'g'ri kelmaydi:
+# mikrofon yaqin turgan yoki xonasi shovqinli yozuvda u butunlay boshqa
+# joyga tushadi. Shuning uchun chegara har yozuvning O'Z darajalaridan
+# hisoblanadi. Cut, Intro va Shorts — uchovi ham shu yerdan oladi.
+
+def otsu_split(values, bins=256):
+    """Ikki to'da orasidagi eng chuqur «vodiy» (Otsu usuli).
+
+    Yozuvda ikki xil daraja bor: jimlik/shovqin va gap. Ularning orasidagi
+    chegarani qidiramiz — qaysi nuqtada bo'linsa, ikki to'da bir-biridan
+    eng uzoq ajraladi. Rasm qayta ishlashdagi klassik usul; bu yerda ham
+    vazifa aynan shu: bitta sonli chegara topish.
+    """
+    hist, edges = np.histogram(values, bins=bins, range=(0.0, 1.0))
+    w = hist.astype(np.float64)
+    total = w.sum()
+    if total <= 0:
+        return None
+    centers = (edges[:-1] + edges[1:]) / 2.0
+    w0 = np.cumsum(w)[:-1]                     # chegaradan pastdagilar
+    w1 = total - w0
+    m0 = np.cumsum(w * centers)[:-1]
+    m_all = float((w * centers).sum())
+    ok = (w0 > 0) & (w1 > 0)
+    if not ok.any():
+        return None
+    mu0 = m0 / np.where(w0 > 0, w0, 1.0)
+    mu1 = (m_all - m0) / np.where(w1 > 0, w1, 1.0)
+    between = w0 * w1 * (mu0 - mu1) ** 2
+    between[~ok] = -1.0
+    return float(edges[int(np.argmax(between)) + 1])
+
+
+def level_range(loud):
+    """Yozuvning shovqin darajasi va gap darajasi (p10 va p92)."""
+    return float(np.percentile(loud, 10)), float(np.percentile(loud, 92))
+
+
+def quiet_threshold(loud, log=None):
+    """Jimlik chegarasi — bo'lak CHEGARALARINI topish uchun.
+
+    Bu Cut'dagi «gap bormi?» chegarasidan pastroq turadi va ataylab
+    shunday: Intro/Shorts bu bilan bo'lak qayerdan boshlanib qayerda
+    tugashini hal qiladi. Baland chegara olsak, bo'lak gap o'rtasidan,
+    bo'g'inlar orasidagi mayda tanaffusdan kesilib qolardi.
+
+    Shovqin darajasi bilan gap darajasi orasidagi vodiyning pastki
+    uchdan biri olinadi: shovqindan yuqori, lekin gapga tegmaydi.
+    """
+    floor, speech = level_range(loud)
+    span = speech - floor
+    if span < 0.02:
+        return 0.12                            # eski qat'iy qiymat
+    valley = otsu_split(loud)
+    if valley is None or not (floor < valley < speech):
+        valley = floor + 0.45 * span
+    thr = floor + 0.35 * (valley - floor)
+    thr = min(max(thr, floor + 0.02), floor + 0.30 * span)
+    if log:
+        log(f"  jimlik chegarasi: {thr:.3f} (shovqin {floor:.2f}, "
+            f"gap {speech:.2f})")
+    return thr
+
+
 def shape_name(width, height):
     """Kadr shakli — logda odam tilida ko'rinsin."""
     if not width or not height:

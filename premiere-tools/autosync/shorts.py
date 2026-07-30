@@ -30,9 +30,9 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, cut_to_segments, ffprobe,
-                      fps_to_timebase, prepare_clips, sequence_block,
-                      sequence_format, timeline_length, wrap_project,
-                      write_xml)
+                      fps_to_timebase, prepare_clips, quiet_threshold,
+                      sequence_block, sequence_format, timeline_length,
+                      wrap_project, write_xml)
 from intro import (find_moments, lane_energy, load_transcript, smooth,
                    transcript_on_timeline)
 
@@ -41,11 +41,17 @@ MAX_SHORT = 60.0      # ko'p platformada shu chegara
 GAP_SEC = 0.45        # shu uzunlikdagi jimlik — gap tugadi degan belgi
 
 
-def quiet_mask(clips, total_bins):
-    """Timeline bo'ylab jimlik xaritasi — bo'lak chegaralari uchun."""
+def quiet_mask(clips, total_bins, log=None):
+    """Timeline bo'ylab jimlik xaritasi — bo'lak chegaralari uchun.
+
+    Chegara yozuvning o'z darajalaridan olinadi. Qat'iy son ishlatilganda
+    shovqinli xonada bironta ham jimlik nuqtasi topilmasdi — natijada
+    bo'laklarni qayerdan kesishni bilmay, Shorts bo'sh qaytardi.
+    """
     lanes = [lane_energy(c, total_bins) for c in clips]
     loudest = np.maximum.reduce(lanes) if lanes else np.zeros(total_bins)
-    return smooth(loudest, 0.25) < 0.12
+    sm = smooth(loudest, 0.25)
+    return sm < quiet_threshold(sm, log=log)
 
 
 def gap_points(quiet, min_gap=GAP_SEC):
@@ -125,7 +131,7 @@ def run_shorts(files, timeline=None, markers=None, limit=8, log=print,
     # tugallangan bo'lakka kengaytiramiz.
     seeds = find_moments(clips, total_sec, lines, markers,
                          limit=limit * 3, log=log)
-    quiet = quiet_mask(clips, total_bins)
+    quiet = quiet_mask(clips, total_bins, log=log)
     gaps = gap_points(quiet)
     log(f"  {len(gaps)} ta jimlik nuqtasi (kesish uchun)")
 
@@ -151,10 +157,22 @@ def run_shorts(files, timeline=None, markers=None, limit=8, log=print,
     for i, sh in enumerate(sorted(shorts, key=lambda x: -x["score"]), start=1):
         sh["rank"] = i
     shorts.sort(key=lambda sh: sh["start"])
-    log(f"{len(shorts)} bo'lak topildi "
-        f"({MIN_SHORT:.0f}-{MAX_SHORT:.0f}s, o'rtacha "
-        f"{np.mean([s['length'] for s in shorts]):.0f}s)" if shorts
-        else "Bo'lak topilmadi — yozuv juda qisqa bo'lishi mumkin")
+    if shorts:
+        log(f"{len(shorts)} bo'lak topildi "
+            f"({MIN_SHORT:.0f}-{MAX_SHORT:.0f}s, o'rtacha "
+            f"{np.mean([s['length'] for s in shorts]):.0f}s)")
+    elif total_sec < MIN_SHORT * 2:
+        log(f"Bo'lak topilmadi — yozuv qisqa ({total_sec:.0f}s). "
+            f"Bir bo'lak uchun kamida {MIN_SHORT:.0f}s kerak.")
+    elif not seeds:
+        log("Bo'lak topilmadi: kuchli lahza topilmadi — yozuvda ovoz "
+            "darajasi deyarli o'zgarmaydi.")
+        log("Nima qilish mumkin: qiziq joylarga timeline'da marker "
+            "qo'ying (M tugmasi) — ular to'g'ridan-to'g'ri bo'lakka aylanadi.")
+    else:
+        log(f"Bo'lak topilmadi: {len(seeds)} ta lahza bor, lekin atrofida "
+            f"kesish uchun jimlik yo'q ({len(gaps)} ta nuqta topildi). "
+            "Yozuv juda zich — pauzasiz gapirilgan bo'lishi mumkin.")
     say(percent=100, detail=f"{len(shorts)} bo'lak")
 
     return {

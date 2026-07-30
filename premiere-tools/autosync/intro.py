@@ -33,8 +33,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, cut_to_segments, ffprobe,
-                      fps_to_timebase, prepare_clips, sequence_format,
-                      timeline_length, write_xml)
+                      fps_to_timebase, prepare_clips, quiet_threshold,
+                      sequence_format, timeline_length, write_xml)
 
 # Nomzod uzunligi: undan qisqasi tushunarsiz, uzunidan intro cho'zilib ketadi
 MIN_MOMENT = 3.5
@@ -272,7 +272,10 @@ def find_moments(clips, total_sec, lines, markers=None, limit=18, log=print):
     total_bins = int(round(total_sec * ENV_RATE)) + 1
     lanes = [lane_energy(c, total_bins) for c in clips]
     loudest = np.maximum.reduce(lanes) if lanes else np.zeros(total_bins)
-    quiet = smooth(loudest, 0.25) < 0.12
+    # Jimlik chegarasi yozuvning o'zidan olinadi: qat'iy son shovqinli
+    # xonada hech qachon ishlamaydi — bir dona ham chegara topilmaydi.
+    sm_loud = smooth(loudest, 0.25)
+    quiet = sm_loud < quiet_threshold(sm_loud, log=log)
 
     # 1) Ta'kid: o'z me'yoridan baland gapirgan joylar
     emphasis = np.zeros(total_bins)
@@ -306,8 +309,26 @@ def find_moments(clips, total_sec, lines, markers=None, limit=18, log=print):
                 "belgisi ishlatilmadi)")
 
     score = 0.55 * emphasis + 0.3 * rise + 0.15 * together
-    bursts = find_bursts(smooth(score, 0.3), thresh=0.45)
-    log(f"  {len(bursts)} ta energiya cho'qqisi topildi")
+    sm_score = smooth(score, 0.3)
+
+    # Qat'iy 0.45 chegara bir tekis gapiradigan spikerda BO'SH ro'yxat
+    # qaytaradi: yozuvda lahzalar bor, lekin ovoz keskin ko'tarilmaydi.
+    # Foydalanuvchi uchun bu «modul ishlamadi» degani. Shuning uchun
+    # yetarli nomzod topilmasa, sezgirlik bosqichma-bosqich oshiriladi —
+    # nomzodlar baribir kuchi bo'yicha tartiblanadi, ya'ni eng yaxshisi
+    # tepada qoladi.
+    want = max(3, limit // 3)
+    used = 0.45
+    bursts = find_bursts(sm_score, thresh=used)
+    for lower in (0.35, 0.28, 0.22, 0.16):
+        if len(bursts) >= want:
+            break
+        weaker = find_bursts(sm_score, thresh=lower)
+        if len(weaker) > len(bursts):
+            bursts, used = weaker, lower
+    log(f"  {len(bursts)} ta energiya cho'qqisi topildi"
+        + (f" (yozuv bir tekis — sezgirlik oshirildi: {used})"
+           if used < 0.45 else ""))
 
     # 4) Matn ballari — gap darajasida
     line_score = {}
@@ -413,7 +434,17 @@ def run_intro(files, timeline=None, markers=None, limit=18, log=print,
             "(Captions bilan transkripsiya qilsangiz, tanlash osonlashadi)")
 
     moments = find_moments(clips, total_sec, lines, markers, limit, log)
-    log(f"{len(moments)} nomzod tanlandi — panelda belgilab, intro yasaysiz")
+    if moments:
+        log(f"{len(moments)} nomzod tanlandi — panelda belgilab, intro yasaysiz")
+    else:
+        # Bo'sh ro'yxat «modul ishlamadi» degan taassurot qoldiradi.
+        # Aynan sabab va aniq keyingi qadam aytilsin.
+        log("Nomzod topilmadi. Sabab: yozuvda ovoz darajasi deyarli "
+            "o'zgarmaydi — «ta'kid» va «kulgi» belgilari shunga qarab "
+            "topiladi.")
+        log("Nima qilish mumkin: timeline'ga o'zingiz marker qo'ying "
+            "(M tugmasi) — markerlar taxminsiz ishlatiladi va ro'yxatning "
+            "eng tepasida turadi.")
     say(percent=100, detail=f"{len(moments)} nomzod")
 
     return {

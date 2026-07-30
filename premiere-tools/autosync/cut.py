@@ -19,8 +19,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from autosync import (ENV_RATE, build_xml, cut_to_segments, fps_to_timebase,
-                      prepare_clips, sequence_format, timeline_length,
-                      write_xml)
+                      level_range, otsu_split, prepare_clips, sequence_format,
+                      timeline_length, write_xml)
 
 # Standart sozlamalar — panel ularni o'zgartira oladi
 DEFAULT_THRESHOLD = "auto"  # chegara yozuvning o'zidan olinadi (pastga qarang)
@@ -66,34 +66,6 @@ def loudness_lane(clips, total_bins):
     return loudest
 
 
-def otsu_split(values, bins=256):
-    """Ikki to'da orasidagi eng chuqur «vodiy» (Otsu usuli).
-
-    Yozuvda ikki xil daraja bor: jimlik/shovqin va gap. Ularning orasidagi
-    chegarani qidiramiz — qaysi nuqtada bo'linsa, ikki to'da bir-biridan
-    eng uzoq ajraladi. Rasm qayta ishlashdagi klassik usul; bu yerda ham
-    vazifa aynan shu: bitta sonli chegara topish.
-    """
-    hist, edges = np.histogram(values, bins=bins, range=(0.0, 1.0))
-    w = hist.astype(np.float64)
-    total = w.sum()
-    if total <= 0:
-        return None
-    centers = (edges[:-1] + edges[1:]) / 2.0
-    w0 = np.cumsum(w)[:-1]                     # chegaradan pastdagilar
-    w1 = total - w0
-    m0 = np.cumsum(w * centers)[:-1]
-    m_all = float((w * centers).sum())
-    ok = (w0 > 0) & (w1 > 0)
-    if not ok.any():
-        return None
-    mu0 = m0 / np.where(w0 > 0, w0, 1.0)
-    mu1 = (m_all - m0) / np.where(w1 > 0, w1, 1.0)
-    between = w0 * w1 * (mu0 - mu1) ** 2
-    between[~ok] = -1.0
-    return float(edges[int(np.argmax(between)) + 1])
-
-
 def auto_threshold(loud, strictness=DEFAULT_STRICTNESS, log=print):
     """Jimlik chegarasini yozuvning O'ZIGA qarab tanlaydi.
 
@@ -111,8 +83,7 @@ def auto_threshold(loud, strictness=DEFAULT_STRICTNESS, log=print):
       4. Qat'iylik chegarani shu oraliqda suradi: «qattiq» — gap tomonga,
          ya'ni faqat baland, aniq gapirilgan joylar qoladi.
     """
-    floor = float(np.percentile(loud, 10))     # shovqin darajasi
-    speech = float(np.percentile(loud, 92))    # gap darajasi
+    floor, speech = level_range(loud)          # shovqin va gap darajalari
     span = speech - floor
     if span < 0.02:
         # Daraja bir tekis — ajratadigan narsa yo'q (doimiy shovqin/musiqa)
