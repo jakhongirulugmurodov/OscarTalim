@@ -52,6 +52,10 @@ const els = {
   shortsBtn: el("shortsBtn"),
   shortsBuildBtn: el("shortsBuildBtn"),
   shortsList: el("shortsList"),
+  timeText: el("timeText"),
+  timeSum: el("timeSum"),
+  timeList: el("timeList"),
+  timeBtn: el("timeBtn"),
   moments: el("moments"),
   seqBtn: el("seqBtn"),
   seqTitle: el("seqTitle"),
@@ -309,6 +313,12 @@ const TAB_TEXT = {
     seqTitle: "Ochiq sequence'dan lahzalarni izlash",
     seqHint: "montajingiz bo'yicha qidiriladi — markerlaringiz ham hisobga olinadi",
     next: "Endi «Lahzalarni topish» ni bosing",
+  },
+  vaqtlar: {
+    pick: "yoki fayllarni qo'lda tanlang",
+    seqTitle: "Ochiq sequence'ni olish",
+    seqHint: "vaqtlar shu sequence bo'yicha o'qiladi",
+    next: "Endi vaqtlarni pastdagi qutiga qo'ying",
   },
   shorts: {
     pick: "yozuvlar yoki ochiq sequence",
@@ -595,6 +605,7 @@ async function readSequence() {
     logLine("Sequence olindi: " + timeline.length + " klip, " +
             picked.length + " fayl ✓", "okline");
     if (sound) logLine(sound);
+    renderTimes();
     const t = TAB_TEXT[activeTab] || {};
     if (t.next) logLine(t.next);
   } catch (e) {
@@ -912,6 +923,105 @@ async function buildShorts() {
     stopProgress(false, (e.message || "").slice(0, 90));
   }
   renderShorts();
+}
+
+
+/* --------------------------------------------------- Vaqtlar (qo'lda qirqish)
+ *
+ * Bu yerda mashina hech narsa taxmin qilmaydi: qaysi kadrlar kerakligini
+ * o'zingiz yozib berasiz, modul faqat qirqadi. Vaqtlar ochiq sequence
+ * bo'yicha o'qiladi — Premiere'da ko'rib turgan raqamlar. Ovoz tahlil
+ * qilinmaydi, shuning uchun bir necha soniyada tugaydi.
+ *
+ * Oraliqlar panelda ham o'qiladi (darhol ko'rsatish uchun) va motorda ham
+ * (buyruq satridan ishlatilganda) — ikkalasi bir xil qoidada. */
+let timeRanges = [];
+let timeSplit = 0;
+let timePad = 0;
+
+/* «1:30» → 90 · «1:02:30» → 3750 · «90» → 90 */
+function timeToSec(txt) {
+  const t = String(txt).trim().replace(",", ".").split(";")[0];
+  const p = t.split(":").map(Number);
+  if (p.some(isNaN)) return null;
+  if (p.length === 1) return p[0];
+  if (p.length === 2) return p[0] * 60 + p[1];
+  return p[0] * 3600 + p[1] * 60 + p[2];
+}
+
+function parseTimes(text) {
+  const re = /(\d{1,2}(?::\d{1,2}){0,2}(?:[.,]\d+)?(?:;\d+)?)\s*(?:-|–|—|to|\.\.)\s*(\d{1,2}(?::\d{1,2}){0,2}(?:[.,]\d+)?(?:;\d+)?)/g;
+  const out = [];
+  let m;
+  while ((m = re.exec(text || "")) !== null) {
+    let a = timeToSec(m[1]), b = timeToSec(m[2]);
+    if (a == null || b == null) continue;
+    if (b < a) { const t = a; a = b; b = t; }
+    if (b - a <= 0) continue;
+    out.push({ start: +a.toFixed(3), end: +b.toFixed(3), raw: m[0].trim() });
+  }
+  out.sort((x, y) => x.start - y.start);
+  return out;
+}
+
+function renderTimes() {
+  const text = els.timeText.value || "";
+  timeRanges = parseTimes(text);
+  const total = timeRanges.reduce((a, r) => a + (r.end - r.start), 0);
+  // Yozilgan qatorlar soni va o'qilganlar soni farq qilsa — aytib qo'yamiz
+  const lines = text.split("\n").filter((l) => /\d/.test(l)).length;
+  const missed = Math.max(0, lines - timeRanges.length);
+  els.timeSum.innerHTML = timeRanges.length
+    ? "<b>" + timeRanges.length + " kadr</b> · jami " + mmss(total)
+      + (missed ? " · <span class='bad'>" + missed
+                  + " qator o'qilmadi</span>" : "")
+    : "oraliq kiritilmadi";
+  els.timeList.innerHTML = "";
+  timeRanges.forEach((r, i) => {
+    const d = document.createElement("div");
+    d.textContent = (i + 1) + ".  " + tc(r.start) + " → " + tc(r.end)
+                  + "   " + Math.round(r.end - r.start) + "s";
+    els.timeList.appendChild(d);
+  });
+  els.timeBtn.disabled = !timeRanges.length
+    || (!timeline && picked.length < 1);
+}
+
+async function cutRanges() {
+  if (!(await checkMotor())) return;
+  if (!timeRanges.length) return;
+  els.log.innerHTML = "";
+  els.timeBtn.disabled = true;
+  startProgress("Kadrlar qirqilmoqda…");
+  try {
+    const body = { ranges: timeRanges, split: !!timeSplit, pad: timePad };
+    if (timeline) body.timeline = timeline;
+    else body.files = picked.map((p) => p.path);
+    const r = await fetch(MOTOR + "/vaqtlar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const line of (j.logs || []).slice(shownLogs)) {
+      logLine(line, line.indexOf("OGOHLANTIRISH") >= 0 ? "warn" : null);
+    }
+    lastXml = j.output;
+    logLine(j.count + " kadr · jami " + mmss(j.length_sec) + " tayyor ✓",
+            "okline");
+    if ((j.skipped || []).length) {
+      logLine("Tushmagan oraliqlar: " + j.skipped.join(", "), "warn");
+    }
+    logLine(j.split ? "Har kadr alohida sequence bo'ldi"
+                    : "Hammasi bitta sequence'da, har kadr boshida marker");
+    logLine("Fayl: " + j.output);
+    els.importBtn.disabled = false;
+    stopProgress(true, j.count + " kadr · " + mmss(j.length_sec));
+  } catch (e) {
+    logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+  renderTimes();
 }
 
 /* ---------------------------------------------------- sinxronlash */
@@ -1262,6 +1372,7 @@ on(els.switchBtn, function () { run("switch"); });
 on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
+on(els.timeBtn, cutRanges);
 on(els.shortsBtn, findShorts);
 on(els.shortsBuildBtn, buildShorts);
 on(els.buildBtn, function () { buildIntro(false); });
@@ -1275,6 +1386,13 @@ setupKnobs();
 setupCaptionPills();
 setupIntroPills();
 setupPills("shortsLimit", (v) => { shortsLimit = v; });
+setupPills("timeSplit", (v) => { timeSplit = v; });
+setupPills("timePad", (v) => { timePad = v; });
+if (els.timeText.addEventListener) {
+  els.timeText.addEventListener("input", renderTimes);
+  els.timeText.addEventListener("change", renderTimes);
+}
+renderTimes();
 document.body.className = "tab-sync";
 applyTabText();
 checkMotor().then(function (ok) { if (ok) checkUpdates(); });
