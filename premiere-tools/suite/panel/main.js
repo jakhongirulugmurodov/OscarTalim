@@ -56,6 +56,7 @@ const els = {
   timeSum: el("timeSum"),
   timeList: el("timeList"),
   timeBtn: el("timeBtn"),
+  premBtn: el("premBtn"),
   moments: el("moments"),
   seqBtn: el("seqBtn"),
   seqTitle: el("seqTitle"),
@@ -557,6 +558,7 @@ async function readSequence() {
     if (!seq) throw new Error("Ochiq sequence topilmadi — timeline'ni oching");
 
     const items = [];
+    let unresolved = 0;
     step = "treklarni sanash";
     const vCount = await seq.getVideoTrackCount();
     const aCount = await seq.getAudioTrackCount();
@@ -573,7 +575,13 @@ async function readSequence() {
       for (const it of trackItems) {
         step = "klip ma'lumotini olish";
         const path = await mediaPathOf(ppro, it);
-        if (!path) continue;
+        if (!path) {
+          // Multicam yoki nested sequence klipi: uning ortida fayl yo'q,
+          // sequence turadi. Jimgina o'tkazib yuborish — eng yomon yo'l:
+          // natija «yarim» chiqadi va sabab ko'rinmaydi.
+          unresolved++;
+          continue;
+        }
         const start = secs(await it.getStartTime());
         const end = secs(await it.getEndTime());
         const inP = secs(await it.getInPoint());
@@ -583,7 +591,12 @@ async function readSequence() {
       }
     }
 
-    if (!items.length) throw new Error("Sequence'da klip topilmadi");
+    if (!items.length) {
+      throw new Error(unresolved
+        ? unresolved + " klipning ortida fayl yo'q (multicam yoki nested "
+          + "sequence) — «Premiere ichida qirqish» ni ishlating"
+        : "Sequence'da klip topilmadi");
+    }
 
     // Bir xil fayl video va audio trekda takrorlanadi — dublikatlarni olib tashlaymiz
     const seen = new Set();
@@ -604,6 +617,15 @@ async function readSequence() {
     renderFiles();
     logLine("Sequence olindi: " + timeline.length + " klip, " +
             picked.length + " fayl ✓", "okline");
+    if (unresolved) {
+      // Aynan shu holat 20 soniyalik «yarim» natijaga olib kelgan edi:
+      // multicam kliplar tushib qolib, faqat rekorder audiosi o'qilgan.
+      logLine(unresolved + " klip o'qilmadi — ortida fayl emas, sequence "
+              + "turadi (multicam / nested). Bu kliplardagi kadrlar "
+              + "natijaga tushmaydi!", "warn");
+      logLine("Multicam montajda «Premiere ichida qirqish» ni ishlating — "
+              + "u kadrlarni Premiere'ning o'ziga qirqtiradi.", "warn");
+    }
     if (sound) logLine(sound);
     renderTimes();
     const t = TAB_TEXT[activeTab] || {};
@@ -985,6 +1007,8 @@ function renderTimes() {
   });
   els.timeBtn.disabled = !timeRanges.length
     || (!timeline && picked.length < 1);
+  // Premiere ichida qirqish uchun sequence o'qish shart emas — faqat vaqtlar
+  els.premBtn.disabled = !timeRanges.length;
 }
 
 async function cutRanges() {
@@ -1019,6 +1043,116 @@ async function cutRanges() {
     stopProgress(true, j.count + " kadr · " + mmss(j.length_sec));
   } catch (e) {
     logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+  renderTimes();
+}
+
+
+/* ------------------------------- Premiere ichida qirqish (multicam uchun)
+ *
+ * Nima uchun kerak: multicam yoki nested sequence klipining ortida fayl
+ * turmaydi — sequence turadi. Shuning uchun XML yo'li bilan uni qirqib
+ * bo'lmaydi: qaysi faylning qaysi joyi ekanini bilib bo'lmaydi.
+ *
+ * Yechim — ishni Premiere'ning o'ziga topshirish: har oraliq uchun
+ * sequence'ning in/out nuqtalari qo'yiladi va `createSubsequence` chaqiriladi.
+ * Natijada kadr montajdagi ko'rinishi bilan chiqadi: multicam, effektlar,
+ * ovoz darajalari — hammasi joyida.
+ *
+ * Keyin bo'laklar bitta sequence'ga ketma-ket qo'yiladi. Shu oxirgi qadam
+ * API'ga bog'liq, shuning uchun har qadam alohida xabar beradi: nimadir
+ * ishlamasa, qaysi qadamda to'xtaganini ko'rasiz va bo'laklar baribir
+ * loyihada qoladi. */
+
+async function execAction(project, action, label) {
+  // executeTransaction ikki shaklda uchraydi — ikkovini ham sinaymiz
+  try {
+    return await project.executeTransaction((compound) => {
+      compound.addAction(action);
+    }, label || "Podcast Suite");
+  } catch (e) {
+    return await project.executeTransaction([action], label || "Podcast Suite");
+  }
+}
+
+async function setInOut(project, seq, ppro, a, b) {
+  const t = (sec) => ppro.TickTime.createWithSeconds(sec);
+  await execAction(project, seq.createSetInPointAction(t(a)), "In point");
+  await execAction(project, seq.createSetOutPointAction(t(b)), "Out point");
+}
+
+async function cutInPremiere() {
+  if (!timeRanges.length) return;
+  els.log.innerHTML = "";
+  els.timeBtn.disabled = true;
+  els.premBtn.disabled = true;
+  startProgress("Premiere ichida qirqilmoqda…");
+  let step = "boshlanish";
+  const made = [];
+  try {
+    const ppro = require("premierepro");
+    step = "loyiha";
+    const project = await ppro.Project.getActiveProject();
+    step = "ochiq sequence";
+    const src = project && (await project.getActiveSequence());
+    if (!src) throw new Error("Ochiq sequence topilmadi");
+    logLine("Manba: " + (src.name || "sequence") + " · " + timeRanges.length
+            + " oraliq");
+
+    // 1) Har oraliq uchun subsequence
+    for (let i = 0; i < timeRanges.length; i++) {
+      const r = timeRanges[i];
+      const a = Math.max(0, r.start - timePad);
+      const b = r.end + timePad;
+      step = (i + 1) + "-oraliq: in/out qo'yish (" + tc(a) + "–" + tc(b) + ")";
+      paintJob({ steps: [], step: 0, stage: "Kadr " + (i + 1) + " / "
+                 + timeRanges.length, percent: i / timeRanges.length * 100,
+                 detail: tc(a) + " → " + tc(b), lines: [] });
+      await setInOut(project, src, ppro, a, b);
+      step = (i + 1) + "-oraliq: subsequence yasash";
+      const sub = await src.createSubsequence(true);
+      if (!sub) throw new Error("subsequence yasalmadi");
+      made.push({ seq: sub, r: r });
+    }
+    logLine(made.length + " bo'lak Premiere'da qirqildi ✓", "okline");
+
+    // 2) Hammasini bitta sequence'ga yig'amiz (birinchisi asos bo'ladi)
+    let joined = 0;
+    if (made.length > 1) {
+      const target = made[0].seq;
+      const editor = ppro.SequenceEditor && ppro.SequenceEditor.getEditor
+        ? ppro.SequenceEditor.getEditor(target) : null;
+      if (!editor) throw new Error("SequenceEditor topilmadi");
+      for (let i = 1; i < made.length; i++) {
+        step = (i + 1) + "-bo'lakni qo'shish";
+        paintJob({ steps: [], step: 0, stage: "Yig'ilmoqda",
+                   percent: i / made.length * 100,
+                   detail: (i + 1) + " / " + made.length, lines: [] });
+        const item = await made[i].seq.getProjectItem();
+        const end = await target.getEndTime();
+        const act = editor.createInsertProjectItemAction(item, end, 0, 0, false);
+        await execAction(project, act, "Kadr qo'shish");
+        joined++;
+      }
+      logLine("Bitta sequence'ga yig'ildi: «" + (target.name || "birinchi bo'lak")
+              + "» ichida " + (joined + 1) + " kadr ✓", "okline");
+      try {
+        await project.openSequence(target);
+      } catch (e) { /* ochilmasa ham loyihada turadi */ }
+    }
+
+    logLine("Tayyor. Bo'laklar Project panelida turadi — kerak bo'lmaganini "
+            + "o'chirib tashlashingiz mumkin.");
+    stopProgress(true, made.length + " kadr");
+  } catch (e) {
+    logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
+    if (made.length) {
+      logLine(made.length + " bo'lak baribir yasaldi — Project panelida "
+              + "turadi, ularni qo'lda bitta sequence'ga tashlashingiz mumkin.",
+              "warn");
+    }
+    logLine("Shu xabarni menga yuborsangiz, aynan shu qadamni tuzataman.");
     stopProgress(false, (e.message || "").slice(0, 90));
   }
   renderTimes();
@@ -1373,6 +1507,7 @@ on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
 on(els.timeBtn, cutRanges);
+on(els.premBtn, cutInPremiere);
 on(els.shortsBtn, findShorts);
 on(els.shortsBuildBtn, buildShorts);
 on(els.buildBtn, function () { buildIntro(false); });

@@ -299,7 +299,7 @@
     padding: 11px; border-radius: 8px; border: 1px solid #45464F;
     background-color: #17181C; }
   body.tab-vaqtlar .seqpick b { color: #F0C674; }
-  body:not(.tab-vaqtlar) #timeBtn { display: none; }
+  body:not(.tab-vaqtlar) #timeBtn, body:not(.tab-vaqtlar) #premBtn { display: none; }
   body.tab-vaqtlar #syncBtn, body.tab-vaqtlar #cutBtn, body.tab-vaqtlar #switchBtn,
   body.tab-vaqtlar #capBtn, body.tab-vaqtlar #sampleBtn, body.tab-vaqtlar #introBtn,
   body.tab-vaqtlar #buildBtn, body.tab-vaqtlar #reviewBtn,
@@ -528,11 +528,15 @@
         </span>
       </div>
       <p class="tip">Vaqtlar <b>ochiq sequence</b> bo'yicha o'qiladi — Premiere'da
-      ko'rib turgan raqamlaringiz. Avval yuqoridagi qutini bosib sequence'ni
-      olasiz, keyin vaqtlarni qo'yasiz.<br>
-      Bitta sequence'da har kadr boshiga marker qo'yiladi, ya'ni qaysi kadr
-      qayerdan olinganini ko'rib turasiz. Ovoz tahlil qilinmaydi — bir necha
-      soniyada tayyor bo'ladi.</p>
+      ko'rib turgan raqamlaringiz.<br><br>
+      <b>Ikki yo'l bor:</b><br>
+      <b>«Premiere ichida qirqish»</b> — montaj <b>multicam</b> yoki nested
+      sequence'lardan yasalgan bo'lsa shuni ishlating. Premiere kadrlarni o'zi
+      qirqadi, effekt va kamera almashishlari joyida qoladi. Sequence'ni
+      oldin o'qish shart emas.<br>
+      <b>«Kadrlarni qirqish»</b> — montaj to'g'ridan-to'g'ri fayllardan
+      yig'ilgan bo'lsa: tezroq va har kadr boshiga marker qo'yiladi. Buning
+      uchun avval yuqoridagi qutini bosib sequence'ni olasiz.</p>
     </div>
 
     <div class="knobs" id="shortsKnobs">
@@ -575,6 +579,7 @@
     <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
     <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
     <button class="btn primary" id="timeBtn" disabled>Kadrlarni qirqish</button>
+    <button class="btn" id="premBtn" disabled>Premiere ichida qirqish</button>
     <button class="btn primary" id="shortsBtn" disabled>Bo'laklarni topish</button>
     <button class="btn" id="shortsBuildBtn" disabled>Shorts yasash</button>
     <button class="btn primary" id="introBtn" disabled>Lahzalarni topish</button>
