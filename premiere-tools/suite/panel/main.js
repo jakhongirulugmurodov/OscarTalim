@@ -7,6 +7,10 @@
 
 /* Motor manzili. UXP ba'zi holatlarda 127.0.0.1 ni bloklaydi, shuning uchun
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
+/* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
+ * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
+const PANEL_BUILD = "30-Jul 13:10";
+
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
 let lastMotorError = "";
@@ -94,7 +98,9 @@ async function checkMotor() {
         els.motor.classList.add("ok");
         els.motorTxt.textContent = j.ffmpeg === false
           ? "Motor ishlayapti, lekin ffmpeg yo'q — motorni-yoqish.command ni ishlating"
-          : "Motor ishlayapti (v" + j.version + ")";
+          : "Motor v" + j.version + " · panel " + PANEL_BUILD;
+        els.motorTxt.title = "Panel kodi: " + PANEL_BUILD
+          + " — Unload/Load qilinsa shu sana yangilanadi";
         return true;
       }
     } catch (e) {
