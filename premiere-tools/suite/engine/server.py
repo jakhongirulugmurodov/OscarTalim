@@ -35,7 +35,6 @@ from captions import (run_captions, search_archive, find_whisper,
                       have_model, MODELS)
 from intro import run_intro, build_intro
 from shorts import run_shorts, build_shorts
-from ranges import parse_ranges, run_ranges
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -76,8 +75,6 @@ JOB_STEPS = {
                  {"label": "Lahzalar qidirilmoqda", "short": "Lahzalar", "weight": 25}],
     "IntroYasash": [{"label": "Fayllar o'qilmoqda", "short": "Fayllar", "weight": 40},
                     {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 60}],
-    "Vaqtlar":  [{"label": "Fayllar o'qilmoqda", "short": "Fayllar", "weight": 30},
-                 {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 70}],
     "Shorts":   [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 75},
                  {"label": "Bo'laklar qidirilmoqda", "short": "Bo'laklar", "weight": 25}],
     "ShortsYasash": [{"label": "Fayllar o'qilmoqda", "short": "Fayllar", "weight": 35},
@@ -287,7 +284,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION,
                              "modules": ["sync", "cut", "switch", "captions",
-                                         "intro", "shorts", "vaqtlar"],
+                                         "intro", "shorts"],
                              "whisper": bool(find_whisper()),
                              "panel_build": panel_build(),
                              # qaysi model tayyor — panel yuklab olish
@@ -334,46 +331,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, "path": path})
             except Exception as e:
                 return self._send(500, {"error": str(e)})
-
-        if self.path == "/vaqtlar":
-            try:
-                length = int(self.headers.get("Content-Length", 0))
-                req = json.loads(self.rfile.read(length) or b"{}")
-                seq = req.get("timeline") or None
-                files = req.get("files") or []
-                if seq:
-                    files = list(dict.fromkeys(c["path"] for c in seq))
-                if not files:
-                    return self._send(400, {"error": "Fayl yoki sequence kerak"})
-                missing = [f for f in files if not os.path.isfile(f)]
-                if missing:
-                    return self._send(400,
-                                      {"error": f"Fayl topilmadi: {missing[0]}"})
-                rngs = req.get("ranges")
-                if not rngs:
-                    rngs = parse_ranges(req.get("times") or "")
-                if not rngs:
-                    return self._send(400, {"error": "Vaqt oraliqlari o'qilmadi. "
-                                            "Namuna: 1:30-1:44, 2:39-2:45"})
-                logs = []
-                progress_start("Vaqtlar")
-                record = lambda m: (logs.append(m), progress_note(m), print(m))
-                split = bool(req.get("split"))
-                output = req.get("output") or default_output(
-                    files, "Kadrlar" if not split else "Kadrlar-alohida")
-                result = run_ranges(
-                    files, rngs, timeline=seq, split=split,
-                    pad=float(req.get("pad", 0.0)), output=output,
-                    name=req.get("name") or "Podcast Suite — Kadrlar",
-                    fallback=RESULTS_DIR, log=record, progress=progress_update)
-                result["logs"] = logs
-                return self._send(200, result)
-            except RuntimeError as e:
-                return self._send(400, {"error": str(e)})
-            except Exception as e:
-                return self._send(500, {"error": f"Kutilmagan xato: {e}"})
-            finally:
-                PROGRESS["busy"] = False
 
         if self.path in ("/intro-yasash", "/shorts-yasash"):
             # Ikkinchi bosqich: tanlangan lahzalardan sequence. Qayta tahlil

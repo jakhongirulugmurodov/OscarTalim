@@ -9,8 +9,6 @@ Ishlayotgan modullar:
   Captions — nutqni matnga aylantiradi (oflayn, internetsiz)
   Intro    — eng kuchli lahzalarni topib, boshiga intro yig'adi
   Shorts   — reels uchun 20-60 soniyalik bo'laklar (har biri alohida sequence)
-  Vaqtlar  — o'zingiz yozgan vaqtlar bo'yicha kadrlarni qirqib, bitta
-             sequence'ga yig'adi (markerlar bilan)
 
 TALAB: Premiere Pro 25.6 yoki yangiroq (2026 versiyasi).
 

@@ -1,4 +1,4 @@
-/* Podcast Suite — panel mantiqi (Sync, Cut, Switch, Captions).
+/* Podcast Suite — panel mantiqi (Sync, Cut, Switch, Intro, Captions, Shorts).
  *
  * Panel o'zi hech qanday og'ir ish qilmaydi: fayllarni tanlatadi,
  * lokal motorga (server.py, 127.0.0.1:8765) yuboradi, natijani
@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 15:26";
+const PANEL_BUILD = "30-Jul 17:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -56,12 +56,6 @@ const els = {
   shortsBtn: el("shortsBtn"),
   shortsBuildBtn: el("shortsBuildBtn"),
   shortsList: el("shortsList"),
-  timeText: el("timeText"),
-  timeSum: el("timeSum"),
-  timeList: el("timeList"),
-  timeBtn: el("timeBtn"),
-  premBtn: el("premBtn"),
-  testBtn: el("testBtn"),
   staleBar: el("staleBar"),
   staleTxt: el("staleTxt"),
   logBar: el("logBar"),
@@ -373,12 +367,6 @@ const TAB_TEXT = {
     seqHint: "montajingiz bo'yicha qidiriladi — markerlaringiz ham hisobga olinadi",
     next: "Endi «Lahzalarni topish» ni bosing",
   },
-  vaqtlar: {
-    pick: "yoki fayllarni qo'lda tanlang",
-    seqTitle: "Ochiq sequence'ni olish",
-    seqHint: "vaqtlar shu sequence bo'yicha o'qiladi",
-    next: "Endi vaqtlarni pastdagi qutiga qo'ying",
-  },
   shorts: {
     pick: "yozuvlar yoki ochiq sequence",
     seqTitle: "Ochiq sequence'dan bo'laklarni izlash",
@@ -685,7 +673,6 @@ async function readSequence() {
               + "u kadrlarni Premiere'ning o'ziga qirqtiradi.", "warn");
     }
     if (sound) logLine(sound);
-    renderTimes();
     const t = TAB_TEXT[activeTab] || {};
     if (t.next) logLine(t.next);
   } catch (e) {
@@ -765,6 +752,20 @@ function renderMoments() {
   if (moments.length) {
     els.hint.textContent = moments.length + " nomzod · " + on.length + " tanlangan";
   }
+}
+
+/* TickTime yasash. Diqqat: statik metodni `const f = T.createWithSeconds`
+ * deb ajratib olib chaqirish mumkin emas — UXP `this` ni talab qiladi. */
+const TICKS_PER_SEC = 254016000000;
+
+function tickTime(ppro, sec) {
+  const T = ppro.TickTime;
+  if (!T) throw new Error("TickTime klassi yo'q");
+  if (typeof T.createWithSeconds === "function") return T.createWithSeconds(Number(sec));
+  if (typeof T.createWithTicks === "function") {
+    return T.createWithTicks(String(Math.round(Number(sec) * TICKS_PER_SEC)));
+  }
+  throw new Error("TickTime yasash yo'li topilmadi");
 }
 
 /* Premiere playhead'ini shu joyga olib boradi — nomzodni ko'rish uchun */
@@ -1002,412 +1003,6 @@ async function buildShorts() {
   renderShorts();
 }
 
-
-/* --------------------------------------------------- Vaqtlar (qo'lda qirqish)
- *
- * Bu yerda mashina hech narsa taxmin qilmaydi: qaysi kadrlar kerakligini
- * o'zingiz yozib berasiz, modul faqat qirqadi. Vaqtlar ochiq sequence
- * bo'yicha o'qiladi — Premiere'da ko'rib turgan raqamlar. Ovoz tahlil
- * qilinmaydi, shuning uchun bir necha soniyada tugaydi.
- *
- * Oraliqlar panelda ham o'qiladi (darhol ko'rsatish uchun) va motorda ham
- * (buyruq satridan ishlatilganda) — ikkalasi bir xil qoidada. */
-let timeRanges = [];
-let timeSplit = 0;
-let timePad = 0;
-
-/* «1:30» → 90 · «1:02:30» → 3750 · «90» → 90 */
-function timeToSec(txt) {
-  const t = String(txt).trim().replace(",", ".").split(";")[0];
-  const p = t.split(":").map(Number);
-  if (p.some(isNaN)) return null;
-  if (p.length === 1) return p[0];
-  if (p.length === 2) return p[0] * 60 + p[1];
-  return p[0] * 3600 + p[1] * 60 + p[2];
-}
-
-function parseTimes(text) {
-  const re = /(\d{1,2}(?::\d{1,2}){0,2}(?:[.,]\d+)?(?:;\d+)?)\s*(?:-|–|—|to|\.\.)\s*(\d{1,2}(?::\d{1,2}){0,2}(?:[.,]\d+)?(?:;\d+)?)/g;
-  const out = [];
-  let m;
-  while ((m = re.exec(text || "")) !== null) {
-    let a = timeToSec(m[1]), b = timeToSec(m[2]);
-    if (a == null || b == null) continue;
-    if (b < a) { const t = a; a = b; b = t; }
-    if (b - a <= 0) continue;
-    out.push({ start: +a.toFixed(3), end: +b.toFixed(3), raw: m[0].trim() });
-  }
-  out.sort((x, y) => x.start - y.start);
-  return out;
-}
-
-function renderTimes() {
-  const text = els.timeText.value || "";
-  timeRanges = parseTimes(text);
-  const total = timeRanges.reduce((a, r) => a + (r.end - r.start), 0);
-  // Yozilgan qatorlar soni va o'qilganlar soni farq qilsa — aytib qo'yamiz
-  const lines = text.split("\n").filter((l) => /\d/.test(l)).length;
-  const missed = Math.max(0, lines - timeRanges.length);
-  els.timeSum.innerHTML = timeRanges.length
-    ? "<b>" + timeRanges.length + " kadr</b> · jami " + mmss(total)
-      + (missed ? " · <span class='bad'>" + missed
-                  + " qator o'qilmadi</span>" : "")
-    : "oraliq kiritilmadi";
-  els.timeList.innerHTML = "";
-  timeRanges.forEach((r, i) => {
-    const d = document.createElement("div");
-    d.textContent = (i + 1) + ".  " + tc(r.start) + " → " + tc(r.end)
-                  + "   " + Math.round(r.end - r.start) + "s";
-    els.timeList.appendChild(d);
-  });
-  els.timeBtn.disabled = !timeRanges.length
-    || (!timeline && picked.length < 1);
-  // Premiere ichida qirqish uchun sequence o'qish shart emas — faqat vaqtlar
-  els.premBtn.disabled = !timeRanges.length;
-  els.testBtn.disabled = !timeRanges.length;
-}
-
-async function cutRanges() {
-  if (!(await checkMotor())) return;
-  if (!timeRanges.length) return;
-  els.log.innerHTML = "";
-  els.timeBtn.disabled = true;
-  startProgress("Kadrlar qirqilmoqda…");
-  try {
-    const body = { ranges: timeRanges, split: !!timeSplit, pad: timePad };
-    if (timeline) body.timeline = timeline;
-    else body.files = picked.map((p) => p.path);
-    const r = await fetch(MOTOR + "/vaqtlar", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || "Motor xatosi");
-    for (const line of (j.logs || []).slice(shownLogs)) {
-      logLine(line, line.indexOf("OGOHLANTIRISH") >= 0 ? "warn" : null);
-    }
-    lastXml = j.output;
-    logLine(j.count + " kadr · jami " + mmss(j.length_sec) + " tayyor ✓",
-            "okline");
-    if ((j.skipped || []).length) {
-      logLine("Tushmagan oraliqlar: " + j.skipped.join(", "), "warn");
-    }
-    logLine(j.split ? "Har kadr alohida sequence bo'ldi"
-                    : "Hammasi bitta sequence'da, har kadr boshida marker");
-    logLine("Fayl: " + j.output);
-    els.importBtn.disabled = false;
-    stopProgress(true, j.count + " kadr · " + mmss(j.length_sec));
-  } catch (e) {
-    logLine("Xato: " + e.message, "warn");
-    stopProgress(false, (e.message || "").slice(0, 90));
-  }
-  renderTimes();
-}
-
-
-/* ------------------------------- Premiere ichida qirqish (multicam uchun)
- *
- * Nima uchun kerak: multicam yoki nested sequence klipining ortida fayl
- * turmaydi — sequence turadi. Shuning uchun XML yo'li bilan uni qirqib
- * bo'lmaydi: qaysi faylning qaysi joyi ekanini bilib bo'lmaydi.
- *
- * Yechim — ishni Premiere'ning o'ziga topshirish: har oraliq uchun
- * sequence'ning in/out nuqtalari qo'yiladi va `createSubsequence` chaqiriladi.
- * Natijada kadr montajdagi ko'rinishi bilan chiqadi: multicam, effektlar,
- * ovoz darajalari — hammasi joyida.
- *
- * Keyin bo'laklar bitta sequence'ga ketma-ket qo'yiladi. Shu oxirgi qadam
- * API'ga bog'liq, shuning uchun har qadam alohida xabar beradi: nimadir
- * ishlamasa, qaysi qadamda to'xtaganini ko'rasiz va bo'laklar baribir
- * loyihada qoladi. */
-
-/* TickTime yasash. Diqqat: `const f = ppro.TickTime.createWithSeconds`
- * deb ajratib olib, keyin `f(x)` deb chaqirish MUMKIN EMAS — UXP'da statik
- * metod `this` ni talab qiladi va ajratilgan chaqiruv «The script object is
- * no longer valid» xatosini beradi. Aynan shu xato edi. */
-const TICKS_PER_SEC = 254016000000;
-
-function tickTime(ppro, sec) {
-  const T = ppro.TickTime;
-  if (!T) throw new Error("TickTime klassi yo'q");
-  if (typeof T.createWithSeconds === "function") {
-    return T.createWithSeconds(Number(sec));       // to'g'ri: T orqali
-  }
-  if (typeof T.createWithTicks === "function") {
-    return T.createWithTicks(String(Math.round(Number(sec) * TICKS_PER_SEC)));
-  }
-  throw new Error("TickTime yasash yo'li topilmadi: "
-                  + Object.getOwnPropertyNames(T).join(","));
-}
-
-/* In/out qo'yish: avval hujjatdagi action yo'li, bo'lmasa to'g'ridan-to'g'ri
- * setter. Qaysi biri ishlaganini bir marta yozib qo'yamiz. */
-let inOutWay = "";
-
-async function setSeqInOut(ppro, project, seq, a, b) {
-  if (inOutWay !== "setter" && typeof seq.createSetInPointAction === "function") {
-    try {
-      // TickTime ham qulf ichida yasaladi — bir xil qoida
-      runActions(project, () => [
-        seq.createSetInPointAction(tickTime(ppro, a)),
-        seq.createSetOutPointAction(tickTime(ppro, b)),
-      ], "In/Out");
-      if (!inOutWay) { inOutWay = "action"; logLine("  (in/out: action yo'li)"); }
-      return;
-    } catch (e) {
-      if (inOutWay === "action") throw e;          // ishlagan yo'l buzildi
-      logLine("  action yo'li ishlamadi (" + (e.message || e)
-              + ") — to'g'ridan-to'g'ri sinaladi", "warn");
-    }
-  }
-  if (typeof seq.setInPoint === "function") {
-    await seq.setInPoint(tickTime(ppro, a));
-    await seq.setOutPoint(tickTime(ppro, b));
-    if (!inOutWay) { inOutWay = "setter"; logLine("  (in/out: to'g'ridan-to'g'ri)"); }
-    return;
-  }
-  throw new Error("in/out qo'yish yo'li yo'q");
-}
-
-/* Action'larni yaratish va bajarish — Adobe talab qilgan yagona shakl:
- *
- *   project.lockedAccess(() => {
- *     project.executeTransaction((compound) => {
- *       compound.addAction(obj.createSomethingAction(...));
- *     }, "izoh");
- *   });
- *
- * `create*Action` chaqiruvi lockedAccess'dan TASHQARIDA bo'lsa, Premiere
- * «The script object is no longer valid» deb rad etadi — aynan shu xato
- * bir necha marta chiqdi. lockedAccess ham, executeTransaction ham
- * sinxron: ichida `await` ishlatib bo'lmaydi, shuning uchun kerakli
- * obyektlar oldindan olinadi. */
-function runActions(project, build, label) {
-  let ok = false, err = null;
-  if (typeof project.lockedAccess !== "function") {
-    throw new Error("lockedAccess yo'q — Premiere 25.6+ kerak");
-  }
-  project.lockedAccess(() => {
-    try {
-      ok = project.executeTransaction((compound) => {
-        const list = build() || [];
-        for (const act of list) {
-          if (act) compound.addAction(act);
-        }
-      }, label || "Podcast Suite");
-    } catch (e) {
-      err = e;
-    }
-  });
-  if (err) throw err;
-  return ok;
-}
-
-/* Obyektlar eskirmasligi uchun har amaldan oldin qaytadan olinadi */
-async function freshSequence(ppro) {
-  const project = await ppro.Project.getActiveProject();
-  if (!project) throw new Error("Ochiq loyiha topilmadi");
-  const seq = await project.getActiveSequence();
-  if (!seq) throw new Error("Ochiq sequence topilmadi");
-  return { project: project, seq: seq };
-}
-
-/* Nosozlik bo'lganda API'ning aynan qanday ekanini log'ga chiqaramiz —
- * shu ma'lumot bir bosishda muammoni aniqlashga yetadi. */
-function methodNames(obj) {
-  const names = [];
-  let o = obj;
-  while (o && o !== Object.prototype) {
-    for (const k of Object.getOwnPropertyNames(o)) {
-      try {
-        if (typeof obj[k] === "function" && names.indexOf(k) < 0) names.push(k);
-      } catch (e) { /* getter xato bersa — o'tkazamiz */ }
-    }
-    o = Object.getPrototypeOf(o);
-  }
-  return names.sort();
-}
-
-/* Uzun ro'yxat ekranda kesilib qolmasin: bo'laklab yozamiz va oxirida
- * hammasini faylga saqlaymiz — o'sha faylni yuborish yetadi. */
-function logLong(label, text) {
-  const size = 110;
-  for (let i = 0; i < text.length; i += size) {
-    logLine((i === 0 ? label + ": " : "   ") + text.slice(i, i + size));
-  }
-}
-
-async function dumpApi(ppro, seq) {
-  try {
-    logLong("API (premierepro)", Object.keys(ppro || {}).join(", "));
-    if (ppro && ppro.TickTime) {
-      logLong("TickTime", Object.getOwnPropertyNames(ppro.TickTime).join(", "));
-    }
-    if (ppro && ppro.SequenceEditor) {
-      logLong("SequenceEditor",
-              Object.getOwnPropertyNames(ppro.SequenceEditor).join(", "));
-    }
-    if (seq) logLong("Sequence metodlari", methodNames(seq).join(", "));
-  } catch (e) {
-    logLine("Tashxis to'liq chiqmadi: " + (e.message || e), "warn");
-  }
-  await copyLog();        // to'liq matnni faylga (yoki buferga) olib qo'yamiz
-}
-
-async function cutInPremiere(onlyFirst) {
-  if (!timeRanges.length) return;
-  const list = onlyFirst ? timeRanges.slice(0, 1) : timeRanges;
-  els.log.innerHTML = "";
-  els.timeBtn.disabled = true;
-  els.premBtn.disabled = true;
-  startProgress("Premiere ichida qirqilmoqda…");
-  let step = "boshlanish";
-  const made = [];
-  let ppro = null, lastSeq = null;
-  try {
-    ppro = require("premierepro");
-    step = "ochiq sequence";
-    const first = await freshSequence(ppro);
-    lastSeq = first.seq;
-    // Montajning o'z in/out nuqtalarini eslab qolamiz — oxirida tiklaymiz
-    let oldIn = null, oldOut = null;
-    try {
-      oldIn = await first.seq.getInPoint();
-      oldOut = await first.seq.getOutPoint();
-    } catch (e) { /* o'qilmasa — tiklamaymiz */ }
-    logLine("Manba: " + (first.seq.name || "sequence") + " · "
-            + list.length + " oraliq" + (onlyFirst ? " (sinov)" : ""));
-
-    for (let i = 0; i < list.length; i++) {
-      const r = list[i];
-      const a = Math.max(0, r.start - timePad);
-      const b = r.end + timePad;
-      paintJob({ steps: [], step: 0, lines: [],
-                 stage: "Kadr " + (i + 1) + " / " + list.length,
-                 percent: i / list.length * 100,
-                 detail: tc(a) + " → " + tc(b) });
-
-      step = (i + 1) + "-oraliq: sequence olish";
-      const cur = await freshSequence(ppro);
-      lastSeq = cur.seq;
-      step = (i + 1) + "-oraliq: in/out qo'yish (" + tc(a) + "–" + tc(b) + ")";
-      await setSeqInOut(ppro, cur.project, cur.seq, a, b);
-
-      step = (i + 1) + "-oraliq: subsequence yasash";
-      let sub = null;
-      try {
-        sub = await cur.seq.createSubsequence(true);
-      } catch (e) {
-        sub = await cur.seq.createSubsequence();   // argumentsiz shakl
-      }
-      if (!sub) throw new Error("subsequence bo'sh qaytdi");
-      made.push(sub);
-
-      // Nomini tushunarli qilamiz: Project panelida qidirib yurmaslik uchun
-      const nomi = "Kadr " + (i + 1) + " · " + tc(r.start);
-      try {
-        const item = await sub.getProjectItem();
-        if (item && typeof item.createSetNameAction === "function") {
-          runActions(cur.project, () => [item.createSetNameAction(nomi)], "Nom");
-        }
-      } catch (e) { /* nom qo'yilmasa ham kadr joyida */ }
-      if (i === 0 && onlyFirst) {
-        // Sinovda darhol ochamiz — qidirish shart bo'lmasin
-        try {
-          await cur.project.openSequence(sub);
-          logLine("Kadr qirqildi va ochildi ✓ — timeline'da ko'ring "
-                  + "(«" + nomi + "»)", "okline");
-        } catch (e) {
-          logLine("Kadr qirqildi ✓ — Project panelida «" + nomi
-                  + "» nomi bilan turadi", "okline");
-        }
-        logLine("To'g'ri chiqqan bo'lsa, «Premiere ichida qirqish» bilan "
-                + "hammasini olasiz.");
-      } else if (i === 0) {
-        logLine("Birinchi kadr qirqildi ✓ — qolganlari ketmoqda", "okline");
-      }
-    }
-    logLine(made.length + " kadr Premiere'da qirqildi ✓", "okline");
-
-    // Hammasini bittasiga yig'amiz: birinchisi asos bo'ladi
-    if (made.length > 1) try {
-      step = "yig'ish uchun editor";
-      const target = made[0];
-      let joined = 0;
-      for (let i = 1; i < made.length; i++) {
-        step = (i + 1) + "-kadrni qo'shish";
-        paintJob({ steps: [], step: 0, lines: [], stage: "Yig'ilmoqda",
-                   percent: i / made.length * 100,
-                   detail: (i + 1) + " / " + made.length });
-        const project = await ppro.Project.getActiveProject();
-        const editor = ppro.SequenceEditor.getEditor(target);
-        const item = await made[i].getProjectItem();
-        const end = await target.getEndTime();
-        try {
-          runActions(project,
-            () => [editor.createInsertProjectItemAction(item, end, 0, 0, false)],
-            "Kadr qo'shish");
-        } catch (e) {
-          if (typeof editor.createOverwriteItemAction !== "function") throw e;
-          logLine("  insert ishlamadi — overwrite bilan qo'yiladi", "warn");
-          runActions(project,
-            () => [editor.createOverwriteItemAction(item, end, 0, 0)],
-            "Kadr qo'shish");
-        }
-        joined++;
-      }
-      const project = await ppro.Project.getActiveProject();
-      let natijaNomi = target.name || "Kadrlar";
-      try {
-        const item = await target.getProjectItem();
-        if (item && typeof item.createSetNameAction === "function") {
-          natijaNomi = "Podcast Suite — Kadrlar";
-          runActions(project, () => [item.createSetNameAction(natijaNomi)],
-                     "Nom");
-        }
-      } catch (e) { /* nom qo'yilmasa ham bo'ladi */ }
-      logLine("Bitta sequence'ga yig'ildi: «" + natijaNomi + "» — "
-              + (joined + 1) + " kadr ✓", "okline");
-      try {
-        await project.openSequence(target);
-        logLine("Natija ochildi — timeline'da ko'ring ✓", "okline");
-      } catch (e) {
-        logLine("Project panelida «" + natijaNomi + "» nomi bilan turadi "
-                + "(Window > Project)");
-      }
-    } catch (e) {
-      // Kadrlar qirqilgan — faqat yig'ish bo'lmadi. Bu yo'qotish emas.
-      logLine("Kadrlar qirqildi, lekin bitta sequence'ga yig'ilmadi ("
-              + (e.message || e) + ")", "warn");
-      logLine("Project panelida «Kadr 1…" + made.length + "» turadi: "
-              + "hammasini tanlab, yangi sequence'ga tashlasangiz ketma-ket "
-              + "joylashadi.", "warn");
-      await dumpApi(ppro, made[0]);
-    }
-    // Montajning in/out nuqtalarini joyiga qaytaramiz
-    if (oldIn && oldOut) {
-      try {
-        const back = await freshSequence(ppro);
-        runActions(back.project, () => [
-          back.seq.createSetInPointAction(oldIn),
-          back.seq.createSetOutPointAction(oldOut),
-        ], "In/out tiklash");
-      } catch (e) { /* muhim emas */ }
-    }
-    logLine("Tayyor. Kerak bo'lmagan bo'laklarni Project panelidan "
-            + "o'chirib tashlashingiz mumkin (Window > Project).");
-    stopProgress(true, made.length + " kadr");
-  } catch (e) {
-    logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
-    if (made.length) {
-      logLine(made.length + " kadr yasalgan — Project panelida turadi.", "warn");
-    }
-    await dumpApi(ppro, lastSeq);
-    logLine("Shu xabarni menga yuboring — aynan shu qadamni tuzataman.");
-    stopProgress(false, (e.message || "").slice(0, 90));
-  }
-  renderTimes();
-}
 
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
@@ -1788,9 +1383,6 @@ on(els.switchBtn, function () { run("switch"); });
 on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
-on(els.timeBtn, cutRanges);
-on(els.premBtn, function () { cutInPremiere(false); });
-on(els.testBtn, function () { cutInPremiere(true); });
 on(els.logCopy, copyLog);
 on(els.logBig, function () { els.log.classList.toggle("big"); });
 on(els.shortsBtn, findShorts);
@@ -1806,13 +1398,6 @@ setupKnobs();
 setupCaptionPills();
 setupIntroPills();
 setupPills("shortsLimit", (v) => { shortsLimit = v; });
-setupPills("timeSplit", (v) => { timeSplit = v; });
-setupPills("timePad", (v) => { timePad = v; });
-if (els.timeText.addEventListener) {
-  els.timeText.addEventListener("input", renderTimes);
-  els.timeText.addEventListener("change", renderTimes);
-}
-renderTimes();
 document.body.className = "tab-sync";
 applyTabText();
 checkMotor().then(function (ok) { if (ok) checkUpdates(); });
