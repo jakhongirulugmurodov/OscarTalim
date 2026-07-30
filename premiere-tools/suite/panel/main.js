@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 18:20";
+const PANEL_BUILD = "30-Jul 19:05";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -62,6 +62,16 @@ const els = {
   logCopy: el("logCopy"),
   logBig: el("logBig"),
   moments: el("moments"),
+  matnPanel: el("matnPanel"),
+  matnList: el("matnList"),
+  matnAdd: el("matnAdd"),
+  matnBtn: el("matnBtn"),
+  matnPreview: el("matnPreview"),
+  matnPrevHint: el("matnPrevHint"),
+  mFont: el("mFont"),
+  mSize: el("mSize"),
+  mPos: el("mPos"),
+  mBold: el("mBold"),
   seqBtn: el("seqBtn"),
   seqTitle: el("seqTitle"),
   seqHint: el("seqHint"),
@@ -373,6 +383,10 @@ const TAB_TEXT = {
     seqTitle: "Ochiq sequence'dan bo'laklarni izlash",
     seqHint: "har bo'lak tugallangan fikr bo'ladi — 20-60 soniya",
     next: "Endi «Bo'laklarni topish» ni bosing",
+  },
+  matn: {
+    pick: "matnlarni quyida yozasiz — fayl tanlash shart emas",
+    next: "Matn yozib, vaqtini bering va «Matnlarni yasash» ni bosing",
   },
   captions: {
     pick: "ovozi yaxshi yozilgan fayl (1 ta yetadi)",
@@ -1057,6 +1071,269 @@ async function buildShorts() {
 }
 
 
+
+/* ============================================================ Matn tabi
+ *
+ * Foydalanuvchi matnlarni O'ZI yozadi va har biriga timeline'dagi vaqtni
+ * beradi. Motor har matn uchun shaffof fonli qisqa video yasaydi va
+ * ularni kerakli joyga qo'yadigan XML yozadi.
+ *
+ * Animatsiya ataylab sezilmaydigan: pastdan 28 px, sekinlashib to'xtaydi.
+ * Tomoshabin (ko'pincha yoshi katta) matnning chiqqanini payqamasligi
+ * kerak — «yo'q edi, bor bo'ldi». Shuning uchun bu yerda hech qanday
+ * sakrash/kattalashish sozlamasi yo'q: bo'lsa, ishlatilib qo'yiladi. */
+
+let matnBloklar = [];
+let matnRang = "#FFFFFF";
+let matnQalin = true;
+let prevTimer = null;
+
+function matnUslub() {
+  return {
+    shrift: els.mFont.value || null,
+    olcham: Number(els.mSize.value) || 58,
+    joy: els.mPos.value || "past",
+    rang: matnRang,
+    qalin: matnQalin,
+  };
+}
+
+/* «1:23» / «83» / «1:02:05» → soniya. Montajchi qaysi ko'rinishda
+   yozsa ham tushunilsin — vaqtni qo'lda ko'chirish shundoq ham zerikarli. */
+function vaqtga(s) {
+  const t = String(s || "").trim().replace(",", ".");
+  if (!t) return 0;
+  const p = t.split(":").map((x) => parseFloat(x) || 0);
+  if (p.length === 1) return p[0];
+  if (p.length === 2) return p[0] * 60 + p[1];
+  return p[0] * 3600 + p[1] * 60 + p[2];
+}
+
+function vaqtdan(sec) {
+  const s = Math.max(0, Number(sec) || 0);
+  const m = Math.floor(s / 60);
+  const r = (s - m * 60);
+  return m + ":" + (r < 10 ? "0" : "") + r.toFixed(r % 1 ? 1 : 0);
+}
+
+function renderMatn() {
+  els.matnList.innerHTML = "";
+  matnBloklar.forEach((b, i) => {
+    const row = document.createElement("div");
+    row.className = "mrow";
+
+    const ta = document.createElement("textarea");
+    ta.value = b.matn || "";
+    ta.placeholder = "Matn… (Enter — yangi qator)";
+    ta.addEventListener("input", () => {
+      b.matn = ta.value;
+      matnBtnHolat();          // birinchi harfdayoq tugma yonsin
+      previewSoon();
+    });
+
+    const times = document.createElement("div");
+    times.className = "mtimes";
+    const l1 = document.createElement("div");
+    l1.className = "mlbl"; l1.textContent = "boshlanishi";
+    const t1 = document.createElement("input");
+    t1.type = "text"; t1.value = vaqtdan(b.start);
+    t1.addEventListener("change", () => { b.start = vaqtga(t1.value);
+                                          t1.value = vaqtdan(b.start); });
+    const l2 = document.createElement("div");
+    l2.className = "mlbl"; l2.textContent = "davomiyligi (s)";
+    const t2 = document.createElement("input");
+    t2.type = "text"; t2.value = String(b.davomiylik);
+    t2.addEventListener("change", () => {
+      b.davomiylik = Math.max(1.4, parseFloat(t2.value) || 5);
+      t2.value = String(b.davomiylik);
+    });
+    times.appendChild(l1); times.appendChild(t1);
+    times.appendChild(l2); times.appendChild(t2);
+
+    const btns = document.createElement("div");
+    btns.className = "mbtns";
+    const ph = document.createElement("div");
+    ph.className = "mini"; ph.textContent = "⌖ playhead";
+    ph.title = "Vaqtni Premiere'dagi playhead turgan joydan oladi";
+    ph.addEventListener("click", async () => {
+      const t = await playheadVaqti();
+      if (t == null) return;
+      b.start = t; t1.value = vaqtdan(t);
+      logLine("Vaqt playhead'dan olindi: " + vaqtdan(t));
+    });
+    const rm = document.createElement("div");
+    rm.className = "mini rm"; rm.textContent = "× o'chirish";
+    rm.addEventListener("click", () => {
+      matnBloklar.splice(i, 1); renderMatn(); previewSoon();
+    });
+    btns.appendChild(ph); btns.appendChild(rm);
+
+    row.appendChild(ta); row.appendChild(times); row.appendChild(btns);
+    els.matnList.appendChild(row);
+  });
+  matnBtnHolat();
+}
+
+function matnBtnHolat() {
+  els.matnBtn.disabled = !matnBloklar.some((b) => (b.matn || "").trim());
+}
+
+function addMatn() {
+  const oxirgi = matnBloklar[matnBloklar.length - 1];
+  matnBloklar.push({
+    matn: "",
+    start: oxirgi ? oxirgi.start + oxirgi.davomiylik + 2 : 0,
+    davomiylik: 5,
+  });
+  renderMatn();
+}
+
+/* Premiere'dagi playhead qayerda turibdi */
+async function playheadVaqti() {
+  try {
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    const seq = project && (await project.getActiveSequence());
+    if (!seq) throw new Error("ochiq sequence yo'q");
+    const pos = await seq.getPlayerPosition();
+    return Math.max(0, secs(pos));
+  } catch (e) {
+    logLine("Playhead o'qilmadi: " + e.message + " — vaqtni qo'lda yozing",
+            "warn");
+    return null;
+  }
+}
+
+/* Ochiq sequence'ning o'lchami va fps'i — matn shu formatda yasaladi */
+async function matnFormat() {
+  const std = { width: 1920, height: 1080, fps: 25 };
+  try {
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    const seq = project && (await project.getActiveSequence());
+    if (!seq) return std;
+    const f = await readSeqFormat(seq);
+    let fps = 0;
+    try {
+      const st = typeof seq.getSettings === "function" ? await seq.getSettings() : null;
+      const v = st && (st.videoFrameRate || st.videoFrameRateTicks);
+      if (v && typeof v === "object") fps = 1 / secs(v);
+      else if (typeof v === "number" && v > 0 && v < 200) fps = v;
+    } catch (e) { /* fps topilmadi — standart qoladi */ }
+    return {
+      width: (f && f.width) || std.width,
+      height: (f && f.height) || std.height,
+      fps: fps > 0 && fps < 200 ? fps : std.fps,
+    };
+  } catch (e) {
+    return std;
+  }
+}
+
+/* Ko'rish rasmi — yozayotganda ortiqcha so'rov ketmasin deb kechiktiriladi */
+function previewSoon() {
+  if (prevTimer) clearTimeout(prevTimer);
+  prevTimer = setTimeout(updatePreview, 400);
+}
+
+async function updatePreview() {
+  const blok = matnBloklar.find((b) => (b.matn || "").trim());
+  if (!blok) {
+    els.matnPreview.removeAttribute("src");
+    els.matnPrevHint.textContent =
+      "Matn yozing — shu yerda aynan qanday chiqishi ko'rinadi";
+    return;
+  }
+  try {
+    const fmt = await matnFormat();
+    const r = await fetch(MOTOR + "/matn-oldin", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matn: blok.matn, width: fmt.width,
+                             height: fmt.height, uslub: matnUslub() }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "ko'rish rasmi chiqmadi");
+    els.matnPreview.src = j.png;
+    els.matnPrevHint.textContent = fmt.width + "×" + fmt.height
+      + (fmt.height > fmt.width ? " (vertikal)" : "") + " — ochiq sequence'dan";
+  } catch (e) {
+    els.matnPrevHint.textContent = "Ko'rish rasmi chiqmadi: " + e.message;
+  }
+}
+
+async function loadFonts() {
+  try {
+    const r = await fetch(MOTOR + "/shriftlar");
+    const j = await r.json();
+    const list = j.shriftlar || [];
+    els.mFont.innerHTML = "";
+    let tavsiyaBor = false;
+    for (const f of list) {
+      const o = document.createElement("option");
+      o.value = f.nom;
+      o.textContent = f.tavsiya ? f.nom + " ★" : f.nom;
+      els.mFont.appendChild(o);
+      if (f.tavsiya && !tavsiyaBor) { els.mFont.value = f.nom; tavsiyaBor = true; }
+    }
+  } catch (e) { /* motor o'chiq — tugma bosilganda aytiladi */ }
+}
+
+async function runMatn() {
+  const bloklar = matnBloklar
+    .filter((b) => (b.matn || "").trim())
+    .map((b) => ({ matn: b.matn, start: b.start, davomiylik: b.davomiylik }));
+  if (!bloklar.length) return;
+  els.log.innerHTML = "";
+  els.matnBtn.disabled = true;
+  startProgress("Matnlar yasalmoqda…");
+  try {
+    const fmt = await matnFormat();
+    const r = await fetch(MOTOR + "/matn", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bloklar: bloklar, width: fmt.width,
+                             height: fmt.height, fps: fmt.fps,
+                             uslub: matnUslub() }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const line of j.logs || []) logLine(line);
+    lastXml = j.output;
+    logLine(j.count + " matn tayyor ✓", "okline");
+    logLine("Endi «Premiere'ga import» ni bosing — «Matn» sequence'i "
+            + "ochiladi. Undagi kliplarni tanlab (Ctrl+A), nusxalab, "
+            + "o'z timeline'ingizga V2 trekka qo'ying.");
+    els.importBtn.disabled = false;
+    stopProgress(true, j.count + " matn");
+  } catch (e) {
+    logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+  renderMatn();
+}
+
+function setupMatn() {
+  ["mFont", "mSize", "mPos"].forEach((id) => {
+    const e = els[id];
+    if (e && e.addEventListener) e.addEventListener("change", previewSoon);
+  });
+  if (els.mBold && els.mBold.addEventListener) {
+    els.mBold.addEventListener("click", () => {
+      matnQalin = !matnQalin;
+      els.mBold.classList.toggle("on", matnQalin);
+      previewSoon();
+    });
+  }
+  document.querySelectorAll(".swatch").forEach((sw) => {
+    sw.addEventListener("click", () => {
+      document.querySelectorAll(".swatch").forEach((x) => x.classList.remove("on"));
+      sw.classList.add("on");
+      matnRang = sw.getAttribute("data-c") || "#FFFFFF";
+      previewSoon();
+    });
+  });
+  addMatn();
+}
+
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
   const text = Array.from(els.log.querySelectorAll("div"))
@@ -1457,16 +1734,19 @@ on(els.buildBtn, function () { buildIntro(false); });
 on(els.reviewBtn, function () { buildIntro(true); });
 on(els.capSearchBtn, searchArchive);
 on(els.seqBtn, readSequence);
+on(els.matnAdd, addMatn);
+on(els.matnBtn, runMatn);
 on(els.importBtn, doImport);
 
 setupTabs();
 setupKnobs();
+setupMatn();
 setupCaptionPills();
 setupIntroPills();
 setupPills("shortsLimit", (v) => { shortsLimit = v; });
 document.body.className = "tab-sync";
 applyTabText();
-checkMotor().then(function (ok) { if (ok) checkUpdates(); });
+checkMotor().then(function (ok) { if (ok) { checkUpdates(); loadFonts(); } });
 setInterval(checkMotor, 5000);
 setInterval(checkUpdates, 10 * 60 * 1000);   // har 10 daqiqada bir tekshiradi
 renderFiles();

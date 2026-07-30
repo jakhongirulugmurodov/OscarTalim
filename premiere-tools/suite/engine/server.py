@@ -35,6 +35,7 @@ from captions import (run_captions, search_archive, find_whisper,
                       have_model, MODELS)
 from intro import run_intro, build_intro
 from shorts import run_shorts, build_shorts
+from matn import run_matn, shriftlar, oldin_korish
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -79,6 +80,8 @@ JOB_STEPS = {
                  {"label": "Bo'laklar qidirilmoqda", "short": "Bo'laklar", "weight": 25}],
     "ShortsYasash": [{"label": "Fayllar o'qilmoqda", "short": "Fayllar", "weight": 35},
                      {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 65}],
+    "Matn":     [{"label": "Matnlar yasalmoqda", "short": "Matn", "weight": 90},
+                 {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 10}],
     "Switch":   [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 65},
                  {"label": "Kadrlar rejalanmoqda", "short": "Kadrlar", "weight": 30},
                  {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 5}],
@@ -284,7 +287,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION,
                              "modules": ["sync", "cut", "switch", "captions",
-                                         "intro", "shorts"],
+                                         "intro", "shorts", "matn"],
                              "whisper": bool(find_whisper()),
                              "panel_build": panel_build(),
                              # qaysi model tayyor — panel yuklab olish
@@ -295,6 +298,13 @@ class Handler(BaseHTTPRequestHandler):
             q = parse_qs(urlparse(self.path).query).get("q", [""])[0]
             try:
                 self._send(200, {"hits": search_archive(q)})
+            except Exception as e:
+                self._send(500, {"error": str(e)})
+        elif self.path == "/shriftlar":
+            # Panelda shrift tanlash uchun. ffmpeg'da fontconfig yo'q,
+            # shuning uchun ro'yxatni motor fayl tizimidan o'zi yig'adi.
+            try:
+                self._send(200, {"shriftlar": shriftlar()})
             except Exception as e:
                 self._send(500, {"error": str(e)})
         elif self.path == "/progress":
@@ -331,6 +341,60 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, "path": path})
             except Exception as e:
                 return self._send(500, {"error": str(e)})
+
+        if self.path == "/matn-oldin":
+            # Panelda «shunday ko'rinadi» rasmi. Kichraytirilgan PNG base64
+            # bo'lib qaytadi: UXP panelga fayl yo'li bilan rasm ko'rsatish
+            # ishonchsiz, data-URI esa har doim ishlaydi.
+            try:
+                import base64
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                w = int(req.get("width") or 1080)
+                h = int(req.get("height") or 1920)
+                # Ko'rish uchun 540 px kenglik yetarli (uslub aynan saqlanadi)
+                k = 540.0 / max(w, 1)
+                pw, ph = max(2, int(w * k) // 2 * 2), max(2, int(h * k) // 2 * 2)
+                os.makedirs(RESULTS_DIR, exist_ok=True)
+                png = os.path.abspath(os.path.join(RESULTS_DIR, "_matn-oldin.png"))
+                oldin_korish(req.get("matn") or "", png, pw, ph,
+                             uslub=req.get("uslub") or {},
+                             kadr=req.get("kadr"))
+                with open(png, "rb") as fh:
+                    data = base64.b64encode(fh.read()).decode("ascii")
+                return self._send(200, {"png": "data:image/png;base64," + data,
+                                        "width": pw, "height": ph})
+            except Exception as e:
+                return self._send(400, {"error": str(e)})
+
+        if self.path == "/matn":
+            # Matnlarni render qilib, timeline'ga qo'yadigan XML yozadi.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                bloklar = req.get("bloklar") or []
+                if not bloklar:
+                    return self._send(400, {"error": "Bironta matn yozilmagan"})
+                logs = []
+                progress_start("Matn")
+                record = lambda m: (logs.append(m), progress_note(m), print(m))
+                output = req.get("output") or default_output(None, "Matn")
+                result = run_matn(
+                    bloklar, output=output,
+                    name=req.get("name") or "Podcast Suite — Matn",
+                    width=int(req.get("width") or 1920),
+                    height=int(req.get("height") or 1080),
+                    fps=float(req.get("fps") or 25.0),
+                    uslub=req.get("uslub") or {},
+                    fallback=RESULTS_DIR, log=record, progress=progress_update)
+                result["logs"] = logs
+                return self._send(200, result)
+            except RuntimeError as e:
+                return self._send(400, {"error": str(e)})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+            finally:
+                PROGRESS["busy"] = False
 
         if self.path in ("/intro-yasash", "/shorts-yasash"):
             # Ikkinchi bosqich: tanlangan lahzalardan sequence. Qayta tahlil

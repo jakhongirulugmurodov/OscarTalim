@@ -384,6 +384,64 @@
   .knobs .tip b { color: #8FD0E8; }
   body.tab-cut .tab.on { border-bottom-color: #E5A44A; }
   body.tab-cut .btn.primary { background-color: #E5A44A; border-color: #E5A44A; color: #2A1B04; }
+  /* ---------------------------------------------------------- Matn tabi */
+  #matnPanel { display: none; }
+  body.tab-matn #matnPanel { display: block; }
+  /* Matn tabida fayl tanlash va sequence o'qish kerak emas: o'lcham va
+     playhead vaqti to'g'ridan-to'g'ri ochiq sequence'dan olinadi. */
+  body.tab-matn #pick, body.tab-matn .files, body.tab-matn .seqpick { display: none; }
+  body:not(.tab-matn) #matnBtn { display: none; }
+  body.tab-matn #syncBtn, body.tab-matn #cutBtn, body.tab-matn #switchBtn,
+  body.tab-matn #capBtn, body.tab-matn #sampleBtn, body.tab-matn #introBtn,
+  body.tab-matn #buildBtn, body.tab-matn #reviewBtn,
+  body.tab-matn #shortsBtn, body.tab-matn #shortsBuildBtn { display: none; }
+  body.tab-matn .tab.on { border-bottom-color: #A78BFA; }
+  body.tab-matn .btn.primary {
+    background-color: #A78BFA; border-color: #A78BFA; color: #1E1533;
+  }
+  body.tab-matn .job-fill, body.tab-matn .job-dot,
+  body.tab-matn .job-pulse i.hi { background-color: #A78BFA; }
+  .mrow {
+    display: flex; gap: 7px; align-items: flex-start; margin-bottom: 7px;
+    background-color: #26272D; border: 1px solid #35363E;
+    border-radius: 8px; padding: 8px;
+  }
+  .mrow textarea {
+    flex: 1; min-width: 0; min-height: 46px; resize: vertical;
+    background-color: #1E1F24; color: #E9EAEF; font-size: 12.5px;
+    border: 1px solid #45464F; border-radius: 6px; padding: 6px 8px;
+    font-family: inherit; line-height: 1.35;
+  }
+  .mrow .mtimes { display: flex; flex-direction: column; gap: 5px; width: 96px; }
+  .mrow input[type="text"] {
+    width: 100%; background-color: #1E1F24; color: #E9EAEF; font-size: 12px;
+    border: 1px solid #45464F; border-radius: 6px; padding: 5px 7px;
+  }
+  .mrow .mbtns { display: flex; flex-direction: column; gap: 5px; }
+  .mini {
+    font-size: 11px; padding: 4px 7px; border-radius: 5px; text-align: center;
+    background-color: #2F3038; border: 1px solid #45464F; color: #C9CAD2;
+    white-space: nowrap;
+  }
+  .mini.rm { color: #E8908F; }
+  .mlbl { font-size: 10.5px; color: #8E909C; margin-bottom: -2px; }
+  #matnPreview {
+    display: block; max-width: 100%; margin: 0 auto 10px;
+    border-radius: 8px; border: 1px solid #35363E; max-height: 260px;
+  }
+  .prevbox { text-align: center; margin-bottom: 10px; }
+  .prevbox .hintline { color: #8E909C; font-size: 11.5px; }
+  .mstyle { display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 10px; }
+  .mstyle select, .mstyle input[type="text"] {
+    background-color: #2A2B31; color: #E9EAEF; font-size: 12px;
+    border: 1px solid #45464F; border-radius: 6px; padding: 5px 8px;
+  }
+  .mstyle select { max-width: 168px; }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 5px; border: 1px solid #55565F;
+  }
+  .swatch.on { border-color: #E9EAEF; border-width: 2px; }
 </style>
 </head>
 <body>
@@ -394,6 +452,7 @@
     <div class="tab" data-tab="intro">Intro</div>
     <div class="tab" data-tab="captions">Captions</div>
     <div class="tab" data-tab="shorts">Shorts</div>
+    <div class="tab" data-tab="matn">Matn</div>
   </div>
 
   <div class="body">
@@ -538,6 +597,47 @@
       <div class="moments" id="shortsList"></div>
     </div>
 
+    <div id="matnPanel">
+      <div class="prevbox">
+        <img id="matnPreview" alt="">
+        <span class="hintline" id="matnPrevHint">Matn yozing — shu yerda
+          aynan qanday chiqishi ko'rinadi</span>
+      </div>
+
+      <div class="mstyle">
+        <select id="mFont" title="Shrift"></select>
+        <select id="mSize" title="O'lcham">
+          <option value="44">Kichik</option>
+          <option value="58" selected>O'rtacha</option>
+          <option value="74">Katta</option>
+          <option value="92">Juda katta</option>
+        </select>
+        <select id="mPos" title="Joylashuv">
+          <option value="past" selected>Pastda</option>
+          <option value="orta">O'rtada</option>
+          <option value="tepa">Tepada</option>
+        </select>
+        <span class="pick on" id="mBold" style="flex:0 0 auto;padding:5px 10px">Qalin</span>
+        <span class="swatch on" data-c="#FFFFFF" style="background:#FFFFFF"></span>
+        <span class="swatch" data-c="#FFD24A" style="background:#FFD24A"></span>
+        <span class="swatch" data-c="#8FD0E8" style="background:#8FD0E8"></span>
+        <span class="swatch" data-c="#111111" style="background:#111111"></span>
+      </div>
+
+      <div id="matnList"></div>
+      <div class="seqpick" id="matnAdd" style="display:block;text-align:center">
+        <b>+ Matn qo'shish</b>
+        <span>vaqtini timeline'dagi playhead'dan olsa bo'ladi</span>
+      </div>
+
+      <p class="tip">Animatsiya ataylab <b>sezilmaydigan</b> qilingan: matn
+      pastdan 28 piksel ko'tarilib, sekinlashib to'xtaydi va ochiladi
+      (0,55 s). Sakrash, kattalashish, so'z-ma-so'z chiqish yo'q — tomoshabin
+      matnning paydo bo'lganini sezmaydi.<br>
+      O'lcham va kadr chastotasi <b>ochiq sequence'dan</b> olinadi, shuning
+      uchun reels ham, YouTube ham o'zi to'g'ri chiqadi.</p>
+    </div>
+
     <div class="knobs" id="switchKnobs">
       <label>Eng qisqa kadr
         <input type="range" id="kMinShot" min="10" max="80" value="25">
@@ -570,6 +670,7 @@
     <button class="btn" id="buildBtn" disabled>Intro yasash</button>
     <button class="btn primary" id="sampleBtn" disabled>2 daqiqani sinash</button>
     <button class="btn primary" id="capBtn" disabled>To'liq transkripsiya</button>
+    <button class="btn primary" id="matnBtn">Matnlarni yasash</button>
     <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
     <span class="hint" id="hint">0 fayl</span>
   </div>
