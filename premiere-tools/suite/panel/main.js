@@ -46,6 +46,9 @@ const els = {
   jobEta: el("jobEta"),
   capSearch: el("capSearch"),
   capSearchBtn: el("capSearchBtn"),
+  introBtn: el("introBtn"),
+  buildBtn: el("buildBtn"),
+  moments: el("moments"),
   seqBtn: el("seqBtn"),
   seqTitle: el("seqTitle"),
   seqHint: el("seqHint"),
@@ -297,6 +300,12 @@ const TAB_TEXT = {
     seqHint: "sinxronlangan timeline'dan kameralar olinadi",
     next: "Endi kameralarga vazifa bering va «Kameralarni taqsimlash» ni bosing",
   },
+  intro: {
+    pick: "yozuvlar yoki ochiq sequence",
+    seqTitle: "Ochiq sequence'dan lahzalarni izlash",
+    seqHint: "montajingiz bo'yicha qidiriladi — markerlaringiz ham hisobga olinadi",
+    next: "Endi «Lahzalarni topish» ni bosing",
+  },
   captions: {
     pick: "ovozi yaxshi yozilgan fayl (1 ta yetadi)",
     seqTitle: "Ochiq sequence'dan ovozni olish",
@@ -322,6 +331,9 @@ function setupTabs() {
       document.body.className = "tab-" + activeTab;
       lastXml = null;
       timeline = null;
+      moments = [];
+      arrangement = null;
+      if (els.moments) els.moments.innerHTML = "";
       els.importBtn.disabled = true;
       els.log.innerHTML = "";
       els.log.classList.remove("show");
@@ -358,6 +370,18 @@ function setupKnobs() {
 /* ------------------------------------------------- Captions sozlamalari */
 
 const capOpts = { language: "uz", model: "balans" };
+
+function setupIntroPills() {
+  const box = document.getElementById("introLimit");
+  if (!box) return;
+  box.querySelectorAll(".opill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      box.querySelectorAll(".opill").forEach((x) => x.classList.remove("on"));
+      pill.classList.add("on");
+      introLimit = +pill.dataset.v;
+    });
+  });
+}
 
 function setupCaptionPills() {
   [["capLang", "language"], ["capModel", "model"]].forEach(([id, key]) => {
@@ -553,6 +577,186 @@ async function readSequence() {
     logLine("Sequence o'qilmadi (" + step + "): " + e.message, "warn");
     logLine("Fayllarni qo'lda tanlashingiz mumkin — natija bir xil bo'ladi");
   }
+}
+
+
+/* ------------------------------------------------------- Intro: nomzodlar
+ *
+ * Modul hech qachon o'zi tanlab intro yasamaydi: mashina nomzod topadi,
+ * did — foydalanuvchida. Shu sababli ro'yxat belgilanadigan qilib berilgan
+ * va tanlanmagan nomzod XML'ga tushmaydi. */
+let moments = [];        // motordan kelgan nomzodlar
+let arrangement = null;  // kliplarning timeline'dagi joylashuvi (2-bosqich uchun)
+let introLimit = 18;
+
+function tc(sec) {
+  const s = Math.max(0, Math.round(sec));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return (h ? h + ":" + String(m).padStart(2, "0") : String(m)) +
+         ":" + String(s % 60).padStart(2, "0");
+}
+
+function renderMoments() {
+  els.moments.innerHTML = "";
+  for (const m of moments) {
+    const row = document.createElement("div");
+    row.className = "mom " + (m.on ? "on" : "off");
+
+    const box = document.createElement("span");
+    box.className = "box";
+    box.textContent = m.on ? "✓" : "";
+    row.appendChild(box);
+
+    const mid = document.createElement("div");
+    mid.className = "mid";
+    const top = document.createElement("div");
+    top.className = "top";
+    const t = document.createElement("span");
+    t.className = "tc";
+    t.textContent = tc(m.start);
+    const k = document.createElement("span");
+    k.className = "kind " + (m.kind || "");
+    k.textContent = m.kind || "lahza";
+    const len = document.createElement("span");
+    len.className = "len";
+    len.textContent = m.length.toFixed(1) + "s";
+    top.appendChild(t); top.appendChild(k); top.appendChild(len);
+    mid.appendChild(top);
+
+    if (m.text) {
+      const tx = document.createElement("div");
+      tx.className = "txt";
+      tx.textContent = "«" + m.text + "»";
+      mid.appendChild(tx);
+    }
+    const why = document.createElement("div");
+    why.className = "why";
+    why.textContent = m.why + (m.text ? "" : " · matn yo'q");
+    mid.appendChild(why);
+    row.appendChild(mid);
+
+    row.addEventListener("click", () => { m.on = !m.on; renderMoments(); });
+    row.addEventListener("dblclick", () => goToTime(m.start));
+    els.moments.appendChild(row);
+  }
+  const on = moments.filter((m) => m.on);
+  const total = on.reduce((a, m) => a + m.length, 0);
+  els.buildBtn.disabled = !on.length;
+  els.buildBtn.textContent = on.length
+    ? "Intro yasash (" + on.length + " · " + Math.round(total) + "s)"
+    : "Intro yasash";
+  if (moments.length) {
+    els.hint.textContent = moments.length + " nomzod · " + on.length + " tanlangan";
+  }
+}
+
+/* Premiere playhead'ini shu joyga olib boradi — nomzodni ko'rish uchun */
+async function goToTime(sec) {
+  try {
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    const seq = project && (await project.getActiveSequence());
+    if (!seq) throw new Error("ochiq sequence yo'q");
+    const tt = ppro.TickTime.createWithSeconds
+      ? ppro.TickTime.createWithSeconds(sec)
+      : ppro.TickTime.createWithSeconds;
+    await seq.setPlayerPosition(tt);
+  } catch (e) {
+    logLine("Playhead'ni ko'chirib bo'lmadi (" + (e.message || e) + ") — "
+            + "vaqtni qo'lda kiriting: " + tc(sec), "warn");
+  }
+}
+
+/* Timeline'dagi markerlar — mashina taxmin qilmaydi, siz aytgansiz.
+ * API versiyalari farq qiladi, shuning uchun topilmasa jimgina o'tamiz. */
+async function readMarkers() {
+  try {
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    const seq = project && (await project.getActiveSequence());
+    if (!seq) return [];
+    let list = null;
+    if (ppro.Markers && ppro.Markers.getMarkers) {
+      list = await ppro.Markers.getMarkers(seq);
+    } else if (seq.getMarkers) {
+      list = await seq.getMarkers();
+    }
+    if (!list || !list.length) return [];
+    const out = [];
+    for (const mk of list) {
+      const t = mk.start !== undefined ? mk.start
+              : mk.getStart ? await mk.getStart() : null;
+      if (t != null) out.push({ start: secs(t) });
+    }
+    return out;
+  } catch (e) {
+    return [];
+  }
+}
+
+async function findMoments() {
+  if (!(await checkMotor())) return;
+  moments = [];
+  arrangement = null;
+  renderMoments();
+  els.log.innerHTML = "";
+  els.introBtn.disabled = true;
+  startProgress("Lahzalar qidirilmoqda…");
+  const markers = await readMarkers();
+  if (markers.length) logLine(markers.length + " ta marker topildi — ular birinchi navbatda");
+  try {
+    const body = { limit: introLimit, markers: markers };
+    if (timeline) body.timeline = timeline;
+    body.files = picked.map((p) => p.path);
+    const r = await fetch(MOTOR + "/intro", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const line of (j.logs || []).slice(shownLogs)) logLine(line);
+    moments = (j.moments || []).map((m, i) => ({ ...m, on: m.rank <= 5 }));
+    arrangement = j.arrangement;
+    renderMoments();
+    logLine(moments.length + " nomzod topildi — kerakligini belgilab, "
+            + "«Intro yasash» ni bosing", "okline");
+    if (!j.has_text) {
+      logLine("Transkript bo'lmagani uchun gaplar ko'rinmaydi. Captions'da "
+              + "transkripsiya qilsangiz, tanlash ancha oson bo'ladi.", "warn");
+    }
+    stopProgress(true, moments.length + " nomzod");
+  } catch (e) {
+    logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+  els.introBtn.disabled = picked.length < 1;
+}
+
+async function buildIntro() {
+  const chosen = moments.filter((m) => m.on);
+  if (!chosen.length || !arrangement) return;
+  els.log.innerHTML = "";
+  els.buildBtn.disabled = true;
+  startProgress("Intro yig'ilmoqda…");
+  try {
+    const r = await fetch(MOTOR + "/intro-yasash", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ arrangement: arrangement, moments: chosen }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const line of (j.logs || []).slice(shownLogs)) logLine(line);
+    lastXml = j.output;
+    logLine(j.moments + " lahza · " + Math.round(j.length_sec) + "s intro tayyor ✓",
+            "okline");
+    logLine("Fayl: " + j.output);
+    els.importBtn.disabled = false;
+    stopProgress(true, Math.round(j.length_sec) + "s intro");
+  } catch (e) {
+    logLine("Xato: " + e.message, "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+  renderMoments();
 }
 
 /* ---------------------------------------------------- sinxronlash */
@@ -843,6 +1047,7 @@ function updateRunButtons() {
   els.syncBtn.disabled = picked.length < 2;
   els.cutBtn.disabled = picked.length < 1;
   els.switchBtn.disabled = picked.length < 2;
+  els.introBtn.disabled = picked.length < 1;
   els.capBtn.disabled = picked.length < 1 || !whisperReady;
   els.sampleBtn.disabled = picked.length < 1 || !whisperReady;
 }
@@ -900,6 +1105,8 @@ on(els.cutBtn, function () { run("cut"); });
 on(els.switchBtn, function () { run("switch"); });
 on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
+on(els.introBtn, findMoments);
+on(els.buildBtn, buildIntro);
 on(els.capSearchBtn, searchArchive);
 on(els.seqBtn, readSequence);
 on(els.importBtn, doImport);
@@ -907,6 +1114,7 @@ on(els.importBtn, doImport);
 setupTabs();
 setupKnobs();
 setupCaptionPills();
+setupIntroPills();
 document.body.className = "tab-sync";
 applyTabText();
 checkMotor().then(function (ok) { if (ok) checkUpdates(); });

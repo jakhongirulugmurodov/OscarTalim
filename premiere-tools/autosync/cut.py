@@ -18,9 +18,8 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from autosync import (ENV_RATE, build_xml, extract_envelope, ffprobe,
-                      find_offset, fps_to_timebase, sub_progress, write_xml,
-                      MIN_CONFIDENCE)
+from autosync import (ENV_RATE, build_xml, cut_to_segments, fps_to_timebase,
+                      prepare_clips, timeline_length, write_xml)
 
 # Standart sozlamalar — panel ularni o'zgartira oladi
 DEFAULT_THRESHOLD = 0.18   # jimlik chegarasi (0..1, normallashtirilgan energiya)
@@ -114,63 +113,9 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
 
     say = progress or (lambda **k: None)
     log("Fayllar tahlil qilinmoqda...")
-    clips = []
-    for i, f in enumerate(files):
-        say(stage="Ovoz tahlil qilinmoqda", percent=i / len(files) * 100,
-            detail=f"{i + 1}/{len(files)}: {os.path.basename(f)}")
-        info = ffprobe(f)
-        if not info["has_audio"]:
-            log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazildi")
-            continue
-        info["envelope"] = extract_envelope(
-            f, info["duration"], progress=sub_progress(say, i, len(files)))
-        clips.append(info)
-        log(f"  {info['name']}: {info['duration']:.1f}s")
-    say(percent=100)
+    clips = prepare_clips(files, timeline, log=log, progress=say)
 
-    if not clips:
-        raise RuntimeError("Audioli fayl topilmadi.")
-
-    if from_timeline:
-        # Sequence'dagi joylashuvni o'z holicha olamiz
-        by_path = {c["path"]: c for c in clips}
-        for c in clips:
-            c["placements"] = []
-            c["confidence"], c["reliable"] = None, True
-        for item in timeline:
-            clip = by_path.get(item["path"])
-            if clip:
-                clip["placements"].append(
-                    {"start": float(item["start"]), "in": float(item["in"]),
-                     "out": float(item["out"])})
-        clips = [c for c in clips if c["placements"]]
-        for c in clips:
-            c["rel_offset"] = min(p["start"] - p["in"] for p in c["placements"])
-        log(f"Sequence'dan {sum(len(c['placements']) for c in clips)} ta klip olindi")
-    else:
-        # --- Sinxronlash (bitta fayl bo'lsa — shart emas) ---
-        ref = max(clips, key=lambda c: len(c["envelope"]))
-        for clip in clips:
-            if clip is ref or len(clips) == 1:
-                clip["offset_sec"] = 0.0
-                clip["confidence"], clip["reliable"] = None, True
-                continue
-            offset, conf = find_offset(ref["envelope"], clip["envelope"])
-            clip["confidence"] = conf
-            clip["reliable"] = conf >= MIN_CONFIDENCE
-            clip["offset_sec"] = offset if clip["reliable"] else 0.0
-            if not clip["reliable"]:
-                log(f"  OGOHLANTIRISH: {clip['name']} — mos joy topilmadi "
-                    f"(ishonch {conf:.1f}x), boshiga qo'yildi")
-
-        base = min(c["offset_sec"] for c in clips)
-        for clip in clips:
-            clip["rel_offset"] = clip["offset_sec"] - base
-            clip["placements"] = [{"start": clip["rel_offset"], "in": 0.0,
-                                   "out": clip["duration"]}]
-
-    total_sec = max(p["start"] + (p["out"] - p["in"])
-                    for c in clips for p in c["placements"])
+    total_sec = timeline_length(clips)
     total_bins = int(round(total_sec * ENV_RATE)) + 1
 
     # --- 2. Pauzalarni topish ---
@@ -198,36 +143,7 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     # Butun hisob freymlarda ketadi: soniyalarni har bo'lakda alohida
     # yumaloqlash kesiklar orasida bir freymli bo'shliq/ustma-ustlik
     # qoldiradi, Premiere esa bunday sequence'ni buzuq deb qabul qiladi.
-    keeps_f, cursor_f = [], 0
-    for a, b in keeps:
-        a_f, b_f = int(round(a * fps)), int(round(b * fps))
-        if b_f > a_f:
-            keeps_f.append((a_f, b_f, cursor_f))
-            cursor_f += b_f - a_f
-
-    for clip in clips:
-        clip["dur_frames"] = int(round(clip["duration"] * fps))
-        clip["start_frame"] = int(round(clip["rel_offset"] * fps))
-        clip["segments"] = []
-        for place in clip["placements"]:
-            p_start = int(round(place["start"] * fps))
-            p_in = int(round(place["in"] * fps))
-            p_out = int(round(place["out"] * fps))
-            for a_f, b_f, tl_f in keeps_f:
-                # bo'lakning shu joylashuvga tegishli qismi
-                clip_a = max(a_f, p_start)
-                clip_b = min(b_f, p_start + (p_out - p_in))
-                if clip_b > clip_a:
-                    src_in = p_in + (clip_a - p_start)
-                    clip["segments"].append({
-                        "start": tl_f + (clip_a - a_f),
-                        "in": src_in,
-                        "out": src_in + (clip_b - clip_a),
-                    })
-        if not clip["segments"]:
-            log(f"  {clip['name']}: butunlay kesildi — o'tkazib yuborildi")
-
-    clips = [c for c in clips if c["segments"]]
+    clips = cut_to_segments(clips, keeps, fps, log)
     if not clips:
         raise RuntimeError("Kesishdan keyin klip qolmadi.")
 

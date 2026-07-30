@@ -2,8 +2,12 @@ PODCAST SUITE v0.1 — O'RNATISH (3 QADAM)
 =========================================
 
 Bu paketda Premiere Pro uchun Podcast Suite plugini bor.
-1-modul (Sync) ishlaydi: kamera va rekorder fayllarini
-audio orqali avtomatik sinxronlaydi.
+Ishlayotgan modullar:
+  Sync     — kamera va rekorder fayllarini audio orqali sinxronlaydi
+  Cut      — hamma jim bo'lgan pauzalarni kesadi
+  Switch   — kameralarni kim gapirayotganiga qarab almashtiradi
+  Captions — nutqni matnga aylantiradi (oflayn, internetsiz)
+  Intro    — eng kuchli lahzalarni topib, boshiga intro yig'adi
 
 TALAB: Premiere Pro 25.6 yoki yangiroq (2026 versiyasi).
 

@@ -33,6 +33,7 @@ from cut import run_cut
 from switch import run_switch
 from captions import (run_captions, search_archive, find_whisper,
                       have_model, MODELS)
+from intro import run_intro, build_intro
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -69,6 +70,10 @@ JOB_STEPS = {
     "Cut":      [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 70},
                  {"label": "Pauzalar qidirilmoqda", "short": "Pauzalar", "weight": 25},
                  {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 5}],
+    "Intro":    [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 75},
+                 {"label": "Lahzalar qidirilmoqda", "short": "Lahzalar", "weight": 25}],
+    "IntroYasash": [{"label": "Fayllar o'qilmoqda", "short": "Fayllar", "weight": 40},
+                    {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 60}],
     "Switch":   [{"label": "Ovoz tahlil qilinmoqda", "short": "Tahlil", "weight": 65},
                  {"label": "Kadrlar rejalanmoqda", "short": "Kadrlar", "weight": 30},
                  {"label": "Timeline yozilmoqda", "short": "Timeline", "weight": 5}],
@@ -254,7 +259,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION,
-                             "modules": ["sync", "cut", "switch", "captions"],
+                             "modules": ["sync", "cut", "switch", "captions",
+                                         "intro"],
                              "whisper": bool(find_whisper()),
                              # qaysi model tayyor — panel yuklab olish
                              "models": {k: have_model(k) for k in MODELS},
@@ -285,7 +291,35 @@ class Handler(BaseHTTPRequestHandler):
                 # (DOIMIY-ORNATISH.command o'rnatgan) motorni o'zi ko'taradi.
                 threading.Timer(0.5, lambda: os._exit(0)).start()
             return
-        if self.path not in ("/sync", "/cut", "/switch", "/captions"):
+        if self.path == "/intro-yasash":
+            # Ikkinchi bosqich: tanlangan lahzalardan sequence. Qayta tahlil
+            # qilinmaydi — birinchi bosqichdagi joylashuv ishlatiladi.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                moments = req.get("moments") or []
+                arrangement = req.get("arrangement") or []
+                if not moments or not arrangement:
+                    return self._send(400, {"error": "Lahzalar tanlanmagan"})
+                logs = []
+                progress_start("IntroYasash")
+                record = lambda m: (logs.append(m), progress_note(m), print(m))
+                paths = [a["path"] for a in arrangement]
+                output = req.get("output") or default_output(paths, "Intro")
+                result = build_intro(
+                    arrangement, moments, output=output,
+                    name=req.get("name") or "Podcast Suite — Intro",
+                    fallback=RESULTS_DIR, log=record, progress=progress_update)
+                result["logs"] = logs
+                return self._send(200, result)
+            except RuntimeError as e:
+                return self._send(400, {"error": str(e)})
+            except Exception as e:
+                return self._send(500, {"error": f"Kutilmagan xato: {e}"})
+            finally:
+                PROGRESS["busy"] = False
+
+        if self.path not in ("/sync", "/cut", "/switch", "/captions", "/intro"):
             return self._send(404, {"error": "Bunday endpoint yo'q"})
         try:
             length = int(self.headers.get("Content-Length", 0))
@@ -293,10 +327,11 @@ class Handler(BaseHTTPRequestHandler):
 
             files = req.get("files") or []
             seq_timeline = (req.get("timeline")
-                            if self.path in ("/cut", "/switch") else None)
+                            if self.path in ("/cut", "/switch", "/intro")
+                            else None)
             if seq_timeline:
                 files = list(dict.fromkeys(c["path"] for c in seq_timeline))
-            least = 1 if self.path in ("/cut", "/captions") else 2
+            least = 1 if self.path in ("/cut", "/captions", "/intro") else 2
             if len(files) < least:
                 return self._send(400, {"error": f"Kamida {least} ta fayl kerak"})
             missing = [f for f in files if not os.path.isfile(f)]
@@ -304,14 +339,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": f"Fayl topilmadi: {missing[0]}"})
 
             kind = {"/cut": "Cut", "/switch": "Switch",
-                    "/captions": "Captions"}.get(self.path, "Sync")
+                    "/captions": "Captions", "/intro": "Intro"}.get(
+                        self.path, "Sync")
             output = req.get("output") or default_output(files, kind)
             logs = []
             progress_start(kind)
             record = lambda m: (logs.append(m), progress_note(m), print(m))
             step = progress_update
 
-            if self.path == "/captions":
+            if self.path == "/intro":
+                result = run_intro(
+                    files, timeline=seq_timeline,
+                    markers=req.get("markers"),
+                    limit=int(req.get("limit", 18)),
+                    log=record, progress=step)
+            elif self.path == "/captions":
                 # Sequence berilgan bo'lsa — shu bitta ovoz manbasining
                 # montajda ishlatilgan bo'laklarini ajratamiz.
                 spans = [{"start": c["start"], "in": c["in"], "out": c["out"]}

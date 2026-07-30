@@ -405,6 +405,119 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
 
 # --------------------------------------------------------------------- main
 
+# ------------------------------------------- kliplarni timeline'ga joylash
+#
+# Cut, Switch va Intro uchun bir xil ish: fayllarni o'qib, ularni umumiy
+# timeline'ga joylashtirish. Ikki yo'l bor — Premiere'dagi tayyor sequence
+# bo'yicha, yoki fayllarni o'zaro sinxronlab. Kod bir joyda turishi kerak:
+# aks holda bitta modulda tuzatilgan xato boshqasida qolib ketadi.
+
+def prepare_clips(files, timeline=None, log=print, progress=None):
+    """Fayllar -> envelope + timeline'dagi joylashuv.
+
+    Qaytadi: clips ro'yxati. Har birida `placements` bor:
+    [{"start": timeline'dagi joyi, "in": fayl ichidagi boshi, "out": oxiri}].
+    """
+    say = progress or (lambda **k: None)
+    clips = []
+    for i, f in enumerate(files):
+        say(stage="Ovoz tahlil qilinmoqda", percent=i / max(len(files), 1) * 100,
+            detail=f"{i + 1}/{len(files)}: {os.path.basename(f)}")
+        info = ffprobe(f)
+        if not info["has_audio"]:
+            log(f"  OGOHLANTIRISH: {info['name']} da audio yo'q — o'tkazildi")
+            continue
+        info["envelope"] = extract_envelope(
+            f, info["duration"], progress=sub_progress(say, i, len(files)))
+        clips.append(info)
+        log(f"  {info['name']}: {info['duration']:.1f}s")
+    say(percent=100)
+    if not clips:
+        raise RuntimeError("Audioli fayl topilmadi.")
+
+    if timeline:
+        by_path = {c["path"]: c for c in clips}
+        for c in clips:
+            c["placements"] = []
+            c["confidence"], c["reliable"] = None, True
+        for item in timeline:
+            clip = by_path.get(item["path"])
+            if clip:
+                clip["placements"].append(
+                    {"start": float(item["start"]), "in": float(item["in"]),
+                     "out": float(item["out"])})
+        clips = [c for c in clips if c["placements"]]
+        for c in clips:
+            c["rel_offset"] = min(p["start"] - p["in"] for p in c["placements"])
+        log(f"Sequence'dan {sum(len(c['placements']) for c in clips)} ta klip olindi")
+        return clips
+
+    say(stage="Sinxron hisoblanmoqda", percent=0)
+    ref = max(clips, key=lambda c: len(c["envelope"]))
+    for i, clip in enumerate(clips):
+        say(percent=i / len(clips) * 100)
+        if clip is ref or len(clips) == 1:
+            clip["offset_sec"] = 0.0
+            clip["confidence"], clip["reliable"] = None, True
+            continue
+        offset, conf = find_offset(ref["envelope"], clip["envelope"])
+        clip["confidence"] = conf
+        clip["reliable"] = conf >= MIN_CONFIDENCE
+        clip["offset_sec"] = offset if clip["reliable"] else 0.0
+        if not clip["reliable"]:
+            log(f"  OGOHLANTIRISH: {clip['name']} — mos joy topilmadi "
+                f"(ishonch {conf:.1f}x), boshiga qo'yildi")
+    base = min(c["offset_sec"] for c in clips)
+    for clip in clips:
+        clip["rel_offset"] = clip["offset_sec"] - base
+        clip["placements"] = [{"start": clip["rel_offset"], "in": 0.0,
+                               "out": clip["duration"]}]
+    return clips
+
+
+def timeline_length(clips):
+    """Joylashtirilgan kliplarning umumiy uzunligi (soniya)."""
+    return max(p["start"] + (p["out"] - p["in"])
+               for c in clips for p in c["placements"])
+
+
+def cut_to_segments(clips, keeps, fps, log=print):
+    """Saqlanadigan (boshi, oxiri) oraliqlarni klip segmentlariga aylantiradi.
+
+    Butun hisob freymlarda ketadi: soniyalarni har bo'lakda alohida
+    yumaloqlash kesiklar orasida bir freymli bo'shliq yoki ustma-ustlik
+    qoldiradi, Premiere esa bunday sequence'ni buzuq deb qabul qiladi.
+    """
+    keeps_f, cursor_f = [], 0
+    for a, b in keeps:
+        a_f, b_f = int(round(a * fps)), int(round(b * fps))
+        if b_f > a_f:
+            keeps_f.append((a_f, b_f, cursor_f))
+            cursor_f += b_f - a_f
+
+    for clip in clips:
+        clip["dur_frames"] = int(round(clip["duration"] * fps))
+        clip["start_frame"] = int(round(clip["rel_offset"] * fps))
+        clip["segments"] = []
+        for place in clip["placements"]:
+            p_start = int(round(place["start"] * fps))
+            p_in = int(round(place["in"] * fps))
+            p_out = int(round(place["out"] * fps))
+            for a_f, b_f, tl_f in keeps_f:
+                clip_a = max(a_f, p_start)
+                clip_b = min(b_f, p_start + (p_out - p_in))
+                if clip_b > clip_a:
+                    src_in = p_in + (clip_a - p_start)
+                    clip["segments"].append({
+                        "start": tl_f + (clip_a - a_f),
+                        "in": src_in,
+                        "out": src_in + (clip_b - clip_a),
+                    })
+        if not clip["segments"]:
+            log(f"  {clip['name']}: bu bo'laklarda ishlatilmadi")
+    return [c for c in clips if c["segments"]]
+
+
 def run_sync(files, output="synced.xml", name="AutoSync Sequence",
              minutes=None, fallback=None, log=print, progress=None):
     """To'liq sinxronlash oqimi: tahlil -> siljishlar -> XML.

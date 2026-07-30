@@ -106,7 +106,10 @@ whisper_qur() {    # $1 — cmake yo'li
   # libwhisper.dylib va ggml kutubxonalarini qurilish papkasida qoldiradi,
   # biz esa o'sha papkani o'chiramiz va dastur ishga tushmay qoladi.
   local FLAGS=""
-  for FLAGS in "" "-DGGML_METAL=OFF"; do
+  # Uchta urinish: Metal bilan; Metal'siz; ikkovi ham bo'lmasa — protsessor
+  # imkoniyatlarini avtomatik tanlashni ham o'chirib (ba'zi mashinada qurilgan
+  # dastur boshqa mashinada «illegal instruction» bilan yiqiladi).
+  for FLAGS in "" "-DGGML_METAL=OFF" "-DGGML_METAL=OFF -DGGML_NATIVE=OFF"; do
     rm -rf "$SUITE/whisper-src/build"
     if "$CM" -S "$SUITE/whisper-src" -B "$SUITE/whisper-src/build" \
              -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
@@ -120,7 +123,10 @@ whisper_qur() {    # $1 — cmake yo'li
       # Manbani o'chirishdan oldin tekshiramiz: dastur yakka o'zi ishlaydimi
       rm -rf "$SUITE/whisper-src"
       if "$SUITE/bin/whisper-cli" --help >/dev/null 2>&1; then
-        [ -n "$FLAGS" ] && echo "  (Metal ishlamadi — protsessor rejimida qurildi)"
+        case "$FLAGS" in
+          *NATIVE*) echo "  (ehtiyot rejimida qurildi — sekinroq, lekin ishonchli)" ;;
+          *METAL*)  echo "  (Metal ishlamadi — protsessor rejimida qurildi)" ;;
+        esac
         return 0
       fi
       echo "  [XATO] qurilgan dastur ishga tushmadi — qayta urinilmoqda" \
