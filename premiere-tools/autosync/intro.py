@@ -377,9 +377,15 @@ def run_intro(files, timeline=None, markers=None, limit=18, log=print,
 
 
 def build_intro(arrangement, moments, output="intro.xml",
-                name="Podcast Suite — Intro", fallback=None, log=print,
-                progress=None):
-    """Tanlangan lahzalardan sequence yasaydi (qayta tahlil qilmaydi)."""
+                name="Podcast Suite — Intro", review=False, fallback=None,
+                log=print, progress=None):
+    """Tanlangan lahzalardan sequence yasaydi (qayta tahlil qilmaydi).
+
+    `review=True` — «ko'rib chiqish» rejimi: hamma nomzod ketma-ket teriladi
+    va har biri marker bilan raqamlanadi. 50 daqiqalik timeline'ni titkilash
+    o'rniga ikki daqiqada hammasini eshitib, keyin panelda belgilash mumkin.
+    Transkript yo'q bo'lganda bu yagona tez yo'l.
+    """
     say = progress or (lambda **k: None)
     if not moments:
         raise RuntimeError("Hech qanday lahza tanlanmagan.")
@@ -407,7 +413,21 @@ def build_intro(arrangement, moments, output="intro.xml",
     if not clips:
         raise RuntimeError("Tanlangan joylarda klip topilmadi.")
 
-    xml = build_xml(clips, name, timebase, ntsc, width, height)
+    # Ko'rib chiqish rejimida har bo'lak boshiga marker: «3 · kulgi 12:04»
+    markers = None
+    if review:
+        markers, cursor = [], 0.0
+        for i, m in enumerate(moments, start=1):
+            mm, ss = divmod(int(float(m["start"])), 60)
+            markers.append({
+                "frame": int(round(cursor * fps)),
+                "name": f"{i} · {m.get('kind', 'lahza')} {mm:02d}:{ss:02d}",
+                "comment": (m.get("text") or m.get("why") or "")[:120],
+            })
+            cursor += float(m["end"]) - float(m["start"])
+
+    xml = build_xml(clips, name, timebase, ntsc, width, height,
+                    markers=markers)
     output = write_xml(xml, output, fallback, log)
     say(percent=100, detail="tayyor")
     length = sum(b - a for a, b in keeps)

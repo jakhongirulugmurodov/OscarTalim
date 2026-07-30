@@ -48,6 +48,7 @@ const els = {
   capSearchBtn: el("capSearchBtn"),
   introBtn: el("introBtn"),
   buildBtn: el("buildBtn"),
+  reviewBtn: el("reviewBtn"),
   moments: el("moments"),
   seqBtn: el("seqBtn"),
   seqTitle: el("seqTitle"),
@@ -642,6 +643,7 @@ function renderMoments() {
   const on = moments.filter((m) => m.on);
   const total = on.reduce((a, m) => a + m.length, 0);
   els.buildBtn.disabled = !on.length;
+  els.reviewBtn.disabled = !moments.length;
   els.buildBtn.textContent = on.length
     ? "Intro yasash (" + on.length + " · " + Math.round(total) + "s)"
     : "Intro yasash";
@@ -721,8 +723,8 @@ async function findMoments() {
     logLine(moments.length + " nomzod topildi — kerakligini belgilab, "
             + "«Intro yasash» ni bosing", "okline");
     if (!j.has_text) {
-      logLine("Transkript bo'lmagani uchun gaplar ko'rinmaydi. Captions'da "
-              + "transkripsiya qilsangiz, tanlash ancha oson bo'ladi.", "warn");
+      logLine("Gaplar ko'rinmaydi (transkript yo'q) — «Nomzodlarni ko'rish» "
+              + "ni bosib, hammasini ketma-ket eshitib chiqing.");
     }
     stopProgress(true, moments.length + " nomzod");
   } catch (e) {
@@ -732,23 +734,30 @@ async function findMoments() {
   els.introBtn.disabled = picked.length < 1;
 }
 
-async function buildIntro() {
-  const chosen = moments.filter((m) => m.on);
+async function buildIntro(review) {
+  // Ko'rib chiqishda hamma nomzod ketadi, introda esa faqat belgilangani
+  const chosen = review ? moments.slice() : moments.filter((m) => m.on);
   if (!chosen.length || !arrangement) return;
   els.log.innerHTML = "";
   els.buildBtn.disabled = true;
-  startProgress("Intro yig'ilmoqda…");
+  startProgress(review ? "Nomzodlar yig'ilmoqda…" : "Intro yig'ilmoqda…");
   try {
     const r = await fetch(MOTOR + "/intro-yasash", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ arrangement: arrangement, moments: chosen }),
+      body: JSON.stringify({ arrangement: arrangement, moments: chosen,
+                             review: !!review }),
     });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Motor xatosi");
     for (const line of (j.logs || []).slice(shownLogs)) logLine(line);
     lastXml = j.output;
-    logLine(j.moments + " lahza · " + Math.round(j.length_sec) + "s intro tayyor ✓",
+    logLine(j.moments + " lahza · " + Math.round(j.length_sec) + "s "
+            + (review ? "ko'rib chiqish sequence'i" : "intro") + " tayyor ✓",
             "okline");
+    if (review) {
+      logLine("Import qilib eshitib chiqing — har bo'lak boshida marker "
+              + "va raqami turadi. Yoqqanini shu ro'yxatda belgilaysiz.");
+    }
     logLine("Fayl: " + j.output);
     els.importBtn.disabled = false;
     stopProgress(true, Math.round(j.length_sec) + "s intro");
@@ -1106,7 +1115,8 @@ on(els.switchBtn, function () { run("switch"); });
 on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
-on(els.buildBtn, buildIntro);
+on(els.buildBtn, function () { buildIntro(false); });
+on(els.reviewBtn, function () { buildIntro(true); });
 on(els.capSearchBtn, searchArchive);
 on(els.seqBtn, readSequence);
 on(els.importBtn, doImport);

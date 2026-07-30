@@ -305,11 +305,16 @@ class Handler(BaseHTTPRequestHandler):
                 progress_start("IntroYasash")
                 record = lambda m: (logs.append(m), progress_note(m), print(m))
                 paths = [a["path"] for a in arrangement]
-                output = req.get("output") or default_output(paths, "Intro")
+                review = bool(req.get("review"))
+                output = req.get("output") or default_output(
+                    paths, "Intro-nomzodlar" if review else "Intro")
                 result = build_intro(
-                    arrangement, moments, output=output,
-                    name=req.get("name") or "Podcast Suite — Intro",
+                    arrangement, moments, output=output, review=review,
+                    name=req.get("name") or ("Podcast Suite — Intro nomzodlar"
+                                             if review else
+                                             "Podcast Suite — Intro"),
                     fallback=RESULTS_DIR, log=record, progress=progress_update)
+                result["review"] = review
                 result["logs"] = logs
                 return self._send(200, result)
             except RuntimeError as e:

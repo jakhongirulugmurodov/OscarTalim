@@ -322,12 +322,15 @@ def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg, seg_no=0
 
 
 def build_xml(clips, seq_name, timebase, ntsc, width, height,
-              single_video_track=False):
+              single_video_track=False, markers=None):
     """Sequence XML. Har klipda `segments` bo'lmasa — butun fayl bitta bo'lak.
 
     `single_video_track` — Switch uchun: hamma kamera bo'laklari bitta
     «programma» trekiga ketma-ket teriladi (ular vaqt bo'yicha kesishmaydi),
     audio esa har fayl uchun alohida trekda qoladi.
+
+    `markers` — sequence markerlari: [{"frame": ..., "name": ...}]. Intro
+    nomzodlarini ko'rib chiqishda har bo'lak nomi bilan belgilanadi.
     """
     for clip in clips:
         if not clip.get("segments"):
@@ -369,6 +372,15 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
                         + "\n".join(item for _, item in program)
                         + "\n\t\t\t\t</track>"]
 
+    marker_xml = ""
+    for mk in (markers or []):
+        marker_xml += (f"\t\t<marker>\n"
+                       f"\t\t\t<name>{escape(str(mk.get('name', '')))}</name>\n"
+                       f"\t\t\t<comment>{escape(str(mk.get('comment', '')))}</comment>\n"
+                       f"\t\t\t<in>{int(mk['frame'])}</in>\n"
+                       f"\t\t\t<out>-1</out>\n"
+                       f"\t\t</marker>\n")
+
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xmeml>
 <xmeml version="4">
@@ -398,7 +410,7 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
 \t\t\t<frame>0</frame>
 \t\t\t<displayformat>NDF</displayformat>
 \t\t</timecode>
-\t</sequence>
+{marker_xml}\t</sequence>
 </xmeml>
 """
 

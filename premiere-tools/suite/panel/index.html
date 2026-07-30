@@ -234,7 +234,8 @@
     padding: 11px; border-radius: 8px; border: 1px solid #45464F;
     background-color: #17181C; }
   body.tab-intro .seqpick b { color: #C4A6F0; }
-  body:not(.tab-intro) #introBtn, body:not(.tab-intro) #buildBtn { display: none; }
+  body:not(.tab-intro) #introBtn, body:not(.tab-intro) #buildBtn,
+  body:not(.tab-intro) #reviewBtn { display: none; }
   body.tab-intro #syncBtn, body.tab-intro #cutBtn, body.tab-intro #switchBtn,
   body.tab-intro #capBtn, body.tab-intro #sampleBtn { display: none; }
   body.tab-intro .tab.on { border-bottom-color: #A97CE8; }
@@ -448,8 +449,10 @@
       <p class="tip">Motor nomzodlarni topadi — <b>tanlovni siz qilasiz</b>.
       Qatorni bosib belgilaysiz/olib tashlaysiz; nomzod ustiga ikki marta
       bosilsa, Premiere playhead o'sha joyga sakraydi.<br>
-      Transkripsiya qilingan bo'lsa, har nomzodning gapi ham yozilib turadi —
-      eshitib ko'rish shart bo'lmaydi.</p>
+      <b>«Nomzodlarni ko'rish»</b> — hammasi ketma-ket yig'ilgan alohida
+      sequence, har biri marker bilan raqamlangan. 50 daqiqani titkilash
+      o'rniga ikki daqiqada eshitib chiqasiz, keyin shu ro'yxatda
+      belgilaysiz.</p>
       <div class="moments" id="moments"></div>
     </div>
 
@@ -475,6 +478,7 @@
     <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
     <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
     <button class="btn primary" id="introBtn" disabled>Lahzalarni topish</button>
+    <button class="btn" id="reviewBtn" disabled>Nomzodlarni ko'rish</button>
     <button class="btn" id="buildBtn" disabled>Intro yasash</button>
     <button class="btn primary" id="sampleBtn" disabled>2 daqiqani sinash</button>
     <button class="btn primary" id="capBtn" disabled>To'liq transkripsiya</button>
