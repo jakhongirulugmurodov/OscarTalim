@@ -148,6 +148,25 @@ def progress_snapshot():
     }
 
 
+def panel_build():
+    """Diskdagi panel kodining versiyasi (main.js ichidagi PANEL_BUILD).
+
+    Panel o'zining versiyasini shu bilan solishtiradi: farq bo'lsa — demak
+    Premiere xotirasida eski nusxa ishlab turibdi va uni qayta yuklash kerak.
+    Aynan shu holat bir necha marta «tuzatilgan xato yana chiqdi» degan
+    chalkashlikka olib keldi.
+    """
+    path = os.path.join(_here, "..", "panel", "main.js")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            head = fh.read(4000)
+    except OSError:
+        return ""
+    import re as _re
+    m = _re.search(r'PANEL_BUILD\s*=\s*"([^"]*)"', head)
+    return m.group(1) if m else ""
+
+
 def default_output(files=None, kind="Sync"):
     """Natija fayl qayerga saqlansin.
 
@@ -270,6 +289,7 @@ class Handler(BaseHTTPRequestHandler):
                              "modules": ["sync", "cut", "switch", "captions",
                                          "intro", "shorts", "vaqtlar"],
                              "whisper": bool(find_whisper()),
+                             "panel_build": panel_build(),
                              # qaysi model tayyor — panel yuklab olish
                              "models": {k: have_model(k) for k in MODELS},
                              "ffmpeg": bool(FFMPEG and FFPROBE)})

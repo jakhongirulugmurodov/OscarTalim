@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 13:16";
+const PANEL_BUILD = "30-Jul 13:22";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -61,6 +61,9 @@ const els = {
   timeList: el("timeList"),
   timeBtn: el("timeBtn"),
   premBtn: el("premBtn"),
+  testBtn: el("testBtn"),
+  staleBar: el("staleBar"),
+  staleTxt: el("staleTxt"),
   logBar: el("logBar"),
   logCopy: el("logCopy"),
   logBig: el("logBig"),
@@ -92,6 +95,7 @@ async function checkMotor() {
         markModels(j.models);
         // whisper.cpp yo'qligi faqat tugmani bosgandan keyin bilinardi —
         // endi Captions tabining tepasida turadi va tugma ochilmaydi.
+        checkPanelFresh(j.panel_build);
         whisperReady = j.whisper !== false;
         els.capWarn.classList.toggle("show", !whisperReady);
         if (!pollTimer) updateRunButtons();
@@ -118,6 +122,46 @@ async function checkMotor() {
       + "(Reload yetmaydi). Motorning o'zi ishlab turibdi."
     : "Motor topilmadi — motorni yoqing (motorni-yoqish.command)";
   els.motorTxt.title = lastMotorError;
+  return false;
+}
+
+/* Panel diskdagi kod bilan bir xilmi?
+ *
+ * Premiere panel kodini xotirada ushlab qoladi: git pull diskni yangilaydi,
+ * panel esa eskisini ishlatib turaveradi. Shu holat bir necha marta
+ * «tuzatilgan xato yana chiqdi» degan chalkashlikka olib keldi. Endi panel
+ * o'zini bir marta qayta yuklaydi; shundan keyin ham farq qolsa — ekranda
+ * qizil ogohlantirish turadi. */
+/* Bir marta urinilganini eslab qolamiz. Diskdagi versiya kaliti bilan
+ * saqlanadi: qayta yuklash yordam bermasa (UXP eski nusxani keshda ushlab
+ * turgan bo'lsa) — cheksiz aylanish bo'lmaydi, faqat ogohlantirish qoladi. */
+function reloadFlag(diskBuild, set) {
+  const key = "psPanelReload:" + diskBuild;
+  try {
+    if (set) { localStorage.setItem(key, "1"); return true; }
+    return localStorage.getItem(key) === "1";
+  } catch (e) {
+    // localStorage bo'lmasa — hech bo'lmasa shu sessiyada bir marta
+    window.__psReload = window.__psReload || {};
+    if (set) { window.__psReload[key] = 1; return true; }
+    return !!window.__psReload[key];
+  }
+}
+
+function checkPanelFresh(diskBuild) {
+  if (!diskBuild || diskBuild === PANEL_BUILD) {
+    els.staleBar.classList.remove("show");
+    return true;
+  }
+  els.staleTxt.textContent = "Panelda: " + PANEL_BUILD + " · diskda: "
+                           + diskBuild + " — yangi kod yuklanishi kerak";
+  els.staleBar.classList.add("show");
+  if (!reloadFlag(diskBuild, false)) {
+    reloadFlag(diskBuild, true);
+    logLine("Diskda yangi panel kodi bor (" + diskBuild + ") — panel o'zini "
+            + "qayta yuklaydi…", "warn");
+    setTimeout(() => { try { location.reload(); } catch (e) { /* qo'lda */ } }, 700);
+  }
   return false;
 }
 
@@ -1015,6 +1059,7 @@ function renderTimes() {
     || (!timeline && picked.length < 1);
   // Premiere ichida qirqish uchun sequence o'qish shart emas — faqat vaqtlar
   els.premBtn.disabled = !timeRanges.length;
+  els.testBtn.disabled = !timeRanges.length;
 }
 
 async function cutRanges() {
@@ -1187,8 +1232,9 @@ async function dumpApi(ppro, seq) {
   await copyLog();        // to'liq matnni faylga (yoki buferga) olib qo'yamiz
 }
 
-async function cutInPremiere() {
+async function cutInPremiere(onlyFirst) {
   if (!timeRanges.length) return;
+  const list = onlyFirst ? timeRanges.slice(0, 1) : timeRanges;
   els.log.innerHTML = "";
   els.timeBtn.disabled = true;
   els.premBtn.disabled = true;
@@ -1202,15 +1248,15 @@ async function cutInPremiere() {
     const first = await freshSequence(ppro);
     lastSeq = first.seq;
     logLine("Manba: " + (first.seq.name || "sequence") + " · "
-            + timeRanges.length + " oraliq");
+            + list.length + " oraliq" + (onlyFirst ? " (sinov)" : ""));
 
-    for (let i = 0; i < timeRanges.length; i++) {
-      const r = timeRanges[i];
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i];
       const a = Math.max(0, r.start - timePad);
       const b = r.end + timePad;
       paintJob({ steps: [], step: 0, lines: [],
-                 stage: "Kadr " + (i + 1) + " / " + timeRanges.length,
-                 percent: i / timeRanges.length * 100,
+                 stage: "Kadr " + (i + 1) + " / " + list.length,
+                 percent: i / list.length * 100,
                  detail: tc(a) + " → " + tc(b) });
 
       step = (i + 1) + "-oraliq: sequence olish";
@@ -1228,7 +1274,12 @@ async function cutInPremiere() {
       }
       if (!sub) throw new Error("subsequence bo'sh qaytdi");
       made.push(sub);
-      if (i === 0) logLine("Birinchi kadr qirqildi ✓ — qolganlari ketmoqda");
+      if (i === 0) {
+        logLine(onlyFirst
+          ? "Bitta kadr qirqildi ✓ — Project panelida ko'ring. To'g'ri "
+            + "chiqqan bo'lsa, «Premiere ichida qirqish» bilan hammasini olasiz."
+          : "Birinchi kadr qirqildi ✓ — qolganlari ketmoqda", "okline");
+      }
     }
     logLine(made.length + " kadr Premiere'da qirqildi ✓", "okline");
 
@@ -1669,7 +1720,8 @@ on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
 on(els.timeBtn, cutRanges);
-on(els.premBtn, cutInPremiere);
+on(els.premBtn, function () { cutInPremiere(false); });
+on(els.testBtn, function () { cutInPremiere(true); });
 on(els.logCopy, copyLog);
 on(els.logBig, function () { els.log.classList.toggle("big"); });
 on(els.shortsBtn, findShorts);

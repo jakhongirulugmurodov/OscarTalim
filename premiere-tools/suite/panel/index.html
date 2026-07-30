@@ -59,6 +59,17 @@
      Eng muhimi — «ishlayaptimi yo'qmi» degan savol: nuqta puls uradi, chiziq
      ustidan yorug'lik yuguradi, soat har sekundda o'zgaradi. Karta tepada
      yopishib turadi, shuning uchun pastga aylantirsangiz ham ko'rinaveradi. */
+  /* Eski kod ogohlantirishi — tepada yopishib turadi, o'tkazib yuborilmasin */
+  .stale {
+    display: none; position: sticky; top: 0; z-index: 6;
+    background-color: #3A1518; border: 1px solid #7A2A2F;
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .stale.show { display: block; }
+  .stale b { display: block; color: #FF8E8E; margin-bottom: 2px; }
+  .stale span { display: block; color: #E2C4C4; font-size: 12px; }
+  .stale .how { color: #C9CAD2; margin-top: 4px; }
   .job {
     display: none; position: sticky; top: 0; z-index: 5;
     background-color: #121316; border: 1px solid #2B2C33;
@@ -307,7 +318,8 @@
     padding: 11px; border-radius: 8px; border: 1px solid #45464F;
     background-color: #17181C; }
   body.tab-vaqtlar .seqpick b { color: #F0C674; }
-  body:not(.tab-vaqtlar) #timeBtn, body:not(.tab-vaqtlar) #premBtn { display: none; }
+  body:not(.tab-vaqtlar) #timeBtn, body:not(.tab-vaqtlar) #premBtn,
+  body:not(.tab-vaqtlar) #testBtn { display: none; }
   body.tab-vaqtlar #syncBtn, body.tab-vaqtlar #cutBtn, body.tab-vaqtlar #switchBtn,
   body.tab-vaqtlar #capBtn, body.tab-vaqtlar #sampleBtn, body.tab-vaqtlar #introBtn,
   body.tab-vaqtlar #buildBtn, body.tab-vaqtlar #reviewBtn,
@@ -411,6 +423,13 @@
       <span id="motorTxt">Motor qidirilmoqda…</span>
       <span class="diag" id="diagBtn">tekshirish</span>
       <span class="upd" id="updBtn">Yangilash</span>
+    </div>
+
+    <div class="stale" id="staleBar">
+      <b>Panel eski kod bilan ishlayapti</b>
+      <span id="staleTxt"></span>
+      <span class="how">UXP Developer Tools → «Podcast Suite» → ••• Unload,
+      so'ng ••• Load &amp; Watch</span>
     </div>
 
     <div class="job" id="job">
@@ -592,6 +611,7 @@
     <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
     <button class="btn primary" id="timeBtn" disabled>Kadrlarni qirqish</button>
     <button class="btn" id="premBtn" disabled>Premiere ichida qirqish</button>
+    <button class="btn" id="testBtn" disabled>Sinov: 1 kadr</button>
     <button class="btn primary" id="shortsBtn" disabled>Bo'laklarni topish</button>
     <button class="btn" id="shortsBuildBtn" disabled>Shorts yasash</button>
     <button class="btn primary" id="introBtn" disabled>Lahzalarni topish</button>
