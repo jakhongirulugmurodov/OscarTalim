@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 13:34";
+const PANEL_BUILD = "30-Jul 15:26";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -349,7 +349,12 @@ let activeTab = "sync";
 
 /* Har tab o'z tilida gapirsin — bir xil tugma turli ish qiladi */
 const TAB_TEXT = {
-  sync: { pick: "kamera videolari va rekorder audiosi (2+ fayl)" },
+  sync: {
+    pick: "kamera videolari va rekorder audiosi (2+ fayl)",
+    seqTitle: "Ochiq sequence'dagi fayllarni olish",
+    seqHint: "faqat fayllar ro'yxati olinadi — sinxron qaytadan hisoblanadi",
+    next: "Endi «Sinxronlash» ni bosing",
+  },
   cut: {
     pick: "yoki fayllarni qo'lda tanlang",
     seqTitle: "Ochiq sequence'ni olish",
