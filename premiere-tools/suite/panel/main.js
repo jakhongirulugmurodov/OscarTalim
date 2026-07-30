@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 13:22";
+const PANEL_BUILD = "30-Jul 13:28";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1140,13 +1140,12 @@ function tickTime(ppro, sec) {
 let inOutWay = "";
 
 async function setSeqInOut(ppro, project, seq, a, b) {
-  const tIn = tickTime(ppro, a);
-  const tOut = tickTime(ppro, b);
   if (inOutWay !== "setter" && typeof seq.createSetInPointAction === "function") {
     try {
-      await runActions(project, () => [
-        seq.createSetInPointAction(tIn),
-        seq.createSetOutPointAction(tOut),
+      // TickTime ham qulf ichida yasaladi — bir xil qoida
+      runActions(project, () => [
+        seq.createSetInPointAction(tickTime(ppro, a)),
+        seq.createSetOutPointAction(tickTime(ppro, b)),
       ], "In/Out");
       if (!inOutWay) { inOutWay = "action"; logLine("  (in/out: action yo'li)"); }
       return;
@@ -1157,28 +1156,46 @@ async function setSeqInOut(ppro, project, seq, a, b) {
     }
   }
   if (typeof seq.setInPoint === "function") {
-    await seq.setInPoint(tIn);
-    await seq.setOutPoint(tOut);
+    await seq.setInPoint(tickTime(ppro, a));
+    await seq.setOutPoint(tickTime(ppro, b));
     if (!inOutWay) { inOutWay = "setter"; logLine("  (in/out: to'g'ridan-to'g'ri)"); }
     return;
   }
   throw new Error("in/out qo'yish yo'li yo'q");
 }
 
-async function runActions(project, build, label) {
-  /* Adobe hujjatidagi yagona shakl: executeTransaction(callback, label).
-   *
-   * MUHIM: Action obyekti bir marta ishlatiladi. Avval ikki xil shaklni
-   * ketma-ket sinab ko'rgandim va ikkinchi urinish allaqachon ishlatilgan
-   * action bilan ketib, «The script object is no longer valid» xatosini
-   * bergan — xato Premiere'da emas, shu urinishda edi. Shuning uchun endi
-   * action'lar transaksiya ichida, bir marta yasaladi. */
-  return await project.executeTransaction((compound) => {
-    const list = build() || [];
-    for (const act of list) {
-      if (act) compound.addAction(act);
+/* Action'larni yaratish va bajarish — Adobe talab qilgan yagona shakl:
+ *
+ *   project.lockedAccess(() => {
+ *     project.executeTransaction((compound) => {
+ *       compound.addAction(obj.createSomethingAction(...));
+ *     }, "izoh");
+ *   });
+ *
+ * `create*Action` chaqiruvi lockedAccess'dan TASHQARIDA bo'lsa, Premiere
+ * «The script object is no longer valid» deb rad etadi — aynan shu xato
+ * bir necha marta chiqdi. lockedAccess ham, executeTransaction ham
+ * sinxron: ichida `await` ishlatib bo'lmaydi, shuning uchun kerakli
+ * obyektlar oldindan olinadi. */
+function runActions(project, build, label) {
+  let ok = false, err = null;
+  if (typeof project.lockedAccess !== "function") {
+    throw new Error("lockedAccess yo'q — Premiere 25.6+ kerak");
+  }
+  project.lockedAccess(() => {
+    try {
+      ok = project.executeTransaction((compound) => {
+        const list = build() || [];
+        for (const act of list) {
+          if (act) compound.addAction(act);
+        }
+      }, label || "Podcast Suite");
+    } catch (e) {
+      err = e;
     }
-  }, label || "Podcast Suite");
+  });
+  if (err) throw err;
+  return ok;
 }
 
 /* Obyektlar eskirmasligi uchun har amaldan oldin qaytadan olinadi */
@@ -1298,13 +1315,13 @@ async function cutInPremiere(onlyFirst) {
         const item = await made[i].getProjectItem();
         const end = await target.getEndTime();
         try {
-          await runActions(project,
+          runActions(project,
             () => [editor.createInsertProjectItemAction(item, end, 0, 0, false)],
             "Kadr qo'shish");
         } catch (e) {
           if (typeof editor.createOverwriteItemAction !== "function") throw e;
           logLine("  insert ishlamadi — overwrite bilan qo'yiladi", "warn");
-          await runActions(project,
+          runActions(project,
             () => [editor.createOverwriteItemAction(item, end, 0, 0)],
             "Kadr qo'shish");
         }
