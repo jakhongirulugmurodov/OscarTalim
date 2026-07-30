@@ -1065,21 +1065,49 @@ async function cutRanges() {
  * ishlamasa, qaysi qadamda to'xtaganini ko'rasiz va bo'laklar baribir
  * loyihada qoladi. */
 
-async function execAction(project, action, label) {
-  // executeTransaction ikki shaklda uchraydi — ikkovini ham sinaymiz
-  try {
-    return await project.executeTransaction((compound) => {
-      compound.addAction(action);
-    }, label || "Podcast Suite");
-  } catch (e) {
-    return await project.executeTransaction([action], label || "Podcast Suite");
-  }
+async function runActions(project, build, label) {
+  /* Adobe hujjatidagi yagona shakl: executeTransaction(callback, label).
+   *
+   * MUHIM: Action obyekti bir marta ishlatiladi. Avval ikki xil shaklni
+   * ketma-ket sinab ko'rgandim va ikkinchi urinish allaqachon ishlatilgan
+   * action bilan ketib, «The script object is no longer valid» xatosini
+   * bergan — xato Premiere'da emas, shu urinishda edi. Shuning uchun endi
+   * action'lar transaksiya ichida, bir marta yasaladi. */
+  return await project.executeTransaction((compound) => {
+    const list = build() || [];
+    for (const act of list) {
+      if (act) compound.addAction(act);
+    }
+  }, label || "Podcast Suite");
 }
 
-async function setInOut(project, seq, ppro, a, b) {
-  const t = (sec) => ppro.TickTime.createWithSeconds(sec);
-  await execAction(project, seq.createSetInPointAction(t(a)), "In point");
-  await execAction(project, seq.createSetOutPointAction(t(b)), "Out point");
+/* Obyektlar eskirmasligi uchun har amaldan oldin qaytadan olinadi */
+async function freshSequence(ppro) {
+  const project = await ppro.Project.getActiveProject();
+  if (!project) throw new Error("Ochiq loyiha topilmadi");
+  const seq = await project.getActiveSequence();
+  if (!seq) throw new Error("Ochiq sequence topilmadi");
+  return { project: project, seq: seq };
+}
+
+/* Nosozlik bo'lganda API'ning aynan qanday ekanini log'ga chiqaramiz —
+ * shu ma'lumot bir bosishda muammoni aniqlashga yetadi. */
+function dumpApi(ppro, seq) {
+  try {
+    const top = Object.keys(ppro || {}).join(", ");
+    logLine("API (premierepro): " + top.slice(0, 300));
+  } catch (e) { /* bo'lmasa ham davom etamiz */ }
+  try {
+    const names = [];
+    let o = seq;
+    while (o && o !== Object.prototype) {
+      for (const k of Object.getOwnPropertyNames(o)) {
+        if (typeof seq[k] === "function" && names.indexOf(k) < 0) names.push(k);
+      }
+      o = Object.getPrototypeOf(o);
+    }
+    logLine("Sequence metodlari: " + names.sort().join(", ").slice(0, 500));
+  } catch (e) { /* xato bermasin */ }
 }
 
 async function cutInPremiere() {
@@ -1090,69 +1118,77 @@ async function cutInPremiere() {
   startProgress("Premiere ichida qirqilmoqda…");
   let step = "boshlanish";
   const made = [];
+  let ppro = null, lastSeq = null;
   try {
-    const ppro = require("premierepro");
-    step = "loyiha";
-    const project = await ppro.Project.getActiveProject();
+    ppro = require("premierepro");
     step = "ochiq sequence";
-    const src = project && (await project.getActiveSequence());
-    if (!src) throw new Error("Ochiq sequence topilmadi");
-    logLine("Manba: " + (src.name || "sequence") + " · " + timeRanges.length
-            + " oraliq");
+    const first = await freshSequence(ppro);
+    lastSeq = first.seq;
+    logLine("Manba: " + (first.seq.name || "sequence") + " · "
+            + timeRanges.length + " oraliq");
 
-    // 1) Har oraliq uchun subsequence
     for (let i = 0; i < timeRanges.length; i++) {
       const r = timeRanges[i];
       const a = Math.max(0, r.start - timePad);
       const b = r.end + timePad;
-      step = (i + 1) + "-oraliq: in/out qo'yish (" + tc(a) + "–" + tc(b) + ")";
-      paintJob({ steps: [], step: 0, stage: "Kadr " + (i + 1) + " / "
-                 + timeRanges.length, percent: i / timeRanges.length * 100,
-                 detail: tc(a) + " → " + tc(b), lines: [] });
-      await setInOut(project, src, ppro, a, b);
-      step = (i + 1) + "-oraliq: subsequence yasash";
-      const sub = await src.createSubsequence(true);
-      if (!sub) throw new Error("subsequence yasalmadi");
-      made.push({ seq: sub, r: r });
-    }
-    logLine(made.length + " bo'lak Premiere'da qirqildi ✓", "okline");
+      paintJob({ steps: [], step: 0, lines: [],
+                 stage: "Kadr " + (i + 1) + " / " + timeRanges.length,
+                 percent: i / timeRanges.length * 100,
+                 detail: tc(a) + " → " + tc(b) });
 
-    // 2) Hammasini bitta sequence'ga yig'amiz (birinchisi asos bo'ladi)
-    let joined = 0;
+      step = (i + 1) + "-oraliq: in/out qo'yish (" + tc(a) + "–" + tc(b) + ")";
+      const cur = await freshSequence(ppro);
+      lastSeq = cur.seq;
+      const tt = ppro.TickTime.createWithSeconds;
+      await runActions(cur.project, () => [
+        cur.seq.createSetInPointAction(tt(a)),
+        cur.seq.createSetOutPointAction(tt(b)),
+      ], "Kadr " + (i + 1) + " in/out");
+
+      step = (i + 1) + "-oraliq: subsequence yasash";
+      const sub = await cur.seq.createSubsequence(true);
+      if (!sub) throw new Error("subsequence bo'sh qaytdi");
+      made.push(sub);
+      if (i === 0) logLine("Birinchi kadr qirqildi ✓ — qolganlari ketmoqda");
+    }
+    logLine(made.length + " kadr Premiere'da qirqildi ✓", "okline");
+
+    // Hammasini bittasiga yig'amiz: birinchisi asos bo'ladi
     if (made.length > 1) {
-      const target = made[0].seq;
-      const editor = ppro.SequenceEditor && ppro.SequenceEditor.getEditor
-        ? ppro.SequenceEditor.getEditor(target) : null;
-      if (!editor) throw new Error("SequenceEditor topilmadi");
+      step = "yig'ish uchun editor";
+      const target = made[0];
+      let joined = 0;
       for (let i = 1; i < made.length; i++) {
-        step = (i + 1) + "-bo'lakni qo'shish";
-        paintJob({ steps: [], step: 0, stage: "Yig'ilmoqda",
+        step = (i + 1) + "-kadrni qo'shish";
+        paintJob({ steps: [], step: 0, lines: [], stage: "Yig'ilmoqda",
                    percent: i / made.length * 100,
-                   detail: (i + 1) + " / " + made.length, lines: [] });
-        const item = await made[i].seq.getProjectItem();
+                   detail: (i + 1) + " / " + made.length });
+        const project = await ppro.Project.getActiveProject();
+        const editor = ppro.SequenceEditor.getEditor(target);
+        const item = await made[i].getProjectItem();
         const end = await target.getEndTime();
-        const act = editor.createInsertProjectItemAction(item, end, 0, 0, false);
-        await execAction(project, act, "Kadr qo'shish");
+        await runActions(project,
+          () => [editor.createInsertProjectItemAction(item, end, 0, 0, false)],
+          "Kadr qo'shish");
         joined++;
       }
-      logLine("Bitta sequence'ga yig'ildi: «" + (target.name || "birinchi bo'lak")
-              + "» ichida " + (joined + 1) + " kadr ✓", "okline");
+      logLine("Bitta sequence'ga yig'ildi: «" + (target.name || "1-kadr")
+              + "» — " + (joined + 1) + " kadr ✓", "okline");
       try {
+        const project = await ppro.Project.getActiveProject();
         await project.openSequence(target);
       } catch (e) { /* ochilmasa ham loyihada turadi */ }
     }
-
-    logLine("Tayyor. Bo'laklar Project panelida turadi — kerak bo'lmaganini "
+    logLine("Tayyor. Kerak bo'lmagan bo'laklarni Project panelidan "
             + "o'chirib tashlashingiz mumkin.");
     stopProgress(true, made.length + " kadr");
   } catch (e) {
     logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
     if (made.length) {
-      logLine(made.length + " bo'lak baribir yasaldi — Project panelida "
-              + "turadi, ularni qo'lda bitta sequence'ga tashlashingiz mumkin.",
-              "warn");
+      logLine(made.length + " kadr yasalgan — Project panelida turadi.", "warn");
     }
-    logLine("Shu xabarni menga yuborsangiz, aynan shu qadamni tuzataman.");
+    dumpApi(ppro, lastSeq);
+    logLine("Shu xabarni menga yuboring — aynan shu qadamni tuzataman.");
     stopProgress(false, (e.message || "").slice(0, 90));
   }
   renderTimes();
