@@ -116,6 +116,42 @@ def find_bursts(score, min_len_sec=0.8, thresh=0.55):
     return out
 
 
+# Nutqmi yoki musiqa/shovqinmi — bo'g'in tebranishi bo'yicha.
+#
+# Gapirishda energiya sekundda 3-6 marta ko'tarilib-tushadi (bo'g'inlar),
+# barqaror musiqada esa deyarli tekis, bir marta taqqan shovqinda — bitta
+# cho'qqi. Shu farq envelope'ning 2-8 Hz oralig'idagi quvvat ulushida
+# ko'rinadi. O'lchovda: haqiqiy nutq 0.43-0.63, oq shovqin 0.33, yo'talish
+# 0.15, barqaror musiqa 0.00 chiqdi.
+SPEECH_DROP = 0.12    # bundan past — nomzod umuman olinmaydi
+SPEECH_WEAK = 0.28    # bu oraliqda — ball pasaytiriladi, lekin qoldiriladi
+
+
+def speechiness(env_window):
+    """0..1: shu oynadagi energiya nutqqa qanchalik o'xshaydi.
+
+    Ikki ehtiyot chorasi bor, ikkovi ham sinovda kerak bo'ldi:
+      * chetlari kesiladi — oyna boshidagi «jimlikdan ovozga» sakrash
+        o'zi keng chastotali portlash beradi va barqaror musiqani ham
+        nutqqa o'xshatib qo'yadi;
+      * Hann oynasi qo'llanadi — kesilgan chetlar yana sakrash yasamasin.
+    """
+    x = np.asarray(env_window, dtype=float)
+    trim = int(0.4 * ENV_RATE)
+    if len(x) > 2 * trim + ENV_RATE:
+        x = x[trim:len(x) - trim]
+    if len(x) < ENV_RATE:
+        return 1.0          # bir soniyadan qisqa oyna — hukm chiqarmaymiz
+    if x.std() < 0.01:
+        return 0.0          # butunlay tekis: baland, lekin gap emas
+    x = (x - x.mean()) * np.hanning(len(x))
+    spec = np.abs(np.fft.rfft(x)) ** 2
+    freq = np.fft.rfftfreq(len(x), 1.0 / ENV_RATE)
+    band = spec[(freq >= 2) & (freq <= 8)].sum()
+    total = spec[(freq >= 0.3) & (freq <= 20)].sum() + 1e-12
+    return float(band / total)
+
+
 # --------------------------------------------------------------- transkript
 
 def archive_dir():
@@ -280,7 +316,7 @@ def find_moments(clips, total_sec, lines, markers=None, limit=18, log=print):
         if s > 0:
             line_score[round(ln["start"], 2)] = (s, why, ln)
 
-    cands = []
+    cands, dropped = [], 0
     for a, b, peak, peak_bin in bursts:
         center = peak_bin / ENV_RATE
         s0, s1 = snap_bounds(center, lines, quiet, total_sec)
@@ -298,16 +334,30 @@ def find_moments(clips, total_sec, lines, markers=None, limit=18, log=print):
         if "savol" in twhy:
             kind = "savol"
 
+        # Musiqa, qarsak, stul qichirlashi — energiya baland, lekin gap emas
+        sp = speechiness(loudest[int(s0 * ENV_RATE):int(s1 * ENV_RATE)])
+        if sp < SPEECH_DROP:
+            dropped += 1
+            continue
+
         why = [kind]
         if tscore > 0:
             why += twhy
+        penalty = 1.0
+        if sp < SPEECH_WEAK:
+            penalty = 0.6
+            why.append("ovoz noaniq")
         cands.append({
             "start": round(s0, 2), "end": round(s1, 2),
             "length": round(s1 - s0, 2),
             "kind": kind, "why": ", ".join(dict.fromkeys(why)),
-            "score": round(peak + tscore, 3),
+            "score": round((peak + tscore) * penalty, 3),
             "text": text,
         })
+
+    if dropped:
+        log(f"  {dropped} ta cho'qqi nutq emas deb chiqarildi "
+            "(musiqa, qarsak, shovqin)")
 
     # 5) Foydalanuvchi markerlari — taxmin emas, shuning uchun eng yuqorida
     for m in (markers or []):
