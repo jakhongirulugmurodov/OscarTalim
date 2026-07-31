@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 10:50";
+const PANEL_BUILD = "31-Jul 12:20";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -58,6 +58,12 @@ const els = {
   shortsBtn: el("shortsBtn"),
   shortsBuildBtn: el("shortsBuildBtn"),
   markerBtn: el("markerBtn"),
+  trPanel: el("trPanel"),
+  trList: el("trList"),
+  trSearch: el("trSearch"),
+  trLoad: el("trLoad"),
+  trClear: el("trClear"),
+  trBtn: el("trBtn"),
   shortsList: el("shortsList"),
   staleBar: el("staleBar"),
   staleTxt: el("staleTxt"),
@@ -1901,6 +1907,26 @@ async function markerlardanYigish() {
                       + "biroz uzoqroqqa qo'ying yoki cho'zib belgilang.");
     }
 
+    await oraliqlardanYigish(ishga, "Podcast Suite — Markerlar");
+  } catch (e) {
+    logLine("To'xtadi: " + (e.message || e), "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+}
+
+
+/* Berilgan oraliqlarni Premiere ichida kesib, BITTA sequence'ga yig'adi.
+ *
+ * Oraliqlar qayerdan kelgani muhim emas — markerdanmi yoki transkriptdan
+ * tanlanganmi. Shu tufayli ikkala yo'l ham bir xil, sinalgan kod bo'ylab
+ * ketadi: bittasini tuzatsak, ikkinchisi ham tuzaladi.
+ */
+async function oraliqlardanYigish(ishga, natijaNomi0) {
+  let step = "boshlanish";
+  const made = [];
+  let ppro = null, lastSeq = null;
+  try {
+    ppro = require("premierepro");
     step = "ochiq sequence";
     const first = await freshSequence(ppro);
     lastSeq = first.seq;
@@ -1949,7 +1975,7 @@ async function markerlardanYigish() {
 
     // --- Hammasini BITTA sequence'ga ---
     step = "bitta sequence'ga yig'ish";
-    let natijaNomi = "Podcast Suite — Markerlar";
+    let natijaNomi = natijaNomi0 || "Podcast Suite — Bo'laklar";
     const project = await ppro.Project.getActiveProject();
     let target = null;
 
@@ -2040,6 +2066,154 @@ async function markerlardanYigish() {
   }
 }
 
+
+
+/* ======================================================= Matndan tanlash
+ *
+ * Muammo: 1,5 soatlik podkastdan qiziq joyni topish uchun uni eshitib
+ * chiqish kerak — bu bir yarim soat. Marker qo'yish ham shu vaqtni
+ * talab qiladi, chunki baribir eshitish kerak.
+ *
+ * Yechim: epizod bir marta matnga aylantiriladi (Captions moduli), keyin
+ * matn O'QILADI. O'qish eshitishdan 5-10 barobar tez, ustiga qidiruv
+ * bor: «pul», «birinchi marta» deb yozib, kerakli joyga sakraysiz.
+ *
+ * Tanlangan qatorlar oraliqqa aylanadi va markerlar bilan bir xil yo'ldan
+ * — Premiere ichida — kesiladi, ya'ni kadr, ovoz va grafika joyida
+ * qoladi.
+ */
+let trLines = [];        // [{start, end, text}]
+let trTanlangan = {};    // indeks -> true
+
+function trRender(filtr) {
+  const box = els.trList;
+  box.innerHTML = "";
+  const q = (filtr || "").trim().toLowerCase();
+  let korindi = 0;
+  for (let i = 0; i < trLines.length; i++) {
+    const ln = trLines[i];
+    const mos = !q || (ln.text || "").toLowerCase().indexOf(q) >= 0;
+    if (q && !mos) continue;
+    korindi++;
+    const row = document.createElement("div");
+    row.className = "trline" + (trTanlangan[i] ? " on" : "")
+                  + (q && mos ? " hit" : "");
+    const t = document.createElement("span");
+    t.className = "t";
+    t.textContent = tc(ln.start);
+    const x = document.createElement("span");
+    x.className = "x";
+    x.textContent = ln.text;
+    row.appendChild(t); row.appendChild(x);
+    row.addEventListener("click", () => {
+      if (trTanlangan[i]) { delete trTanlangan[i]; }
+      else { trTanlangan[i] = true; goToTime(ln.start); }
+      trRender(els.trSearch.value);
+    });
+    box.appendChild(row);
+  }
+  if (!trLines.length) {
+    box.innerHTML = '<div class="trline"><span class="x">Matn hali '
+                  + 'yuklanmagan — «Matnni yuklash» ni bosing</span></div>';
+  } else if (!korindi) {
+    box.innerHTML = '<div class="trline"><span class="x">«' + q
+                  + '» topilmadi</span></div>';
+  }
+  const oraliqlar = trOraliqlar();
+  els.trBtn.disabled = !oraliqlar.length;
+  els.trBtn.textContent = oraliqlar.length
+    ? "Tanlanganlardan yig'ish (" + oraliqlar.length + ")"
+    : "Tanlanganlardan yig'ish";
+}
+
+/* Ketma-ket tanlangan qatorlar bitta bo'lakka qo'shiladi. Orada tanlanmagan
+   qator bo'lsa — yangi bo'lak boshlanadi. Shu tufayli bir gapni to'liq
+   tanlash uchun qatorlarni ketma-ket bosish yetadi. */
+function trOraliqlar() {
+  const idx = Object.keys(trTanlangan).map(Number).sort((a, b) => a - b);
+  const out = [];
+  for (const i of idx) {
+    const ln = trLines[i];
+    if (!ln) continue;
+    const oxirgi = out[out.length - 1];
+    if (oxirgi && oxirgi.oxirgiIdx === i - 1) {
+      oxirgi.b = ln.end;
+      oxirgi.oxirgiIdx = i;
+      oxirgi.qatorlar++;
+    } else {
+      out.push({ a: ln.start, b: ln.end, oxirgiIdx: i, qatorlar: 1 });
+    }
+  }
+  // Chetlariga ozgina zaxira: gapning boshi/oxiri kesilib qolmasin
+  for (const r of out) {
+    r.a = Math.max(0, r.a - 0.35);
+    r.b = r.b + 0.45;
+  }
+  return out;
+}
+
+async function trYuklash() {
+  if (!(await checkMotor())) return;
+  els.log.innerHTML = ""; logOchi(false);
+  els.trLoad.textContent = "Yuklanmoqda…";
+  try {
+    const body = {};
+    if (timeline) body.timeline = timeline;
+    body.files = picked.map((p) => p.path);
+    if (!body.files.length && !timeline) {
+      throw new Error("Avval «Ochiq sequence'ni olish» ni bosing yoki "
+                      + "fayllarni tanlang");
+    }
+    const r = await fetch(MOTOR + "/transkript", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    trLines = j.lines || [];
+    trTanlangan = {};
+    trRender("");
+    const soz = trLines.reduce((n, l) => n + (l.text || "").split(/\s+/).length, 0);
+    logLine(trLines.length + " qator, ~" + soz + " so'z yuklandi"
+            + (j.title ? " — «" + j.title + "»" : ""), "okline");
+    logLine("Qidiruv maydoniga so'z yozing yoki ro'yxatni ko'zdan kechiring. "
+            + "Qatorni bosing — playhead o'sha joyga boradi va qator tanlanadi.");
+  } catch (e) {
+    logLine("Matn yuklanmadi: " + e.message, "warn");
+  }
+  els.trLoad.textContent = "Matnni yuklash";
+}
+
+async function trYigish() {
+  const oraliqlar = trOraliqlar();
+  if (!oraliqlar.length) return;
+  els.log.innerHTML = ""; logOchi(false);
+  startProgress("Tanlangan joylar olinmoqda…");
+  logLine(Object.keys(trTanlangan).length + " qator → "
+          + oraliqlar.length + " bo'lak:");
+  const ishga = [];
+  for (const r of oraliqlar) {
+    const uzunlik = r.b - r.a;
+    const rec = { a: r.a, b: r.b };
+    if (uzunlik > MAX_BOLAK) { rec.b = r.a + MAX_BOLAK; rec.cheklandi = true; }
+    if (uzunlik < MIN_BOLAK) {
+      logLine("   " + tc(r.a) + "–" + tc(r.b) + "  ("
+              + Math.round(uzunlik) + "s) — juda qisqa, olinmadi", "warn");
+      continue;
+    }
+    logLine("   " + tc(rec.a) + "–" + tc(rec.b) + "  ("
+            + Math.round(rec.b - rec.a) + "s, " + r.qatorlar + " qator)"
+            + (rec.cheklandi ? " — " + MAX_BOLAK + "s ga kesildi" : ""));
+    ishga.push(rec);
+  }
+  if (!ishga.length) {
+    logLine("Ishlatsa bo'ladigan bo'lak qolmadi — ko'proq qator tanlang.",
+            "warn");
+    stopProgress(false, "bo'lak yo'q");
+    return;
+  }
+  await oraliqlardanYigish(ishga, "Podcast Suite — Matndan");
+}
 
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
@@ -2465,6 +2639,9 @@ on(els.jobMore, function () {
 on(els.shortsBtn, findShorts);
 on(els.shortsBuildBtn, buildShorts);
 on(els.markerBtn, markerlardanYigish);
+on(els.trBtn, trYigish);
+on(els.trLoad, trYuklash);
+on(els.trClear, function () { trTanlangan = {}; trRender(els.trSearch.value); });
 on(els.buildBtn, function () { buildIntro(false); });
 on(els.reviewBtn, function () { buildIntro(true); });
 on(els.capSearchBtn, searchArchive);
@@ -2487,19 +2664,27 @@ setupPills("shortsMode", (v) => {
     const e = document.getElementById(id);
     if (e) e.style.display = bormi ? "" : "none";
   };
-  korsat("shortsTipAuto", !marker);
+  const matndan = v === "matn";
+  korsat("shortsTipAuto", v === "avto");
   korsat("shortsTipMarker", marker);
   korsat("markerTip", marker);
   korsat("markerKnobs", marker);
-  korsat("markerFormat", marker, "flex");
+  korsat("trPanel", matndan);
+  // Format tanlagichi ikkala Premiere-ichi rejimda ham kerak
+  korsat("markerFormat", marker || matndan, "flex");
+  if (els.trBtn && els.trBtn.style) els.trBtn.style.display = matndan ? "" : "none";
   // Avtomatik rejimda «Markerlardan yig'ish» ma'nosiz — yashiramiz
   if (els.markerBtn && els.markerBtn.style) {
     els.markerBtn.style.display = marker ? "" : "none";
   }
   const lim = document.getElementById("shortsLimit");
-  if (lim && lim.parentElement) lim.parentElement.style.display = marker ? "none" : "";
+  if (lim && lim.parentElement) lim.parentElement.style.display = (v === "avto") ? "" : "none";
 }, true);
 if (els.markerBtn && els.markerBtn.style) els.markerBtn.style.display = "none";
+if (els.trBtn && els.trBtn.style) els.trBtn.style.display = "none";
+if (els.trSearch && els.trSearch.addEventListener) {
+  els.trSearch.addEventListener("input", function () { trRender(els.trSearch.value); });
+}
 document.body.className = "tab-sync";
 applyTabText();
 checkMotor().then(function (ok) { if (ok) { checkUpdates(); loadFonts(); } });

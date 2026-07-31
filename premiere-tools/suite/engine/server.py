@@ -33,7 +33,8 @@ from cut import run_cut
 from switch import run_switch
 from captions import (run_captions, search_archive, find_whisper,
                       have_model, MODELS)
-from intro import run_intro, build_intro
+from intro import (run_intro, build_intro, load_transcript,
+                   transcript_on_timeline)
 from shorts import run_shorts, build_shorts
 from matn import run_matn, shriftlar, oldin_korish
 
@@ -339,6 +340,56 @@ class Handler(BaseHTTPRequestHandler):
                 with open(path, "w", encoding="utf-8") as fh:
                     fh.write(req.get("text") or "")
                 return self._send(200, {"ok": True, "path": path})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+
+        if self.path == "/transkript":
+            # Saqlangan transkriptni timeline vaqtida qaytaradi.
+            # Ovoz qayta o'qilmaydi — faqat arxiv va joylashuv kerak,
+            # shuning uchun bir zumda ishlaydi.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                files = req.get("files") or []
+                seq = req.get("timeline")
+                if seq:
+                    files = list(dict.fromkeys(c["path"] for c in seq))
+                if not files:
+                    return self._send(400, {"error": "Fayl ko'rsatilmagan"})
+
+                data = load_transcript(files)
+                if not data:
+                    return self._send(404, {"error":
+                        "Bu yozuv uchun transkript topilmadi. Captions "
+                        "tabida «To'liq transkripsiya» ni bir marta "
+                        "ishlating — keyin matndan tanlash ochiladi."})
+
+                # Yengil klip ma'lumoti: audio o'qilmaydi, faqat joylashuv
+                if seq:
+                    joy = {}
+                    for it in seq:
+                        joy.setdefault(os.path.abspath(it["path"]), []).append(
+                            {"start": float(it["start"]), "in": float(it["in"]),
+                             "out": float(it["out"])})
+                    clips = [{"path": p, "name": os.path.basename(p),
+                              "placements": v} for p, v in joy.items()]
+                else:
+                    clips = [{"path": os.path.abspath(f),
+                              "name": os.path.basename(f),
+                              "placements": [{"start": 0.0, "in": 0.0,
+                                              "out": 10 ** 9}]}
+                             for f in files]
+
+                lines = transcript_on_timeline(data, clips)
+                lines.sort(key=lambda x: x["start"])
+                return self._send(200, {
+                    "title": data.get("title") or "",
+                    "from_sequence": bool(data.get("from_sequence")),
+                    "lines": [{"start": round(float(l["start"]), 2),
+                               "end": round(float(l["end"]), 2),
+                               "text": l.get("text", "")}
+                              for l in lines if l.get("text")],
+                })
             except Exception as e:
                 return self._send(500, {"error": str(e)})
 
