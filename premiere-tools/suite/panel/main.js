@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 08:30";
+const PANEL_BUILD = "31-Jul 09:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -45,6 +45,8 @@ const els = {
   jobTicks: el("jobTicks"),
   jobChips: el("jobChips"),
   jobPulse: el("jobPulse"),
+  jobMore: el("jobMore"),
+  logToggle: el("logToggle"),
   jobDetail: el("jobDetail"),
   jobElapsed: el("jobElapsed"),
   jobEta: el("jobEta"),
@@ -186,7 +188,7 @@ async function checkUpdates() {
 }
 
 async function doUpdate() {
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   logLine("Yangilanish yuklanmoqda…");
   try {
     const r = await fetch(MOTOR + "/update", { method: "POST" });
@@ -212,7 +214,7 @@ async function doUpdate() {
 
 /* Tashxis: aniq xato matnini log oynasida ko'rsatadi */
 async function showDiagnostics() {
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   logLine("Tashxis:");
   for (const base of MOTOR_URLS) {
     try {
@@ -422,7 +424,7 @@ function setupTabs() {
       if (els.moments) els.moments.innerHTML = "";
       if (els.shortsList) els.shortsList.innerHTML = "";
       els.importBtn.disabled = true;
-      els.log.innerHTML = "";
+      els.log.innerHTML = ""; logOchi(false);
       els.log.classList.remove("show");
       if (!pollTimer) els.job.className = "job";
       applyTabText();
@@ -551,7 +553,7 @@ function markModels(have) {
 async function searchArchive() {
   const q = (els.capSearch.value || "").trim();
   if (!q) return;
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   logLine("Arxivdan qidirilmoqda: «" + q + "»");
   try {
     const r = await fetch(MOTOR + "/search?q=" + encodeURIComponent(q));
@@ -665,7 +667,7 @@ async function readSeqFormat(seq) {
 }
 
 async function readSequence() {
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   logLine("Ochiq sequence o'qilmoqda…");
   let step = "boshlanish";
   try {
@@ -1176,7 +1178,7 @@ async function findMoments() {
   moments = [];
   arrangement = null;
   renderMoments();
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   els.introBtn.disabled = true;
   startProgress("Lahzalar qidirilmoqda…");
   const markers = await readMarkers();
@@ -1214,7 +1216,7 @@ async function buildIntro(review) {
   // Ko'rib chiqishda hamma nomzod ketadi, introda esa faqat belgilangani
   const chosen = review ? moments.slice() : moments.filter((m) => m.on);
   if (!chosen.length || !arrangement) return;
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   els.buildBtn.disabled = true;
   startProgress(review ? "Nomzodlar yig'ilmoqda…" : "Intro yig'ilmoqda…");
   try {
@@ -1318,7 +1320,7 @@ async function findShorts() {
   shorts = [];
   shortsArr = null;
   renderShorts();
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   els.shortsBtn.disabled = true;
   startProgress("Bo'laklar qidirilmoqda…");
   const markers = await readMarkers();
@@ -1351,7 +1353,7 @@ async function findShorts() {
 async function buildShorts() {
   const chosen = shorts.filter((sh) => sh.on);
   if (!chosen.length || !shortsArr) return;
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   els.shortsBuildBtn.disabled = true;
   startProgress("Bo'laklar yig'ilmoqda…");
   try {
@@ -1588,7 +1590,7 @@ async function runMatn() {
     .filter((b) => (b.matn || "").trim())
     .map((b) => ({ matn: b.matn, start: b.start, davomiylik: b.davomiylik }));
   if (!bloklar.length) return;
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   els.matnBtn.disabled = true;
   startProgress("Matnlar yasalmoqda…");
   try {
@@ -1798,7 +1800,7 @@ function markerOraliqlari(markers, oldin, keyin) {
 }
 
 async function markerlardanYigish() {
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   startProgress("Markerlar o'qilmoqda…");
   let step = "boshlanish";
   const made = [];
@@ -1989,14 +1991,32 @@ async function copyLog() {
 
 /* ---------------------------------------------------- sinxronlash */
 
+/* Log yozilib boraveradi, lekin EKRANNI EGALLAMAYDI.
+ *
+ * Ish yaxshi ketayotganda qadamlarni o'qib o'tirishning hojati yo'q —
+ * pastdagi jarayon qatori nima bo'layotganini aytib turadi. Log esa
+ * o'zi ochiladigan ikkita holat bor: ogohlantirish va xato. Ya'ni matn
+ * ko'ringan bo'lsa — demak qarash kerak. Qolgan vaqtda «Log» tugmasi
+ * bilan ochasiz (tashxisni menga yuborish uchun ham o'sha yerda). */
+let logOchiq = false;
+
 function logLine(text, cls) {
   const div = document.createElement("div");
   if (cls) div.className = cls;
   div.textContent = text;
   els.log.appendChild(div);
-  els.log.classList.add("show");
   els.logBar.classList.add("show");
-  els.log.scrollTop = els.log.scrollHeight;
+  if (cls === "warn" && !logOchiq) logOchi(true);   // e'tibor kerak
+  if (logOchiq) els.log.scrollTop = els.log.scrollHeight;
+}
+
+function logOchi(ochiq) {
+  logOchiq = !!ochiq;
+  els.log.classList.toggle("show", logOchiq);
+  if (els.logToggle) {
+    els.logToggle.textContent = logOchiq ? "Log'ni yopish" : "Log'ni ochish";
+  }
+  if (logOchiq) els.log.scrollTop = els.log.scrollHeight;
 }
 
 /* ------------------------------------------- ish jarayonini ko'rsatish
@@ -2109,7 +2129,9 @@ function startProgress(kindLabel) {
   lastChange = Date.now();
   lastSig = "";
   stepsSig = "";
-  els.job.className = "job on";
+  // «Batafsil» ochiq qolsa — foydalanuvchi shunday xohlagan, yopmaymiz
+  const batafsil = els.job.classList.contains("batafsil") ? " batafsil" : "";
+  els.job.className = "job on" + batafsil;
   els.jobStage.textContent = kindLabel || "Boshlanmoqda…";
   els.jobStep.textContent = "";
   els.jobDetail.textContent = "";
@@ -2147,7 +2169,8 @@ function stopProgress(ok, note) {
   if (tickTimer) clearInterval(tickTimer);
   pollTimer = tickTimer = null;
   const spent = mmss((Date.now() - jobT0) / 1000);
-  els.job.className = "job on " + (ok ? "done" : "err");
+  const batafsil = els.job.classList.contains("batafsil") ? " batafsil" : "";
+  els.job.className = "job on " + (ok ? "done" : "err") + batafsil;
   els.jobStage.textContent = ok ? "Tayyor ✓" : "To'xtadi";
   els.jobDetail.textContent = note || "";
   els.jobEta.textContent = "";
@@ -2164,7 +2187,7 @@ async function run(kind) {
   const isCut = kind === "cut";
   const isSwitch = kind === "switch";
   const isCap = kind === "captions" || kind === "sample";
-  els.log.innerHTML = "";
+  els.log.innerHTML = ""; logOchi(false);
   els.syncBtn.disabled = true;
   els.cutBtn.disabled = true;
   els.switchBtn.disabled = true;
@@ -2351,6 +2374,12 @@ on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
 on(els.logCopy, copyLog);
 on(els.logBig, function () { els.log.classList.toggle("big"); });
+on(els.logToggle, function () { logOchi(!logOchiq); });
+on(els.jobMore, function () {
+  els.job.classList.toggle("batafsil");
+  els.jobMore.textContent = els.job.classList.contains("batafsil")
+    ? "Yig'ish" : "Batafsil";
+});
 on(els.shortsBtn, findShorts);
 on(els.shortsBuildBtn, buildShorts);
 on(els.markerBtn, markerlardanYigish);
