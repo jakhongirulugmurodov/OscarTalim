@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 09:40";
+const PANEL_BUILD = "31-Jul 10:50";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1772,29 +1772,90 @@ async function dumpApi(ppro, seq) {
 
 
 
-/* Markerlardan oraliqlar. Marker uzunligi bilan qo'yilgan bo'lsa — aynan
-   o'sha oraliq; bo'lmasa marker atrofidan oyna olinadi. Ustma-ust tushgan
-   oraliqlar birlashtiriladi: bir joy ikki marta tushmasin. */
+/* Markerlardan oraliqlar.
+ *
+ * Bu yerda uchta holat aniq hal qilinishi kerak, aks holda natija
+ * kutilmagan chiqadi:
+ *
+ *   1. IKKI MARKER YAQIN. Agar markerlarning O'ZI yaqin bo'lsa (8 soniya
+ *      ichida) — bu bitta joy, ikki marta belgilangan: birlashtiramiz.
+ *      Lekin ular uzoqroq bo'lsa (masalan 20 soniya), bu IKKI BOSHQA joy.
+ *      Ilgari oyna ustma-ust tushgani uchun ular ham birlashardi va
+ *      to'rtta marker bitta 105 soniyalik bo'lakka aylanib ketardi.
+ *      Endi birlashtirmaymiz — oldingisining oxirini keyingisi
+ *      boshlanadigan joyga qisqartiramiz. Shunda ikki bo'lak chiqadi va
+ *      bir kadr ikki marta tushmaydi.
+ *
+ *   2. BO'LAK UZUN. Instagram Reels chegarasi 90 soniya. Avtomatik
+ *      oynadan yoki birlashishdan uzun chiqsa — qisqartiramiz.
+ *      Markerni O'ZINGIZ cho'zib belgilagan bo'lsangiz — tegmaymiz
+ *      (siz ataylab shunday qilgansiz), faqat ogohlantiramiz.
+ *
+ *   3. BO'LAK JUDA QISQA. 3 soniyadan qisqasi ishlatib bo'lmaydi —
+ *      olib tashlaymiz va sababini aytamiz.
+ */
+const BIRLASHISH = 8;    // markerlar shu masofadan yaqin bo'lsa — bitta joy
+const MAX_BOLAK = 90;    // Instagram Reels chegarasi (soniya)
+const MIN_BOLAK = 3;
+
 function markerOraliqlari(markers, oldin, keyin) {
-  const xom = [];
-  for (const mk of markers) {
-    const t = Number(mk.start) || 0;
-    if (mk.duration > 0.05) {
-      xom.push({ a: Math.max(0, t), b: t + mk.duration, aniq: true });
-    } else {
-      xom.push({ a: Math.max(0, t - oldin), b: t + keyin, aniq: false });
-    }
-  }
-  xom.sort((x, y) => x.a - y.a);
-  const out = [];
-  for (const r of xom) {
-    const oxirgi = out[out.length - 1];
-    if (oxirgi && r.a <= oxirgi.b + 0.05) {
-      oxirgi.b = Math.max(oxirgi.b, r.b);       // qo'shilib ketdi
+  const xom = markers.map((mk) => {
+    const t = Math.max(0, Number(mk.start) || 0);
+    const uz = Number(mk.duration) || 0;
+    return uz > 0.05
+      ? { t: t, a: t, b: t + uz, aniq: true }
+      : { t: t, a: Math.max(0, t - oldin), b: t + keyin, aniq: false };
+  }).sort((x, y) => x.t - y.t);
+
+  // 0-qadam: cho'zib belgilangan oraliq ICHIGA tushgan oddiy markerni
+  // yutamiz. Aks holda o'zingiz aniq belgilagan oraliq shu markerda
+  // ikkiga bo'linib ketardi — siz esa uni butun deb belgilagansiz.
+  const aniqlar = xom.filter((r) => r.aniq);
+  const qolgan = xom.filter((r) => r.aniq
+      || !aniqlar.some((q) => r.t >= q.a - 0.05 && r.t <= q.b + 0.05));
+
+  // 1-qadam: markerlarning o'zi yaqin bo'lsa — birlashtiramiz
+  const birlashgan = [];
+  for (const r of qolgan) {
+    const oxirgi = birlashgan[birlashgan.length - 1];
+    if (oxirgi && r.t - oxirgi.t <= BIRLASHISH) {
+      oxirgi.a = Math.min(oxirgi.a, r.a);
+      oxirgi.b = Math.max(oxirgi.b, r.b);
+      oxirgi.aniq = oxirgi.aniq || r.aniq;
       oxirgi.qoshildi = (oxirgi.qoshildi || 1) + 1;
     } else {
-      out.push({ a: r.a, b: r.b, aniq: r.aniq });
+      birlashgan.push(Object.assign({}, r));
     }
+  }
+
+  // 2-qadam: ustma-ust tushgan chegaralarni qisqartiramiz —
+  // bir kadr ikki bo'lakka tushmasin
+  for (let i = 0; i < birlashgan.length - 1; i++) {
+    const cur = birlashgan[i], next = birlashgan[i + 1];
+    if (cur.b > next.a) {
+      cur.b = next.a;
+      cur.qisqartirildi = true;
+    }
+  }
+
+  // 3-qadam: uzunlik chegaralari
+  const out = [];
+  for (const r of birlashgan) {
+    const uzunlik = r.b - r.a;
+    if (uzunlik < MIN_BOLAK) {
+      out.push({ a: r.a, b: r.b, aniq: r.aniq, qoshildi: r.qoshildi,
+                 qisqa: true });
+      continue;
+    }
+    if (uzunlik > MAX_BOLAK) {
+      if (r.aniq) {
+        r.uzun = true;              // o'zingiz belgilagansiz — tegmaymiz
+      } else {
+        r.b = r.a + MAX_BOLAK;
+        r.cheklandi = true;
+      }
+    }
+    out.push(r);
   }
   return out;
 }
@@ -1814,10 +1875,31 @@ async function markerlardanYigish() {
                       + "va yoqqan joyingizda M tugmasini bosing.");
     }
     const oraliqlar = markerOraliqlari(markers, markerOldin, markerKeyin);
-    const qoshilgan = oraliqlar.filter((r) => r.qoshildi).length;
-    logLine(markers.length + " marker → " + oraliqlar.length + " oraliq"
-            + (qoshilgan ? " (" + qoshilgan + " tasi yonma-yon bo'lgani uchun "
-                           + "birlashtirildi)" : ""));
+    const qisqalar = oraliqlar.filter((r) => r.qisqa);
+    const ishga = oraliqlar.filter((r) => !r.qisqa);
+    logLine(markers.length + " marker → " + ishga.length + " bo'lak:");
+    for (const r of oraliqlar) {
+      const izoh = [];
+      if (r.qoshildi) izoh.push(r.qoshildi + " marker birlashdi (yaqin turgan)");
+      if (r.aniq) izoh.push("marker uzunligi bo'yicha");
+      if (r.qisqartirildi) izoh.push("keyingi markergacha qisqartirildi");
+      if (r.cheklandi) izoh.push("Reels chegarasi " + MAX_BOLAK + "s ga kesildi");
+      if (r.uzun) izoh.push("DIQQAT: " + MAX_BOLAK + "s dan uzun — Instagram "
+                            + "qabul qilmasligi mumkin");
+      if (r.qisqa) izoh.push("juda qisqa — o'tkazib yuborildi");
+      logLine("   " + tc(r.a) + "–" + tc(r.b) + "  ("
+              + Math.round(r.b - r.a) + "s)"
+              + (izoh.length ? " — " + izoh.join(", ") : ""),
+              (r.qisqa || r.uzun) ? "warn" : null);
+    }
+    if (qisqalar.length) {
+      logLine(qisqalar.length + " ta bo'lak " + MIN_BOLAK + " soniyadan "
+              + "qisqa bo'lgani uchun olinmadi.", "warn");
+    }
+    if (!ishga.length) {
+      throw new Error("Ishlatsa bo'ladigan bo'lak qolmadi — markerlarni "
+                      + "biroz uzoqroqqa qo'ying yoki cho'zib belgilang.");
+    }
 
     step = "ochiq sequence";
     const first = await freshSequence(ppro);
@@ -1829,11 +1911,11 @@ async function markerlardanYigish() {
     } catch (e) { /* o'qilmasa — tiklamaymiz */ }
     logLine("Manba: " + (first.seq.name || "sequence"));
 
-    for (let i = 0; i < oraliqlar.length; i++) {
-      const r = oraliqlar[i];
+    for (let i = 0; i < ishga.length; i++) {
+      const r = ishga[i];
       paintJob({ steps: [], step: 0, lines: [],
-                 stage: "Bo'lak " + (i + 1) + " / " + oraliqlar.length,
-                 percent: i / oraliqlar.length * 100,
+                 stage: "Bo'lak " + (i + 1) + " / " + ishga.length,
+                 percent: i / ishga.length * 100,
                  detail: tc(r.a) + " → " + tc(r.b) });
 
       step = (i + 1) + "-oraliq: sequence olish";
