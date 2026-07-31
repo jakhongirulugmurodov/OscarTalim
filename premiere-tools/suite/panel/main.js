@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 20:10";
+const PANEL_BUILD = "30-Jul 21:15";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -55,6 +55,7 @@ const els = {
   reviewBtn: el("reviewBtn"),
   shortsBtn: el("shortsBtn"),
   shortsBuildBtn: el("shortsBuildBtn"),
+  markerBtn: el("markerBtn"),
   shortsList: el("shortsList"),
   staleBar: el("staleBar"),
   staleTxt: el("staleTxt"),
@@ -436,6 +437,10 @@ const knobs = {
               fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
   padding: { el: el("kPadding"), out: el("vPadding"),
              fmt: (v) => v * 10 + " ms", val: (v) => v / 100 },
+  markerOldin: { el: el("kMarkerOldin"), out: el("vMarkerOldin"),
+                 fmt: (v) => v + " s", val: (v) => v },
+  markerKeyin: { el: el("kMarkerKeyin"), out: el("vMarkerKeyin"),
+                 fmt: (v) => v + " s", val: (v) => v },
   minShot: { el: el("kMinShot"), out: el("vMinShot"),
              fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
   maxShot: { el: el("kMaxShot"), out: el("vMaxShot"),
@@ -453,6 +458,15 @@ function setupKnobs() {
     const show = () => { k.out.textContent = k.fmt(+k.el.value); };
     k.el.addEventListener("input", show);
     show();
+  });
+
+  ["markerOldin", "markerKeyin"].forEach((nom) => {
+    const k = knobs[nom];
+    if (!k.el || !k.el.addEventListener) return;
+    k.el.addEventListener("input", () => {
+      if (nom === "markerOldin") markerOldin = +k.el.value;
+      else markerKeyin = +k.el.value;
+    });
   });
 
   const box = el("kStrict");
@@ -981,6 +995,10 @@ let shorts = [];
 let shortsArr = null;
 let shortsLimit = 8;
 let shortsMode = "avto";
+/* Marker atrofidan olinadigan oyna (soniya). Odam eshitib turib M ni
+   bosguncha vaqt o'tadi, shuning uchun oldingi tomon kattaroq. */
+let markerOldin = 20;
+let markerKeyin = 15;
 
 function renderShorts() {
   els.shortsList.innerHTML = "";
@@ -1358,6 +1376,323 @@ function setupMatn() {
   });
   addMatn();
 }
+
+
+/* ================================================ Markerlardan yig'ish
+ *
+ * Nima uchun bu boshqacha: ovoz tahlili bilan qirqishda kadr XML orqali
+ * qayta quriladi, ya'ni ortida FAYL turgan narsagina chiqadi. Multicam,
+ * nested sequence, matn/grafika qatlamlari — bularning ortida fayl yo'q,
+ * shuning uchun ular natijaga tushmaydi. Aynan shu sabab «faqat ovoz
+ * ko'rinyapti» degan holat kelib chiqqan edi.
+ *
+ * Bu yerda ish butunlay Premiere'ning ICHIDA bajariladi: har marker uchun
+ * sequence'ning in/out nuqtalari qo'yiladi va `createSubsequence`
+ * chaqiriladi. Natijada o'sha joyda timeline'da NIMA bo'lsa — kadr, ovoz,
+ * matn, grafika, effektlar, ovoz darajalari — hammasi o'z holicha chiqadi.
+ * Keyin bo'laklar ketma-ket bitta sequence'ga yig'iladi.
+ */
+/* In/out qo'yish: avval hujjatdagi action yo'li, bo'lmasa to'g'ridan-to'g'ri
+ * setter. Qaysi biri ishlaganini bir marta yozib qo'yamiz. */
+let inOutWay = "";
+
+async function setSeqInOut(ppro, project, seq, a, b) {
+  if (inOutWay !== "setter" && typeof seq.createSetInPointAction === "function") {
+    try {
+      // TickTime ham qulf ichida yasaladi — bir xil qoida
+      runActions(project, () => [
+        seq.createSetInPointAction(tickTime(ppro, a)),
+        seq.createSetOutPointAction(tickTime(ppro, b)),
+      ], "In/Out");
+      if (!inOutWay) { inOutWay = "action"; logLine("  (in/out: action yo'li)"); }
+      return;
+    } catch (e) {
+      if (inOutWay === "action") throw e;          // ishlagan yo'l buzildi
+      logLine("  action yo'li ishlamadi (" + (e.message || e)
+              + ") — to'g'ridan-to'g'ri sinaladi", "warn");
+    }
+  }
+  if (typeof seq.setInPoint === "function") {
+    await seq.setInPoint(tickTime(ppro, a));
+    await seq.setOutPoint(tickTime(ppro, b));
+    if (!inOutWay) { inOutWay = "setter"; logLine("  (in/out: to'g'ridan-to'g'ri)"); }
+    return;
+  }
+  throw new Error("in/out qo'yish yo'li yo'q");
+}
+
+/* Action'larni yaratish va bajarish — Adobe talab qilgan yagona shakl:
+ *
+ *   project.lockedAccess(() => {
+ *     project.executeTransaction((compound) => {
+ *       compound.addAction(obj.createSomethingAction(...));
+ *     }, "izoh");
+ *   });
+ *
+ * `create*Action` chaqiruvi lockedAccess'dan TASHQARIDA bo'lsa, Premiere
+ * «The script object is no longer valid» deb rad etadi — aynan shu xato
+ * bir necha marta chiqdi. lockedAccess ham, executeTransaction ham
+ * sinxron: ichida `await` ishlatib bo'lmaydi, shuning uchun kerakli
+ * obyektlar oldindan olinadi. */
+function runActions(project, build, label) {
+  let ok = false, err = null;
+  if (typeof project.lockedAccess !== "function") {
+    throw new Error("lockedAccess yo'q — Premiere 25.6+ kerak");
+  }
+  project.lockedAccess(() => {
+    try {
+      ok = project.executeTransaction((compound) => {
+        const list = build() || [];
+        for (const act of list) {
+          if (act) compound.addAction(act);
+        }
+      }, label || "Podcast Suite");
+    } catch (e) {
+      err = e;
+    }
+  });
+  if (err) throw err;
+  return ok;
+}
+
+/* Obyektlar eskirmasligi uchun har amaldan oldin qaytadan olinadi */
+async function freshSequence(ppro) {
+  const project = await ppro.Project.getActiveProject();
+  if (!project) throw new Error("Ochiq loyiha topilmadi");
+  const seq = await project.getActiveSequence();
+  if (!seq) throw new Error("Ochiq sequence topilmadi");
+  return { project: project, seq: seq };
+}
+
+/* Nosozlik bo'lganda API'ning aynan qanday ekanini log'ga chiqaramiz —
+ * shu ma'lumot bir bosishda muammoni aniqlashga yetadi. */
+function methodNames(obj) {
+  const names = [];
+  let o = obj;
+  while (o && o !== Object.prototype) {
+    for (const k of Object.getOwnPropertyNames(o)) {
+      try {
+        if (typeof obj[k] === "function" && names.indexOf(k) < 0) names.push(k);
+      } catch (e) { /* getter xato bersa — o'tkazamiz */ }
+    }
+    o = Object.getPrototypeOf(o);
+  }
+  return names.sort();
+}
+
+/* Uzun ro'yxat ekranda kesilib qolmasin: bo'laklab yozamiz va oxirida
+ * hammasini faylga saqlaymiz — o'sha faylni yuborish yetadi. */
+function logLong(label, text) {
+  const size = 110;
+  for (let i = 0; i < text.length; i += size) {
+    logLine((i === 0 ? label + ": " : "   ") + text.slice(i, i + size));
+  }
+}
+
+async function dumpApi(ppro, seq) {
+  try {
+    logLong("API (premierepro)", Object.keys(ppro || {}).join(", "));
+    if (ppro && ppro.TickTime) {
+      logLong("TickTime", Object.getOwnPropertyNames(ppro.TickTime).join(", "));
+    }
+    if (ppro && ppro.SequenceEditor) {
+      logLong("SequenceEditor",
+              Object.getOwnPropertyNames(ppro.SequenceEditor).join(", "));
+    }
+    if (seq) logLong("Sequence metodlari", methodNames(seq).join(", "));
+  } catch (e) {
+    logLine("Tashxis to'liq chiqmadi: " + (e.message || e), "warn");
+  }
+  await copyLog();        // to'liq matnni faylga (yoki buferga) olib qo'yamiz
+}
+
+
+
+/* Markerlardan oraliqlar. Marker uzunligi bilan qo'yilgan bo'lsa — aynan
+   o'sha oraliq; bo'lmasa marker atrofidan oyna olinadi. Ustma-ust tushgan
+   oraliqlar birlashtiriladi: bir joy ikki marta tushmasin. */
+function markerOraliqlari(markers, oldin, keyin) {
+  const xom = [];
+  for (const mk of markers) {
+    const t = Number(mk.start) || 0;
+    if (mk.duration > 0.05) {
+      xom.push({ a: Math.max(0, t), b: t + mk.duration, aniq: true });
+    } else {
+      xom.push({ a: Math.max(0, t - oldin), b: t + keyin, aniq: false });
+    }
+  }
+  xom.sort((x, y) => x.a - y.a);
+  const out = [];
+  for (const r of xom) {
+    const oxirgi = out[out.length - 1];
+    if (oxirgi && r.a <= oxirgi.b + 0.05) {
+      oxirgi.b = Math.max(oxirgi.b, r.b);       // qo'shilib ketdi
+      oxirgi.qoshildi = (oxirgi.qoshildi || 1) + 1;
+    } else {
+      out.push({ a: r.a, b: r.b, aniq: r.aniq });
+    }
+  }
+  return out;
+}
+
+async function markerlardanYigish() {
+  els.log.innerHTML = "";
+  startProgress("Markerlar o'qilmoqda…");
+  let step = "boshlanish";
+  const made = [];
+  let ppro = null, lastSeq = null;
+  try {
+    ppro = require("premierepro");
+    const markers = await readMarkers();
+    logLine(markerHolat || "Markerlar tekshirilmadi");
+    if (!markers.length) {
+      throw new Error("Timeline'da marker yo'q. Sequence'ni eshitib boring "
+                      + "va yoqqan joyingizda M tugmasini bosing.");
+    }
+    const oraliqlar = markerOraliqlari(markers, markerOldin, markerKeyin);
+    const qoshilgan = oraliqlar.filter((r) => r.qoshildi).length;
+    logLine(markers.length + " marker → " + oraliqlar.length + " oraliq"
+            + (qoshilgan ? " (" + qoshilgan + " tasi yonma-yon bo'lgani uchun "
+                           + "birlashtirildi)" : ""));
+
+    step = "ochiq sequence";
+    const first = await freshSequence(ppro);
+    lastSeq = first.seq;
+    let oldIn = null, oldOut = null;
+    try {
+      oldIn = await first.seq.getInPoint();
+      oldOut = await first.seq.getOutPoint();
+    } catch (e) { /* o'qilmasa — tiklamaymiz */ }
+    logLine("Manba: " + (first.seq.name || "sequence"));
+
+    for (let i = 0; i < oraliqlar.length; i++) {
+      const r = oraliqlar[i];
+      paintJob({ steps: [], step: 0, lines: [],
+                 stage: "Bo'lak " + (i + 1) + " / " + oraliqlar.length,
+                 percent: i / oraliqlar.length * 100,
+                 detail: tc(r.a) + " → " + tc(r.b) });
+
+      step = (i + 1) + "-oraliq: sequence olish";
+      const cur = await freshSequence(ppro);
+      lastSeq = cur.seq;
+      step = (i + 1) + "-oraliq: in/out (" + tc(r.a) + "–" + tc(r.b) + ")";
+      await setSeqInOut(ppro, cur.project, cur.seq, r.a, r.b);
+
+      step = (i + 1) + "-oraliq: subsequence yasash";
+      let sub = null;
+      try {
+        // `true` — trek nishonlashiga qaramaydi, ya'ni HAMMA trek olinadi:
+        // matn/grafika yuqori treklarda tursa ham tushib qolmaydi.
+        sub = await cur.seq.createSubsequence(true);
+      } catch (e) {
+        sub = await cur.seq.createSubsequence();
+      }
+      if (!sub) throw new Error("subsequence bo'sh qaytdi");
+      made.push(sub);
+
+      const nomi = "Bo'lak " + (i + 1) + " · " + tc(r.a);
+      try {
+        const item = await sub.getProjectItem();
+        if (item && typeof item.createSetNameAction === "function") {
+          runActions(cur.project, () => [item.createSetNameAction(nomi)], "Nom");
+        }
+      } catch (e) { /* nom qo'yilmasa ham bo'lak joyida */ }
+      if (i === 0) logLine("Birinchi bo'lak olindi ✓ — qolganlari ketmoqda");
+    }
+    logLine(made.length + " bo'lak Premiere'da olindi ✓", "okline");
+
+    // --- Hammasini BITTA sequence'ga ---
+    step = "bitta sequence'ga yig'ish";
+    let natijaNomi = "Podcast Suite — Markerlar";
+    const project = await ppro.Project.getActiveProject();
+    let target = null;
+
+    // Eng toza yo'l: hamma bo'lakdan yangi sequence. Bo'lmasa —
+    // birinchisini asos qilib, qolganini ketma-ket qo'shamiz (sinalgan yo'l).
+    if (typeof project.createSequenceFromMedia === "function") {
+      try {
+        const items = [];
+        for (const s of made) items.push(await s.getProjectItem());
+        target = await project.createSequenceFromMedia(natijaNomi, items);
+        if (target) logLine("Bo'laklar yangi sequence'ga yig'ildi ✓", "okline");
+      } catch (e) {
+        logLine("  (yangi sequence yo'li ishlamadi: " + (e.message || e)
+                + ") — ketma-ket qo'shiladi");
+        target = null;
+      }
+    }
+
+    if (!target && made.length) {
+      target = made[0];
+      let joined = 0;
+      for (let i = 1; i < made.length; i++) {
+        step = (i + 1) + "-bo'lakni qo'shish";
+        paintJob({ steps: [], step: 0, lines: [], stage: "Yig'ilmoqda",
+                   percent: i / made.length * 100,
+                   detail: (i + 1) + " / " + made.length });
+        const pr = await ppro.Project.getActiveProject();
+        const editor = ppro.SequenceEditor.getEditor(target);
+        const item = await made[i].getProjectItem();
+        const end = await target.getEndTime();
+        try {
+          runActions(pr,
+            () => [editor.createInsertProjectItemAction(item, end, 0, 0, false)],
+            "Bo'lak qo'shish");
+        } catch (e) {
+          if (typeof editor.createOverwriteItemAction !== "function") throw e;
+          logLine("  insert ishlamadi — overwrite bilan qo'yiladi", "warn");
+          runActions(pr,
+            () => [editor.createOverwriteItemAction(item, end, 0, 0)],
+            "Bo'lak qo'shish");
+        }
+        joined++;
+      }
+      logLine("Bitta sequence'ga yig'ildi — " + (joined + 1) + " bo'lak ✓",
+              "okline");
+    }
+
+    if (target) {
+      try {
+        const item = await target.getProjectItem();
+        if (item && typeof item.createSetNameAction === "function") {
+          runActions(project, () => [item.createSetNameAction(natijaNomi)],
+                     "Nom");
+        }
+      } catch (e) { /* nom qo'yilmasa ham bo'ladi */ }
+      try {
+        await project.openSequence(target);
+        logLine("«" + natijaNomi + "» ochildi — timeline'da ko'ring ✓",
+                "okline");
+      } catch (e) {
+        logLine("Project panelida «" + natijaNomi + "» nomi bilan turadi "
+                + "(Window > Project)");
+      }
+    }
+
+    if (oldIn && oldOut) {
+      try {
+        const back = await freshSequence(ppro);
+        runActions(back.project, () => [
+          back.seq.createSetInPointAction(oldIn),
+          back.seq.createSetOutPointAction(oldOut),
+        ], "In/out tiklash");
+      } catch (e) { /* muhim emas */ }
+    }
+    logLine("Kerak bo'lmagan bo'laklarni Project panelidan o'chirsangiz "
+            + "bo'ladi (Window > Project).");
+    stopProgress(true, made.length + " bo'lak");
+  } catch (e) {
+    logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
+    if (made.length) {
+      logLine(made.length + " bo'lak yasalgan — Project panelida turadi.",
+              "warn");
+    }
+    await dumpApi(ppro, lastSeq);
+    logLine("Shu xabarni menga yuboring — aynan shu qadamni tuzataman.");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+}
+
 
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
@@ -1755,6 +2090,7 @@ on(els.logCopy, copyLog);
 on(els.logBig, function () { els.log.classList.toggle("big"); });
 on(els.shortsBtn, findShorts);
 on(els.shortsBuildBtn, buildShorts);
+on(els.markerBtn, markerlardanYigish);
 on(els.buildBtn, function () { buildIntro(false); });
 on(els.reviewBtn, function () { buildIntro(true); });
 on(els.capSearchBtn, searchArchive);
@@ -1772,11 +2108,22 @@ setupPills("shortsLimit", (v) => { shortsLimit = v; });
 setupPills("shortsMode", (v) => {
   shortsMode = v;
   const marker = v === "marker";
-  const a = document.getElementById("shortsTipAuto");
-  const m = document.getElementById("shortsTipMarker");
-  if (a) a.style.display = marker ? "none" : "";
-  if (m) m.style.display = marker ? "" : "none";
+  const korsat = (id, bormi) => {
+    const e = document.getElementById(id);
+    if (e) e.style.display = bormi ? "" : "none";
+  };
+  korsat("shortsTipAuto", !marker);
+  korsat("shortsTipMarker", marker);
+  korsat("markerTip", marker);
+  korsat("markerKnobs", marker);
+  // Avtomatik rejimda «Markerlardan yig'ish» ma'nosiz — yashiramiz
+  if (els.markerBtn && els.markerBtn.style) {
+    els.markerBtn.style.display = marker ? "" : "none";
+  }
+  const lim = document.getElementById("shortsLimit");
+  if (lim && lim.parentElement) lim.parentElement.style.display = marker ? "none" : "";
 }, true);
+if (els.markerBtn && els.markerBtn.style) els.markerBtn.style.display = "none";
 document.body.className = "tab-sync";
 applyTabText();
 checkMotor().then(function (ok) { if (ok) { checkUpdates(); loadFonts(); } });

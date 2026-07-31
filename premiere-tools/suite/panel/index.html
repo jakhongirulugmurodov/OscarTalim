@@ -301,7 +301,9 @@
     padding: 11px; border-radius: 8px; border: 1px solid #45464F;
     background-color: #17181C; }
   body.tab-shorts .seqpick b { color: #8FD0E8; }
-  body:not(.tab-shorts) #shortsBtn, body:not(.tab-shorts) #shortsBuildBtn { display: none; }
+  body:not(.tab-shorts) #shortsBtn, body:not(.tab-shorts) #shortsBuildBtn,
+  body:not(.tab-shorts) #markerBtn { display: none; }
+  body.tab-matn #markerBtn { display: none; }
   body.tab-shorts #syncBtn, body.tab-shorts #cutBtn, body.tab-shorts #switchBtn,
   body.tab-shorts #capBtn, body.tab-shorts #sampleBtn, body.tab-shorts #introBtn,
   body.tab-shorts #buildBtn, body.tab-shorts #reviewBtn { display: none; }
@@ -595,6 +597,17 @@
           <span class="opill" data-v="14">14 ta</span>
         </span>
       </div>
+      <div class="knobs" id="markerKnobs" style="display:none">
+        <label>Markerdan oldin
+          <input type="range" id="kMarkerOldin" min="0" max="60" value="20">
+          <span id="vMarkerOldin">20 s</span>
+        </label>
+        <label>Markerdan keyin
+          <input type="range" id="kMarkerKeyin" min="0" max="60" value="15">
+          <span id="vMarkerKeyin">15 s</span>
+        </label>
+      </div>
+
       <p class="tip" id="shortsTipMarker" style="display:none">
       <b>Mening markerlarim</b> — tanlovni siz qilasiz, mashina taxmin
       qilmaydi. Podcastni eshitib boring, yoqqan joyingizda <b>M</b> tugmasini
@@ -603,6 +616,15 @@
       keyingi jimlikkacha cho'ziladi.<br>
       Timeline'da markerni <b>cho'zib</b> belgilasangiz — aynan o'sha oraliq
       olinadi. Musiqa, jingle bo'lgan yozuvda eng ishonchli yo'l shu.</p>
+
+      <p class="tip" id="markerTip" style="display:none">
+      <b>«Markerlardan yig'ish»</b> — ish butunlay Premiere ichida bajariladi,
+      shuning uchun o'sha joyda timeline'da <b>nima bo'lsa hammasi</b> chiqadi:
+      kadr, ovoz, <b>matn va grafika</b>, effektlar, ovoz darajalari.
+      Multicam ham ishlaydi.<br>
+      Hamma marker <b>bitta sequence</b>ga ketma-ket yig'iladi. Yonma-yon
+      tushgan markerlar birlashtiriladi — bir joy ikki marta tushmaydi.<br>
+      Ovoz tahlili umuman ishlatilmaydi: tanlov faqat sizniki.</p>
       <p class="tip" id="shortsTipAuto">Har bo'lak — <b>tugallangan fikr</b> (20–60 s), chegaralari
       jimlik bo'yicha kesiladi: gap o'rtasidan boshlanmaydi.<br>
       Tanlanganlarning har biri <b>alohida sequence</b> bo'lib chiqadi.
@@ -680,6 +702,7 @@
     <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
     <button class="btn primary" id="shortsBtn" disabled>Bo'laklarni topish</button>
     <button class="btn" id="shortsBuildBtn" disabled>Shorts yasash</button>
+    <button class="btn primary" id="markerBtn">Markerlardan yig'ish</button>
     <button class="btn primary" id="introBtn" disabled>Lahzalarni topish</button>
     <button class="btn" id="reviewBtn" disabled>Nomzodlarni ko'rish</button>
     <button class="btn" id="buildBtn" disabled>Intro yasash</button>
