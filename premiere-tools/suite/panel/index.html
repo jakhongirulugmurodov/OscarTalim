@@ -597,14 +597,22 @@
           <span class="opill" data-v="14">14 ta</span>
         </span>
       </div>
+      <div class="opts" id="markerFormat" style="display:none">
+        <span class="olbl">Format</span>
+        <span class="opills" id="markerAspect">
+          <span class="opill on" data-v="reels">Reels 9:16</span>
+          <span class="opill" data-v="manba">Manba (o'zgarmasin)</span>
+        </span>
+      </div>
+
       <div class="knobs" id="markerKnobs" style="display:none">
         <label>Markerdan oldin
-          <input type="range" id="kMarkerOldin" min="0" max="60" value="20">
-          <span id="vMarkerOldin">20 s</span>
+          <input type="range" id="kMarkerOldin" min="0" max="60" value="0">
+          <span id="vMarkerOldin">0 s</span>
         </label>
         <label>Markerdan keyin
-          <input type="range" id="kMarkerKeyin" min="0" max="60" value="15">
-          <span id="vMarkerKeyin">15 s</span>
+          <input type="range" id="kMarkerKeyin" min="5" max="90" value="30">
+          <span id="vMarkerKeyin">30 s</span>
         </label>
       </div>
 
@@ -624,7 +632,12 @@
       Multicam ham ishlaydi.<br>
       Hamma marker <b>bitta sequence</b>ga ketma-ket yig'iladi. Yonma-yon
       tushgan markerlar birlashtiriladi — bir joy ikki marta tushmaydi.<br>
-      Ovoz tahlili umuman ishlatilmaydi: tanlov faqat sizniki.</p>
+      Bo'lak <b>markerdan boshlanadi</b> (yuqoridagi «oldin» 0 bo'lsa).
+      Markerni timeline'da cho'zib belgilasangiz — aynan o'sha oraliq.<br>
+      <b>Reels 9:16</b> tanlansa, natija sequence'i vertikal qilinadi va
+      kadr balandlik bo'yicha to'ldiriladi (markazdan). Yuzni kerakli
+      joyga surish uchun klipni tanlab, Effect Controls &gt; Motion &gt;
+      Position ni o'zgartirasiz.</p>
       <p class="tip" id="shortsTipAuto">Har bo'lak — <b>tugallangan fikr</b> (20–60 s), chegaralari
       jimlik bo'yicha kesiladi: gap o'rtasidan boshlanmaydi.<br>
       Tanlanganlarning har biri <b>alohida sequence</b> bo'lib chiqadi.

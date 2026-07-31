@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 07:20";
+const PANEL_BUILD = "31-Jul 08:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1026,6 +1026,129 @@ async function sequenceOchish(ppro, project, seq, nomi) {
   return false;
 }
 
+
+/* ---------------------------------------------- 9:16 (reels) ga o'tkazish
+ *
+ * Ikki qadam:
+ *   1. sequence sozlamalarini vertikal qilish (1920x1080 → 1080x1920);
+ *   2. kliplarni balandlik bo'yicha to'ldirish uchun kattalashtirish.
+ *
+ * Ikkinchi qadam Premiere API'sining chuqur qismiga tegadi (Motion >
+ * Scale), shuning uchun u ishlamasa ham birinchi qadam qoladi va nima
+ * qilish kerakligi aniq aytiladi. Yuzni markazga surishni montajchi
+ * o'zi qiladi — buni mashina yaxshi qila olmaydi.
+ */
+async function seqOlchami(seq) {
+  try {
+    if (typeof seq.getSettings !== "function") return null;
+    const st = await seq.getSettings();
+    if (!st) return null;
+    const w = Number(st.videoFrameWidth || st.frameSizeHorizontal || 0);
+    const h = Number(st.videoFrameHeight || st.frameSizeVertical || 0);
+    if (w > 0 && h > 0) return { w: w, h: h, st: st };
+  } catch (e) { /* o'qilmadi */ }
+  return null;
+}
+
+async function vertikalgaOtkazish(ppro, project, seq) {
+  const olcham = await seqOlchami(seq);
+  if (!olcham) {
+    logLine("Sequence o'lchamini o'qib bo'lmadi — format o'zgartirilmadi. "
+            + "Qo'lda: Sequence > Sequence Settings > 1080x1920.", "warn");
+    return null;
+  }
+  if (olcham.h >= olcham.w) {
+    logLine("Sequence allaqachon vertikal (" + olcham.w + "×" + olcham.h
+            + ") — format o'zgartirilmadi");
+    return olcham;
+  }
+
+  const yangiW = Math.min(olcham.w, olcham.h);
+  const yangiH = Math.max(olcham.w, olcham.h);
+  const st = olcham.st;
+  try {
+    if ("videoFrameWidth" in st) { st.videoFrameWidth = yangiW; st.videoFrameHeight = yangiH; }
+    else { st.frameSizeHorizontal = yangiW; st.frameSizeVertical = yangiH; }
+    if (typeof seq.createSetSettingsAction === "function") {
+      runActions(project, () => [seq.createSetSettingsAction(st)], "Format 9:16");
+    } else if (typeof seq.setSettings === "function") {
+      await seq.setSettings(st);
+    } else {
+      throw new Error("sozlamalarni yozish yo'li yo'q");
+    }
+    logLine("Format 9:16 ga o'tkazildi: " + olcham.w + "×" + olcham.h
+            + " → " + yangiW + "×" + yangiH + " ✓", "okline");
+    return { w: yangiW, h: yangiH, eskiW: olcham.w, eskiH: olcham.h };
+  } catch (e) {
+    logLine("Formatni o'zgartirib bo'lmadi (" + (e.message || e) + ")", "warn");
+    logLine("Qo'lda: Sequence > Sequence Settings > Frame Size "
+            + yangiW + " × " + yangiH + ".", "warn");
+    return null;
+  }
+}
+
+/* Klipni kadr balandligiga to'ldirish uchun kerakli kattalashtirish.
+   16:9 manba 9:16 kadrda: balandlik bo'yicha to'ldirsak, eni ortib
+   ketadi va chetlari kesiladi — markazdagi qism qoladi. */
+function toldirishFoizi(eskiW, eskiH, yangiW, yangiH) {
+  const k = Math.max(yangiW / eskiW, yangiH / eskiH);
+  return Math.round(k * 1000) / 10;          // foizda, bir kasr bilan
+}
+
+async function kliplarniToldirish(ppro, project, seq, foiz) {
+  let ozgardi = 0, urinildi = 0;
+  try {
+    const n = await seq.getVideoTrackCount();
+    for (let i = 0; i < n; i++) {
+      const track = await seq.getVideoTrack(i);
+      if (!track) continue;
+      const items = await track.getTrackItems(clipTypeConst(ppro), false);
+      for (const it of items) {
+        urinildi++;
+        try {
+          const chain = await it.getComponentChain();
+          const cnt = await chain.getComponentCount();
+          for (let c = 0; c < cnt; c++) {
+            const comp = await chain.getComponentAtIndex(c);
+            let param = null;
+            try { param = await comp.getParam("Scale"); } catch (e) { param = null; }
+            if (!param) continue;
+            runActions(project,
+              () => [param.createSetValueAction(foiz, true)], "Scale");
+            ozgardi++;
+            break;
+          }
+        } catch (e) { /* shu klip bo'lmadi — qolganini davom ettiramiz */ }
+      }
+    }
+  } catch (e) {
+    logLine("Kliplarni kattalashtirib bo'lmadi: " + (e.message || e), "warn");
+  }
+  return { ozgardi: ozgardi, urinildi: urinildi };
+}
+
+async function reelsgaOtkazish(ppro, project, seq) {
+  logLine("Reels 9:16 ga o'tkazilmoqda…");
+  const yangi = await vertikalgaOtkazish(ppro, project, seq);
+  if (!yangi || !yangi.eskiW) return;
+
+  const foiz = toldirishFoizi(yangi.eskiW, yangi.eskiH, yangi.w, yangi.h);
+  if (foiz <= 100.5) return;
+  const r = await kliplarniToldirish(ppro, project, seq, foiz);
+  if (r.ozgardi) {
+    logLine(r.ozgardi + " klip kadrga to'ldirildi (" + foiz + "%) ✓", "okline");
+    logLine("Yuz markazda bo'lmasa: klipni tanlang > Effect Controls > "
+            + "Motion > Position ni chapga/o'ngga suring.");
+  } else {
+    logLine("Kadr to'ldirilmadi — kliplarni qo'lda kattalashtiring: "
+            + "hammasini tanlab, Effect Controls > Motion > Scale = "
+            + foiz + "%.", "warn");
+    logLine("Yoki osonroq yo'l: Project panelida shu sequence ustiga o'ng "
+            + "tugma > Auto Reframe Sequence > 9:16 — Adobe yuzni o'zi "
+            + "kuzatib joylashtiradi.");
+  }
+}
+
 /* Obyekt qanday ekanini bir qatorda tasvirlaydi — nosozlikni shu bilan
    bir bosishda aniqlaymiz. */
 function shaklTavsifi(obj) {
@@ -1133,8 +1256,11 @@ let shortsLimit = 8;
 let shortsMode = "avto";
 /* Marker atrofidan olinadigan oyna (soniya). Odam eshitib turib M ni
    bosguncha vaqt o'tadi, shuning uchun oldingi tomon kattaroq. */
-let markerOldin = 20;
-let markerKeyin = 15;
+/* Standart: bo'lak AYNAN markerdan boshlanadi. Ilgari 20 soniya oldin
+   boshlanardi — bu montajchi belgilamagan joyni ham olib kelardi. */
+let markerOldin = 0;
+let markerKeyin = 30;
+let markerAspect = "reels";
 
 function renderShorts() {
   els.shortsList.innerHTML = "";
@@ -1795,6 +1921,14 @@ async function markerlardanYigish() {
                      "Nom");
         }
       } catch (e) { /* nom qo'yilmasa ham bo'ladi */ }
+      if (markerAspect === "reels") {
+        step = "9:16 ga o'tkazish";
+        try {
+          await reelsgaOtkazish(ppro, project, target);
+        } catch (e) {
+          logLine("Format bosqichida xato: " + (e.message || e), "warn");
+        }
+      }
       await sequenceOchish(ppro, project, target, natijaNomi);
     }
 
@@ -2234,6 +2368,7 @@ setupMatn();
 setupCaptionPills();
 setupIntroPills();
 setupPills("shortsLimit", (v) => { shortsLimit = v; });
+setupPills("markerAspect", (v) => { markerAspect = v; }, true);
 setupPills("shortsMode", (v) => {
   shortsMode = v;
   const marker = v === "marker";
@@ -2245,6 +2380,7 @@ setupPills("shortsMode", (v) => {
   korsat("shortsTipMarker", marker);
   korsat("markerTip", marker);
   korsat("markerKnobs", marker);
+  korsat("markerFormat", marker, "flex");
   // Avtomatik rejimda «Markerlardan yig'ish» ma'nosiz — yashiramiz
   if (els.markerBtn && els.markerBtn.style) {
     els.markerBtn.style.display = marker ? "" : "none";
