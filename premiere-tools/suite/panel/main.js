@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "30-Jul 21:15";
+const PANEL_BUILD = "31-Jul 07:20";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -867,47 +867,183 @@ async function goToTime(sec) {
 
 /* Timeline'dagi markerlar — mashina taxmin qilmaydi, siz aytgansiz.
  * API versiyalari farq qiladi, shuning uchun topilmasa jimgina o'tamiz. */
+/* Markerlarni o'qish.
+ *
+ * Bu yerda ehtiyot bo'lish kerak: UXP `getMarkers()` MASSIV emas, TO'PLAM
+ * obyekti qaytaradi. Ilgari kod undan to'g'ridan-to'g'ri `length` so'rardi,
+ * topa olmasdi va «marker yo'q» deb xulosa qilardi — timeline markerlarga
+ * to'la bo'lsa ham. Endi to'plamning har xil shakli sinab ko'riladi va
+ * qaysi yo'l ishlagani logga yoziladi.
+ */
+async function massivga(obj, chuqurlik) {
+  if (!obj || chuqurlik > 2) return null;
+  if (Array.isArray(obj)) return obj;
+
+  // Massivsimon: length + indeks
+  if (typeof obj.length === "number" && typeof obj !== "function") {
+    const out = [];
+    for (let i = 0; i < obj.length; i++) out.push(obj[i]);
+    if (out.length) return out;
+  }
+  // Sanoq + indeks bilan olinadigan to'plam
+  for (const [sanoq, olish] of [["getMarkerCount", "getMarkerAt"],
+                                ["getCount", "getItemAt"],
+                                ["numItems", "getItemAt"]]) {
+    if (typeof obj[sanoq] === "function" && typeof obj[olish] === "function") {
+      const n = await obj[sanoq]();
+      const out = [];
+      for (let i = 0; i < n; i++) out.push(await obj[olish](i));
+      if (out.length) return out;
+    }
+  }
+  // Ichkarida yana bir qavat: markers.getMarkers() → massiv
+  for (const nom of ["getMarkers", "getAllMarkers", "markers", "items"]) {
+    const qiymat = obj[nom];
+    if (typeof qiymat === "function") {
+      const ichki = await obj[nom]();
+      const r = await massivga(ichki, chuqurlik + 1);
+      if (r && r.length) return r;
+    } else if (qiymat) {
+      const r = await massivga(qiymat, chuqurlik + 1);
+      if (r && r.length) return r;
+    }
+  }
+  // Iteratsiya qilinadigan bo'lsa
+  try {
+    if (typeof obj[Symbol.iterator] === "function") {
+      const out = Array.from(obj);
+      if (out.length) return out;
+    }
+  } catch (e) { /* iteratsiya bo'lmadi */ }
+  return null;
+}
+
 async function readMarkers() {
+  let manba = "";
   try {
     const ppro = require("premierepro");
     const project = await ppro.Project.getActiveProject();
     const seq = project && (await project.getActiveSequence());
-    if (!seq) return [];
-    let list = null;
-    if (ppro.Markers && ppro.Markers.getMarkers) {
-      list = await ppro.Markers.getMarkers(seq);
-    } else if (seq.getMarkers) {
-      list = await seq.getMarkers();
-    }
-    if (!list || !list.length) {
-      markerHolat = "Timeline'da marker topilmadi";
+    if (!seq) {
+      markerHolat = "Ochiq sequence topilmadi";
       return [];
     }
+
+    // Markerlar sequence'da ham, uning project item'ida ham turishi mumkin —
+    // ikkalasi ham sinaladi.
+    const manbalar = [];
+    if (ppro.Markers && typeof ppro.Markers.getMarkers === "function") {
+      manbalar.push(["Markers.getMarkers(seq)",
+                     () => ppro.Markers.getMarkers(seq)]);
+    }
+    if (typeof seq.getMarkers === "function") {
+      manbalar.push(["seq.getMarkers()", () => seq.getMarkers()]);
+    }
+    if (typeof seq.getProjectItem === "function"
+        && ppro.Markers && typeof ppro.Markers.getMarkers === "function") {
+      manbalar.push(["Markers.getMarkers(projectItem)", async () => {
+        const it = await seq.getProjectItem();
+        return it ? ppro.Markers.getMarkers(it) : null;
+      }]);
+    }
+
+    let xom = null;
+    for (const [nomi, olish] of manbalar) {
+      try {
+        const javob = await olish();
+        const r = await massivga(javob, 0);
+        if (r && r.length) { xom = r; manba = nomi; break; }
+        if (javob && !xom) {
+          // Nimadir qaytdi, lekin ichidan markerlarni ololmadik —
+          // shaklini yozib qo'yamiz, keyingi safar shu bo'yicha tuzatamiz.
+          manba = nomi + " → " + shaklTavsifi(javob);
+        }
+      } catch (e) {
+        manba = nomi + " xato berdi: " + (e.message || e);
+      }
+    }
+
+    if (!xom) {
+      markerHolat = "«" + (seq.name || "sequence")
+                  + "» da marker topilmadi"
+                  + (manba ? "  [" + manba + "]" : "");
+      return [];
+    }
+
     const out = [];
-    for (const mk of list) {
-      const t = mk.start !== undefined ? mk.start
-              : mk.getStart ? await mk.getStart() : null;
+    for (const mk of xom) {
+      let t = null;
+      try {
+        t = mk.start !== undefined && mk.start !== null ? mk.start
+          : (typeof mk.getStart === "function" ? await mk.getStart() : null);
+      } catch (e) { t = null; }
       if (t == null) continue;
       // Marker timeline'da cho'zib belgilangan bo'lsa — uzunligi ham bor.
-      // Shunda bo'lak chegaralari taxmin qilinmaydi, aynan o'sha oraliq olinadi.
       let d = null;
       try {
-        d = mk.duration !== undefined ? mk.duration
-          : mk.getDuration ? await mk.getDuration() : null;
+        d = mk.duration !== undefined && mk.duration !== null ? mk.duration
+          : (typeof mk.getDuration === "function" ? await mk.getDuration() : null);
       } catch (e) { d = null; }
       const rec = { start: secs(t) };
       const ds = d == null ? 0 : secs(d);
       if (ds > 0.05) rec.duration = ds;
       out.push(rec);
     }
-    markerHolat = out.length + " ta marker o'qildi";
+    out.sort((x, y) => x.start - y.start);
+    markerHolat = out.length + " ta marker o'qildi — «"
+                + (seq.name || "sequence") + "» dan  [" + manba + "]";
     return out;
   } catch (e) {
-    // Ilgari bu xato jimgina yutilardi: markerlar o'qilmasa ham
-    // foydalanuvchi buni bilmasdi va «nega ishlamayapti» deb qolardi.
-    markerHolat = "Markerlarni o'qib bo'lmadi: " + (e.message || e);
+    markerHolat = "Markerlarni o'qib bo'lmadi: " + (e.message || e)
+                + (manba ? "  [" + manba + "]" : "");
     return [];
   }
+}
+
+/* Yasalgan sequence'ni ochish. Bitta yo'lga tayanmaymiz: UXP versiyasiga
+   qarab ochish ham, faol qilib qo'yish ham har xil nomlanadi. Hech biri
+   ishlamasa — hech bo'lmasa qayerdan topishni aniq aytamiz. */
+async function sequenceOchish(ppro, project, seq, nomi) {
+  const yollar = [
+    ["project.openSequence", () => project.openSequence(seq)],
+    ["project.setActiveSequence", () => project.setActiveSequence(seq)],
+    ["Project.openSequence", () => ppro.Project.openSequence(project, seq)],
+  ];
+  const xatolar = [];
+  for (const [nom, urin] of yollar) {
+    try {
+      if (typeof urin !== "function") continue;
+      await urin();
+      logLine("«" + nomi + "» ochildi — timeline'da ko'ring ✓", "okline");
+      return true;
+    } catch (e) {
+      xatolar.push(nom + ": " + (e.message || e));
+    }
+  }
+  logLine("Sequence yasaldi, lekin o'zi ochilmadi. Project panelidan "
+          + "«" + nomi + "» ni ikki marta bosing (Window > Project).", "warn");
+  if (xatolar.length) logLine("  (" + xatolar.join(" · ") + ")");
+  return false;
+}
+
+/* Obyekt qanday ekanini bir qatorda tasvirlaydi — nosozlikni shu bilan
+   bir bosishda aniqlaymiz. */
+function shaklTavsifi(obj) {
+  if (obj == null) return "null";
+  const t = typeof obj;
+  if (t !== "object") return t;
+  const nomlar = [];
+  let o = obj;
+  let qavat = 0;
+  while (o && o !== Object.prototype && qavat < 3) {
+    for (const k of Object.getOwnPropertyNames(o)) {
+      if (k !== "constructor" && nomlar.indexOf(k) < 0) nomlar.push(k);
+    }
+    o = Object.getPrototypeOf(o);
+    qavat++;
+  }
+  return (obj.constructor && obj.constructor.name ? obj.constructor.name : "object")
+       + " {" + nomlar.slice(0, 14).join(", ") + "}";
 }
 
 let markerHolat = "";
@@ -1659,14 +1795,7 @@ async function markerlardanYigish() {
                      "Nom");
         }
       } catch (e) { /* nom qo'yilmasa ham bo'ladi */ }
-      try {
-        await project.openSequence(target);
-        logLine("«" + natijaNomi + "» ochildi — timeline'da ko'ring ✓",
-                "okline");
-      } catch (e) {
-        logLine("Project panelida «" + natijaNomi + "» nomi bilan turadi "
-                + "(Window > Project)");
-      }
+      await sequenceOchish(ppro, project, target, natijaNomi);
     }
 
     if (oldIn && oldOut) {
