@@ -317,6 +317,22 @@
   body:not(.tab-shorts) #shortsBtn, body:not(.tab-shorts) #shortsBuildBtn,
   body:not(.tab-shorts) #markerBtn, body:not(.tab-shorts) #trBtn { display: none; }
   body.tab-matn #markerBtn, body.tab-matn #trBtn { display: none; }
+  body:not(.tab-harakat) #harBtn { display: none; }
+  body.tab-harakat #importBtn, body.tab-harakat #trBtn,
+  body.tab-harakat #markerBtn { display: none; }
+  body.tab-harakat #syncBtn, body.tab-harakat #cutBtn, body.tab-harakat #switchBtn,
+  body.tab-harakat #capBtn, body.tab-harakat #sampleBtn, body.tab-harakat #introBtn,
+  body.tab-harakat #buildBtn, body.tab-harakat #reviewBtn, body.tab-harakat #matnBtn,
+  body.tab-harakat #shortsBtn, body.tab-harakat #shortsBuildBtn { display: none; }
+  #harKnobs { display: none; }
+  body.tab-harakat #harKnobs { display: block; }
+  body.tab-harakat .seqpick { display: block; text-align: center; margin-bottom: 12px;
+    border: 1.5px dashed #45464F; border-radius: 8px; padding: 14px; }
+  body.tab-harakat .tab.on { border-bottom-color: #C48BE0; }
+  body.tab-harakat .btn.primary { background-color: #C48BE0; border-color: #C48BE0;
+    color: #2A1233; }
+  body.tab-harakat .job-fill, body.tab-harakat .job-dot,
+  body.tab-harakat .job-pulse i.hi { background-color: #C48BE0; }
   body.tab-shorts #syncBtn, body.tab-shorts #cutBtn, body.tab-shorts #switchBtn,
   body.tab-shorts #capBtn, body.tab-shorts #sampleBtn, body.tab-shorts #introBtn,
   body.tab-shorts #buildBtn, body.tab-shorts #reviewBtn { display: none; }
@@ -496,6 +512,7 @@
     <div class="tab" data-tab="captions">Captions</div>
     <div class="tab" data-tab="shorts">Shorts</div>
     <div class="tab" data-tab="matn">Matn</div>
+    <div class="tab" data-tab="harakat">Harakat</div>
   </div>
 
   <div class="body">
@@ -742,6 +759,28 @@
       <span id="logCopy">Log'ni nusxalash</span>
       <span id="logBig">Kattalashtirish</span>
     </div>
+      <div id="harKnobs">
+        <p class="tip">Kadr hech qachon uzoq qotib turmaydi: har tanlangan
+        oraliqda sekin suriladi, keyin to'xtab turadi. Ketma-ket kliplar
+        turlicha qirqiladi — biri kengroq, keyingisi tigroq.<br>
+        Zoom faqat <b>manba montajdan kattaroq</b> bo'lsa qo'shiladi
+        (4K manba → 1080p montaj). Joy bo'lmasa klipga tegilmaydi —
+        xira kadrdan ko'ra qimirlamagan kadr yaxshi.</p>
+        <div class="opts" id="harOraliqBox">
+          <span class="olbl">HAR QANCHA VAQTDA</span>
+          <span class="opill" data-v="10">10 soniya</span>
+          <span class="opill on" data-v="15">15 soniya</span>
+          <span class="opill" data-v="30">30 soniya</span>
+          <span class="opill" data-v="60">1 daqiqa</span>
+        </div>
+        <div class="opts" id="harKuchBox">
+          <span class="olbl">QANCHALIK</span>
+          <span class="opill" data-v="3">Sezilmas</span>
+          <span class="opill on" data-v="5">O'rtacha</span>
+          <span class="opill" data-v="8">Kuchli</span>
+        </div>
+      </div>
+
     <div class="log" id="log"></div>
   </div>
 
@@ -776,6 +815,7 @@
     <button class="btn" id="shortsBuildBtn" disabled>Shorts yasash</button>
     <button class="btn primary" id="markerBtn">Markerlardan yig'ish</button>
     <button class="btn primary" id="trBtn" disabled>Tanlanganlardan yig'ish</button>
+    <button class="btn primary" id="harBtn">Harakat qo'shish</button>
     <button class="btn primary" id="introBtn" disabled>Lahzalarni topish</button>
     <button class="btn" id="reviewBtn" disabled>Nomzodlarni ko'rish</button>
     <button class="btn" id="buildBtn" disabled>Intro yasash</button>

@@ -37,6 +37,7 @@ from intro import (run_intro, build_intro, load_transcript,
                    transcript_on_timeline)
 from shorts import run_shorts, build_shorts
 from matn import run_matn, shriftlar, oldin_korish
+from harakat import run_harakat
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.1.0"
@@ -288,7 +289,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION,
                              "modules": ["sync", "cut", "switch", "captions",
-                                         "intro", "shorts", "matn"],
+                                         "intro", "shorts", "matn", "harakat"],
                              "whisper": bool(find_whisper()),
                              "panel_build": panel_build(),
                              # qaysi model tayyor — panel yuklab olish
@@ -340,6 +341,28 @@ class Handler(BaseHTTPRequestHandler):
                 with open(path, "w", encoding="utf-8") as fh:
                     fh.write(req.get("text") or "")
                 return self._send(200, {"ok": True, "path": path})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+
+        if self.path == "/harakat":
+            # Kadrga harakat rejasi. Og'ir ish yo'q — faqat manba
+            # o'lchamini o'qiydi, shuning uchun bir zumda javob beradi.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                clips = req.get("clips") or []
+                w = int(req.get("width") or 0)
+                h = int(req.get("height") or 0)
+                if not w or not h:
+                    return self._send(400, {"error":
+                        "Sequence o'lchami o'qilmadi"})
+                lines = []
+                reja = run_harakat(clips, w, h,
+                                   oraliq=float(req.get("oraliq") or 15),
+                                   kuch=float(req.get("kuch") or 5),
+                                   log=lines.append)
+                reja["log"] = lines
+                return self._send(200, reja)
             except Exception as e:
                 return self._send(500, {"error": str(e)})
 

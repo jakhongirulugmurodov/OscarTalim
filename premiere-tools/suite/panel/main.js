@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 13:05";
+const PANEL_BUILD = "31-Jul 14:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -64,6 +64,7 @@ const els = {
   trLoad: el("trLoad"),
   trClear: el("trClear"),
   trBtn: el("trBtn"),
+  harBtn: el("harBtn"),
   shortsList: el("shortsList"),
   staleBar: el("staleBar"),
   staleTxt: el("staleTxt"),
@@ -392,6 +393,12 @@ const TAB_TEXT = {
     seqTitle: "Ochiq sequence'dan bo'laklarni izlash",
     seqHint: "har bo'lak tugallangan fikr bo'ladi — 20-60 soniya",
     next: "Endi «Bo'laklarni topish» ni bosing",
+  },
+  harakat: {
+    pick: "ochiq sequence (fayl tanlash shart emas)",
+    seqTitle: "Ochiq sequence'ni olish",
+    seqHint: "kadrlar shu montajdan o'qiladi",
+    next: "Endi «Harakat qo'shish» ni bosing",
   },
   matn: {
     pick: "matnlarni quyida yozasiz — fayl tanlash shart emas",
@@ -2271,6 +2278,191 @@ async function trYigish() {
   await oraliqlardanYigish(ishga, "Podcast Suite — Matndan");
 }
 
+
+/* ========================================================= Harakat
+ *
+ * Statik kameradan olingan podkastda kadr o'nlab daqiqa qimirlamaydi va
+ * tomoshabin zerikadi. Bu yerda har klipga sekin harakat qo'shiladi:
+ * tanlangan oraliqda kadr yaqinlashadi, keyin to'xtab turadi, keyin
+ * uzoqlashadi. Ketma-ket kliplar turlicha qirqiladi.
+ *
+ * Rejani motor tuzadi (qaysi soniyada qancha), panel esa uni
+ * Premiere'ning Motion > Scale parametriga yozadi.
+ */
+let harOraliq = 15, harKuch = 5;
+
+/* Scale parametriga keyframe qo'yish.
+ *
+ * Premiere versiyasiga qarab bu metodlar bor yoki yo'q. Shuning uchun
+ * nomini oldindan tekshiramiz va yo'q bo'lsa — kamida klipga statik
+ * qirqim beramiz (harakatsiz, lekin har plan boshqacha bo'ladi).
+ * Jimgina ishlamay qo'yishdan ko'ra, yarim natija va ochiq xabar
+ * yaxshiroq.
+ */
+function keyframeUsuli(param) {
+  const bor = (n) => typeof param[n] === "function";
+  return {
+    vaqtli: bor("createSetTimeVaryingAction") ? "createSetTimeVaryingAction" : null,
+    qoy: bor("createSetValueAtKeyframeAction") ? "createSetValueAtKeyframeAction"
+       : bor("createAddKeyframeAction") ? "createAddKeyframeAction" : null,
+    statik: bor("createSetValueAction") ? "createSetValueAction" : null,
+  };
+}
+
+async function scaleQoy(ppro, project, item, param, keys, asos, usul) {
+  // Keyframe vaqti klipning MANBA vaqtida o'lchanadi (Effect Controls'da
+  // ham shunday ko'rinadi), shuning uchun in-point ustiga qo'shamiz.
+  let inSec = 0;
+  try { inSec = secs(await item.getInPoint()); } catch (e) { inSec = 0; }
+
+  if (usul.qoy && usul.vaqtli && keys.length > 1) {
+    runActions(project, () => {
+      const acts = [param[usul.vaqtli](true)];
+      for (const k of keys) {
+        acts.push(param[usul.qoy](tickTime(ppro, inSec + k.t),
+                                  asos * (1 + k.d / 100), true));
+      }
+      return acts;
+    }, "Harakat");
+    return "harakat";
+  }
+  // Keyframe yo'q — hech bo'lmasa qirqimni o'zgartiramiz
+  if (usul.statik) {
+    const orta = keys.reduce((a, k) => a + k.d, 0) / keys.length;
+    runActions(project, () => [param[usul.statik](asos * (1 + orta / 100), true)],
+               "Qirqim");
+    return "qirqim";
+  }
+  return "";
+}
+
+async function harakatQoshish() {
+  els.log.innerHTML = ""; logOchi(false);
+  startProgress("Kadrlar o'qilmoqda…");
+  let step = "boshlanish";
+  try {
+    if (!(await checkMotor())) { stopProgress(false, "motor yo'q"); return; }
+    const ppro = require("premierepro");
+    step = "ochiq sequence";
+    const project = await ppro.Project.getActiveProject();
+    const seq = await project.getActiveSequence();
+    if (!seq) throw new Error("Ochiq sequence yo'q — Premiere'da montajni oching");
+
+    const olcham = await seqOlchami(seq);
+    if (!olcham || !olcham.w) {
+      throw new Error("Sequence o'lchami o'qilmadi");
+    }
+    logLine("Montaj: " + olcham.w + "x" + olcham.h);
+
+    // Video kliplarni yig'amiz — reja shular uchun tuziladi
+    step = "kliplarni o'qish";
+    const items = [], clips = [];
+    const n = await seq.getVideoTrackCount();
+    for (let i = 0; i < n; i++) {
+      const tr = await seq.getVideoTrack(i);
+      if (!tr) continue;
+      for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
+        const path = await mediaPathOf(ppro, it);
+        if (!path) continue;
+        const st = secs(await it.getStartTime());
+        const en = secs(await it.getEndTime());
+        const ip = secs(await it.getInPoint());
+        if (en <= st) continue;
+        items.push(it);
+        clips.push({ path: path, start: st, in: ip, out: ip + (en - st) });
+      }
+    }
+    if (!clips.length) {
+      throw new Error("Video klip topilmadi. Multicam bo'lsa — avval "
+                      + "«Premiere ichida qirqish» ni ishlating.");
+    }
+    logLine(clips.length + " video klip o'qildi");
+
+    step = "reja so'rash";
+    const r = await fetch(MOTOR + "/harakat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clips: clips, width: olcham.w, height: olcham.h,
+                             oraliq: harOraliq, kuch: harKuch }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const l of (j.log || [])) logLine(l);
+    if (!j.rejalar.length) {
+      throw new Error("Hech bir klipga harakat qo'shib bo'lmadi — manba "
+                      + "montajdan kattaroq bo'lishi kerak (masalan 4K "
+                      + "manba, 1080p montaj).");
+    }
+
+    step = "Premiere'ga yozish";
+    let harakatli = 0, qirqim = 0, otdi = 0;
+    let usulAytildi = false;
+    for (let i = 0; i < j.rejalar.length; i++) {
+      const reja = j.rejalar[i];
+      paintJob({ steps: [], step: 0, lines: [],
+                 stage: "Klip " + (i + 1) + " / " + j.rejalar.length,
+                 percent: i / j.rejalar.length * 100,
+                 detail: reja.nomi });
+      const item = items[reja.idx];
+      if (!item) { otdi++; continue; }
+      try {
+        const chain = await item.getComponentChain();
+        const cnt = await chain.getComponentCount();
+        let param = null;
+        for (let c = 0; c < cnt && !param; c++) {
+          const comp = await chain.getComponentAtIndex(c);
+          try { param = await comp.getParam("Scale"); } catch (e) { param = null; }
+        }
+        if (!param) { otdi++; continue; }
+
+        let asos = 100;
+        try {
+          const v = await param.getValue();
+          if (typeof v === "number" && v > 0) asos = v;
+        } catch (e) { /* o'qilmasa 100% deb olamiz */ }
+
+        const usul = keyframeUsuli(param);
+        if (!usulAytildi) {
+          usulAytildi = true;
+          if (usul.qoy && usul.vaqtli) {
+            logLine("Keyframe qo'yish mumkin ✓ — kadr harakatlanadi", "okline");
+          } else {
+            logLine("Bu Premiere'da keyframe qo'yib bo'lmadi. Har klipga "
+                    + "boshqacha qirqim beriladi (harakatsiz).", "warn");
+          }
+        }
+        const natija = await scaleQoy(ppro, project, item, param,
+                                      reja.keys, asos, usul);
+        if (natija === "harakat") harakatli++;
+        else if (natija === "qirqim") qirqim++;
+        else otdi++;
+      } catch (e) {
+        otdi++;
+      }
+    }
+
+    logLine("");
+    if (harakatli) logLine(harakatli + " klipga harakat qo'shildi ✓", "okline");
+    if (qirqim) logLine(qirqim + " klipga qirqim berildi", "okline");
+    if (otdi) logLine(otdi + " klipga tegib bo'lmadi", "warn");
+    if (j.joysiz && j.joysiz.length) {
+      logLine(j.joysiz.length + " klip manbasi montajdan katta emas — "
+              + "ularga tegilmadi (kattalashtirsak rasm xiralashardi):",
+              "warn");
+      for (const x of j.joysiz.slice(0, 6)) {
+        logLine("   " + x.path + " — " + x.manba + " (" + tc(x.start) + ")");
+      }
+    }
+    if (harakatli || qirqim) {
+      logLine("Ko'rish uchun timeline'da qaytaring. Yoqmasa — Cmd+Z "
+              + "bilan bir marta bekor qilinadi.");
+    }
+    stopProgress(true, (harakatli + qirqim) + " klip");
+  } catch (e) {
+    logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+}
+
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
   const text = Array.from(els.log.querySelectorAll("div"))
@@ -2696,6 +2888,7 @@ on(els.shortsBtn, findShorts);
 on(els.shortsBuildBtn, buildShorts);
 on(els.markerBtn, markerlardanYigish);
 on(els.trBtn, trYigish);
+on(els.harBtn, harakatQoshish);
 on(els.trLoad, trYuklash);
 on(els.trClear, function () { trTanlangan = {}; trRender(els.trSearch.value); });
 on(els.buildBtn, function () { buildIntro(false); });
@@ -2712,6 +2905,8 @@ setupMatn();
 setupCaptionPills();
 setupIntroPills();
 setupPills("shortsLimit", (v) => { shortsLimit = v; });
+setupPills("harOraliqBox", (v) => { harOraliq = v; });
+setupPills("harKuchBox", (v) => { harKuch = v; });
 setupPills("markerAspect", (v) => { markerAspect = v; }, true);
 setupPills("shortsMode", (v) => {
   shortsMode = v;
