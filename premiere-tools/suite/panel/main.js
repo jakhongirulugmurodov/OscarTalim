@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 21:15";
+const PANEL_BUILD = "31-Jul 22:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -2629,16 +2629,25 @@ async function harakatQoshish() {
     paintJob({ steps: [], step: 0, lines: [], stage: "Timeline'ga yozilmoqda",
                percent: 100, overall: 90,
                detail: tayyor.length + " klip — bitta qadamda" });
-    let harakatli = 0, qirqim = 0, otdi = 0;
-    runActions(project, () => {
+    let harakatli = 0, qirqim = 0, otdi = 0, bosh = 0;
+    const yozildi = runActions(project, () => {
       const acts = [];
       for (const t of tayyor) {
         try {
           if (t.usul.qoy && t.usul.vaqtli && t.keys.length > 1) {
-            acts.push(t.param[t.usul.vaqtli](true));
+            const v = t.param[t.usul.vaqtli](true);
+            // Bu action null qaytarsa, keyingi keyframe'lar time-varying
+            // qilinmagan parametrga tushadi va hech narsa harakatlanmaydi.
+            // runActions yolg'on qiymatni jimgina tashlab yuboradi —
+            // shuning uchun bu yerda o'zimiz ushlaymiz.
+            if (!v) { bosh++; otdi++; continue; }
+            acts.push(v);
             for (const k of t.keys) {
-              acts.push(t.param[t.usul.qoy](tickTime(ppro, t.inSec + k.t),
-                                            t.asos * (1 + k.d / 100), true));
+              // k.t — TIMELINE soniyasi, keyframe esa MANBA vaqt o'qiga
+              // yoziladi. Tezligi o'zgartirilgan klipda ular teng emas.
+              acts.push(t.param[t.usul.qoy](
+                tickTime(ppro, t.inSec + k.t * t.tezlik),
+                t.asos * (1 + k.d / 100), true));
             }
             harakatli++;
           } else if (t.usul.statik) {
