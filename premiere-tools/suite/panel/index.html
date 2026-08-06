@@ -326,6 +326,8 @@
   body.tab-harakat #shortsBtn, body.tab-harakat #shortsBuildBtn { display: none; }
   #harKnobs { display: none; }
   body.tab-harakat #harKnobs { display: block; }
+  /* Harakat faqat ochiq sequence bilan ishlaydi — fayl tanlash keraksiz */
+  body.tab-harakat .drop { display: none; }
   body.tab-harakat .seqpick { display: block; text-align: center; margin-bottom: 12px;
     border: 1.5px dashed #45464F; border-radius: 8px; padding: 14px; }
   body.tab-harakat .tab.on { border-bottom-color: #C48BE0; }
@@ -439,7 +441,7 @@
   }
   /* Transkript ro'yxati — uzun yozuvni tez ko'zdan kechirish uchun */
   .trlist {
-    max-height: 300px; overflow-y: auto; margin-bottom: 10px;
+    max-height: 46vh; min-height: 120px; overflow-y: auto; margin-bottom: 10px;
     border: 1px solid #2B2C33; border-radius: 8px; background-color: #121316;
   }
   .trline {
@@ -636,16 +638,14 @@
       </div>
       <div id="trPanel" style="display:none">
         <div class="opts">
-          <input type="text" id="trSearch" placeholder="Matndan qidirish… (masalan: pul, birinchi marta)">
           <span class="mini" id="trLoad">Matnni yuklash</span>
           <span class="mini" id="trClear">Tanlovni tozalash</span>
         </div>
-        <p class="tip" id="trTip">1,5 soatlik yozuvni <b>eshitish</b> o'rniga
-        <b>o'qiysiz</b> — bu 5-10 barobar tez. Qatorni bosing: playhead o'sha
-        joyga boradi. Yana bir marta bosing — qator <b>tanlanadi</b>.
-        Ketma-ket tanlangan qatorlar bitta bo'lakka qo'shiladi.<br>
-        Tanlab bo'lgach, pastdagi <b>«Tanlanganlardan yig'ish»</b> ni bosasiz —
-        o'sha joylar timeline'dan butunligicha (kadr, ovoz, grafika) olinadi.</p>
+        <div class="opts">
+          <input type="text" id="trSearch" placeholder="Matndan qidirish… (pul, birinchi marta)">
+        </div>
+        <p class="tip" id="trTip">Qatorni bosing — playhead o'sha joyga boradi
+        va qator <b>tanlanadi</b>. Ketma-ket qatorlar bitta bo'lakka qo'shiladi.</p>
         <div class="trlist" id="trList"></div>
       </div>
 

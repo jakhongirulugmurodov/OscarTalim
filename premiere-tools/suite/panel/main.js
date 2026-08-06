@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 14:30";
+const PANEL_BUILD = "31-Jul 16:35";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -2182,6 +2182,11 @@ function trRender(filtr) {
     box.innerHTML = '<div class="trline"><span class="x">«' + q
                   + '» topilmadi</span></div>';
   }
+  // Ko'rsatma faqat boshida kerak. Matn yuklangach uni yashiramiz —
+  // dok panelida balandlik tor va ro'yxatga joy kerak.
+  const tip = document.getElementById("trTip");
+  if (tip) tip.style.display = trLines.length ? "none" : "";
+
   const oraliqlar = trOraliqlar();
   els.trBtn.disabled = !oraliqlar.length;
   els.trBtn.textContent = oraliqlar.length
@@ -2923,11 +2928,18 @@ setupPills("shortsMode", (v) => {
   korsat("trPanel", matndan);
   // Format tanlagichi ikkala Premiere-ichi rejimda ham kerak
   korsat("markerFormat", marker || matndan, "flex");
-  if (els.trBtn && els.trBtn.style) els.trBtn.style.display = matndan ? "" : "none";
-  // Avtomatik rejimda «Markerlardan yig'ish» ma'nosiz — yashiramiz
-  if (els.markerBtn && els.markerBtn.style) {
-    els.markerBtn.style.display = marker ? "" : "none";
-  }
+  // Har rejimda FAQAT o'ziga tegishli tugma turadi.
+  //
+  // Ilgari beshovi birdan turardi va 420px kenglikdagi dok panelida
+  // pastki qism ekranning yarmini egallab, ro'yxatga joy qolmasdi.
+  // Bundan tashqari marker/matn rejimida «Bo'laklarni topish» va
+  // «Premiere'ga import» umuman ma'nosiz: ish Premiere ichida bajariladi
+  // va XML yasalmaydi.
+  korsat("shortsBtn", v === "avto");
+  korsat("shortsBuildBtn", v === "avto");
+  korsat("importBtn", v === "avto");
+  korsat("markerBtn", marker);
+  korsat("trBtn", matndan);
   const lim = document.getElementById("shortsLimit");
   if (lim && lim.parentElement) lim.parentElement.style.display = (v === "avto") ? "" : "none";
 }, true);
