@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 17:05";
+const PANEL_BUILD = "31-Jul 17:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -2360,12 +2360,20 @@ async function harakatQoshish() {
     logLine("Montaj: " + olcham.w + "x" + olcham.h);
 
     // Video kliplarni yig'amiz — reja shular uchun tuziladi
+    // FAQAT ASOSIY KADR. Yuqoridagi treklarda b-roll, grafika, logotip,
+    // qoplama turadi — ularga zoom qo'shish montajni buzadi: b-roll
+    // ataylab tanlangan kadrda turadi va uni kattalashtirish kerak emas.
+    //
+    // Shuning uchun asosiy trek (eng pastki, V1) olinadi. Yuqoridagi
+    // trekdagi klip esa faqat AYNAN SHU fayllardan biri bo'lsa qo'shiladi
+    // — ya'ni asosiy kadrning nusxasi (masalan kesib, tepaga ko'chirilgan).
+    // Boshqa fayl bo'lsa — bu b-roll, tegilmaydi.
     step = "kliplarni o'qish";
     const items = [], clips = [];
     const n = await seq.getVideoTrackCount();
-    for (let i = 0; i < n; i++) {
-      const tr = await seq.getVideoTrack(i);
-      if (!tr) continue;
+    const oqi = async (tr) => {
+      const out = [];
+      if (!tr) return out;
       for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
         const path = await mediaPathOf(ppro, it);
         if (!path) continue;
@@ -2373,15 +2381,44 @@ async function harakatQoshish() {
         const en = secs(await it.getEndTime());
         const ip = secs(await it.getInPoint());
         if (en <= st) continue;
-        items.push(it);
-        clips.push({ path: path, start: st, in: ip, out: ip + (en - st) });
+        out.push({ it: it, path: path, start: st, in: ip, out: ip + (en - st) });
+      }
+      return out;
+    };
+
+    const asosiy = await oqi(await seq.getVideoTrack(0));
+    if (!asosiy.length) {
+      throw new Error("Eng pastki video trekda (V1) klip topilmadi. "
+                      + "Multicam bo'lsa — avval «Premiere ichida "
+                      + "qirqish» ni ishlating.");
+    }
+    const asosiyFayllar = new Set(asosiy.map((c) => c.path));
+    for (const c of asosiy) { items.push(c.it); clips.push(c); }
+
+    let nusxa = 0, broll = 0;
+    const brollNomlari = new Set();
+    for (let i = 1; i < n; i++) {
+      for (const c of await oqi(await seq.getVideoTrack(i))) {
+        if (asosiyFayllar.has(c.path)) {
+          items.push(c.it); clips.push(c); nusxa++;
+        } else {
+          broll++; brollNomlari.add(c.path.split("/").pop());
+        }
       }
     }
-    if (!clips.length) {
-      throw new Error("Video klip topilmadi. Multicam bo'lsa — avval "
-                      + "«Premiere ichida qirqish» ni ishlating.");
+    logLine("V1 (asosiy kadr): " + asosiy.length + " klip");
+    if (nusxa) logLine("Yuqoridagi treklardan: " + nusxa
+                       + " klip (asosiy kadrning nusxasi)");
+    if (broll) {
+      logLine(broll + " klipga tegilmaydi — b-roll/grafika, boshqa fayl:",
+              "okline");
+      for (const nm of Array.from(brollNomlari).slice(0, 5)) {
+        logLine("   " + nm);
+      }
+      if (brollNomlari.size > 5) {
+        logLine("   … yana " + (brollNomlari.size - 5) + " fayl");
+      }
     }
-    logLine(clips.length + " video klip o'qildi");
 
     step = "reja so'rash";
     const r = await fetch(MOTOR + "/harakat", {
