@@ -30,10 +30,40 @@ panel_ornat() {
     echo "  ⚠️  Premiere ochiq. O'rnatgandan keyin uni yopib qayta oching."
   fi
 
+  # Kutilayotgan versiya — tekshiruv AYNAN shuni qidiradi.
+  # Ilgari har qanday versiya mos kelaverardi va eski papka turgan
+  # bo'lsa, o'rnatish muvaffaqiyatsiz bo'lsa ham «o'rnatildi» deb
+  # yozilardi. Bu eng yomon xato turi: dastur yolg'on xabar beradi.
+  local VER
+  VER=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" \
+        "$SUITE/panel/manifest.json" 2>/dev/null)
+  if [ -z "$VER" ]; then
+    echo "  [XATO] manifest'dan versiya o'qilmadi"
+    return 1
+  fi
+
   if [ -x "$UPIA" ]; then
     echo "▶ Adobe o'rnatuvchisi orqali o'rnatilmoqda..."
     "$UPIA" --remove "$PLUGIN_ID" >/dev/null 2>&1
-    "$UPIA" --install "$CCX" 2>&1 | sed 's/^/    /'
+    local CHIQISH
+    CHIQISH=$("$UPIA" --install "$CCX" 2>&1)
+    echo "$CHIQISH" | sed 's/^/    /'
+    if echo "$CHIQISH" | grep -qi "failed\|error\|status = -"; then
+      echo
+      echo "  ❌ Adobe paketni QABUL QILMADI."
+      echo "     Sabab: imzolanmagan paket. Adobe faqat imzolangan"
+      echo "     .ccx ni o'rnatadi, imzoni esa UXP Developer Tools qo'yadi."
+      echo
+      echo "  Hozircha ishlatish uchun (2 daqiqa, ishlashi kafolatlangan):"
+      echo "    1. UXP Developer Tools > Add Plugin"
+      echo "    2. Cmd+Shift+G > shu yo'lni qo'ying:"
+      echo "         $SUITE/panel/manifest.json"
+      echo "    3. «Load & Watch» ni bosing"
+      echo
+      echo "  Doimiy qilish uchun o'sha yerda: ••• > Package > Desktop,"
+      echo "  so'ng PANELNI-DOIMIY-QILISH.command ni bosing."
+      return 1
+    fi
   else
     echo "▶ Adobe o'rnatuvchisi topilmadi — paket ochilmoqda..."
     open "$CCX"
@@ -45,11 +75,29 @@ panel_ornat() {
   # «O'rnatildi» deb yozib qo'yish oson, lekin tekshirilmagan xabar
   # foydalanuvchini adashtiradi.
   sleep 2
-  local FOUND
-  FOUND=$(ls -d "$EXTERNAL/${PLUGIN_ID}"_* 2>/dev/null | head -1)
-  if [ -n "$FOUND" ]; then
-    echo "  ✅ O'rnatildi: $(basename "$FOUND")"
-    return 0
+  local DIR="$EXTERNAL/${PLUGIN_ID}_${VER}"
+  if [ -f "$DIR/main.js" ]; then
+    # Papka bor — endi ICHIDAGI kod haqiqatan yangimi, shuni tekshiramiz.
+    # Papka nomi to'g'ri bo'lib, ichi eski qolishi mumkin.
+    local KUTILGAN ORNATILGAN
+    KUTILGAN=$(grep -o 'PANEL_BUILD = "[^"]*"' "$SUITE/panel/main.js" | head -1)
+    ORNATILGAN=$(grep -o 'PANEL_BUILD = "[^"]*"' "$DIR/main.js" | head -1)
+    if [ "$KUTILGAN" = "$ORNATILGAN" ]; then
+      echo "  ✅ O'rnatildi: ${PLUGIN_ID}_${VER} ($ORNATILGAN)"
+      return 0
+    fi
+    echo "  ⚠️  Papka bor, lekin ichida ESKI kod: $ORNATILGAN"
+    echo "      Kutilgan: $KUTILGAN"
+    return 1
+  fi
+
+  # Eski versiya qolib ketgan bo'lsa — buni ochiq aytamiz, aks holda
+  # foydalanuvchi Premiere'da eski panelni ko'rib chalkashadi.
+  local ESKI
+  ESKI=$(ls -d "$EXTERNAL/${PLUGIN_ID}"_* 2>/dev/null | head -1)
+  if [ -n "$ESKI" ]; then
+    echo "  ⚠️  Yangi versiya o'rnatilmadi. Eski nusxa turibdi:"
+    echo "      $(basename "$ESKI")"
   fi
 
   echo "  ⚠️  O'rnatilganini tasdiqlab bo'lmadi."
