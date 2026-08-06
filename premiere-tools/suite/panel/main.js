@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 12:20";
+const PANEL_BUILD = "31-Jul 13:05";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1759,6 +1759,61 @@ function logLong(label, text) {
   }
 }
 
+/* Motion (Scale/Position) va KEYFRAME imkoniyatini tekshiradi.
+ *
+ * Zoom, kadrni surish, «harakat qo'shish» — hammasi shu ikki narsaga
+ * bog'liq: Motion parametrini o'zgartira olamizmi va unga keyframe
+ * qo'ya olamizmi. Statik qiymatni o'zgartirish sinalgan (9:16 ga
+ * o'tkazishda ishlatamiz), keyframe esa Premiere versiyasiga qarab
+ * bo'lishi ham, bo'lmasligi ham mumkin. Shuni bir bosishda aniqlaymiz. */
+async function dumpMotion(ppro, seq) {
+  try {
+    if (!seq) return;
+    const n = await seq.getVideoTrackCount();
+    let item = null;
+    for (let i = 0; i < n && !item; i++) {
+      const tr = await seq.getVideoTrack(i);
+      if (!tr) continue;
+      const items = await tr.getTrackItems(clipTypeConst(ppro), false);
+      if (items && items.length) item = items[0];
+    }
+    if (!item) { logLine("Motion: timeline'da video klip topilmadi"); return; }
+
+    const chain = await item.getComponentChain();
+    const cnt = await chain.getComponentCount();
+    const nomlar = [];
+    let scaleParam = null;
+    for (let c = 0; c < cnt; c++) {
+      const comp = await chain.getComponentAtIndex(c);
+      let nom = "";
+      try { nom = await comp.getMatchName(); } catch (e) { nom = "?"; }
+      let dn = "";
+      try { dn = await comp.getDisplayName(); } catch (e) { dn = ""; }
+      nomlar.push(dn || nom);
+      if (!scaleParam) {
+        try { scaleParam = await comp.getParam("Scale"); } catch (e) { /* yo'q */ }
+      }
+    }
+    logLong("Effektlar zanjiri", nomlar.join(", "));
+    if (!scaleParam) { logLine("Motion: «Scale» parametri topilmadi", "warn"); }
+    else {
+      const m = methodNames(scaleParam);
+      logLong("Scale parametri metodlari", m.join(", "));
+      const kf = m.filter((x) => /[Kk]eyframe|TimeVarying|Interpolation/.test(x));
+      if (kf.length) {
+        logLine("KEYFRAME QO'YSA BO'LADI ✓ — " + kf.join(", "), "okline");
+      } else {
+        logLine("Keyframe metodlari topilmadi — harakat XML orqali "
+                + "qo'shiladi (u ham ishlaydi, faqat yangi sequence yasaydi).",
+                "warn");
+      }
+    }
+  } catch (e) {
+    logLine("Motion tashxisi chiqmadi: " + (e.message || e), "warn");
+  }
+}
+
+
 async function dumpApi(ppro, seq) {
   try {
     logLong("API (premierepro)", Object.keys(ppro || {}).join(", "));
@@ -1770,6 +1825,7 @@ async function dumpApi(ppro, seq) {
               Object.getOwnPropertyNames(ppro.SequenceEditor).join(", "));
     }
     if (seq) logLong("Sequence metodlari", methodNames(seq).join(", "));
+    await dumpMotion(ppro, seq);
   } catch (e) {
     logLine("Tashxis to'liq chiqmadi: " + (e.message || e), "warn");
   }
