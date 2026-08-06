@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 17:40";
+const PANEL_BUILD = "31-Jul 19:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -50,6 +50,9 @@ const els = {
   jobDetail: el("jobDetail"),
   jobElapsed: el("jobElapsed"),
   jobEta: el("jobEta"),
+  jobHelp: el("jobHelp"),
+  jobHelpTxt: el("jobHelpTxt"),
+  jobRetry: el("jobRetry"),
   capSearch: el("capSearch"),
   capSearchBtn: el("capSearchBtn"),
   introBtn: el("introBtn"),
@@ -1930,6 +1933,7 @@ function markerOraliqlari(markers, oldin, keyin) {
 }
 
 async function markerlardanYigish() {
+  songgiIsh = { nomi: "Qayta urinish", fn: markerlardanYigish };
   els.log.innerHTML = ""; logOchi(false);
   startProgress("Markerlar o'qilmoqda…");
   let step = "boshlanish";
@@ -2005,6 +2009,7 @@ async function oraliqlardanYigish(ishga, natijaNomi0) {
       paintJob({ steps: [], step: 0, lines: [],
                  stage: "Bo'lak " + (i + 1) + " / " + ishga.length,
                  percent: i / ishga.length * 100,
+                 overall: i / ishga.length * 100,
                  detail: tc(r.a) + " → " + tc(r.b) });
 
       step = (i + 1) + "-oraliq: sequence olish";
@@ -2064,6 +2069,7 @@ async function oraliqlardanYigish(ishga, natijaNomi0) {
         step = (i + 1) + "-bo'lakni qo'shish";
         paintJob({ steps: [], step: 0, lines: [], stage: "Yig'ilmoqda",
                    percent: i / made.length * 100,
+                   overall: i / made.length * 100,
                    detail: (i + 1) + " / " + made.length });
         const pr = await ppro.Project.getActiveProject();
         const editor = ppro.SequenceEditor.getEditor(target);
@@ -2314,52 +2320,84 @@ function keyframeUsuli(param) {
   };
 }
 
-async function scaleQoy(ppro, project, item, param, keys, asos, usul) {
-  // Keyframe vaqti klipning MANBA vaqtida o'lchanadi (Effect Controls'da
-  // ham shunday ko'rinadi), shuning uchun in-point ustiga qo'shamiz.
-  let inSec = 0;
-  try { inSec = secs(await item.getInPoint()); } catch (e) { inSec = 0; }
+/* Butun montajning NUSXASINI yasaydi.
+ *
+ * Asl montajga tegmaslik uchun. Harakat yoqmasa, foydalanuvchi shunchaki
+ * nusxani o'chiradi va asl montaji joyida turadi. Ikkalasi yonma-yon
+ * turgani uchun taqqoslash ham oson.
+ *
+ * Yo'li: in/out nuqtalarini butun montajga qo'yamiz va
+ * createSubsequence chaqiramiz — bu markerlardan yig'ishda sinalgan
+ * usul. Natijada timeline'da NIMA bo'lsa hammasi ko'chadi: kadr, ovoz,
+ * matn, grafika, effektlar, multicam.
+ */
+async function sequenceNusxasi(ppro, project, seq) {
+  // Foydalanuvchi qo'ygan in/out belgilarini eslab qolamiz — nusxa
+  // yasash uchun ularni vaqtincha o'zgartiramiz, keyin tiklaymiz.
+  let eskiIn = null, eskiOut = null;
+  try {
+    eskiIn = secs(await seq.getInPoint());
+    eskiOut = secs(await seq.getOutPoint());
+  } catch (e) { /* o'qilmasa — tiklamaymiz */ }
 
-  if (usul.qoy && usul.vaqtli && keys.length > 1) {
-    runActions(project, () => {
-      const acts = [param[usul.vaqtli](true)];
-      for (const k of keys) {
-        acts.push(param[usul.qoy](tickTime(ppro, inSec + k.t),
-                                  asos * (1 + k.d / 100), true));
-      }
-      return acts;
-    }, "Harakat");
-    return "harakat";
+  const oxir = secs(await seq.getEndTime());
+  if (!(oxir > 0)) throw new Error("Montaj uzunligi o'qilmadi");
+  await setSeqInOut(ppro, project, seq, 0, oxir);
+
+  let sub = null;
+  try {
+    // `true` — trek nishonlashiga qaramaydi, ya'ni HAMMA trek ko'chadi
+    sub = await seq.createSubsequence(true);
+  } catch (e) {
+    sub = await seq.createSubsequence();
   }
-  // Keyframe yo'q — hech bo'lmasa qirqimni o'zgartiramiz
-  if (usul.statik) {
-    const orta = keys.reduce((a, k) => a + k.d, 0) / keys.length;
-    runActions(project, () => [param[usul.statik](asos * (1 + orta / 100), true)],
-               "Qirqim");
-    return "qirqim";
+
+  if (eskiIn !== null && eskiOut !== null && eskiOut > eskiIn) {
+    try { await setSeqInOut(ppro, project, seq, eskiIn, eskiOut); }
+    catch (e) { /* tiklanmasa ham nusxa joyida */ }
   }
-  return "";
+  if (!sub) throw new Error("Montaj nusxasi yasalmadi");
+  return sub;
 }
 
+
 async function harakatQoshish() {
+  songgiIsh = { nomi: "Qayta urinish", fn: harakatQoshish };
   els.log.innerHTML = ""; logOchi(false);
-  startProgress("Kadrlar o'qilmoqda…");
+  startProgress("Montaj nusxasi yasalmoqda…");
   let step = "boshlanish";
   try {
     if (!(await checkMotor())) { stopProgress(false, "motor yo'q"); return; }
     const ppro = require("premierepro");
+
     step = "ochiq sequence";
     const project = await ppro.Project.getActiveProject();
-    const seq = await project.getActiveSequence();
-    if (!seq) throw new Error("Ochiq sequence yo'q — Premiere'da montajni oching");
+    if (!project) throw new Error("Ochiq loyiha yo'q");
+    const asl = await project.getActiveSequence();
+    if (!asl) {
+      throw new Error("Ochiq sequence yo'q — Premiere'da montajni oching "
+                      + "(Project panelidan sequence'ni ikki marta bosing)");
+    }
+    const aslNomi = asl.name || "Montaj";
+
+    step = "montaj nusxasi";
+    logLine("Asl montajga tegilmaydi — nusxa yasalmoqda…");
+    const seq = await sequenceNusxasi(ppro, project, asl);
+    const nusxaNomi = aslNomi + " — harakat";
+    try {
+      const pi = await seq.getProjectItem();
+      if (pi && typeof pi.createSetNameAction === "function") {
+        runActions(project, () => [pi.createSetNameAction(nusxaNomi)], "Nom");
+      }
+    } catch (e) { /* nom qo'yilmasa ham nusxa joyida */ }
+    logLine("Nusxa yasaldi: «" + nusxaNomi + "» ✓", "okline");
+    try { await sequenceOchish(ppro, project, seq, nusxaNomi); }
+    catch (e) { logLine("  (nusxa o'zi ochilmadi — Project panelidan oching)"); }
 
     const olcham = await seqOlchami(seq);
-    if (!olcham || !olcham.w) {
-      throw new Error("Sequence o'lchami o'qilmadi");
-    }
+    if (!olcham || !olcham.w) throw new Error("Sequence o'lchami o'qilmadi");
     logLine("Montaj: " + olcham.w + "x" + olcham.h);
 
-    // Video kliplarni yig'amiz — reja shular uchun tuziladi
     // FAQAT ASOSIY KADR. Yuqoridagi treklarda b-roll, grafika, logotip,
     // qoplama turadi — ularga zoom qo'shish montajni buzadi: b-roll
     // ataylab tanlangan kadrda turadi va uni kattalashtirish kerak emas.
@@ -2376,7 +2414,7 @@ async function harakatQoshish() {
       if (!tr) return out;
       for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
         const path = await mediaPathOf(ppro, it);
-        if (!path) continue;
+        if (!path) { out.push(null); continue; }
         const st = secs(await it.getStartTime());
         const en = secs(await it.getEndTime());
         const ip = secs(await it.getInPoint());
@@ -2386,11 +2424,15 @@ async function harakatQoshish() {
       return out;
     };
 
-    const asosiy = await oqi(await seq.getVideoTrack(0));
+    const v1Xom = await oqi(await seq.getVideoTrack(0));
+    const asosiy = v1Xom.filter(Boolean);
+    const yolsiz = v1Xom.length - asosiy.length;
     if (!asosiy.length) {
-      throw new Error("Eng pastki video trekda (V1) klip topilmadi. "
-                      + "Multicam bo'lsa — avval «Premiere ichida "
-                      + "qirqish» ni ishlating.");
+      throw new Error(yolsiz
+        ? "V1 dagi " + yolsiz + " klipning ortida fayl yo'q (multicam yoki "
+          + "nested sequence). Harakat bunday klipga tegib bo'lmaydi — "
+          + "avval ularni oddiy klipga aylantiring."
+        : "Eng pastki video trekda (V1) klip topilmadi.");
     }
     const asosiyFayllar = new Set(asosiy.map((c) => c.path));
     for (const c of asosiy) { items.push(c.it); clips.push(c); }
@@ -2399,6 +2441,7 @@ async function harakatQoshish() {
     const brollNomlari = new Set();
     for (let i = 1; i < n; i++) {
       for (const c of await oqi(await seq.getVideoTrack(i))) {
+        if (!c) continue;
         if (asosiyFayllar.has(c.path)) {
           items.push(c.it); clips.push(c); nusxa++;
         } else {
@@ -2407,11 +2450,14 @@ async function harakatQoshish() {
       }
     }
     logLine("V1 (asosiy kadr): " + asosiy.length + " klip");
+    if (yolsiz) {
+      logLine(yolsiz + " klipning ortida fayl yo'q (multicam/nested) — "
+              + "tegilmadi", "warn");
+    }
     if (nusxa) logLine("Yuqoridagi treklardan: " + nusxa
                        + " klip (asosiy kadrning nusxasi)");
     if (broll) {
-      logLine(broll + " klipga tegilmaydi — b-roll/grafika, boshqa fayl:",
-              "okline");
+      logLine(broll + " klipga tegilmaydi — b-roll/grafika, boshqa fayl:");
       for (const nm of Array.from(brollNomlari).slice(0, 5)) {
         logLine("   " + nm);
       }
@@ -2426,26 +2472,36 @@ async function harakatQoshish() {
       body: JSON.stringify({ clips: clips, width: olcham.w, height: olcham.h,
                              oraliq: harOraliq, kuch: harKuch }),
     });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || "Motor xatosi");
-    for (const l of (j.log || [])) logLine(l);
-    if (!j.rejalar.length) {
+    const jj = await r.json();
+    if (!r.ok) throw new Error(jj.error || "Motor xatosi");
+    for (const l of (jj.log || [])) logLine(l);
+    if (!jj.rejalar.length) {
       throw new Error("Hech bir klipga harakat qo'shib bo'lmadi — manba "
                       + "montajdan kattaroq bo'lishi kerak (masalan 4K "
                       + "manba, 1080p montaj).");
     }
 
-    step = "Premiere'ga yozish";
-    let harakatli = 0, qirqim = 0, otdi = 0;
-    let usulAytildi = false;
-    for (let i = 0; i < j.rejalar.length; i++) {
-      const reja = j.rejalar[i];
+    // Ikki bosqich. Avval parametrlar topiladi (bu async ish), keyin
+    // hamma o'zgarish BITTA tranzaksiyada bajariladi.
+    //
+    // Nima uchun bitta: har klip alohida tranzaksiya bo'lsa, Premiere
+    // tarixida har biri alohida qadam bo'lib qoladi va 200 klipli
+    // montajni bekor qilish uchun 200 marta Cmd+Z bosish kerak bo'ladi.
+    step = "parametrlarni topish";
+    const tayyor = [];
+    let topilmadi = 0, usulAytildi = false;
+    for (let i = 0; i < jj.rejalar.length; i++) {
+      const reja = jj.rejalar[i];
+      // Umumiy foiz: parametrlarni topish ishning ~85% i, yozish qolgani.
+      // «overall» berilmasa chiziq to'lmaydi va «qancha qoldi» chiqmaydi —
+      // aynan shu sabab foydalanuvchi «qotib qoldi» deb o'ylagan edi.
       paintJob({ steps: [], step: 0, lines: [],
-                 stage: "Klip " + (i + 1) + " / " + j.rejalar.length,
-                 percent: i / j.rejalar.length * 100,
+                 stage: "Klip o'qilmoqda " + (i + 1) + " / " + jj.rejalar.length,
+                 percent: i / jj.rejalar.length * 100,
+                 overall: i / jj.rejalar.length * 85,
                  detail: reja.nomi });
       const item = items[reja.idx];
-      if (!item) { otdi++; continue; }
+      if (!item) { topilmadi++; continue; }
       try {
         const chain = await item.getComponentChain();
         const cnt = await chain.getComponentCount();
@@ -2454,13 +2510,16 @@ async function harakatQoshish() {
           const comp = await chain.getComponentAtIndex(c);
           try { param = await comp.getParam("Scale"); } catch (e) { param = null; }
         }
-        if (!param) { otdi++; continue; }
+        if (!param) { topilmadi++; continue; }
 
         let asos = 100;
         try {
           const v = await param.getValue();
           if (typeof v === "number" && v > 0) asos = v;
         } catch (e) { /* o'qilmasa 100% deb olamiz */ }
+
+        let inSec = 0;
+        try { inSec = secs(await item.getInPoint()); } catch (e) { inSec = 0; }
 
         const usul = keyframeUsuli(param);
         if (!usulAytildi) {
@@ -2472,32 +2531,68 @@ async function harakatQoshish() {
                     + "boshqacha qirqim beriladi (harakatsiz).", "warn");
           }
         }
-        const natija = await scaleQoy(ppro, project, item, param,
-                                      reja.keys, asos, usul);
-        if (natija === "harakat") harakatli++;
-        else if (natija === "qirqim") qirqim++;
-        else otdi++;
+        tayyor.push({ param: param, keys: reja.keys, asos: asos,
+                      inSec: inSec, usul: usul });
       } catch (e) {
-        otdi++;
+        topilmadi++;
       }
     }
+
+    if (!tayyor.length) {
+      throw new Error("Hech bir klipning «Scale» parametriga yetib "
+                      + "bo'lmadi. Motor qatoridagi «tekshirish» tugmasini "
+                      + "bosib, log'ni yuboring.");
+    }
+
+    step = "Premiere'ga yozish";
+    paintJob({ steps: [], step: 0, lines: [], stage: "Timeline'ga yozilmoqda",
+               percent: 100, overall: 90,
+               detail: tayyor.length + " klip — bitta qadamda" });
+    let harakatli = 0, qirqim = 0, otdi = 0;
+    runActions(project, () => {
+      const acts = [];
+      for (const t of tayyor) {
+        try {
+          if (t.usul.qoy && t.usul.vaqtli && t.keys.length > 1) {
+            acts.push(t.param[t.usul.vaqtli](true));
+            for (const k of t.keys) {
+              acts.push(t.param[t.usul.qoy](tickTime(ppro, t.inSec + k.t),
+                                            t.asos * (1 + k.d / 100), true));
+            }
+            harakatli++;
+          } else if (t.usul.statik) {
+            const orta = t.keys.reduce((a, k) => a + k.d, 0) / t.keys.length;
+            acts.push(t.param[t.usul.statik](t.asos * (1 + orta / 100), true));
+            qirqim++;
+          } else {
+            otdi++;
+          }
+        } catch (e) {
+          // Bitta klip yiqilsa qolganlari baribir yoziladi
+          otdi++;
+        }
+      }
+      return acts;
+    }, "Harakat qo'shish");
 
     logLine("");
     if (harakatli) logLine(harakatli + " klipga harakat qo'shildi ✓", "okline");
     if (qirqim) logLine(qirqim + " klipga qirqim berildi", "okline");
-    if (otdi) logLine(otdi + " klipga tegib bo'lmadi", "warn");
-    if (j.joysiz && j.joysiz.length) {
-      logLine(j.joysiz.length + " klip manbasi montajdan katta emas — "
+    if (otdi || topilmadi) {
+      logLine((otdi + topilmadi) + " klipga tegib bo'lmadi", "warn");
+    }
+    if (jj.joysiz && jj.joysiz.length) {
+      logLine(jj.joysiz.length + " klip manbasi montajdan katta emas — "
               + "ularga tegilmadi (kattalashtirsak rasm xiralashardi):",
               "warn");
-      for (const x of j.joysiz.slice(0, 6)) {
+      for (const x of jj.joysiz.slice(0, 6)) {
         logLine("   " + x.path + " — " + x.manba + " (" + tc(x.start) + ")");
       }
     }
-    if (harakatli || qirqim) {
-      logLine("Ko'rish uchun timeline'da qaytaring. Yoqmasa — Cmd+Z "
-              + "bilan bir marta bekor qilinadi.");
-    }
+    logLine("");
+    logLine("Natija «" + nusxaNomi + "» sequence'ida. Asl montajingiz "
+            + "«" + aslNomi + "» tegilmagan holda turibdi.", "okline");
+    logLine("Yoqmasa — nusxani o'chiring, yoki bitta Cmd+Z bosing.");
     stopProgress(true, (harakatli + qirqim) + " klip");
   } catch (e) {
     logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
@@ -2621,6 +2716,35 @@ function drawSteps(steps, index) {
   });
 }
 
+/* Oxirgi boshlangan ish — «Qayta urinish» shuni qayta chaqiradi.
+   Foydalanuvchi qaysi tabda ekanini eslab, tugmani qidirib yurmasin. */
+let songgiIsh = null;
+
+/* Ish qotib qolganda yoki to'xtaganda nima qilish kerakligi.
+   Umumiy «xato yuz berdi» emas — aynan shu holatga mos maslahat. */
+function yordamMatni(holat, izoh) {
+  const t = (izoh || "").toLowerCase();
+  if (t.indexOf("motor") >= 0) {
+    return "Motor javob bermayapti. YANGILASH.command ni ishga tushiring, "
+         + "so'ng qayta urining.";
+  }
+  if (t.indexOf("sequence") >= 0 || t.indexOf("loyiha") >= 0) {
+    return "Premiere'da montaj ochiq emas. Project panelida sequence'ni "
+         + "ikki marta bosing, so'ng qayta urining.";
+  }
+  if (t.indexOf("scale") >= 0 || t.indexOf("keyframe") >= 0) {
+    return "Premiere klip parametriga ruxsat bermadi. Motor qatoridagi "
+         + "«tekshirish» ni bosib, log'ni yuboring.";
+  }
+  if (holat === "stale") {
+    return "45 soniyadan beri o'zgarish yo'q. Uzun montajda bu normal "
+         + "bo'lishi mumkin — «Batafsil» bilan bosqichni ko'ring. "
+         + "Yana kutsangiz ham qimirlamasa, qayta urining.";
+  }
+  return "Ish tugallanmadi. Log'ning oxirgi qatorini o'qing — sabab o'sha "
+       + "yerda yozilgan. Tuzatib bo'lmasa, log'ni menga yuboring.";
+}
+
 function paintJob(j) {
   const steps = j.steps || [];
   const idx = j.step >= 0 ? j.step : 0;
@@ -2665,7 +2789,11 @@ function paintJob(j) {
   while (els.jobPulse.childNodes.length > 30) {
     els.jobPulse.removeChild(els.jobPulse.firstChild);
   }
-  els.job.classList.toggle("stale", Date.now() - lastChange > 45000);
+  const qotdi = Date.now() - lastChange > 45000;
+  els.job.classList.toggle("qotdi", qotdi);
+  if (qotdi && els.jobHelpTxt && !els.job.classList.contains("err")) {
+    els.jobHelpTxt.textContent = yordamMatni("stale", "");
+  }
 }
 
 function startProgress(kindLabel) {
@@ -2725,6 +2853,13 @@ function stopProgress(ok, note) {
   els.jobElapsed.textContent = spent;
   const chips = els.jobChips.querySelectorAll(".c");
   if (ok) chips.forEach((c) => { c.className = "c ok"; });
+  if (els.jobHelpTxt) {
+    els.jobHelpTxt.textContent = ok ? "" : yordamMatni("err", note);
+  }
+  if (els.jobRetry && els.jobRetry.style) {
+    els.jobRetry.style.display = (!ok && songgiIsh) ? "" : "none";
+    if (!ok && songgiIsh) els.jobRetry.textContent = songgiIsh.nomi;
+  }
 }
 
 async function run(kind) {
@@ -2931,6 +3066,9 @@ on(els.shortsBuildBtn, buildShorts);
 on(els.markerBtn, markerlardanYigish);
 on(els.trBtn, trYigish);
 on(els.harBtn, harakatQoshish);
+on(els.jobRetry, function () {
+  if (songgiIsh && typeof songgiIsh.fn === "function") songgiIsh.fn();
+});
 on(els.trLoad, trYuklash);
 on(els.trClear, function () { trTanlangan = {}; trRender(els.trSearch.value); });
 on(els.buildBtn, function () { buildIntro(false); });

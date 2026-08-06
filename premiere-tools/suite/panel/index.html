@@ -67,9 +67,9 @@
     line-height: 1.5;
   }
   .stale.show { display: block; }
-  .stale b { display: block; color: #FF8E8E; margin-bottom: 2px; }
-  .stale span { display: block; color: #E2C4C4; font-size: 12px; }
-  .stale .how { color: #C9CAD2; margin-top: 4px; }
+  #staleBar b { display: block; color: #FF8E8E; margin-bottom: 2px; }
+  #staleBar span { display: block; color: #E2C4C4; font-size: 12px; }
+  #staleBar .how { color: #C9CAD2; margin-top: 4px; }
   /* Ish jarayoni PANEL PASTIDA, tugmalar ustida turadi.
      Ilgari u .body ichida «yopishib» turardi va kontentni bosib qolardi —
      aynan shu halaqit berardi. Endi o'z qatori bor, hech narsani
@@ -151,18 +151,47 @@
   .job-chips .c.ok { color: #4CC38A; }
   .job-chips .c.now { color: #E9EAEF; font-weight: 600; }
   .job-ft {
-    display: flex; align-items: baseline; gap: 8px;
+    display: flex; align-items: baseline; gap: 3px 8px;
     font-size: 12px; color: #8E909C;
+    flex-wrap: wrap;
   }
+  /* 420px dok kengligida fayl nomi + vaqt + «qancha qoldi» bir qatorga
+     sig'maydi. Vaqt siqilib «1:12 / o'tdi» bo'lib ikkiga bo'linardi.
+     Shuning uchun fayl nomi butun qatorni egallaydi, vaqt va qolgan
+     vaqt esa keyingi qatorda yonma-yon turadi — ikkalasi ham qisqa. */
   .job-detail {
-    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1 1 100%; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .job-time { white-space: nowrap; color: #C9CAD2;
-              font-family: ui-monospace, Consolas, monospace; }
-  .job-time b { color: #E9EAEF; font-weight: 700; }
-  .job-eta { white-space: nowrap; color: #8E909C; }
+  /* O'z qatorini to'liq egallaydi — siqilish ehtimoli yo'q */
+  .job-meta {
+    flex: 1 1 100%; white-space: nowrap; color: #C9CAD2;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  .job-meta b { color: #E9EAEF; font-weight: 700; }
+  .job-eta { color: #8E909C; margin-left: 8px; }
+  /* Yordam qatori — faqat kerak bo'lganda ochiladi */
+  .job-help {
+    display: none; align-items: baseline; gap: 8px; margin-top: 7px;
+    padding-top: 7px; border-top: 1px solid #2B2C33;
+    font-size: 11.5px; color: #C9AA6E; line-height: 1.45;
+  }
+  .job.err .job-help, .job.qotdi .job-help { display: flex; }
+  .job-help #jobHelpTxt { flex: 1; }
+  .job-retry {
+    flex: none; padding: 3px 10px; border-radius: 5px; white-space: nowrap;
+    background-color: #3BB8C9; color: #06272C; font-weight: 700;
+  }
+  body.tab-harakat .job-retry { background-color: #C48BE0; color: #2A1233; }
+  body.tab-cut .job-retry { background-color: #E5A44A; }
+  body.tab-switch .job-retry { background-color: #5BC46A; }
+  body.tab-captions .job-retry { background-color: #E07BB0; }
   /* holatlar */
-  .job.stale .job-dot { animation-duration: 3s; background-color: #E5A44A; }
+  /* DIQQAT: bu klass «qotdi» deb ataladi, «stale» emas.
+     Yuqorida «.stale b/span { display: block }» qoidalari bor (eski kod
+     ogohlantirishi uchun) va ular job qutisiga ham tegib, ichidagi
+     hamma yozuvni ustma-ust tushirib yuborardi. */
+  .job.qotdi .job-dot { animation-duration: 3s; background-color: #E5A44A; }
   .job.done .job-dot, .job.err .job-dot { animation: none; }
   .job.done .job-dot { background-color: #4CC38A; }
   .job.err .job-dot { background-color: #E05656; }
@@ -800,8 +829,18 @@
       <div class="job-chips" id="jobChips"></div>
       <div class="job-ft">
         <span class="job-detail" id="jobDetail"></span>
-        <span class="job-time"><b id="jobElapsed">0:00</b> o'tdi</span>
-        <span class="job-eta" id="jobEta"></span>
+        <!-- Vaqt va «qancha qoldi» BITTA bo'lakda: ular orasida flex
+             siqilishi bo'lmaydi, ya'ni «1:12 / o'tdi» deb ikkiga
+             bo'linib ketishi ham mumkin emas. -->
+        <span class="job-meta"><b id="jobElapsed">0:00</b> o'tdi<span
+              class="job-eta" id="jobEta"></span></span>
+      </div>
+      <!-- Ish to'xtasa yoki qotib qolsa: nima qilish kerakligi va
+           qayta urinish tugmasi. Foydalanuvchi «endi nima?» degan
+           savol bilan yolg'iz qolmasin. -->
+      <div class="job-help" id="jobHelp">
+        <span id="jobHelpTxt"></span>
+        <span class="job-retry" id="jobRetry">Qayta urinish</span>
       </div>
     </div>
 
