@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 19:30";
+const PANEL_BUILD = "31-Jul 21:15";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -2344,17 +2344,23 @@ async function sequenceNusxasi(ppro, project, seq) {
   if (!(oxir > 0)) throw new Error("Montaj uzunligi o'qilmadi");
   await setSeqInOut(ppro, project, seq, 0, oxir);
 
+  // finally SHART: nusxa yasash yiqilsa ham foydalanuvchining in/out
+  // belgilari tiklanishi kerak. Aks holda ish to'xtaydi-yu, montajdagi
+  // belgilar butun timeline'ga cho'zilib qoladi va buni foydalanuvchi
+  // o'zi sezmasdan yo'qotadi.
   let sub = null;
   try {
-    // `true` — trek nishonlashiga qaramaydi, ya'ni HAMMA trek ko'chadi
-    sub = await seq.createSubsequence(true);
-  } catch (e) {
-    sub = await seq.createSubsequence();
-  }
-
-  if (eskiIn !== null && eskiOut !== null && eskiOut > eskiIn) {
-    try { await setSeqInOut(ppro, project, seq, eskiIn, eskiOut); }
-    catch (e) { /* tiklanmasa ham nusxa joyida */ }
+    try {
+      // `true` — trek nishonlashiga qaramaydi, ya'ni HAMMA trek ko'chadi
+      sub = await seq.createSubsequence(true);
+    } catch (e) {
+      sub = await seq.createSubsequence();
+    }
+  } finally {
+    if (eskiIn !== null && eskiOut !== null && eskiOut > eskiIn) {
+      try { await setSeqInOut(ppro, project, seq, eskiIn, eskiOut); }
+      catch (e) { /* tiklanmasa ham qolganini davom ettiramiz */ }
+    }
   }
   if (!sub) throw new Error("Montaj nusxasi yasalmadi");
   return sub;
@@ -2419,7 +2425,20 @@ async function harakatQoshish() {
         const en = secs(await it.getEndTime());
         const ip = secs(await it.getInPoint());
         if (en <= st) continue;
-        out.push({ it: it, path: path, start: st, in: ip, out: ip + (en - st) });
+        // Ikki xil davomiylik, va ular TENG EMAS:
+        //   tl  — klip timeline'da qancha turadi (tomoshabin ko'radigan vaqt)
+        //   op  — manbadagi out nuqtasi
+        // Tezlik o'zgartirilgan klipda (50% yoki 200%) ular farq qiladi.
+        // Reja timeline sezimida tuziladi, keyframe esa MANBA vaqt o'qiga
+        // yoziladi — shuning uchun ikkalasi ham kerak.
+        let op = ip + (en - st);
+        try {
+          const o = secs(await it.getOutPoint());
+          if (typeof o === "number" && o > ip) op = o;
+        } catch (e) { /* o'qilmasa timeline uzunligini olamiz */ }
+        out.push({ it: it, path: path, start: st, in: ip,
+                   out: ip + (en - st),      // motor uchun: timeline uzunligi
+                   manbaOut: op, tl: en - st });
       }
       return out;
     };
@@ -2437,11 +2456,14 @@ async function harakatQoshish() {
     const asosiyFayllar = new Set(asosiy.map((c) => c.path));
     for (const c of asosiy) { items.push(c.it); clips.push(c); }
 
-    let nusxa = 0, broll = 0;
+    let nusxa = 0, broll = 0, tepaYolsiz = 0;
     const brollNomlari = new Set();
     for (let i = 1; i < n; i++) {
       for (const c of await oqi(await seq.getVideoTrack(i))) {
-        if (!c) continue;
+        // Ortida fayl yo'q (multicam/nested/adjustment layer). Buni
+        // JIMGINA tashlab ketish mumkin emas: montajchi o'sha kliplarga
+        // ham harakat tushdi deb o'ylaydi.
+        if (!c) { tepaYolsiz++; continue; }
         if (asosiyFayllar.has(c.path)) {
           items.push(c.it); clips.push(c); nusxa++;
         } else {
@@ -2456,6 +2478,11 @@ async function harakatQoshish() {
     }
     if (nusxa) logLine("Yuqoridagi treklardan: " + nusxa
                        + " klip (asosiy kadrning nusxasi)");
+    if (tepaYolsiz) {
+      logLine("Yuqoridagi treklarda " + tepaYolsiz + " klipning ortida fayl "
+              + "yo'q (multicam / nested / adjustment layer) — ularga "
+              + "tegilmadi", "warn");
+    }
     if (broll) {
       logLine(broll + " klipga tegilmaydi — b-roll/grafika, boshqa fayl:");
       for (const nm of Array.from(brollNomlari).slice(0, 5)) {
@@ -2489,7 +2516,7 @@ async function harakatQoshish() {
     // montajni bekor qilish uchun 200 marta Cmd+Z bosish kerak bo'ladi.
     step = "parametrlarni topish";
     const tayyor = [];
-    let topilmadi = 0, usulAytildi = false;
+    let topilmadi = 0, usulAytildi = false, birinchiXato = "";
     for (let i = 0; i < jj.rejalar.length; i++) {
       const reja = jj.rejalar[i];
       // Umumiy foiz: parametrlarni topish ishning ~85% i, yozish qolgani.
@@ -2501,6 +2528,7 @@ async function harakatQoshish() {
                  overall: i / jj.rejalar.length * 85,
                  detail: reja.nomi });
       const item = items[reja.idx];
+      const klip = clips[reja.idx];
       if (!item) { topilmadi++; continue; }
       try {
         const chain = await item.getComponentChain();
@@ -2510,16 +2538,61 @@ async function harakatQoshish() {
           const comp = await chain.getComponentAtIndex(c);
           try { param = await comp.getParam("Scale"); } catch (e) { param = null; }
         }
-        if (!param) { topilmadi++; continue; }
+        if (!param) {
+          topilmadi++;
+          if (!birinchiXato) birinchiXato = "«Scale» parametri topilmadi";
+          continue;
+        }
 
-        let asos = 100;
+        // Ikkinchi marta bosilsa qiymatlar KO'PAYIB ketmasin.
+        //
+        // Parametr allaqachon keyframe qilingan bo'lsa, getValue() barqaror
+        // asosni emas, o'sha paytdagi harakatlangan qiymatni qaytaradi.
+        // Uni asos qilib olsak, har bosishda kadr yana kattalashaveradi va
+        // sifat chegarasidan jimgina oshib ketadi. Shuning uchun avval
+        // keyframe'larni o'chirib, parametrni tinch holatga qaytaramiz.
+        try {
+          if (typeof param.isTimeVarying === "function"
+              && typeof param.createSetTimeVaryingAction === "function"
+              && await param.isTimeVarying()) {
+            runActions(project, () => [param.createSetTimeVaryingAction(false)],
+                       "Eski keyframe'larni tozalash");
+          }
+        } catch (e) { /* tozalanmasa — pastdagi tekshiruv ushlaydi */ }
+
+        // ASOSNI O'QIY OLMASAK — KLIPGA TEGMAYMIZ.
+        //
+        // Ilgari bu holatda 100 deb olinardi, lekin asos faqat o'qish
+        // uchun emas — u yoziladi ham. Ya'ni «o'qiy olmadim» klipni
+        // chetlab o'tish o'rniga uning Scale qiymatini 100% ga majburan
+        // tushirardi va 9:16 montajda kadr kichrayib, tepa-pastda qora
+        // yo'l paydo bo'lardi.
+        let asos = null;
         try {
           const v = await param.getValue();
           if (typeof v === "number" && v > 0) asos = v;
-        } catch (e) { /* o'qilmasa 100% deb olamiz */ }
+        } catch (e) {
+          if (!birinchiXato) birinchiXato = "Scale qiymati o'qilmadi: " + (e.message || e);
+        }
+        if (asos === null) {
+          topilmadi++;
+          if (!birinchiXato) birinchiXato = "Scale qiymati son emas";
+          continue;
+        }
 
         let inSec = 0;
         try { inSec = secs(await item.getInPoint()); } catch (e) { inSec = 0; }
+
+        // Tezlik: manba davomiyligi / timeline davomiyligi.
+        // 50% tezlikdagi klipda 40 soniyalik timeline bo'lagi manbada 20
+        // soniyani egallaydi. Reja timeline sezimida tuzilgani uchun
+        // keyframe vaqtini shu koeffitsientga ko'paytiramiz, aks holda
+        // harakatning yarmi klipdan tashqarida qolib ketadi.
+        let tezlik = 1;
+        if (klip && klip.tl > 0 && klip.manbaOut > klip.in) {
+          const k = (klip.manbaOut - klip.in) / klip.tl;
+          if (k > 0.05 && k < 20) tezlik = k;
+        }
 
         const usul = keyframeUsuli(param);
         if (!usulAytildi) {
@@ -2532,16 +2605,24 @@ async function harakatQoshish() {
           }
         }
         tayyor.push({ param: param, keys: reja.keys, asos: asos,
-                      inSec: inSec, usul: usul });
+                      inSec: inSec, usul: usul, tezlik: tezlik });
       } catch (e) {
+        // Sababni yo'qotmaymiz: aks holda pastda «log'ni yuboring» deb
+        // yozamiz-u, log'da bitta ham xato matni bo'lmaydi.
         topilmadi++;
+        if (!birinchiXato) birinchiXato = (e.message || String(e));
       }
     }
 
     if (!tayyor.length) {
-      throw new Error("Hech bir klipning «Scale» parametriga yetib "
-                      + "bo'lmadi. Motor qatoridagi «tekshirish» tugmasini "
-                      + "bosib, log'ni yuboring.");
+      throw new Error("Hech bir klipning «Scale» parametriga yetib bo'lmadi"
+                      + (birinchiXato ? ". Sabab: " + birinchiXato : "")
+                      + ". Motor qatoridagi «tekshirish» tugmasini bosib, "
+                      + "log'ni yuboring.");
+    }
+    if (birinchiXato && topilmadi) {
+      logLine(topilmadi + " klip o'tkazib yuborildi. Birinchi sabab: "
+              + birinchiXato, "warn");
     }
 
     step = "Premiere'ga yozish";
@@ -2575,11 +2656,26 @@ async function harakatQoshish() {
       return acts;
     }, "Harakat qo'shish");
 
+    // TRANZAKSIYA HAQIQATAN BAJARILDIMI.
+    //
+    // Hisoblagichlar action OBYEKTI yasalganda oshiriladi — ya'ni ular
+    // «nima qilmoqchi edik» ni sanaydi, «nima bo'ldi» ni emas. Premiere
+    // tranzaksiyani xato tashlamasdan rad etsa (false qaytarsa), pastdagi
+    // «N klipga harakat qo'shildi ✓» sof yolg'on bo'lardi.
+    if (yozildi === false) {
+      throw new Error("Premiere o'zgarishlarni qabul qilmadi (tranzaksiya "
+                      + "rad etildi). Montaj o'zgarmagan. Premiere'da "
+                      + "boshqa amal ketayotgan bo'lishi mumkin — tugashini "
+                      + "kutib, qayta urining.");
+    }
+
     logLine("");
     if (harakatli) logLine(harakatli + " klipga harakat qo'shildi ✓", "okline");
     if (qirqim) logLine(qirqim + " klipga qirqim berildi", "okline");
     if (otdi || topilmadi) {
-      logLine((otdi + topilmadi) + " klipga tegib bo'lmadi", "warn");
+      logLine((otdi + topilmadi) + " klipga tegib bo'lmadi"
+              + (bosh ? " (" + bosh + " tasida keyframe yoqilmadi)" : ""),
+              "warn");
     }
     if (jj.joysiz && jj.joysiz.length) {
       logLine(jj.joysiz.length + " klip manbasi montajdan katta emas — "
