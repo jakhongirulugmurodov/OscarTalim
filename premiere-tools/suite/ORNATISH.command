@@ -245,20 +245,23 @@ else
   tail -5 "$SUITE/motor.log" 2>/dev/null
 fi
 
-MANIFEST="$SUITE/panel/manifest.json"
-printf '%s' "$MANIFEST" | pbcopy 2>/dev/null && COPIED=" (nusxalandi ✓)" || COPIED=""
+# ---------- 6. Panelni Premiere'ga o'rnatish ----------
+# Ilgari bu qadam qo'lda edi: UXP Developer Tools'ni ochib, manifest
+# yo'lini qo'yish kerak edi. Endi paket repo bilan birga keladi va
+# shu skriptning o'zi o'rnatadi — Premiere'da darrov paydo bo'ladi.
+# shellcheck source=panel-ornatish.sh
+. "$SUITE/panel-ornatish.sh"
+panel_ornat "$SUITE" && PANEL_OK=1 || PANEL_OK=0
 
-cat <<GUIDE
+echo
+if [ "$PANEL_OK" = "1" ]; then
+  cat <<'GUIDE'
+── Tayyor ──
+1. Premiere Pro ochiq bo'lsa — yopib qayta oching
+2. Window > UXP Plugins > Podcast Suite
 
-── Panelni Premiere'ga ulash (bir martalik) ──
-1. UXP Developer Tools'ni oching
-2. Eski «Podcast Suite» qatori bo'lsa: ••• > Remove
-3. «Add Plugin» > ochilgan oynada Cmd+Shift+G bosing va shu yo'lni qo'ying$COPIED:
-     $MANIFEST
-4. Qator paydo bo'lgach: «Load & Watch» ni bosing
-   (Watch — kod yangilanganda panel o'zi qayta yuklanadi)
-
-Shundan keyin yangilanish shunday bo'ladi: panelda «Yangilash» tugmasi
-paydo bo'ladi — bosasiz, tamom. Fayl yuklab olish, ko'chirish yo'q.
+Panel doim shu yerda turadi. Yangilash uchun YANGILASH.command ni
+bosasiz — u kodni ham, o'rnatilgan panelni ham yangilaydi.
 GUIDE
+fi
 read -r -p "Yopish uchun Enter..."

@@ -1,54 +1,64 @@
-PODCAST SUITE v0.1 — O'RNATISH (3 QADAM)
-=========================================
+PODCAST SUITE — O'RNATISH
+==========================
 
-Bu paketda Premiere Pro uchun Podcast Suite plugini bor.
-Ishlayotgan modullar:
+Premiere Pro uchun podkast montaj plagini. Modullar:
+
   Sync     — kamera va rekorder fayllarini audio orqali sinxronlaydi
   Cut      — hamma jim bo'lgan pauzalarni kesadi
   Switch   — kameralarni kim gapirayotganiga qarab almashtiradi
   Captions — nutqni matnga aylantiradi (oflayn, internetsiz)
   Intro    — eng kuchli lahzalarni topib, boshiga intro yig'adi
-  Shorts   — reels uchun 20-60 soniyalik bo'laklar (har biri alohida sequence)
+  Shorts   — reels uchun bo'laklar: avtomatik, markerdan yoki MATNDAN
+  Matn     — sarlavha va ism-familiya kliplarini yasaydi
+  Harakat  — kadr qotib qolmasin: sekin zoom, har plan boshqacha qirqim
 
-TALAB: Premiere Pro 25.6 yoki yangiroq (2026 versiyasi).
-
-
-1-QADAM: PLUGINNI O'RNATISH (bir martalik)
-------------------------------------------
-PodcastSuite.ccx faylini IKKI MARTA BOSING.
-Creative Cloud ochilib, "Install" deb so'raydi — roziligingizni bering.
-("Uchinchi tomon plugini" degan ogohlantirish chiqadi — bu normal.)
+TALAB: Premiere Pro 25.6 yoki yangiroq.
 
 
-2-QADAM: MOTORNI YOQISH (har safar, montaj oldidan)
----------------------------------------------------
-Windows:  MOTORNI-YOQISH.bat ni ikki marta bosing
-Mac:      motorni-yoqish.command ni ikki marta bosing
+O'RNATISH — BITTA FAYL
+-----------------------
+ORNATISH.command ni IKKI MARTA BOSING.
 
-Qora oynada "Podcast Suite motori ishga tushdi" chiqsa — tayyor.
-Oynani yopmasdan qoldiring (montaj payti ishlab turadi).
+U hammasini o'zi qiladi:
+  · dasturni yuklab oladi (~/PodcastSuite)
+  · numpy, ffmpeg, whisper.cpp ni o'rnatadi
+  · motorni login'da o'zi yonadigan qilib qo'yadi
+  · panelni Premiere'ga o'rnatadi
 
-Birinchi safar Python yoki ffmpeg yo'q bo'lsa, oynaning o'zi
-nima qilishni yozib beradi (2 ta bepul dastur, 5 daqiqa).
+10-15 daqiqa ketadi (asosan whisper.cpp qurilishiga). Oxirida
+"✅ O'rnatildi" chiqishi kerak.
+
+Keyin: Premiere'ni yopib qayta oching >
+       Window > UXP Plugins > Podcast Suite
+
+Panel doim shu yerda turadi — har safar qaytadan yuklash shart emas.
 
 
-3-QADAM: PREMIERE'DA OCHISH
----------------------------
-Premiere Pro > yuqori menyu > Window > UXP Plugins > Podcast Suite
-
-Panelda:
-  1. Indikator YASHIL ekanini tekshiring ("Motor ishlayapti")
-  2. "Fayllarni tanlash" — kamera videolari + rekorder audiosi
-  3. "Sinxronlash" — har fayl yonida siljish chiqadi
-  4. "Premiere'ga import" — sinxronlangan sequence loyihada!
+YANGILASH
+---------
+Panelda "Yangilash" tugmasi paydo bo'lsa — bosing.
+Ishlamasa: YANGILASH.command ni ikki marta bosing. U kodni ham,
+o'rnatilgan panelni ham yangilaydi.
 
 
 MUAMMO CHIQSA
 -------------
-- Indikator qizil        -> 2-qadamdagi qora oyna yopilgan, qayta oching
-- .ccx o'rnatilmadi      -> panel/ papkasi ham bor: UXP Developer Tools
-                            orqali panel/manifest.json ni Load qiling
-- "python topilmadi"     -> python.org dan o'rnating ("Add to PATH" belgilang!)
-- ffmpeg xatosi          -> gyan.dev/ffmpeg/builds (Win) / brew install ffmpeg (Mac)
+Motor indikatori qizil
+    Motor o'chgan. YANGILASH.command ni bosing.
 
-Savol bo'lsa — Claude'ga xato matnini yuboring, birga hal qilamiz.
+Panel Window > UXP Plugins da yo'q
+    Premiere yopib-ochilganmi? Bo'lmasa
+    PANELNI-DOIMIY-QILISH.command ni bosing.
+
+"O'rnatilganini tasdiqlab bo'lmadi"
+    Adobe paketni qabul qilmadi. Skript zaxira yo'lni yozib beradi:
+    UXP Developer Tools > Add Plugin > panel/manifest.json > Load & Watch
+
+"python topilmadi"
+    python.org dan o'rnating ("Add to PATH" ni belgilang).
+
+Captions tabi ishlamayapti
+    whisper.cpp qurilmagan. Sabab: suite/qurilish.log
+
+
+Xato matnini Claude'ga yuboring — birga hal qilamiz.
