@@ -104,7 +104,18 @@ function premierepro(qurilish) {
       ? { getTrackItems: async () => treklar[i] } : null),
     getAudioTrackCount: async () => 0,
     getAudioTrack: async () => null,
-    getSettings: async () => ({ videoFrameWidth: 1920, videoFrameHeight: 1080 }),
+    getSettings: async () => {
+      if (q.sozlamaYoq) return null;
+      // Haqiqiy Premiere qiymatlarni PROTOTIPDA beradi — Object.keys()
+      // bo'sh chiqadi. Foydalanuvchida aynan shu holat bo'lgan.
+      const nomlar = q.olchamNomlari
+        || { videoFrameWidth: 1920, videoFrameHeight: 1080 };
+      const proto = {};
+      for (const k of Object.keys(nomlar)) {
+        Object.defineProperty(proto, k, { get: () => nomlar[k], enumerable: false });
+      }
+      return Object.create(proto);
+    },
     getEndTime: async () => ({ seconds: 300 }),
     getInPoint: async () => ({ seconds: 0 }),
     getOutPoint: async () => ({ seconds: 300 }),
@@ -267,6 +278,29 @@ async function sinov(nomi, qurilish, reja, tekshir) {
       }
       const kf = r.yozilgan.filter((a) => a && a.tur === "keyframe");
       if (!kf.length) return "keyframe yozilmadi";
+      return true;
+    }) ? 1 : 0;
+
+  jami++; ok += await sinov(
+    "o'lcham prototipda bo'lsa ham topiladi (haqiqiy Premiere shakli)",
+    {}, rejaOddiy,
+    (r) => (r.log.indexOf("o'lchamini o'qib bo'lmadi") >= 0
+            ? "prototipdagi o'lcham topilmadi" : true)) ? 1 : 0;
+
+  jami++; ok += await sinov(
+    "noma'lum nomdagi o'lcham ham topiladi",
+    { olchamNomlari: { seqFrameWidth: 1080, seqFrameHeight: 1920 } }, rejaOddiy,
+    (r) => (r.log.indexOf("o'lchamini o'qib bo'lmadi") >= 0
+            ? "noma'lum nomdagi o'lcham topilmadi" : true)) ? 1 : 0;
+
+  jami++; ok += await sinov(
+    "o'lcham umuman topilmasa — nima ko'rilgani aytiladi",
+    { sozlamaYoq: true, treklar: [[trackItem("x")]] }, rejaOddiy,
+    (r) => {
+      if (r.log.indexOf("o'lchamini o'qib bo'lmadi") < 0) return "xato berilmadi";
+      if (r.log.indexOf("Ko'rilgan") < 0 && r.log.indexOf("sequence:") < 0) {
+        return "nima ko'rilgani aytilmadi — tashxis uchun shart";
+      }
       return true;
     }) ? 1 : 0;
 

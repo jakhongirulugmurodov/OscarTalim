@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "1-Avg 09:30";
+const PANEL_BUILD = "1-Avg 11:00";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1058,31 +1058,110 @@ async function sequenceOchish(ppro, project, seq, nomi) {
  */
 let olchamSabab = "";
 
-async function seqOlchami(seq) {
-  // Premiere versiyasiga qarab maydon nomlari har xil bo'ladi, shuning
-  // uchun bir nechtasini sinaymiz. Topilmasa — `olchamSabab` da nima
-  // ko'rganimiz qoladi va log'da aytiladi: «o'qilmadi» degan quruq
-  // xabardan ko'ra, qanday ma'lumot kelgani foydali.
-  olchamSabab = "";
-  try {
-    if (!seq) { olchamSabab = "sequence yo'q"; return null; }
-    if (typeof seq.getSettings !== "function") {
-      olchamSabab = "getSettings metodi yo'q";
-      return null;
-    }
-    const st = await seq.getSettings();
-    if (!st) { olchamSabab = "getSettings bo'sh qaytdi"; return null; }
-    const w = Number(st.videoFrameWidth || st.frameSizeHorizontal
-                     || st.videoFrameSizeHorizontal || st.width || 0);
-    const h = Number(st.videoFrameHeight || st.frameSizeVertical
-                     || st.videoFrameSizeVertical || st.height || 0);
-    if (w > 0 && h > 0) return { w: w, h: h, st: st };
-    let nomlar = "";
-    try { nomlar = Object.keys(st).slice(0, 12).join(", "); } catch (e) { nomlar = "?"; }
-    olchamSabab = "o'lcham maydoni topilmadi. Kelgan maydonlar: " + nomlar;
-  } catch (e) {
-    olchamSabab = (e.message || String(e));
+/* Obyektning O'ZIDAGI va PROTOTIPIDAGI hamma nom.
+ *
+ * Premiere qaytaradigan obyektlar «native» — qiymatlar prototipdagi
+ * getter'larda turadi, obyektning o'zida emas. Shuning uchun
+ * Object.keys() bo'sh ro'yxat qaytaradi va «maydon yo'q» degan
+ * noto'g'ri xulosaga olib keladi. Aynan shu sabab montaj o'lchami
+ * topilmay qolgan edi. */
+function xossaNomlari(obj) {
+  const nomlar = [];
+  let o = obj, qavat = 0;
+  while (o && o !== Object.prototype && qavat < 5) {
+    try {
+      for (const k of Object.getOwnPropertyNames(o)) {
+        if (k !== "constructor" && nomlar.indexOf(k) < 0) nomlar.push(k);
+      }
+    } catch (e) { /* bu qavat o'qilmasa — keyingisiga o'tamiz */ }
+    o = Object.getPrototypeOf(o);
+    qavat++;
   }
+  return nomlar;
+}
+
+/* Nom bo'yicha qiymat: xossa bo'lsa o'qiydi, metod bo'lsa chaqiradi. */
+async function xossaQiymati(obj, nom) {
+  try {
+    const v = obj[nom];
+    if (typeof v === "function") {
+      if (v.length > 0) return undefined;     // argument talab qilsa — tegmaymiz
+      return await v.call(obj);
+    }
+    return v;
+  } catch (e) { return undefined; }
+}
+
+function musbatSon(v) {
+  const n = Number(v);
+  return (isFinite(n) && n > 1) ? n : 0;
+}
+
+/* Montajning kadr o'lchami.
+ *
+ * Nom bo'yicha taxmin qilmaymiz — obyektni kezib chiqamiz va eni/bo'yiga
+ * o'xshagan nomlarni o'zimiz topamiz. Shu tufayli Premiere versiyalari
+ * orasidagi nom farqi ahamiyatini yo'qotadi. */
+async function seqOlchami(seq) {
+  olchamSabab = "";
+  if (!seq) { olchamSabab = "sequence yo'q"; return null; }
+
+  const manbalar = [];
+  try {
+    if (typeof seq.getSettings === "function") {
+      const st = await seq.getSettings();
+      if (st) manbalar.push(["settings", st]);
+    }
+  } catch (e) { olchamSabab = "getSettings: " + (e.message || e); }
+  manbalar.push(["sequence", seq]);
+
+  const korilgan = [];
+  for (const juft of manbalar) {
+    const qayer = juft[0], obj = juft[1];
+    const nomlar = xossaNomlari(obj);
+    korilgan.push(qayer + ": " + (nomlar.slice(0, 8).join(", ") || "bo'sh"));
+
+    // 1-yo'l: eng ehtimolli nomlar
+    const aniq = [
+      ["videoFrameWidth", "videoFrameHeight"],
+      ["frameSizeHorizontal", "frameSizeVertical"],
+      ["videoFrameSizeHorizontal", "videoFrameSizeVertical"],
+      ["getVideoFrameWidth", "getVideoFrameHeight"],
+      ["width", "height"],
+    ];
+    for (const nom of aniq) {
+      const w = musbatSon(await xossaQiymati(obj, nom[0]));
+      const h = musbatSon(await xossaQiymati(obj, nom[1]));
+      if (w && h) return { w: w, h: h, qayerdan: qayer + "." + nom[0] };
+    }
+
+    // 2-yo'l: nomni o'zimiz qidiramiz
+    const eni = nomlar.filter((n) => /width|horizontal/i.test(n)
+                                     && !/pixel|aspect|par/i.test(n));
+    const boyi = nomlar.filter((n) => /height|vertical/i.test(n)
+                                      && !/pixel|aspect|par/i.test(n));
+    for (const wn of eni) {
+      const w = musbatSon(await xossaQiymati(obj, wn));
+      if (!w) continue;
+      for (const hn of boyi) {
+        const h = musbatSon(await xossaQiymati(obj, hn));
+        if (h) return { w: w, h: h, qayerdan: qayer + "." + wn };
+      }
+    }
+
+    // 3-yo'l: ichma-ich obyekt — {frameSize: {width, height}}
+    for (const n of nomlar) {
+      if (!/frame|size|resolution/i.test(n)) continue;
+      const v = await xossaQiymati(obj, n);
+      if (!v || typeof v !== "object") continue;
+      const w = musbatSon(v.width || v.horizontal || v.w);
+      const h = musbatSon(v.height || v.vertical || v.h);
+      if (w && h) return { w: w, h: h, qayerdan: qayer + "." + n };
+    }
+  }
+
+  olchamSabab = (olchamSabab ? olchamSabab + " · " : "")
+              + "o'lcham topilmadi · " + korilgan.join(" · ");
   return null;
 }
 
@@ -1844,7 +1923,9 @@ async function dumpMotion(ppro, seq) {
 
 async function dumpApi(ppro, seq) {
   try {
-    logLong("API (premierepro)", Object.keys(ppro || {}).join(", "));
+    // xossaNomlari — prototipni ham kezadi. Object.keys() native
+    // obyektlarda bo'sh qaytaradi va tashxisni ko'r qilib qo'yadi.
+    logLong("API (premierepro)", xossaNomlari(ppro || {}).join(", "));
     if (ppro && ppro.TickTime) {
       logLong("TickTime", Object.getOwnPropertyNames(ppro.TickTime).join(", "));
     }
@@ -1852,7 +1933,19 @@ async function dumpApi(ppro, seq) {
       logLong("SequenceEditor",
               Object.getOwnPropertyNames(ppro.SequenceEditor).join(", "));
     }
-    if (seq) logLong("Sequence metodlari", methodNames(seq).join(", "));
+    if (seq) {
+      logLong("Sequence metodlari", methodNames(seq).join(", "));
+      // Montaj o'lchami — eng ko'p muammo chiqqan joy. Qayerdan
+      // topilgani ham yoziladi, chunki nomlar versiyaga qarab o'zgaradi.
+      const o = await seqOlchami(seq);
+      if (o) logLine("Montaj o'lchami: " + o.w + "x" + o.h
+                     + "  (" + o.qayerdan + ") ✓", "okline");
+      else logLine("Montaj o'lchami topilmadi: " + olchamSabab, "warn");
+      try {
+        const st = await seq.getSettings();
+        if (st) logLong("Sequence sozlamalari", xossaNomlari(st).join(", "));
+      } catch (e) { logLine("getSettings: " + (e.message || e), "warn"); }
+    }
     await dumpMotion(ppro, seq);
   } catch (e) {
     logLine("Tashxis to'liq chiqmadi: " + (e.message || e), "warn");
