@@ -34,7 +34,9 @@ def yasash():
     fayllar = []
     for ildiz, _, nomlar in os.walk(PANEL):
         for nom in sorted(nomlar):
-            if nom.startswith(".") or nom.endswith((".pyc", ".map")):
+            # sinov.js — ishlab chiqish qurilmasi, Premiere'ga kerak emas
+            if (nom.startswith(".") or nom.endswith((".pyc", ".map"))
+                    or nom == "sinov.js"):
                 continue
             tola = os.path.join(ildiz, nom)
             fayllar.append((tola, os.path.relpath(tola, PANEL)))
