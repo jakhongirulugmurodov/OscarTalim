@@ -110,8 +110,14 @@ function premierepro(qurilish) {
     getOutPoint: async () => ({ seconds: 300 }),
     createSetInPointAction: (t) => ({ tur: "in", vaqt: t }),
     createSetOutPointAction: (t) => ({ tur: "out", vaqt: t }),
-    createSubsequence: async () => ({ ...seq, name: seq.name + " (nusxa)",
-      getProjectItem: async () => ({ createSetNameAction: (n) => ({ tur: "nom", nomi: n }) }) }),
+    createSubsequence: async () => {
+      const nusxa = { ...seq, name: seq.name + " (nusxa)",
+        getProjectItem: async () => ({ createSetNameAction: (n) => ({ tur: "nom", nomi: n }) }) };
+      // Haqiqiy Premiere'da nusxaning getSettings'i ishlamay qolgan edi —
+      // shuni taqlid qilamiz
+      if (q.nusxaOlchamsiz) nusxa.getSettings = async () => null;
+      return nusxa;
+    },
     getProjectItem: async () => ({ createSetNameAction: (n) => ({ tur: "nom", nomi: n }) }),
     getMarkers: async () => [],
   };
@@ -249,6 +255,18 @@ async function sinov(nomi, qurilish, reja, tekshir) {
       if (r.log.indexOf("qabul qilmadi") < 0) {
         return "rad etilgani aytilmadi. Log: " + r.log.slice(0, 120);
       }
+      return true;
+    }) ? 1 : 0;
+
+  jami++; ok += await sinov(
+    "nusxadan o'lcham o'qilmasa — asl montajdan olinadi",
+    { nusxaOlchamsiz: true }, rejaOddiy,
+    (r) => {
+      if (r.log.indexOf("o'lchamini o'qib bo'lmadi") >= 0) {
+        return "o'lcham topilmadi deb to'xtadi — asl montajdan olinishi kerak edi";
+      }
+      const kf = r.yozilgan.filter((a) => a && a.tur === "keyframe");
+      if (!kf.length) return "keyframe yozilmadi";
       return true;
     }) ? 1 : 0;
 

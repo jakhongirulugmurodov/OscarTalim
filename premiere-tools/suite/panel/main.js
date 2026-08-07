@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "31-Jul 22:40";
+const PANEL_BUILD = "1-Avg 09:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1056,15 +1056,33 @@ async function sequenceOchish(ppro, project, seq, nomi) {
  * qilish kerakligi aniq aytiladi. Yuzni markazga surishni montajchi
  * o'zi qiladi — buni mashina yaxshi qila olmaydi.
  */
+let olchamSabab = "";
+
 async function seqOlchami(seq) {
+  // Premiere versiyasiga qarab maydon nomlari har xil bo'ladi, shuning
+  // uchun bir nechtasini sinaymiz. Topilmasa — `olchamSabab` da nima
+  // ko'rganimiz qoladi va log'da aytiladi: «o'qilmadi» degan quruq
+  // xabardan ko'ra, qanday ma'lumot kelgani foydali.
+  olchamSabab = "";
   try {
-    if (typeof seq.getSettings !== "function") return null;
+    if (!seq) { olchamSabab = "sequence yo'q"; return null; }
+    if (typeof seq.getSettings !== "function") {
+      olchamSabab = "getSettings metodi yo'q";
+      return null;
+    }
     const st = await seq.getSettings();
-    if (!st) return null;
-    const w = Number(st.videoFrameWidth || st.frameSizeHorizontal || 0);
-    const h = Number(st.videoFrameHeight || st.frameSizeVertical || 0);
+    if (!st) { olchamSabab = "getSettings bo'sh qaytdi"; return null; }
+    const w = Number(st.videoFrameWidth || st.frameSizeHorizontal
+                     || st.videoFrameSizeHorizontal || st.width || 0);
+    const h = Number(st.videoFrameHeight || st.frameSizeVertical
+                     || st.videoFrameSizeVertical || st.height || 0);
     if (w > 0 && h > 0) return { w: w, h: h, st: st };
-  } catch (e) { /* o'qilmadi */ }
+    let nomlar = "";
+    try { nomlar = Object.keys(st).slice(0, 12).join(", "); } catch (e) { nomlar = "?"; }
+    olchamSabab = "o'lcham maydoni topilmadi. Kelgan maydonlar: " + nomlar;
+  } catch (e) {
+    olchamSabab = (e.message || String(e));
+  }
   return null;
 }
 
@@ -2388,6 +2406,13 @@ async function harakatQoshish() {
 
     step = "montaj nusxasi";
     logLine("Asl montajga tegilmaydi — nusxa yasalmoqda…");
+    // O'lchamni ASL montajdan o'qiymiz — nusxa bilan aynan bir xil
+    // bo'ladi. Nusxadan o'qish ishonchsiz: createSubsequence qaytargan
+    // obyektda getSettings boshqacha ishlashi mumkin, va aynan shu
+    // sabab ish «Sequence o'lchami o'qilmadi» deb to'xtagan edi.
+    let olcham = await seqOlchami(asl);
+    const aslSabab = olchamSabab;
+
     const seq = await sequenceNusxasi(ppro, project, asl);
     const nusxaNomi = aslNomi + " — harakat";
     try {
@@ -2400,8 +2425,15 @@ async function harakatQoshish() {
     try { await sequenceOchish(ppro, project, seq, nusxaNomi); }
     catch (e) { logLine("  (nusxa o'zi ochilmadi — Project panelidan oching)"); }
 
-    const olcham = await seqOlchami(seq);
-    if (!olcham || !olcham.w) throw new Error("Sequence o'lchami o'qilmadi");
+    // Asldan chiqmasa — nusxadan sinab ko'ramiz
+    if (!olcham || !olcham.w) olcham = await seqOlchami(seq);
+    if (!olcham || !olcham.w) {
+      throw new Error("Montaj o'lchamini o'qib bo'lmadi (kadr eni va "
+                      + "bo'yi). Asl montaj: " + (aslSabab || "?")
+                      + " · Nusxa: " + (olchamSabab || "?")
+                      + ". Motor qatoridagi «tekshirish» ni bosib, log'ni "
+                      + "yuboring.");
+    }
     logLine("Montaj: " + olcham.w + "x" + olcham.h);
 
     // FAQAT ASOSIY KADR. Yuqoridagi treklarda b-roll, grafika, logotip,
@@ -2829,17 +2861,36 @@ let songgiIsh = null;
    Umumiy «xato yuz berdi» emas — aynan shu holatga mos maslahat. */
 function yordamMatni(holat, izoh) {
   const t = (izoh || "").toLowerCase();
-  if (t.indexOf("motor") >= 0) {
+  // DIQQAT: aniq iboralar bo'yicha tekshiriladi, bitta so'z bo'yicha emas.
+  // Ilgari «sequence» so'zi uchrasa bas edi va «Sequence o'lchami
+  // o'qilmadi» degan xatoga «montaj ochiq emas» deb noto'g'ri javob
+  // berardi — montaj esa ochiq turardi. Yolg'on tashxis xato haqida
+  // umuman gapirmaslikdan yomonroq: odam bor muammoni qidirib ketadi.
+  if (t.indexOf("motor") >= 0 || t.indexOf("javob bermadi") >= 0) {
     return "Motor javob bermayapti. YANGILASH.command ni ishga tushiring, "
          + "so'ng qayta urining.";
   }
-  if (t.indexOf("sequence") >= 0 || t.indexOf("loyiha") >= 0) {
+  if (t.indexOf("ochiq sequence yo'q") >= 0 || t.indexOf("ochiq loyiha yo'q") >= 0
+      || t.indexOf("sequence topilmadi") >= 0) {
     return "Premiere'da montaj ochiq emas. Project panelida sequence'ni "
          + "ikki marta bosing, so'ng qayta urining.";
+  }
+  if (t.indexOf("o'lchamini o'qib bo'lmadi") >= 0
+      || t.indexOf("o'lchami o'qilmadi") >= 0) {
+    return "Montaj o'lchami o'qilmadi — bu Premiere API'sining bu "
+         + "versiyasidagi farq. Log'ni menga yuboring, moslashtiraman.";
+  }
+  if (t.indexOf("v1") >= 0 || t.indexOf("klip topilmadi") >= 0) {
+    return "Eng pastki video trekda (V1) oddiy klip topilmadi. Multicam "
+         + "yoki nested klip bo'lsa, avval uni oddiy klipga aylantiring.";
   }
   if (t.indexOf("scale") >= 0 || t.indexOf("keyframe") >= 0) {
     return "Premiere klip parametriga ruxsat bermadi. Motor qatoridagi "
          + "«tekshirish» ni bosib, log'ni yuboring.";
+  }
+  if (t.indexOf("qabul qilmadi") >= 0) {
+    return "Premiere o'zgarishlarni rad etdi. Boshqa amal ketayotgan "
+         + "bo'lishi mumkin — bir oz kutib, qayta urining.";
   }
   if (holat === "stale") {
     return "45 soniyadan beri o'zgarish yo'q. Uzun montajda bu normal "
