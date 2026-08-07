@@ -787,12 +787,21 @@
       <span id="logBig">Kattalashtirish</span>
     </div>
       <div id="harKnobs">
-        <p class="tip">Kadr hech qachon uzoq qotib turmaydi: har tanlangan
-        oraliqda sekin suriladi, keyin to'xtab turadi. Ketma-ket kliplar
-        turlicha qirqiladi — biri kengroq, keyingisi tigroq.<br>
-        Zoom faqat <b>manba montajdan kattaroq</b> bo'lsa qo'shiladi
-        (4K manba → 1080p montaj). Joy bo'lmasa klipga tegilmaydi —
-        xira kadrdan ko'ra qimirlamagan kadr yaxshi.</p>
+        <p class="tip"><b>Har kesimda</b> — har plan boshqa masofadan
+        boshlanadi, ya'ni kesim ko'rinadi. Bu eng sezilarli va eng
+        ishonchli (keyframe kerak emas).<br>
+        <b>Sekin harakat</b> — kadr oraliq davomida sekin suriladi. Bu
+        ataylab sezilmas: harakat payqalmaydi, lekin kadr «tirik» bo'ladi.<br>
+        Manba montajdan kattaroq bo'lsa (4K → 1080p) sifat umuman
+        yo'qolmaydi. Vertikal montajda kadr allaqachon kattalashtirilgan
+        bo'ladi — bunda log'da kadr manbadan <b>necha barobar</b>
+        kattalashishi aniq yoziladi, qaror sizniki.</p>
+        <div class="opts" id="harRejimBox">
+          <span class="olbl">NIMA QILSIN</span>
+          <span class="opill on" data-v="kesim">Har kesimda</span>
+          <span class="opill" data-v="sekin">Sekin harakat</span>
+          <span class="opill" data-v="ikkala">Ikkalasi</span>
+        </div>
         <div class="opts" id="harOraliqBox">
           <span class="olbl">HAR QANCHA VAQTDA</span>
           <span class="opill" data-v="10">10 soniya</span>
@@ -802,9 +811,9 @@
         </div>
         <div class="opts" id="harKuchBox">
           <span class="olbl">QANCHALIK</span>
-          <span class="opill" data-v="3">Sezilmas</span>
-          <span class="opill on" data-v="5">O'rtacha</span>
-          <span class="opill" data-v="8">Kuchli</span>
+          <span class="opill" data-v="yumshoq">Yumshoq</span>
+          <span class="opill on" data-v="orta">O'rtacha</span>
+          <span class="opill" data-v="kuchli">Kuchli</span>
         </div>
       </div>
 

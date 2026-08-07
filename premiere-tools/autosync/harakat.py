@@ -53,6 +53,36 @@ ZAXIRA = 0.99            # manba chegarasiga tegib ketmaslik uchun
 # kadrdan ko'ra shu yaxshiroq.
 ZAXIRASIZ_KUCH = 3.0
 
+# Ikki xil ish, ikki xil kuch.
+#
+# «Sekin harakat» — kadr 15 soniyada 5% suriladi. Bu ataylab sezilmas:
+# tomoshabin harakatni payqamaydi, lekin kadr «tirik» bo'lib qoladi.
+#
+# «Kesimda» — har plan boshqa masofadan boshlanadi. Bu KO'RINISHI kerak,
+# aks holda kesim sezilmaydi va butun ishning ma'nosi qolmaydi. Shuning
+# uchun kuch bir necha barobar katta.
+KUCHLAR = {
+    "kesim": {"yumshoq": 8.0, "orta": 14.0, "kuchli": 22.0},
+    "sekin": {"yumshoq": 3.0, "orta": 5.0, "kuchli": 8.0},
+}
+# Manba montajdan kichik bo'lganda ham foydalanuvchi tanlagan kuch
+# qoladi — faqat aqldan tashqari qiymatlar kesiladi. Sabab: bu yerda
+# «sifat yo'qoladi/yo'qolmaydi» degan chegara yo'q, bosqichma-bosqich
+# yumshaydi xolos. Shuning uchun jimgina pasaytirmaymiz, balki
+# natijada kadr manbadan NECHA BAROBAR kattalashishini aytamiz —
+# qaror foydalanuvchiniki.
+TOR_KESIM_CHEK = 25.0
+
+# Ketma-ket kliplar QANCHALIK farq qilishi. Har son «kuch» ga
+# ko'paytiriladi. Ro'yxat shunday tanlanganki, yonma-yon turgan ikki
+# son hech qachon yaqin bo'lmaydi — eng kichik farq 0.45 × kuch.
+KESIM_ULUSHLARI = (0.0, 1.0, 0.45, 0.9, 0.25, 0.7)
+
+
+def kesim_ulushi(i):
+    """i-klip uchun qirqim ulushi (0..1)."""
+    return KESIM_ULUSHLARI[i % len(KESIM_ULUSHLARI)]
+
 
 def manba_olchami(path, kesh):
     """Faylning ekrandagi o'lchami (burilish hisobga olingan)."""
@@ -131,7 +161,8 @@ def klip_rejasi(uzunlik, oraliq, kuch, teskari):
     return keys
 
 
-def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print):
+def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print,
+                   rejim="kesim", daraja="orta"):
     """Butun timeline uchun reja.
 
     clips: [{"path", "start", "in", "out"}] — video kliplar, timeline
@@ -160,19 +191,40 @@ def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print):
                            "manba": "o'qilmadi"})
             continue
 
-        if joy >= 1.0:
-            bu_kuch = min(kuch, joy)
-            tordan = False
-        else:
-            # Manba montajdan kichik: kadr allaqachon kattalashtirilgan.
-            # Harakatni butunlay rad etmaymiz, kuchini pasaytiramiz.
-            bu_kuch = min(kuch, ZAXIRASIZ_KUCH)
-            tordan = True
+        tordan = joy < 1.0
+        if tordan:
             tor_manba.append(f"{sw}x{sh}")
 
-        keys = klip_rejasi(uzunlik, oraliq, bu_kuch, teskari=(i % 2 == 1))
+        # Har rejim o'z kuchini oladi. Kesim rejimida kuch bir necha
+        # barobar katta — chunki u KO'RINISHI kerak.
+        kesim_k = KUCHLAR["kesim"].get(daraja, 14.0)
+        sekin_k = KUCHLAR["sekin"].get(daraja, 5.0)
+        if tordan:
+            kesim_k = min(kesim_k, TOR_KESIM_CHEK)
+            sekin_k = min(sekin_k, ZAXIRASIZ_KUCH)
+        else:
+            kesim_k = min(kesim_k, joy)
+            sekin_k = min(sekin_k, joy)
+
+        keys = []
+        if rejim in ("kesim", "ikkala"):
+            # Bitta qiymat — butun klip shu masofada turadi. Keyframe
+            # kerak emas, ya'ni Premiere API'sining keyframe qismiga
+            # umuman bog'liq emas.
+            asos_d = round(kesim_k * kesim_ulushi(i), 2)
+            keys = [{"t": 0.0, "d": asos_d}]
+        if rejim in ("sekin", "ikkala"):
+            sekin = klip_rejasi(uzunlik, oraliq, sekin_k, teskari=(i % 2 == 1))
+            if rejim == "ikkala" and keys:
+                # Qirqim ustiga sekin harakat qo'shiladi
+                asos_d = keys[0]["d"]
+                keys = [{"t": k["t"], "d": round(asos_d + k["d"], 2)}
+                        for k in sekin] or keys
+            else:
+                keys = sekin
         if not keys:
             continue
+        bu_kuch = kesim_k if rejim != "sekin" else sekin_k
         rejalar.append({
             "idx": asl,
             "start": round(float(c["start"]), 3),
@@ -189,15 +241,28 @@ def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print):
 
     harakatli = sum(1 for r in rejalar if r["harakat"])
     torlar = sum(1 for r in rejalar if r.get("tor"))
-    log(f"{len(rejalar)} klipga reja tuzildi "
-        f"({harakatli} tasida harakat, {len(rejalar) - harakatli} tasida "
-        f"faqat boshqacha qirqim)")
-    if torlar:
+    nomi = {"kesim": "har kesimda boshqa qirqim",
+            "sekin": "sekin harakat",
+            "ikkala": "qirqim + sekin harakat"}.get(rejim, rejim)
+    log(f"Rejim: {nomi}")
+    if rejalar:
+        qiymatlar = sorted({r["keys"][0]["d"] for r in rejalar[:12]})
+        log(f"{len(rejalar)} klipga reja tuzildi. Qirqim qiymatlari: "
+            + ", ".join(f"+{q:.0f}%" for q in qiymatlar))
+    if torlar and rejalar:
         olcham = tor_manba[0] if tor_manba else "?"
-        log(f"{torlar} klipda manba montajdan kichik ({olcham} → "
-            f"{seq_w}x{seq_h}) — kadr allaqachon kattalashtirilgan, "
-            f"shuning uchun harakat kuchi {ZAXIRASIZ_KUCH:.0f}% ga "
-            f"pasaytirildi")
+        # Kadr manbadan necha barobar kattalashayotganini aniq aytamiz:
+        # «sifat tushadi» degan mavhum gapdan ko'ra raqam foydali.
+        try:
+            sw, sh = [int(x) for x in olcham.split("x")]
+            hozir = max(seq_w / float(sw), seq_h / float(sh))
+        except Exception:
+            hozir = 1.0
+        eng = max(r["keys"][0]["d"] for r in rejalar)
+        log(f"Manba montajdan kichik ({olcham} → {seq_w}x{seq_h}). Kadr "
+            f"hozir manbadan {hozir:.2f} barobar kattalashtirilgan, "
+            f"eng tig qirqimda {hozir * (1 + eng / 100):.2f} barobar "
+            f"bo'ladi.")
     if joysiz:
         log(f"{len(joysiz)} klipning o'lchami o'qilmadi — tegilmadi")
     return {"rejalar": rejalar, "joysiz": joysiz,
@@ -207,13 +272,14 @@ def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print):
 
 
 def run_harakat(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print,
-                progress=None):
+                progress=None, rejim="kesim", daraja="orta"):
     """Server chaqiradigan kirish nuqtasi."""
     if progress:
         progress(stage="Manbalar tekshirilmoqda", percent=10)
     if not clips:
         raise ValueError("Klip yo'q — avval «Ochiq sequence'ni olish» ni bosing")
-    reja = harakat_rejasi(clips, seq_w, seq_h, oraliq=oraliq, kuch=kuch, log=log)
+    reja = harakat_rejasi(clips, seq_w, seq_h, oraliq=oraliq, kuch=kuch,
+                          log=log, rejim=rejim, daraja=daraja)
     if progress:
         progress(stage="Reja tayyor", percent=100)
     return reja

@@ -360,6 +360,8 @@ class Handler(BaseHTTPRequestHandler):
                 reja = run_harakat(clips, w, h,
                                    oraliq=float(req.get("oraliq") or 15),
                                    kuch=float(req.get("kuch") or 5),
+                                   rejim=str(req.get("rejim") or "kesim"),
+                                   daraja=str(req.get("daraja") or "orta"),
                                    log=lines.append)
                 reja["log"] = lines
                 return self._send(200, reja)

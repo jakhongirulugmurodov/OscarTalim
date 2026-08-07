@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "1-Avg 11:00";
+const PANEL_BUILD = "1-Avg 14:20";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -2411,7 +2411,7 @@ async function trYigish() {
  * Rejani motor tuzadi (qaysi soniyada qancha), panel esa uni
  * Premiere'ning Motion > Scale parametriga yozadi.
  */
-let harOraliq = 15, harKuch = 5;
+let harOraliq = 15, harRejim = "kesim", harDaraja = "orta";
 
 /* Scale parametriga keyframe qo'yish.
  *
@@ -2624,7 +2624,8 @@ async function harakatQoshish() {
     const r = await fetch(MOTOR + "/harakat", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clips: clips, width: olcham.w, height: olcham.h,
-                             oraliq: harOraliq, kuch: harKuch }),
+                             oraliq: harOraliq, rejim: harRejim,
+                             daraja: harDaraja }),
     });
     const jj = await r.json();
     if (!r.ok) throw new Error(jj.error || "Motor xatosi");
@@ -2806,6 +2807,17 @@ async function harakatQoshish() {
     }
 
     logLine("");
+    // Haqiqiy Scale qiymatlari — foydalanuvchi Effect Controls'da o'zi
+    // tekshira olsin. «Qo'shildi» degan quruq xabar yetarli emas: bir
+    // marta hech narsa o'zgarmagani holda ham shunday yozilgan edi.
+    if (tayyor.length) {
+      const nam = tayyor.slice(0, 4).map(function (t) {
+        const d = t.keys[0] ? t.keys[0].d : 0;
+        return Math.round(t.asos) + "% → " + Math.round(t.asos * (1 + d / 100)) + "%";
+      });
+      logLine("Scale qiymatlari (dastlabki kliplar): " + nam.join(" · "));
+      logLine("Tekshirish: klipni tanlang > Effect Controls > Motion > Scale");
+    }
     if (harakatli) logLine(harakatli + " klipga harakat qo'shildi ✓", "okline");
     if (qirqim) logLine(qirqim + " klipga qirqim berildi", "okline");
     if (otdi || topilmadi) {
@@ -3337,7 +3349,8 @@ setupCaptionPills();
 setupIntroPills();
 setupPills("shortsLimit", (v) => { shortsLimit = v; });
 setupPills("harOraliqBox", (v) => { harOraliq = v; });
-setupPills("harKuchBox", (v) => { harKuch = v; });
+setupPills("harKuchBox", (v) => { harDaraja = v; }, true);
+setupPills("harRejimBox", (v) => { harRejim = v; }, true);
 setupPills("markerAspect", (v) => { markerAspect = v; }, true);
 setupPills("shortsMode", (v) => {
   shortsMode = v;

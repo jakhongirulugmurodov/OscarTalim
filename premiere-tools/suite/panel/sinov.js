@@ -304,6 +304,28 @@ async function sinov(nomi, qurilish, reja, tekshir) {
       return true;
     }) ? 1 : 0;
 
+  // «Har kesimda» rejimi: bitta keyframe — demak statik yo'ldan ketishi
+  // va Premiere'ning keyframe API'siga umuman bog'liq bo'lmasligi kerak.
+  const rejaKesim = {
+    rejalar: [{ idx: 0, nomi: "kamera.mp4", uzunlik: 20, max_k: 1.0, kuch: 14,
+                harakat: false, tor: true, keys: [{ t: 0, d: 14 }] }],
+    joysiz: [], log: [], stat: { jami: 1, harakatli: 0, tor: 1, joysiz: 0 },
+  };
+  jami++; ok += await sinov(
+    "kesim rejimi: keyframe'siz, statik Scale yoziladi",
+    {}, rejaKesim,
+    (r) => {
+      const st = r.yozilgan.filter((a) => a && a.tur === "statik");
+      const kf = r.yozilgan.filter((a) => a && a.tur === "keyframe");
+      if (kf.length) return "keyframe yozildi — kesim rejimida kerak emas";
+      if (st.length !== 1) return `1 statik qiymat kutilgandi, ${st.length} ta`;
+      const kutilgan = 100 * 1.14;
+      if (Math.abs(st[0].qiymat - kutilgan) > 0.5) {
+        return `Scale ${st[0].qiymat} — kutilgan ${kutilgan}`;
+      }
+      return true;
+    }) ? 1 : 0;
+
   console.log(`\n${ok}/${jami} sinov o'tdi`);
   process.exit(ok === jami ? 0 : 1);
 })();
