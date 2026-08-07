@@ -17,10 +17,17 @@ Ikki qoida bor:
 2. HAR PLAN BOSHQACHA. Ketma-ket kliplar bir xil qirqilmaydi — biri
    kengroq, keyingisi tigroq boshlanadi. Aks holda kesish sezilmaydi.
 
-Eng muhimi — SIFAT. Zoom faqat manba sequence'dan kattaroq bo'lsa
-sifat yo'qotmaydi: 4K manba 1080p montajda 200% gacha bemalol
-kattalashadi. Manbada joy bo'lmasa, bu modul harakatni QO'SHMAYDI va
-sababini aytadi — xira kadrdan ko'ra qimirlamagan kadr yaxshi.
+SIFAT ikki xil hisoblanadi.
+
+Manba montajdan KATTA bo'lsa (4K manba, 1080p montaj) — zoom 1:1
+chegarasigacha ruxsat etiladi, ya'ni sifat umuman yo'qolmaydi.
+
+Manba montajdan KICHIK bo'lsa (gorizontal manbadan vertikal 9:16
+montaj) — kadr allaqachon ~178% ga kattalashtirilgan bo'ladi. Bunday
+holatda «1:1 dan oshmasin» degan qoida hech qachon bajarilmaydi va
+modul umuman ishlamay qolardi. Holbuki 178% dan 183% ga o'tish sifatni
+atigi 3% ga o'zgartiradi — buni ko'z ilg'amaydi. Shuning uchun harakat
+qo'shiladi, faqat kuchi pasaytiriladi va bu log'da aytiladi.
 """
 
 import os
@@ -36,6 +43,15 @@ ENG_QISQA_HARAKAT = 6.0  # bundan qisqa oraliqda harakat qilinmaydi
 ENG_QISQA_KLIP = 1.2     # bundan qisqa klip umuman tegilmaydi
 HARAKAT_ULUSHI = 0.62    # bo'lakning shuncha qismida suriladi, qolgani — tinch
 ZAXIRA = 0.99            # manba chegarasiga tegib ketmaslik uchun
+
+# Manba montajdan KICHIK bo'lganda ham harakat qo'shiladi, faqat kuchi
+# pasaytiriladi. Sabab: vertikal montajda (gorizontal manbadan 9:16
+# yasalganda) kadr allaqachon ~178% ga kattalashtirilgan bo'ladi va
+# «1:1 dan oshmasin» degan qoida hech qachon bajarilmaydi — ya'ni
+# modul umuman ishlamay qoladi. Holbuki 178% dan 183% ga o'tish sifatni
+# atigi 3% ga o'zgartiradi, buni ko'z ilg'amaydi. Umuman qimirlamagan
+# kadrdan ko'ra shu yaxshiroq.
+ZAXIRASIZ_KUCH = 3.0
 
 
 def manba_olchami(path, kesh):
@@ -122,7 +138,7 @@ def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print):
     tartibida. seq_w/seq_h — montaj o'lchami.
     """
     kesh = {}
-    rejalar, joysiz = [], []
+    rejalar, joysiz, tor_manba = [], [], []
     # Navbat (kengroq → tigroq → kengroq) timeline tartibida almashishi
     # kerak, panel esa kliplarni trek bo'yicha yuboradi. Shuning uchun
     # bu yerda vaqt bo'yicha saralaymiz, asl o'rnini «idx» da saqlab.
@@ -136,13 +152,23 @@ def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print):
         chegara = zoom_chegarasi(sw, sh, seq_w, seq_h)
         # Mavjud joy foizda: 1.35 → 35% kattalashtirsa bo'ladi
         joy = (chegara - 1.0) * 100.0
-        bu_kuch = min(kuch, joy)
 
-        if bu_kuch < 1.0:
+        if not sw or not sh:
+            # Faylni umuman o'qib bo'lmadi — tegmaymiz
             joysiz.append({"path": os.path.basename(c["path"]),
                            "start": round(float(c["start"]), 2),
-                           "manba": f"{sw}x{sh}" if sw else "noma'lum"})
+                           "manba": "o'qilmadi"})
             continue
+
+        if joy >= 1.0:
+            bu_kuch = min(kuch, joy)
+            tordan = False
+        else:
+            # Manba montajdan kichik: kadr allaqachon kattalashtirilgan.
+            # Harakatni butunlay rad etmaymiz, kuchini pasaytiramiz.
+            bu_kuch = min(kuch, ZAXIRASIZ_KUCH)
+            tordan = True
+            tor_manba.append(f"{sw}x{sh}")
 
         keys = klip_rejasi(uzunlik, oraliq, bu_kuch, teskari=(i % 2 == 1))
         if not keys:
@@ -158,19 +184,26 @@ def harakat_rejasi(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print):
             "kuch": round(bu_kuch, 2),
             "keys": keys,
             "harakat": len(keys) > 1,
+            "tor": tordan,
         })
 
     harakatli = sum(1 for r in rejalar if r["harakat"])
+    torlar = sum(1 for r in rejalar if r.get("tor"))
     log(f"{len(rejalar)} klipga reja tuzildi "
         f"({harakatli} tasida harakat, {len(rejalar) - harakatli} tasida "
         f"faqat boshqacha qirqim)")
+    if torlar:
+        olcham = tor_manba[0] if tor_manba else "?"
+        log(f"{torlar} klipda manba montajdan kichik ({olcham} → "
+            f"{seq_w}x{seq_h}) — kadr allaqachon kattalashtirilgan, "
+            f"shuning uchun harakat kuchi {ZAXIRASIZ_KUCH:.0f}% ga "
+            f"pasaytirildi")
     if joysiz:
-        log(f"{len(joysiz)} klipga tegilmadi — manba montajdan katta emas, "
-            f"kattalashtirsak rasm xiralashadi")
+        log(f"{len(joysiz)} klipning o'lchami o'qilmadi — tegilmadi")
     return {"rejalar": rejalar, "joysiz": joysiz,
             "oraliq": oraliq, "kuch": kuch,
             "stat": {"jami": len(rejalar), "harakatli": harakatli,
-                     "joysiz": len(joysiz)}}
+                     "tor": torlar, "joysiz": len(joysiz)}}
 
 
 def run_harakat(clips, seq_w, seq_h, oraliq=15.0, kuch=KUCH, log=print,

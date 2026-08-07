@@ -2495,7 +2495,9 @@ async function harakatQoshish() {
       throw new Error("Ochiq sequence yo'q — Premiere'da montajni oching "
                       + "(Project panelidan sequence'ni ikki marta bosing)");
     }
-    const aslNomi = asl.name || "Montaj";
+    // Nom cho'zilib ketmasin: nusxadan nusxa olinsa «— harakat» qayta-qayta
+    // qo'shilib, «C0430 — harakat — harakat — harakat» bo'lib ketardi.
+    const aslNomi = String(asl.name || "Montaj").replace(/(\s*—\s*harakat)+$/, "");
 
     step = "montaj nusxasi";
     logLine("Asl montajga tegilmaydi — nusxa yasalmoqda…");
