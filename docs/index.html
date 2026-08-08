@@ -92,8 +92,8 @@
       <div>
         <label>Model</label>
         <select id="model">
-          <option value="gemini-2.5-pro">Gemini 2.5 Pro (aniqroq)</option>
-          <option value="gemini-2.5-flash">Gemini 2.5 Flash (tezroq)</option>
+          <option value="gemini-2.5-flash">Gemini 2.5 Flash (bepul tarif)</option>
+          <option value="gemini-2.5-pro">Gemini 2.5 Pro (billing kerak)</option>
         </select>
       </div>
       <div>
@@ -104,6 +104,8 @@
         </select>
       </div>
     </div>
+    <p class="hint">Pro modeli aniqroq, lekin Google hisobingizda billing (to'lov kartasi)
+      ulangan bo'lishi kerak. Bepul kalit bilan Flash'ni ishlating.</p>
     <div class="checkbox">
       <input type="checkbox" id="tahrir" checked>
       <label for="tahrir" style="margin:0">Tahrir o'tishi (aniqlikni oshiradi, 2x sekinroq)</label>
@@ -292,7 +294,13 @@ async function boshla() {
     korsat(seglar);
     holat(`Tayyor: ${seglar.length} segment. ✅`);
   } catch (e) {
-    holat("Xato: " + e.message, true);
+    let msg = "Xato: " + e.message;
+    if (/quota|RESOURCE_EXHAUSTED|429/i.test(e.message)) {
+      msg = /limit: 0/.test(e.message)
+        ? "Bepul tarifda bu model ishlamaydi. Model ro'yxatidan «Gemini 2.5 Flash» ni tanlab, qayta urining."
+        : "Bepul kunlik/daqiqalik limit tugadi. Bir necha daqiqa kutib qayta urining yoki ertaga davom eting.";
+    }
+    holat(msg, true);
   } finally {
     $("startBtn").disabled = false;
   }
