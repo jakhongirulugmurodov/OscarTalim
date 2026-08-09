@@ -57,6 +57,23 @@
   .seg { border-left: 3px solid var(--primary); padding: 6px 10px; margin: 8px 0; background: #f8fafc; border-radius: 0 8px 8px 0; }
   .seg .time { font-size: .78rem; color: var(--accent); font-weight: 700; font-family: monospace; }
   .seg .text { font-size: .95rem; }
+  .hist {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 12px; margin: 8px 0; cursor: pointer;
+    transition: background .15s;
+  }
+  .hist:hover, .hist:active { background: #f8fafc; }
+  .hist .info { flex: 1; min-width: 0; }
+  .hist .nom {
+    font-weight: 600; font-size: .92rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hist .meta { font-size: .78rem; color: var(--muted); }
+  .hist .del {
+    margin: 0; width: auto; padding: 6px 10px; font-size: 1rem;
+    background: transparent; color: var(--err); border: 0; flex-shrink: 0;
+  }
   footer { text-align: center; font-size: .8rem; color: var(--muted); margin: 24px 0; }
   .spin {
     display: inline-block; width: 14px; height: 14px; border: 2px solid var(--primary);
@@ -126,12 +143,22 @@
 
   <div class="card" id="resultCard" style="display:none">
     <h2>3. Natija</h2>
+    <p class="hint" id="natijaNom" style="margin:0 0 8px"></p>
     <div>
       <button class="small" onclick="yuklab('srt')">⬇ SRT</button>
       <button class="small" onclick="yuklab('txt')">⬇ TXT</button>
       <button class="small ghost" onclick="nusxala()">📋 Matnni nusxalash</button>
     </div>
     <div id="segments"></div>
+  </div>
+
+  <div class="card" id="tarixCard">
+    <h2>📚 Tarix</h2>
+    <p class="hint" id="tarixEmpty">Hozircha bo'sh — har bir transkripsiya shu yerda
+      avtomatik saqlanadi (faqat shu telefonda).</p>
+    <div id="tarixList"></div>
+    <button class="small ghost" id="tarixTozaBtn" onclick="tarixTozalash()"
+            style="display:none; color:var(--err); border-color:var(--err)">🗑 Hammasini o'chirish</button>
   </div>
 
   <footer>Oscar Ta'lim · ichki vosita</footer>
@@ -307,8 +334,10 @@ async function boshla() {
 
     if (!seglar.length) throw new Error("Videoda nutq topilmadi.");
     natija = seglar;
-    korsat(seglar);
-    holat(`Tayyor: ${seglar.length} segment. ✅`);
+    const nom = file ? file.name : yt;
+    tarixgaSaqla(nom, seglar);
+    korsat(seglar, nom);
+    holat(`Tayyor: ${seglar.length} segment. ✅ (Tarixga saqlandi)`);
   } catch (e) {
     let msg = "Xato: " + e.message;
     if (/quota|RESOURCE_EXHAUSTED|429/i.test(e.message)) {
@@ -330,7 +359,11 @@ function vaqt(s, srt = true) {
   return `${p(h)}:${p(m)}:${p(sec)}${srt ? "," : "."}${String(mil).padStart(3, "0")}`;
 }
 
-function korsat(seglar) {
+let joriyNom = "";
+
+function korsat(seglar, nom) {
+  joriyNom = nom || "";
+  $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
   $("segments").innerHTML = seglar.map(s =>
     `<div class="seg"><div class="time">${vaqt(s.start).slice(3, 8)} → ${vaqt(s.end).slice(3, 8)}</div>` +
     `<div class="text">${s.text.replace(/</g, "&lt;")}</div></div>`
@@ -338,6 +371,86 @@ function korsat(seglar) {
   $("resultCard").style.display = "block";
   $("resultCard").scrollIntoView({ behavior: "smooth" });
 }
+
+/* ===== Tarix (localStorage) ===== */
+const TARIX_KEY = "transkript_tarixi";
+
+function tarixOl() {
+  try { return JSON.parse(localStorage.getItem(TARIX_KEY)) || []; }
+  catch { return []; }
+}
+
+function tarixYoz(list) {
+  // Joy yetmasa, eng eskilarini o'chirib qayta urinamiz
+  while (true) {
+    try { localStorage.setItem(TARIX_KEY, JSON.stringify(list)); return; }
+    catch (e) {
+      if (!list.length) return;
+      list.pop();
+    }
+  }
+}
+
+function qisqart(s, n) {
+  s = String(s).replace(/^https?:\/\/(www\.)?/, "");
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function sanaMatn(iso) {
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, "0");
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function davomiylikMatn(seglar) {
+  const s = Math.round(seglar[seglar.length - 1]?.end || 0);
+  const m = Math.floor(s / 60);
+  return m >= 60 ? `${Math.floor(m / 60)} soat ${m % 60} daq` : `${m} daq ${s % 60} son`;
+}
+
+function tarixgaSaqla(nom, seglar) {
+  const list = tarixOl();
+  list.unshift({ id: Date.now(), nom, sana: new Date().toISOString(), seglar });
+  while (list.length > 60) list.pop();
+  tarixYoz(list);
+  tarixKorsat();
+}
+
+function tarixKorsat() {
+  const list = tarixOl();
+  $("tarixEmpty").style.display = list.length ? "none" : "block";
+  $("tarixTozaBtn").style.display = list.length > 1 ? "inline-block" : "none";
+  $("tarixList").innerHTML = list.map(t =>
+    `<div class="hist" onclick="tarixOch(${t.id})">
+       <div class="info">
+         <div class="nom">${qisqart(t.nom, 40).replace(/</g, "&lt;")}</div>
+         <div class="meta">${sanaMatn(t.sana)} · ${davomiylikMatn(t.seglar)} · ${t.seglar.length} segment</div>
+       </div>
+       <button class="del" onclick="event.stopPropagation(); tarixOchir(${t.id})" title="O'chirish">🗑</button>
+     </div>`
+  ).join("");
+}
+
+function tarixOch(id) {
+  const t = tarixOl().find(x => x.id === id);
+  if (!t) return;
+  natija = t.seglar;
+  korsat(t.seglar, t.nom);
+}
+
+function tarixOchir(id) {
+  if (!confirm("Bu transkript o'chirilsinmi?")) return;
+  tarixYoz(tarixOl().filter(x => x.id !== id));
+  tarixKorsat();
+}
+
+function tarixTozalash() {
+  if (!confirm("Butun tarix o'chirilsinmi? Buni qaytarib bo'lmaydi.")) return;
+  localStorage.removeItem(TARIX_KEY);
+  tarixKorsat();
+}
+
+tarixKorsat();
 
 function yuklab(fmt) {
   let content;
@@ -349,7 +462,9 @@ function yuklab(fmt) {
   }
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
-  a.download = "transkript." + fmt;
+  const asos = qisqart(joriyNom, 40).replace(/\.[a-z0-9]{2,4}$/i, "")
+    .replace(/[^\wa-zA-Z0-9а-яА-ЯёЁ' -]/g, "_").trim() || "transkript";
+  a.download = asos + "." + fmt;
   a.click();
   URL.revokeObjectURL(a.href);
 }
