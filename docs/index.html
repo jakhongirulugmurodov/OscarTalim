@@ -104,8 +104,8 @@
     <label>yoki fayl yuklang (video yoki audio)</label>
     <input type="file" id="fileInput" accept="video/*,audio/*">
     <p class="hint">Instagram uchun: reel'ni telefonga saqlab, fayl sifatida yuklang.
-      Audio fayllar (mp3, m4a, ogg...) ham to'g'ridan-to'g'ri qabul qilinadi —
-      uzun kontent uchun eng tejamkor yo'l.</p>
+      Audio fayllar (mp3, m4a, ogg...) ham qabul qilinadi. Katta videolardan
+      (30 MB+) audio avtomatik ajratib olinadi — 1 GB video ham tez yuboriladi.</p>
 
     <div class="row" style="margin-top:10px">
       <div>
@@ -276,16 +276,23 @@ async function faylYuklash(key, file) {
   const uploadUrl = start.headers.get("X-Goog-Upload-URL");
   if (!uploadUrl) throw new Error("Yuklash manzili olinmadi");
 
-  const up = await fetch(uploadUrl, {
-    method: "POST",
-    headers: {
-      "X-Goog-Upload-Command": "upload, finalize",
-      "X-Goog-Upload-Offset": "0",
-    },
-    body: file,
-  });
-  if (!up.ok) throw new Error(`Fayl yuklanmadi (HTTP ${up.status})`);
-  let info = (await up.json()).file;
+  let info = (await new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", uploadUrl);
+    x.setRequestHeader("X-Goog-Upload-Command", "upload, finalize");
+    x.setRequestHeader("X-Goog-Upload-Offset", "0");
+    x.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const foiz = Math.round(e.loaded / e.total * 100);
+        holat(`Yuklanmoqda: ${foiz}% (${(e.loaded / 1048576).toFixed(0)}/${(e.total / 1048576).toFixed(0)} MB)`, false, true);
+      }
+    };
+    x.onload = () => x.status < 300
+      ? resolve(JSON.parse(x.responseText))
+      : reject(new Error(`Fayl yuklanmadi (HTTP ${x.status})`));
+    x.onerror = () => reject(new Error("Tarmoq xatosi — yuklash uzildi, qayta urining"));
+    x.send(file);
+  })).file;
 
   while (info.state === "PROCESSING") {
     holat("Google faylni qayta ishlamoqda...", false, true);
@@ -295,6 +302,52 @@ async function faylYuklash(key, file) {
   }
   if (info.state === "FAILED") throw new Error("Google faylni qabul qilmadi");
   return { uri: info.uri, mime: info.mimeType || file.type || "video/mp4" };
+}
+
+/* ===== Telefonda audio ajratish (ffmpeg.wasm) =====
+   Katta videoni to'liq yubormasdan, faqat audio yo'lakchasini kesib olamiz.
+   Kodek qayta kodlanmaydi (copy) — tez va batareyani yemaydi. */
+const skriptKesh = {};
+function yuklaSkript(src) {
+  if (!skriptKesh[src]) {
+    skriptKesh[src] = new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = res;
+      s.onerror = () => rej(new Error("Skript yuklanmadi: " + src));
+      document.head.appendChild(s);
+    });
+  }
+  return skriptKesh[src];
+}
+
+async function audioAjrat(file) {
+  holat("Audio ajratish vositasi yuklanmoqda... (bir martalik, ~12 MB)", false, true);
+  const FF_BASE = "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd";
+  const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+  await yuklaSkript(FF_BASE + "/ffmpeg.js");
+  await yuklaSkript("https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js");
+  const { FFmpeg } = FFmpegWASM;
+  const { toBlobURL } = FFmpegUtil;
+  const ff = new FFmpeg();
+  await ff.load({
+    coreURL: await toBlobURL(CORE_BASE + "/ffmpeg-core.js", "text/javascript"),
+    wasmURL: await toBlobURL(CORE_BASE + "/ffmpeg-core.wasm", "application/wasm"),
+    classWorkerURL: await toBlobURL(FF_BASE + "/814.ffmpeg.js", "text/javascript"),
+  });
+  try {
+    await ff.mount("WORKERFS", { files: [file] }, "/mnt");
+    holat("Videodan audio ajratilmoqda...", false, true);
+    const webm = /webm/i.test(file.type);
+    const out = webm ? "audio.webm" : "audio.m4a";
+    const ret = await ff.exec(["-i", "/mnt/" + file.name, "-vn", "-acodec", "copy", out]);
+    if (ret !== 0) throw new Error("ffmpeg kodi " + ret);
+    const data = await ff.readFile(out);
+    if (!data.length) throw new Error("audio bo'sh chiqdi");
+    return new File([data], out, { type: webm ? "audio/webm" : "audio/mp4" });
+  } finally {
+    try { ff.terminate(); } catch (e) { /* e'tiborsiz */ }
+  }
 }
 
 async function boshla() {
@@ -322,8 +375,20 @@ async function boshla() {
       videoMi = true;
     } else {
       if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
-      holat(`Fayl yuklanmoqda (${(file.size / 1048576).toFixed(1)} MB)...`, false, true);
-      const f = await faylYuklash(key, file);
+      let yubor = file;
+      // Katta videolardan avval audioni ajratamiz — yuklash 10-30x tezlashadi
+      if ((file.type || "").startsWith("video") && file.size > 30e6) {
+        try {
+          yubor = await audioAjrat(file);
+          holat(`Audio ajratildi: ${(yubor.size / 1048576).toFixed(1)} MB ` +
+                `(${(file.size / 1048576).toFixed(0)} MB video o'rniga)`, false, true);
+        } catch (e) {
+          console.warn("Audio ajratib bo'lmadi, video to'liq yuboriladi:", e);
+          yubor = file;
+        }
+      }
+      holat(`Fayl yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
+      const f = await faylYuklash(key, yubor);
       mediaPart = { fileData: { fileUri: f.uri, mimeType: f.mime } };
       videoMi = (f.mime || "").startsWith("video");
     }
