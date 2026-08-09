@@ -147,7 +147,8 @@
     <div>
       <button class="small" onclick="yuklab('srt')">⬇ SRT</button>
       <button class="small" onclick="yuklab('txt')">⬇ TXT</button>
-      <button class="small ghost" onclick="nusxala()">📋 Matnni nusxalash</button>
+      <button class="small ghost" onclick="nusxala(true)">🕐 Timecode bilan nusxalash</button>
+      <button class="small ghost" onclick="nusxala(false)">📋 Faqat matn</button>
     </div>
     <div id="segments"></div>
   </div>
@@ -383,7 +384,7 @@ function korsat(seglar, nom) {
   joriyNom = nom || "";
   $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
   $("segments").innerHTML = seglar.map(s =>
-    `<div class="seg"><div class="time">${vaqt(s.start).slice(3, 8)} → ${vaqt(s.end).slice(3, 8)}</div>` +
+    `<div class="seg"><div class="time">${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}</div>` +
     `<div class="text">${s.text.replace(/</g, "&lt;")}</div></div>`
   ).join("");
   $("resultCard").style.display = "block";
@@ -487,9 +488,20 @@ function yuklab(fmt) {
   URL.revokeObjectURL(a.href);
 }
 
-function nusxala() {
-  navigator.clipboard.writeText(natija.map(s => s.text.trim()).join(" "))
-    .then(() => holat("Matn nusxalandi. 📋"));
+// MM:SS (bir soatdan uzun bo'lsa H:MM:SS)
+function vaqtQisqa(s) {
+  const t = Math.round(s), h = Math.floor(t / 3600),
+        m = Math.floor(t / 60) % 60, sek = t % 60;
+  const p = n => String(n).padStart(2, "0");
+  return (h ? h + ":" + p(m) : p(m)) + ":" + p(sek);
+}
+
+function nusxala(timecode) {
+  const content = timecode
+    ? natija.map(s => `[${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}] ${s.text.trim()}`).join("\n")
+    : natija.map(s => s.text.trim()).join(" ");
+  navigator.clipboard.writeText(content)
+    .then(() => holat(timecode ? "Timecode bilan nusxalandi. 🕐" : "Matn nusxalandi. 📋"));
 }
 </script>
 </body>
