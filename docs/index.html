@@ -84,9 +84,11 @@
     <h2>2. Video</h2>
     <label>YouTube havola</label>
     <input type="url" id="ytUrl" placeholder="https://youtube.com/watch?v=...">
-    <label>yoki fayl yuklang (video/audio)</label>
+    <label>yoki fayl yuklang (video yoki audio)</label>
     <input type="file" id="fileInput" accept="video/*,audio/*">
-    <p class="hint">Instagram uchun: reel'ni telefonga saqlab, fayl sifatida yuklang.</p>
+    <p class="hint">Instagram uchun: reel'ni telefonga saqlab, fayl sifatida yuklang.
+      Audio fayllar (mp3, m4a, ogg...) ham to'g'ridan-to'g'ri qabul qilinadi —
+      uzun kontent uchun eng tejamkor yo'l.</p>
 
     <div class="row" style="margin-top:10px">
       <div>
@@ -110,6 +112,13 @@
       <input type="checkbox" id="tahrir" checked>
       <label for="tahrir" style="margin:0">Tahrir o'tishi (aniqlikni oshiradi, 2x sekinroq)</label>
     </div>
+    <div class="checkbox">
+      <input type="checkbox" id="tejamkor" checked>
+      <label for="tejamkor" style="margin:0">🎧 Tejamkor rejim — videodan faqat ovoz tahlil qilinadi</label>
+    </div>
+    <p class="hint">Tejamkor rejimda ~1 soatgacha video bepul limitga sig'adi va tezroq
+      ishlaydi. Gemini ekrandagi yozuvlarni ham o'qishi kerak bo'lsa, o'chiring
+      (unda ~15 daqiqagacha video sig'adi).</p>
 
     <button id="startBtn" onclick="boshla()">Transkripsiya qilish</button>
     <div id="status"></div>
@@ -264,14 +273,21 @@ async function boshla() {
   $("startBtn").disabled = true;
   $("resultCard").style.display = "none";
   try {
-    let mediaPart;
+    let mediaPart, videoMi;
     if (yt) {
       mediaPart = { fileData: { fileUri: yt } };
+      videoMi = true;
     } else {
       if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
       holat(`Fayl yuklanmoqda (${(file.size / 1048576).toFixed(1)} MB)...`, false, true);
       const f = await faylYuklash(key, file);
       mediaPart = { fileData: { fileUri: f.uri, mimeType: f.mime } };
+      videoMi = (f.mime || "").startsWith("video");
+    }
+    // Tejamkor rejim: kadrlar deyarli olinmaydi (10 soniyada 1 kadr),
+    // token sarfi ~5x kamayadi — uzun videolar bepul limitga sig'adi
+    if ($("tejamkor").checked && videoMi) {
+      mediaPart.videoMetadata = { fps: 0.1 };
     }
 
     holat("Gemini transkripsiya qilmoqda... (1-2 daqiqa)", false, true);
