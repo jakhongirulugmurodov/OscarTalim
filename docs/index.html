@@ -177,13 +177,21 @@ const SCHEMA = {
   items: {
     type: "OBJECT",
     properties: {
-      start: { type: "NUMBER", description: "Boshlanishi, soniyalarda" },
-      end: { type: "NUMBER", description: "Tugashi, soniyalarda" },
+      start: { type: "STRING", description: "Boshlanishi, MM:SS formatida (masalan 01:23)" },
+      end: { type: "STRING", description: "Tugashi, MM:SS formatida" },
       text: { type: "STRING" },
     },
     required: ["start", "end", "text"],
   },
 };
+
+// "MM:SS", "H:MM:SS" yoki oddiy soniya -> soniya (raqam)
+function soniyaga(t) {
+  if (typeof t === "number") return t;
+  const p = String(t).trim().split(":").map(parseFloat);
+  if (p.some(isNaN)) return 0;
+  return p.reduce((acc, x) => acc * 60 + x, 0);
+}
 
 function prompt1(yozuv) {
   const y = yozuv === "lotin" ? "lotin (oʻzbek alifbosi)" : "kirill (ўзбек алифбоси)";
@@ -194,7 +202,8 @@ Qoidalar:
 1. Matnni ${y} yozuvida yoz.
 2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz.
 3. Har bir segment 3-8 soniya bo'lsin — caption uchun qulay uzunlikda.
-4. "start" va "end" — boshidan hisoblangan soniyalar, kasr son bo'lishi mumkin.
+4. "start" va "end" — video boshidan hisoblangan vaqt, "MM:SS" formatida
+   (masalan "00:07", "01:23"; bir soatdan uzun bo'lsa "H:MM:SS").
 5. Punktuatsiyani to'g'ri qo'y.
 6. Ruscha yoki inglizcha aytilgan so'zlarni aynan aytilganidek yoz.
 7. Musiqa, pauza va shovqinlarni yozma — faqat nutqni yoz.
@@ -240,6 +249,7 @@ async function generate(key, model, parts) {
       const text = j.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
       const seglar = JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, ""));
       if (!Array.isArray(seglar)) throw new Error("Javob ro'yxat emas");
+      seglar.forEach(s => { s.start = soniyaga(s.start); s.end = soniyaga(s.end); });
       return seglar;
     } catch (e) {
       if (urinish === 3) throw e;
