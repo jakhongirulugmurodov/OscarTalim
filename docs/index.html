@@ -295,6 +295,11 @@ async function boshla() {
 
   if (!key) return holat("Avval API kalitni kiriting (1-bo'lim).", true);
   if (!yt && !file) return holat("YouTube havola qo'ying yoki fayl yuklang.", true);
+  if (yt && !/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(yt)) {
+    return holat("Havola orqali faqat YouTube ishlaydi. Instagram va boshqa " +
+      "platformalardagi videoni telefonga saqlab, «Choose File» orqali fayl " +
+      "sifatida yuklang.", true);
+  }
   localStorage.setItem("gemini_key", key);
 
   $("startBtn").disabled = true;
@@ -340,7 +345,10 @@ async function boshla() {
     holat(`Tayyor: ${seglar.length} segment. ✅ (Tarixga saqlandi)`);
   } catch (e) {
     let msg = "Xato: " + e.message;
-    if (/quota|RESOURCE_EXHAUSTED|429/i.test(e.message)) {
+    if (/Cannot fetch content/i.test(e.message)) {
+      msg = "Gemini bu havoladagi videoni ocholmadi. Havola ochiq (public) YouTube " +
+        "videosi ekanini tekshiring. Boshqa platforma videolarini fayl sifatida yuklang.";
+    } else if (/quota|RESOURCE_EXHAUSTED|429/i.test(e.message)) {
       msg = /limit: 0/.test(e.message)
         ? "Bepul tarifda bu model ishlamaydi. Model ro'yxatidan «Gemini 2.5 Flash» ni tanlab, qayta urining."
         : "Bepul kunlik/daqiqalik limit tugadi. Bir necha daqiqa kutib qayta urining yoki ertaga davom eting.";
