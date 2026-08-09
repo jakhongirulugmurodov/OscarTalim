@@ -3,151 +3,342 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563eb">
 <title>Transkripsiya — Oscar Ta'lim</title>
 <style>
   :root {
     --primary: #2563eb;
-    --secondary: #1e40af;
+    --primary-dark: #1d4ed8;
+    --primary-soft: #eff6ff;
     --accent: #f59e0b;
-    --bg: #f1f5f9;
-    --text: #1e293b;
-    --white: #ffffff;
+    --bg: #f4f6fb;
+    --text: #0f172a;
     --muted: #64748b;
+    --white: #ffffff;
     --border: #e2e8f0;
     --ok: #16a34a;
     --err: #dc2626;
+    --radius: 18px;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px -8px rgba(15,23,42,.10);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
   body {
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg); color: var(--text);
-    margin: 0; padding: 16px; line-height: 1.6;
+    background: linear-gradient(180deg, #eef3fb 0%, var(--bg) 240px);
+    color: var(--text); margin: 0; padding: 16px 14px 32px; line-height: 1.6;
+    min-height: 100vh;
   }
   .container { max-width: 640px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 20px; }
-  header h1 { color: var(--primary); font-size: 1.5rem; margin: 0 0 4px; }
-  header p { color: var(--muted); margin: 0; font-size: .95rem; }
+
+  /* ===== Sarlavha ===== */
+  header { text-align: center; margin: 10px 0 22px; animation: fadeUp .5s both; }
+  .logo {
+    width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 20px;
+    background: linear-gradient(135deg, #3b82f6, var(--primary-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; box-shadow: 0 10px 24px -8px rgba(37,99,235,.5);
+  }
+  header h1 { font-size: 1.4rem; margin: 0; letter-spacing: -.02em; }
+  header p { color: var(--muted); margin: 2px 0 0; font-size: .9rem; }
+
+  /* ===== Kartalar ===== */
   .card {
-    background: var(--white); border-radius: 16px; padding: 20px;
-    margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,.06);
+    background: var(--white); border-radius: var(--radius); padding: 18px;
+    margin-bottom: 14px; box-shadow: var(--shadow);
+    animation: fadeUp .5s both;
   }
-  .card h2 { font-size: 1.05rem; margin: 0 0 12px; color: var(--secondary); }
-  label { font-size: .9rem; font-weight: 600; display: block; margin: 10px 0 4px; }
+  .card:nth-of-type(2) { animation-delay: .06s; }
+  .card:nth-of-type(3) { animation-delay: .12s; }
+  .card h2 {
+    font-size: 1rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .badge {
+    width: 26px; height: 26px; border-radius: 9px; background: var(--primary-soft);
+    color: var(--primary); font-size: .85rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  /* ===== Kirish maydonlari ===== */
+  label { font-size: .85rem; font-weight: 600; display: block; margin: 10px 0 5px; color: #334155; }
   input[type=text], input[type=password], input[type=url], select {
-    width: 100%; padding: 12px; border: 1px solid var(--border);
-    border-radius: 10px; font-size: 1rem; background: var(--white); color: var(--text);
+    width: 100%; padding: 13px 14px; border: 1.5px solid var(--border);
+    border-radius: 12px; font-size: 1rem; background: var(--white); color: var(--text);
+    transition: border-color .2s, box-shadow .2s; appearance: none;
   }
-  input[type=file] { width: 100%; font-size: .95rem; padding: 8px 0; }
+  input:focus, select:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+  }
+  .hint { font-size: .8rem; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
+  .hint a { color: var(--primary); text-decoration: none; font-weight: 600; }
   .row { display: flex; gap: 10px; }
   .row > div { flex: 1; }
-  .hint { font-size: .82rem; color: var(--muted); margin-top: 4px; }
-  .hint a { color: var(--primary); }
+
+  /* ===== Kalit (ixcham holat) ===== */
+  .key-saved {
+    display: flex; align-items: center; gap: 10px;
+    background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px;
+    padding: 11px 14px; font-size: .92rem; font-weight: 600; color: #15803d;
+  }
+  .key-saved button {
+    margin: 0; width: auto; padding: 7px 12px; font-size: .82rem;
+    background: var(--white); color: var(--primary); border: 1.5px solid var(--border);
+    box-shadow: none; margin-left: auto;
+  }
+
+  /* ===== Tablar ===== */
+  .tabs {
+    display: flex; background: #eef2f7; border-radius: 12px; padding: 4px; gap: 4px;
+    margin-bottom: 14px;
+  }
+  .tabs button {
+    flex: 1; margin: 0; padding: 10px; font-size: .92rem; font-weight: 600;
+    background: transparent; color: var(--muted); border: 0; border-radius: 9px;
+    box-shadow: none; transition: all .2s;
+  }
+  .tabs button.active {
+    background: var(--white); color: var(--primary);
+    box-shadow: 0 2px 8px rgba(15,23,42,.08);
+  }
+  .pane { animation: fadeUp .25s both; }
+
+  /* ===== Fayl tanlash ===== */
+  .file-drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; border: 2px dashed #cbd5e1; border-radius: 14px; padding: 26px 14px;
+    text-align: center; cursor: pointer; transition: all .2s; background: #f8fafc;
+  }
+  .file-drop:active { transform: scale(.99); }
+  .file-drop.has-file { border-color: var(--ok); border-style: solid; background: #f0fdf4; }
+  .file-drop .icon { font-size: 30px; }
+  .file-drop .title { font-weight: 600; font-size: .95rem; }
+  .file-drop .sub { font-size: .8rem; color: var(--muted); }
+  .file-drop input { display: none; }
+
+  /* ===== Sozlamalar (details) ===== */
+  details {
+    border: 1.5px solid var(--border); border-radius: 12px; padding: 0; margin-top: 14px;
+    overflow: hidden;
+  }
+  summary {
+    list-style: none; cursor: pointer; padding: 12px 14px; font-weight: 600;
+    font-size: .92rem; display: flex; align-items: center; gap: 8px; user-select: none;
+    transition: background .2s;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: ""; margin-left: auto; width: 9px; height: 9px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg); transition: transform .25s;
+  }
+  details[open] summary::after { transform: rotate(-135deg); }
+  details[open] summary { background: #f8fafc; border-bottom: 1.5px solid var(--border); }
+  .details-body { padding: 4px 14px 14px; }
+  .checkbox { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; font-size: .9rem; }
+  .checkbox input {
+    width: 20px; height: 20px; margin-top: 2px; accent-color: var(--primary); flex-shrink: 0;
+  }
+  .checkbox label { margin: 0; font-weight: 500; }
+  .checkbox .sub { display: block; font-size: .78rem; color: var(--muted); font-weight: 400; }
+
+  /* ===== Tugmalar ===== */
   button {
-    background: var(--primary); color: #fff; border: 0; border-radius: 10px;
-    padding: 14px 18px; font-size: 1.05rem; font-weight: 600; width: 100%;
-    cursor: pointer; margin-top: 14px;
+    background: linear-gradient(135deg, #3b82f6, var(--primary-dark));
+    color: #fff; border: 0; border-radius: 13px;
+    padding: 15px 18px; font-size: 1.05rem; font-weight: 700; width: 100%;
+    cursor: pointer; margin-top: 16px; box-shadow: 0 8px 20px -8px rgba(37,99,235,.5);
+    transition: transform .15s, box-shadow .2s, opacity .2s;
   }
-  button:disabled { background: #94a3b8; cursor: default; }
-  button.small { width: auto; padding: 10px 14px; font-size: .9rem; margin: 6px 6px 0 0; }
-  button.ghost { background: var(--white); color: var(--primary); border: 1.5px solid var(--primary); }
-  .checkbox { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .92rem; }
-  .checkbox input { width: 18px; height: 18px; }
-  #status { font-size: .95rem; margin-top: 12px; white-space: pre-line; }
-  #status.err { color: var(--err); }
-  .seg { border-left: 3px solid var(--primary); padding: 6px 10px; margin: 8px 0; background: #f8fafc; border-radius: 0 8px 8px 0; }
-  .seg .time { font-size: .78rem; color: var(--accent); font-weight: 700; font-family: monospace; }
-  .seg .text { font-size: .95rem; }
-  .hist {
-    display: flex; align-items: center; gap: 8px;
-    border: 1px solid var(--border); border-radius: 12px;
-    padding: 10px 12px; margin: 8px 0; cursor: pointer;
-    transition: background .15s;
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .55; transform: none; cursor: default; }
+  button.small {
+    width: auto; padding: 10px 14px; font-size: .88rem; margin: 8px 8px 0 0;
+    border-radius: 11px; box-shadow: 0 4px 12px -6px rgba(37,99,235,.4);
   }
-  .hist:hover, .hist:active { background: #f8fafc; }
-  .hist .info { flex: 1; min-width: 0; }
-  .hist .nom {
-    font-weight: 600; font-size: .92rem;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  button.ghost {
+    background: var(--white); color: var(--primary); border: 1.5px solid #bfdbfe;
+    box-shadow: none;
   }
-  .hist .meta { font-size: .78rem; color: var(--muted); }
-  .hist .del {
-    margin: 0; width: auto; padding: 6px 10px; font-size: 1rem;
-    background: transparent; color: var(--err); border: 0; flex-shrink: 0;
+
+  /* ===== Jarayon ===== */
+  .progress-wrap {
+    height: 8px; background: #e8edf5; border-radius: 999px; margin-top: 16px;
+    overflow: hidden; display: none;
   }
-  footer { text-align: center; font-size: .8rem; color: var(--muted); margin: 24px 0; }
+  .progress-bar {
+    height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    transition: width .35s ease;
+  }
+  .progress-wrap.indet .progress-bar {
+    width: 40%; animation: slide 1.3s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0% { margin-left: -40%; } 100% { margin-left: 100%; }
+  }
+  #status { font-size: .92rem; margin-top: 10px; white-space: pre-line; color: #334155; }
+  #status.err {
+    color: var(--err); background: #fef2f2; border: 1.5px solid #fecaca;
+    border-radius: 12px; padding: 11px 14px; margin-top: 14px;
+  }
   .spin {
-    display: inline-block; width: 14px; height: 14px; border: 2px solid var(--primary);
+    display: inline-block; width: 13px; height: 13px; border: 2px solid var(--primary);
     border-top-color: transparent; border-radius: 50%; vertical-align: -2px;
-    animation: sp .8s linear infinite; margin-right: 6px;
+    animation: sp .7s linear infinite; margin-right: 7px;
   }
   @keyframes sp { to { transform: rotate(360deg); } }
+
+  /* ===== Natija ===== */
+  .seg {
+    padding: 10px 12px; margin: 8px 0; background: #f8fafc;
+    border-radius: 12px; border: 1px solid #eef2f7;
+    animation: fadeUp .3s both;
+  }
+  .seg .time {
+    display: inline-block; font-size: .74rem; color: #b45309; font-weight: 700;
+    font-family: ui-monospace, monospace; background: #fef3c7;
+    padding: 2px 8px; border-radius: 999px; margin-bottom: 4px;
+  }
+  .seg .text { font-size: .95rem; }
+  #natijaNom {
+    font-size: .82rem; color: var(--muted); margin: 0 0 10px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ===== Tarix ===== */
+  .hist {
+    display: flex; align-items: center; gap: 10px;
+    border: 1.5px solid var(--border); border-radius: 13px;
+    padding: 11px 13px; margin: 9px 0; cursor: pointer;
+    transition: border-color .2s, background .2s, transform .15s;
+  }
+  .hist:active { transform: scale(.985); }
+  .hist:hover { border-color: #bfdbfe; background: var(--primary-soft); }
+  .hist .info { flex: 1; min-width: 0; }
+  .hist .nom {
+    font-weight: 600; font-size: .9rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hist .meta { font-size: .76rem; color: var(--muted); }
+  .hist .del {
+    margin: 0; width: 38px; height: 38px; padding: 0; font-size: 1rem;
+    background: transparent; color: #94a3b8; border: 0; box-shadow: none; flex-shrink: 0;
+    border-radius: 10px; transition: background .2s, color .2s;
+  }
+  .hist .del:active { background: #fef2f2; color: var(--err); }
+
+  /* ===== Toast ===== */
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: #0f172a; color: #fff; padding: 11px 20px; border-radius: 999px;
+    font-size: .9rem; font-weight: 600; box-shadow: 0 10px 30px rgba(15,23,42,.3);
+    opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; z-index: 50;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer { text-align: center; font-size: .78rem; color: #94a3b8; margin: 26px 0 8px; }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>🎙️ O'zbekcha transkripsiya</h1>
-    <p>Video → timecode'li matn (caption) · Gemini AI</p>
+    <div class="logo">🎙️</div>
+    <h1>O'zbekcha transkripsiya</h1>
+    <p>Video → timecode'li matn · Gemini AI</p>
   </header>
 
-  <div class="card">
-    <h2>1. API kalit</h2>
-    <input type="password" id="apiKey" placeholder="AIza... kalitingizni qo'ying">
-    <p class="hint">Kalit faqat shu telefonda saqlanadi va faqat Google'ga yuboriladi.
-      Kalit olish: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></p>
+  <div class="card" id="keyCard">
+    <h2><span class="badge">1</span> API kalit</h2>
+    <div class="key-saved" id="keySaved" style="display:none">
+      ✅ Kalit saqlangan
+      <button onclick="kalitTahrir()">O'zgartirish</button>
+    </div>
+    <div id="keyEdit">
+      <input type="password" id="apiKey" placeholder="AIza... kalitingizni qo'ying">
+      <p class="hint">Kalit faqat shu telefonda saqlanadi va faqat Google'ga yuboriladi.
+        Kalit olish: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></p>
+    </div>
   </div>
 
   <div class="card">
-    <h2>2. Video</h2>
-    <label>YouTube havola</label>
-    <input type="url" id="ytUrl" placeholder="https://youtube.com/watch?v=...">
-    <label>yoki fayl yuklang (video yoki audio)</label>
-    <input type="file" id="fileInput" accept="video/*,audio/*">
-    <p class="hint">Instagram uchun: reel'ni telefonga saqlab, fayl sifatida yuklang.
-      Audio fayllar (mp3, m4a, ogg...) ham qabul qilinadi. Katta videolardan
-      (30 MB+) audio avtomatik ajratib olinadi — 1 GB video ham tez yuboriladi.</p>
+    <h2><span class="badge">2</span> Video yoki audio</h2>
 
-    <div class="row" style="margin-top:10px">
-      <div>
-        <label>Model</label>
-        <select id="model">
-          <option value="gemini-2.5-flash">Gemini 2.5 Flash (bepul tarif)</option>
-          <option value="gemini-2.5-pro">Gemini 2.5 Pro (billing kerak)</option>
-        </select>
-      </div>
-      <div>
-        <label>Yozuv</label>
-        <select id="yozuv">
-          <option value="lotin">Lotin</option>
-          <option value="kirill">Kirill</option>
-        </select>
-      </div>
+    <div class="tabs">
+      <button type="button" id="tabFayl" class="active" onclick="tabTanla('fayl')">📁 Fayl</button>
+      <button type="button" id="tabYt" onclick="tabTanla('yt')">▶️ YouTube</button>
     </div>
-    <p class="hint">Pro modeli aniqroq, lekin Google hisobingizda billing (to'lov kartasi)
-      ulangan bo'lishi kerak. Bepul kalit bilan Flash'ni ishlating.</p>
-    <div class="checkbox">
-      <input type="checkbox" id="tahrir" checked>
-      <label for="tahrir" style="margin:0">Tahrir o'tishi (aniqlikni oshiradi, 2x sekinroq)</label>
-    </div>
-    <div class="checkbox">
-      <input type="checkbox" id="tejamkor" checked>
-      <label for="tejamkor" style="margin:0">🎧 Tejamkor rejim — videodan faqat ovoz tahlil qilinadi</label>
-    </div>
-    <p class="hint">Tejamkor rejimda ~1 soatgacha video bepul limitga sig'adi va tezroq
-      ishlaydi. Gemini ekrandagi yozuvlarni ham o'qishi kerak bo'lsa, o'chiring
-      (unda ~15 daqiqagacha video sig'adi).</p>
 
-    <button id="startBtn" onclick="boshla()">Transkripsiya qilish</button>
+    <div class="pane" id="paneFayl">
+      <label class="file-drop" id="fileDrop">
+        <input type="file" id="fileInput" accept="video/*,audio/*">
+        <span class="icon" id="fdIcon">📁</span>
+        <span class="title" id="fdTitle">Fayl tanlash</span>
+        <span class="sub" id="fdSub">Video yoki audio · Instagram reel'ni telefonga saqlab yuklang</span>
+      </label>
+      <p class="hint">Katta videolardan (30 MB+) audio avtomatik ajratib olinadi —
+        1 GB video ham tez yuboriladi.</p>
+    </div>
+
+    <div class="pane" id="paneYt" style="display:none">
+      <input type="url" id="ytUrl" placeholder="https://youtube.com/watch?v=...">
+      <p class="hint">Faqat ochiq (public) YouTube havolalari. Instagram videolarini
+        «Fayl» bo'limi orqali yuklang.</p>
+    </div>
+
+    <details id="sozlamalar">
+      <summary>⚙️ Sozlamalar</summary>
+      <div class="details-body">
+        <div class="row">
+          <div>
+            <label>Model</label>
+            <select id="model">
+              <option value="gemini-2.5-flash">Flash (bepul)</option>
+              <option value="gemini-2.5-pro">Pro (billing)</option>
+            </select>
+          </div>
+          <div>
+            <label>Yozuv</label>
+            <select id="yozuv">
+              <option value="lotin">Lotin</option>
+              <option value="kirill">Kirill</option>
+            </select>
+          </div>
+        </div>
+        <div class="checkbox">
+          <input type="checkbox" id="tahrir" checked>
+          <label for="tahrir">Tahrir o'tishi
+            <span class="sub">Gemini matnni audio bilan qayta tekshiradi — aniqlik ~98% (2x sekinroq)</span>
+          </label>
+        </div>
+        <div class="checkbox">
+          <input type="checkbox" id="tejamkor" checked>
+          <label for="tejamkor">🎧 Tejamkor rejim
+            <span class="sub">Videodan faqat ovoz tahlil qilinadi — ~1 soatgacha video bepul limitga
+            sig'adi. Ekrandagi yozuvlar ham kerak bo'lsa, o'chiring.</span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <button id="startBtn" onclick="boshla()">✨ Transkripsiya qilish</button>
+    <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
     <div id="status"></div>
   </div>
 
   <div class="card" id="resultCard" style="display:none">
-    <h2>3. Natija</h2>
-    <p class="hint" id="natijaNom" style="margin:0 0 8px"></p>
+    <h2><span class="badge">3</span> Natija</h2>
+    <p id="natijaNom"></p>
     <div>
       <button class="small" onclick="yuklab('srt')">⬇ SRT</button>
       <button class="small" onclick="yuklab('txt')">⬇ TXT</button>
-      <button class="small ghost" onclick="nusxala(true)">🕐 Timecode bilan nusxalash</button>
+      <button class="small ghost" onclick="nusxala(true)">🕐 Timecode bilan</button>
       <button class="small ghost" onclick="nusxala(false)">📋 Faqat matn</button>
     </div>
     <div id="segments"></div>
@@ -159,20 +350,65 @@
       avtomatik saqlanadi (faqat shu telefonda).</p>
     <div id="tarixList"></div>
     <button class="small ghost" id="tarixTozaBtn" onclick="tarixTozalash()"
-            style="display:none; color:var(--err); border-color:var(--err)">🗑 Hammasini o'chirish</button>
+            style="display:none; color:var(--err); border-color:#fecaca">🗑 Hammasini o'chirish</button>
   </div>
 
   <footer>Oscar Ta'lim · ichki vosita</footer>
 </div>
 
+<div id="toast"></div>
+
 <script>
 const API = "https://generativelanguage.googleapis.com";
 let natija = [];
+let joriyNom = "";
+let joriyTab = "fayl";
 
 const $ = id => document.getElementById(id);
-$("apiKey").value = localStorage.getItem("gemini_key") || "";
-$("apiKey").addEventListener("change", () => localStorage.setItem("gemini_key", $("apiKey").value.trim()));
 
+/* ===== API kalit ===== */
+$("apiKey").value = localStorage.getItem("gemini_key") || "";
+$("apiKey").addEventListener("change", () => {
+  localStorage.setItem("gemini_key", $("apiKey").value.trim());
+  kalitKorinish();
+});
+function kalitKorinish() {
+  const bor = !!localStorage.getItem("gemini_key");
+  $("keySaved").style.display = bor ? "flex" : "none";
+  $("keyEdit").style.display = bor ? "none" : "block";
+}
+function kalitTahrir() {
+  $("keySaved").style.display = "none";
+  $("keyEdit").style.display = "block";
+  $("apiKey").focus();
+}
+kalitKorinish();
+
+/* ===== Tablar va fayl tanlash ===== */
+function tabTanla(t) {
+  joriyTab = t;
+  $("tabFayl").classList.toggle("active", t === "fayl");
+  $("tabYt").classList.toggle("active", t === "yt");
+  $("paneFayl").style.display = t === "fayl" ? "block" : "none";
+  $("paneYt").style.display = t === "yt" ? "block" : "none";
+}
+$("fileInput").addEventListener("change", () => {
+  const f = $("fileInput").files[0];
+  const drop = $("fileDrop");
+  if (f) {
+    drop.classList.add("has-file");
+    $("fdIcon").textContent = "✅";
+    $("fdTitle").textContent = qisqart(f.name, 34);
+    $("fdSub").textContent = (f.size / 1048576).toFixed(1) + " MB · almashtirish uchun bosing";
+  } else {
+    drop.classList.remove("has-file");
+    $("fdIcon").textContent = "📁";
+    $("fdTitle").textContent = "Fayl tanlash";
+    $("fdSub").textContent = "Video yoki audio · Instagram reel'ni telefonga saqlab yuklang";
+  }
+});
+
+/* ===== Sxema va promptlar ===== */
 const SCHEMA = {
   type: "ARRAY",
   items: {
@@ -224,12 +460,33 @@ Transkripsiya:
 ${JSON.stringify(segmentlar)}`;
 }
 
+/* ===== Holat va jarayon ko'rsatkichi ===== */
 function holat(msg, xato = false, spinner = false) {
   const s = $("status");
   s.className = xato ? "err" : "";
   s.innerHTML = (spinner ? '<span class="spin"></span>' : "") + msg;
+  if (xato) jarayon(null);
+}
+// foiz: 0-100 aniq qiymat, "indet": noaniq (suzuvchi), null: yashirish
+function jarayon(foiz) {
+  const w = $("progressWrap");
+  if (foiz === null) { w.style.display = "none"; w.classList.remove("indet"); return; }
+  w.style.display = "block";
+  if (foiz === "indet") { w.classList.add("indet"); }
+  else {
+    w.classList.remove("indet");
+    $("progressBar").style.width = foiz + "%";
+  }
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2200);
 }
 
+/* ===== Gemini so'rovlari ===== */
 async function generate(key, model, parts) {
   for (let urinish = 1; urinish <= 3; urinish++) {
     try {
@@ -284,6 +541,7 @@ async function faylYuklash(key, file) {
     x.upload.onprogress = e => {
       if (e.lengthComputable) {
         const foiz = Math.round(e.loaded / e.total * 100);
+        jarayon(foiz);
         holat(`Yuklanmoqda: ${foiz}% (${(e.loaded / 1048576).toFixed(0)}/${(e.total / 1048576).toFixed(0)} MB)`, false, true);
       }
     };
@@ -295,6 +553,7 @@ async function faylYuklash(key, file) {
   })).file;
 
   while (info.state === "PROCESSING") {
+    jarayon("indet");
     holat("Google faylni qayta ishlamoqda...", false, true);
     await new Promise(res => setTimeout(res, 3000));
     const r = await fetch(`${API}/v1beta/${info.name}?key=${key}`);
@@ -322,6 +581,7 @@ function yuklaSkript(src) {
 }
 
 async function audioAjrat(file) {
+  jarayon("indet");
   holat("Audio ajratish vositasi yuklanmoqda... (bir martalik, ~12 MB)", false, true);
   const FF_BASE = "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd";
   const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
@@ -350,19 +610,21 @@ async function audioAjrat(file) {
   }
 }
 
+/* ===== Asosiy jarayon ===== */
 async function boshla() {
-  const key = $("apiKey").value.trim();
-  const yt = $("ytUrl").value.trim();
-  const file = $("fileInput").files[0];
+  const key = ($("apiKey").value || localStorage.getItem("gemini_key") || "").trim();
+  const yt = joriyTab === "yt" ? $("ytUrl").value.trim() : "";
+  const file = joriyTab === "fayl" ? $("fileInput").files[0] : null;
   const model = $("model").value;
   const yozuv = $("yozuv").value;
 
   if (!key) return holat("Avval API kalitni kiriting (1-bo'lim).", true);
-  if (!yt && !file) return holat("YouTube havola qo'ying yoki fayl yuklang.", true);
+  if (!yt && !file) {
+    return holat(joriyTab === "yt" ? "YouTube havolasini qo'ying." : "Avval fayl tanlang.", true);
+  }
   if (yt && !/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(yt)) {
     return holat("Havola orqali faqat YouTube ishlaydi. Instagram va boshqa " +
-      "platformalardagi videoni telefonga saqlab, «Choose File» orqali fayl " +
-      "sifatida yuklang.", true);
+      "platformalardagi videoni telefonga saqlab, «Fayl» bo'limi orqali yuklang.", true);
   }
   localStorage.setItem("gemini_key", key);
 
@@ -387,6 +649,7 @@ async function boshla() {
           yubor = file;
         }
       }
+      jarayon(0);
       holat(`Fayl yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
       const f = await faylYuklash(key, yubor);
       mediaPart = { fileData: { fileUri: f.uri, mimeType: f.mime } };
@@ -398,6 +661,7 @@ async function boshla() {
       mediaPart.videoMetadata = { fps: 0.1 };
     }
 
+    jarayon("indet");
     holat("Gemini transkripsiya qilmoqda... (1-2 daqiqa)", false, true);
     let seglar = await generate(key, model, [mediaPart, { text: prompt1(yozuv) }]);
 
@@ -418,7 +682,9 @@ async function boshla() {
     const nom = file ? file.name : yt;
     tarixgaSaqla(nom, seglar);
     korsat(seglar, nom);
-    holat(`Tayyor: ${seglar.length} segment. ✅ (Tarixga saqlandi)`);
+    jarayon(null);
+    holat(`Tayyor: ${seglar.length} segment. ✅`);
+    toast("Tayyor! Tarixga saqlandi 📚");
   } catch (e) {
     let msg = "Xato: " + e.message;
     if (/Cannot fetch content/i.test(e.message)) {
@@ -426,7 +692,7 @@ async function boshla() {
         "videosi ekanini tekshiring. Boshqa platforma videolarini fayl sifatida yuklang.";
     } else if (/quota|RESOURCE_EXHAUSTED|429/i.test(e.message)) {
       msg = /limit: 0/.test(e.message)
-        ? "Bepul tarifda bu model ishlamaydi. Model ro'yxatidan «Gemini 2.5 Flash» ni tanlab, qayta urining."
+        ? "Bepul tarifda bu model ishlamaydi. Sozlamalardan «Flash» modelini tanlab, qayta urining."
         : "Bepul kunlik/daqiqalik limit tugadi. Bir necha daqiqa kutib qayta urining yoki ertaga davom eting.";
     }
     holat(msg, true);
@@ -435,25 +701,59 @@ async function boshla() {
   }
 }
 
-function vaqt(s, srt = true) {
-  const ms = Math.round(s * 1000);
-  const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60,
-        sec = Math.floor(ms / 1000) % 60, mil = ms % 1000;
+/* ===== Vaqt formatlari ===== */
+function vaqt(soniya) {
+  const ms = Math.round(soniya * 1000);
+  const s = Math.floor(ms / 1000), mil = ms % 1000;
+  const m = Math.floor(s / 60), h = Math.floor(m / 60);
   const p = n => String(n).padStart(2, "0");
-  return `${p(h)}:${p(m)}:${p(sec)}${srt ? "," : "."}${String(mil).padStart(3, "0")}`;
+  return `${p(h)}:${p(m % 60)}:${p(s % 60)},${String(mil).padStart(3, "0")}`;
+}
+// MM:SS (bir soatdan uzun bo'lsa H:MM:SS)
+function vaqtQisqa(s) {
+  const t = Math.round(s), h = Math.floor(t / 3600),
+        m = Math.floor(t / 60) % 60, sek = t % 60;
+  const p = n => String(n).padStart(2, "0");
+  return (h ? h + ":" + p(m) : p(m)) + ":" + p(sek);
 }
 
-let joriyNom = "";
-
+/* ===== Natijani ko'rsatish va eksport ===== */
 function korsat(seglar, nom) {
   joriyNom = nom || "";
   $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
-  $("segments").innerHTML = seglar.map(s =>
-    `<div class="seg"><div class="time">${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}</div>` +
+  $("segments").innerHTML = seglar.map((s, i) =>
+    `<div class="seg" style="animation-delay:${Math.min(i * 30, 400)}ms">` +
+    `<div class="time">${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}</div>` +
     `<div class="text">${s.text.replace(/</g, "&lt;")}</div></div>`
   ).join("");
   $("resultCard").style.display = "block";
   $("resultCard").scrollIntoView({ behavior: "smooth" });
+}
+
+function yuklab(fmt) {
+  let content;
+  if (fmt === "srt") {
+    content = natija.map((s, i) =>
+      `${i + 1}\n${vaqt(s.start)} --> ${vaqt(s.end)}\n${s.text.trim()}\n`).join("\n");
+  } else {
+    content = natija.map(s => s.text.trim()).join(" ") + "\n";
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
+  const asos = qisqart(joriyNom, 40).replace(/\.[a-z0-9]{2,4}$/i, "")
+    .replace(/[^\wa-zA-Z0-9а-яА-ЯёЁ' -]/g, "_").trim() || "transkript";
+  a.download = asos + "." + fmt;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(fmt.toUpperCase() + " yuklab olindi ⬇");
+}
+
+function nusxala(timecode) {
+  const content = timecode
+    ? natija.map(s => `[${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}] ${s.text.trim()}`).join("\n")
+    : natija.map(s => s.text.trim()).join(" ");
+  navigator.clipboard.writeText(content)
+    .then(() => toast(timecode ? "Timecode bilan nusxalandi 🕐" : "Matn nusxalandi 📋"));
 }
 
 /* ===== Tarix (localStorage) ===== */
@@ -526,48 +826,17 @@ function tarixOchir(id) {
   if (!confirm("Bu transkript o'chirilsinmi?")) return;
   tarixYoz(tarixOl().filter(x => x.id !== id));
   tarixKorsat();
+  toast("O'chirildi 🗑");
 }
 
 function tarixTozalash() {
   if (!confirm("Butun tarix o'chirilsinmi? Buni qaytarib bo'lmaydi.")) return;
   localStorage.removeItem(TARIX_KEY);
   tarixKorsat();
+  toast("Tarix tozalandi");
 }
 
 tarixKorsat();
-
-function yuklab(fmt) {
-  let content;
-  if (fmt === "srt") {
-    content = natija.map((s, i) =>
-      `${i + 1}\n${vaqt(s.start)} --> ${vaqt(s.end)}\n${s.text.trim()}\n`).join("\n");
-  } else {
-    content = natija.map(s => s.text.trim()).join(" ") + "\n";
-  }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
-  const asos = qisqart(joriyNom, 40).replace(/\.[a-z0-9]{2,4}$/i, "")
-    .replace(/[^\wa-zA-Z0-9а-яА-ЯёЁ' -]/g, "_").trim() || "transkript";
-  a.download = asos + "." + fmt;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-// MM:SS (bir soatdan uzun bo'lsa H:MM:SS)
-function vaqtQisqa(s) {
-  const t = Math.round(s), h = Math.floor(t / 3600),
-        m = Math.floor(t / 60) % 60, sek = t % 60;
-  const p = n => String(n).padStart(2, "0");
-  return (h ? h + ":" + p(m) : p(m)) + ":" + p(sek);
-}
-
-function nusxala(timecode) {
-  const content = timecode
-    ? natija.map(s => `[${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}] ${s.text.trim()}`).join("\n")
-    : natija.map(s => s.text.trim()).join(" ");
-  navigator.clipboard.writeText(content)
-    .then(() => holat(timecode ? "Timecode bilan nusxalandi. 🕐" : "Matn nusxalandi. 📋"));
-}
 </script>
 </body>
 </html>
