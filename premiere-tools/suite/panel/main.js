@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "2-Avg 11:40";
+const PANEL_BUILD = "2-Avg 14:10";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -734,12 +734,13 @@ async function readSequence() {
         const end = secs(await it.getEndTime());
         const inP = secs(await it.getInPoint());
         if (end <= start) continue;
+        // Klip qaysi qavatda turgani. Cut natijani shu tartibda qayta
+        // yig'adi — montajchi kadrlarni va ovozlarni ataylab ma'lum
+        // qavatlarga qo'ygan bo'ladi.
         items.push({ path: path, start: start, in: inP, out: inP + (end - start),
                      atrack: onAudioTrack,
-                     // Klip qaysi video qavatda turgani. Cut natijani shu
-                     // tartibda qayta yig'adi — montajchi kadrlarni
-                     // ataylab ma'lum qavatlarga qo'ygan bo'ladi.
-                     vtrack: onAudioTrack ? null : i });
+                     vtrack: onAudioTrack ? null : i,
+                     atrack_i: onAudioTrack ? (i - vCount) : null });
       }
     }
 
@@ -750,14 +751,22 @@ async function readSequence() {
         : "Sequence'da klip topilmadi");
     }
 
-    // Bir xil fayl video va audio trekda takrorlanadi — dublikatlarni olib tashlaymiz
-    const seen = new Set();
-    timeline = items.filter((it) => {
+    // Bir xil klip video va audio trekda ikki marta uchraydi — ular
+    // bog'langan. Ilgari ikkinchisi shunchaki TASHLAB yuborilardi va
+    // ovoz qaysi qatorda turgani shu yerda yo'qolardi. Endi ikkalasi
+    // birlashtiriladi: bitta yozuvda video qavati ham, audio qavati ham
+    // qoladi.
+    const xarita = new Map();
+    for (const it of items) {
       const key = it.path + "|" + it.start.toFixed(3) + "|" + it.in.toFixed(3);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+      const bor = xarita.get(key);
+      if (!bor) { xarita.set(key, it); continue; }
+      if (it.vtrack != null && bor.vtrack == null) bor.vtrack = it.vtrack;
+      if (it.atrack_i != null && bor.atrack_i == null) bor.atrack_i = it.atrack_i;
+      // Videoli yozuv ustun: klipda kadr ham bor degani
+      if (!it.atrack) bor.atrack = false;
+    }
+    timeline = Array.from(xarita.values());
 
     picked = [];
     const names = new Set();

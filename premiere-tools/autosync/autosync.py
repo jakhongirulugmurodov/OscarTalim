@@ -515,6 +515,22 @@ def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg,
     return "\n".join(lines)
 
 
+def _qavat_treklari(qavatlar):
+    """Qavat raqami -> trek XML. Bo'sh oraliq treklar ham yoziladi.
+
+    Busiz V3 dagi klip V2 ga tushib qoladi: FCP7 XML da treklar tartib
+    bilan o'qiladi, raqam bo'yicha emas.
+    """
+    treklar = []
+    for n in range(max(qavatlar) + 1):
+        ichi = sorted(qavatlar.get(n, []), key=lambda x: x[0])
+        treklar.append(
+            "\t\t\t\t<track>\n"
+            + ("\n".join(item for _, item in ichi) + "\n" if ichi else "")
+            + "\t\t\t\t</track>")
+    return treklar
+
+
 def build_xml(clips, seq_name, timebase, ntsc, width, height,
               single_video_track=False, markers=None, file_ids=None,
               keep_tracks=False):
@@ -546,7 +562,8 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
                 for c in clips for s in c["segments"])
 
     video_tracks, audio_tracks, program = [], [], []
-    qavatlar = {}          # trek raqami -> [(boshlanish, clipitem)]
+    qavatlar = {}          # video trek raqami -> [(boshlanish, clipitem)]
+    aqavatlar = {}         # audio trek raqami -> [(boshlanish, clipitem)]
 
     # Qavat ma'lumoti HAQIQATAN bormi. Eski panel `vtrack` yubormaydi —
     # o'sha holatda hammasini bitta trekka yig'sak, ustma-ust turgan
@@ -554,6 +571,7 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
     # eski yo'lga qaytamiz: har fayl o'z trekida.
     if keep_tracks:
         keep_tracks = any(sg.get("vtrack") is not None
+                          or sg.get("atrack_i") is not None
                           for c in clips for sg in c.get("segments", []))
     for i, clip in enumerate(clips, start=1):
         segs = clip["segments"]
@@ -577,6 +595,11 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
                 # Har bo'lak o'z trekiga: qavatlar montajdagidek qoladi
                 for s, item in zip(segs, items):
                     qavat = s.get("vtrack")
+                    if qavat is None and s.get("atrack_i") is not None:
+                        # Bu bo'lak montajda FAQAT audio trekda turgan
+                        # (masalan rekorder yozuvi). Unga kadr yasab
+                        # qo'ysak, montajda bo'lmagan tasvir paydo bo'ladi.
+                        continue
                     qavatlar.setdefault(0 if qavat is None else int(qavat),
                                         []).append((s["start"], item))
             else:
@@ -586,8 +609,14 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
             items = [clipitem_xml(clip, i, "audio", timebase, ntsc,
                                   n == 0 and not show_video, s, n, file_id=fid)
                      for n, s in enumerate(asegs)]
-            audio_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
-                                + "\n\t\t\t\t</track>")
+            if keep_tracks:
+                for s_, item in zip(asegs, items):
+                    q = s_.get("atrack_i")
+                    aqavatlar.setdefault(0 if q is None else int(q),
+                                         []).append((s_["start"], item))
+            else:
+                audio_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
+                                    + "\n\t\t\t\t</track>")
 
     if single_video_track and program:
         program.sort(key=lambda x: x[0])
@@ -597,13 +626,10 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
     elif keep_tracks and qavatlar:
         # Bo'sh oraliq treklar ham yoziladi: aks holda V3 dagi klip V2 ga
         # tushib qoladi va montajning qavat tartibi buziladi.
-        video_tracks = []
-        for n in range(max(qavatlar) + 1):
-            ichi = sorted(qavatlar.get(n, []), key=lambda x: x[0])
-            video_tracks.append(
-                "\t\t\t\t<track>\n"
-                + ("\n".join(item for _, item in ichi) + "\n" if ichi else "")
-                + "\t\t\t\t</track>")
+        video_tracks = _qavat_treklari(qavatlar)
+
+    if keep_tracks and aqavatlar:
+        audio_tracks = _qavat_treklari(aqavatlar)
 
     marker_xml = ""
     for mk in (markers or []):
@@ -735,9 +761,10 @@ def prepare_clips(files, timeline=None, log=print, progress=None):
                 clip["placements"].append(
                     {"start": float(item["start"]), "in": float(item["in"]),
                      "out": float(item["out"]),
-                     # Klip montajda qaysi video trekda turgan. Panel
+                     # Klip montajda qaysi qavatda turgan. Panel
                      # yubormasa None bo'ladi va eski xatti-harakat qoladi.
-                     "vtrack": item.get("vtrack")})
+                     "vtrack": item.get("vtrack"),
+                     "atrack_i": item.get("atrack_i")})
         clips = [c for c in clips if c["placements"]]
         for c in clips:
             c["rel_offset"] = min(p["start"] - p["in"] for p in c["placements"])
@@ -805,6 +832,7 @@ def cut_to_segments(clips, keeps, fps, log=print):
                         "in": src_in,
                         "out": src_in + (clip_b - clip_a),
                         "vtrack": place.get("vtrack"),
+                        "atrack_i": place.get("atrack_i"),
                     })
         if not clip["segments"]:
             log(f"  {clip['name']}: bu bo'laklarda ishlatilmadi")
