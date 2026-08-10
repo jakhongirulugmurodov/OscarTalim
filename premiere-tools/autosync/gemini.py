@@ -150,6 +150,72 @@ def olib_kirish(fayl, manba, nomi=None, log=print):
     }
 
 
+def subtitr_yasash(files, timeline=None, output=None, log=print, progress=None):
+    """Arxivdagi transkriptdan SRT yasaydi — whisper'siz.
+
+    Transkript bir marta olib kirilgan bo'lsa (Gemini yoki whisper —
+    farqi yo'q), subtitr shundan chiqadi. Bu bir necha daqiqalik
+    transkripsiyani qayta ishlatish o'rniga bir soniyalik ish.
+
+    Montaj berilgan bo'lsa, vaqtlar montajga ko'chiriladi: xom yozuvda
+    12-daqiqada aytilgan gap montajda 4-daqiqada bo'lishi mumkin, va
+    subtitr o'sha yerda turishi kerak.
+    """
+    from intro import load_transcript, transcript_on_timeline
+    from captions import to_srt
+
+    if timeline:
+        files = list(dict.fromkeys(c["path"] for c in timeline))
+    if not files:
+        raise ValueError("Fayl ko'rsatilmagan")
+
+    if progress:
+        progress(stage="Transkript qidirilmoqda", percent=20)
+    data = load_transcript(files)
+    if not data:
+        raise ValueError(
+            "Bu yozuv uchun transkript topilmadi. Avval «Gemini "
+            "transkriptini yuklash» bilan SRT/JSON faylni olib kiring.")
+
+    if timeline:
+        joy = {}
+        for it in timeline:
+            joy.setdefault(os.path.abspath(it["path"]), []).append(
+                {"start": float(it["start"]), "in": float(it["in"]),
+                 "out": float(it["out"])})
+        clips = [{"path": p, "name": os.path.basename(p), "placements": v}
+                 for p, v in joy.items()]
+    else:
+        clips = [{"path": os.path.abspath(f), "name": os.path.basename(f),
+                  "placements": [{"start": 0.0, "in": 0.0, "out": 10 ** 9}]}
+                 for f in files]
+
+    if progress:
+        progress(stage="Vaqtlar montajga ko'chirilmoqda", percent=60)
+    lines = transcript_on_timeline(data, clips)
+    lines = [l for l in lines if (l.get("text") or "").strip()]
+    lines.sort(key=lambda x: x["start"])
+    if not lines:
+        raise ValueError("Transkriptda qator qolmadi")
+
+    if progress:
+        progress(stage="SRT yozilmoqda", percent=85)
+    matn = to_srt(lines)
+    if output:
+        with open(output, "w", encoding="utf-8") as fh:
+            fh.write(matn)
+        log(f"Subtitr yozildi: {os.path.basename(output)}")
+
+    log(f"{len(lines)} qator · {lines[-1]['end'] / 60:.1f} daqiqa")
+    if progress:
+        progress(stage="Tayyor", percent=100)
+    return {"output": output, "line_count": len(lines),
+            "title": data.get("title") or "",
+            "duration": round(lines[-1]["end"], 2),
+            "from_sequence": bool(timeline),
+            "preview": " ".join(l["text"] for l in lines[:5])[:300]}
+
+
 def run_import(fayl, manba, nomi=None, log=print, progress=None):
     """Server chaqiradigan kirish nuqtasi."""
     if progress:

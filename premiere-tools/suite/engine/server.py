@@ -38,7 +38,7 @@ from intro import (run_intro, build_intro, load_transcript,
 from shorts import run_shorts, build_shorts
 from matn import run_matn, shriftlar, oldin_korish
 from harakat import run_harakat
-from gemini import run_import
+from gemini import run_import, subtitr_yasash
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.2.0"
@@ -344,6 +344,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, "path": path})
             except Exception as e:
                 return self._send(500, {"error": str(e)})
+
+        if self.path == "/subtitr":
+            # Arxivdagi transkriptdan SRT. Whisper ishlatilmaydi —
+            # transkript bir marta olib kirilgan bo'lsa yetadi.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                out = req.get("output") or os.path.join(
+                    os.path.abspath(RESULTS_DIR),
+                    "subtitr_" + time.strftime("%Y-%m-%d_%H-%M") + ".srt")
+                os.makedirs(os.path.dirname(out), exist_ok=True)
+                lines = []
+                natija = subtitr_yasash(req.get("files") or [],
+                                        timeline=req.get("timeline"),
+                                        output=out, log=lines.append)
+                natija["log"] = lines
+                return self._send(200, natija)
+            except Exception as e:
+                return self._send(400, {"error": str(e)})
 
         if self.path == "/transkript-import":
             # Gemini transkriptini (SRT/JSON) suite arxiviga olib kiradi.

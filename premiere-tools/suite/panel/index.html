@@ -259,6 +259,8 @@
   .knobs { display: none; margin-bottom: 12px; }
   body.tab-cut #cutKnobs, body.tab-switch #switchKnobs,
   body.tab-captions #capKnobs { display: block; }
+  #capTip { display: none; }
+  body.tab-captions #capTip { display: block; }
   body:not(.tab-captions) #capBtn, body:not(.tab-captions) #sampleBtn { display: none; }
   body.tab-captions #syncBtn, body.tab-captions #cutBtn,
   body.tab-captions #switchBtn { display: none; }
@@ -292,7 +294,7 @@
   /* --- Intro: nomzodlar ro'yxati --- */
   body.tab-intro #introKnobs { display: block; }
   #trImport { display: none; }
-  body.tab-intro #trImport { display: flex; }
+  body.tab-intro #trImport, body.tab-captions #trImport { display: flex; }
   body.tab-intro .seqpick { display: block; text-align: center; margin-bottom: 12px;
     padding: 11px; border-radius: 8px; border: 1px solid #45464F;
     background-color: #17181C; }
@@ -349,6 +351,11 @@
   body:not(.tab-shorts) #markerBtn, body:not(.tab-shorts) #trBtn { display: none; }
   body.tab-matn #markerBtn, body.tab-matn #trBtn { display: none; }
   body:not(.tab-harakat) #harBtn { display: none; }
+  body:not(.tab-captions) #srtBtn { display: none; }
+  /* Captions XML yasamaydi — SRT fayl yozadi. «Premiere'ga import»
+     bu tabda hech qachon yonmaydi, ya'ni faqat joy egallab, «nega
+     ishlamayapti?» degan savol tug'diradi. */
+  body.tab-captions #importBtn { display: none; }
   body.tab-harakat #importBtn, body.tab-harakat #trBtn,
   body.tab-harakat #markerBtn { display: none; }
   body.tab-harakat #syncBtn, body.tab-harakat #cutBtn, body.tab-harakat #switchBtn,
@@ -542,6 +549,7 @@
     <div class="tab" data-tab="cut">Cut</div>
     <div class="tab" data-tab="switch">Switch</div>
     <div class="tab" data-tab="intro">Intro</div>
+    <div class="tab" data-tab="captions">Captions</div>
   </div>
 
   <div class="body">
@@ -593,6 +601,19 @@
       </label>
     </div>
 
+    <!-- Gemini transkriptini olib kirish. Arxivga tushgach Intro uni
+         o'zi topadi — alohida ulash kerak emas. -->
+    <div class="opts" id="trImport">
+      <span class="olbl">TRANSKRIPT</span>
+      <span class="mini" id="trImpBtn">Gemini transkriptini yuklash</span>
+      <span class="mini" id="trImpHolat"></span>
+    </div>
+    <p class="tip" id="capTip">Ikki yo'l bor.<br>
+    <b>Gemini transkripti</b> — yuqoridagi «Gemini transkriptini yuklash»
+    bilan SRT/JSON ni olib kiring, so'ng <b>«Subtitr yasash»</b> ni bosing.
+    Montaj ochiq bo'lsa vaqtlar montajga ko'chiriladi.<br>
+    <b>Whisper</b> — kompyuterda o'zi transkripsiya qiladi (o'rnatilgan
+    bo'lsa). Uzun yozuvda bir necha daqiqa ketadi.</p>
     <div class="knobs" id="capKnobs">
       <div class="warnbox" id="capWarn">
         <b>Subtitr motori o'rnatilmagan</b>
@@ -627,13 +648,6 @@
       </div>
     </div>
 
-    <!-- Gemini transkriptini olib kirish. Arxivga tushgach Intro uni
-         o'zi topadi — alohida ulash kerak emas. -->
-    <div class="opts" id="trImport">
-      <span class="olbl">TRANSKRIPT</span>
-      <span class="mini" id="trImpBtn">Gemini transkriptini yuklash</span>
-      <span class="mini" id="trImpHolat"></span>
-    </div>
     <div class="knobs" id="introKnobs">
       <div class="opts">
         <span class="olbl">Nomzod</span>
@@ -874,6 +888,7 @@
     <button class="btn" id="buildBtn" disabled>Intro yasash</button>
     <button class="btn primary" id="sampleBtn" disabled>2 daqiqani sinash</button>
     <button class="btn primary" id="capBtn" disabled>To'liq transkripsiya</button>
+    <button class="btn primary" id="srtBtn">Subtitr yasash</button>
     <button class="btn primary" id="matnBtn">Matnlarni yasash</button>
     <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
     <span class="hint" id="hint">0 fayl</span>

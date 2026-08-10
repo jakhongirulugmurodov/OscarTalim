@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "2-Avg 14:10";
+const PANEL_BUILD = "2-Avg 16:00";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -57,6 +57,7 @@ const els = {
   capSearchBtn: el("capSearchBtn"),
   introBtn: el("introBtn"),
   trImpBtn: el("trImpBtn"),
+  srtBtn: el("srtBtn"),
   trImpHolat: el("trImpHolat"),
   buildBtn: el("buildBtn"),
   reviewBtn: el("reviewBtn"),
@@ -2901,12 +2902,59 @@ async function transkriptYuklash() {
     for (const l of (j.log || [])) logLine(l);
     logLine("Transkript «" + picked[0].name + "» ga bog'landi ✓", "okline");
     logLine("Namuna: " + (j.preview || "").slice(0, 120));
-    logLine("Endi «Lahzalarni topish» ni bosing — matn hisobga olinadi.");
+    logLine(activeTab === "captions"
+            ? "Endi «Subtitr yasash» ni bosing."
+            : "Endi «Lahzalarni topish» ni bosing — matn hisobga olinadi.");
     els.trImpHolat.textContent = j.line_count + " qator ✓";
   } catch (e) {
     logOchi(true);
     logLine("Transkript yuklanmadi: " + (e.message || e), "warn");
     els.trImpHolat.textContent = "";
+  }
+}
+
+
+/* Arxivdagi transkriptdan subtitr yasash — whisper'siz.
+ *
+ * Transkript bir marta olib kirilgan bo'lsa (Gemini yoki whisper —
+ * farqi yo'q), subtitr shundan bir soniyada chiqadi. Montaj ochiq
+ * bo'lsa vaqtlar montajga ko'chiriladi: xom yozuvda 12-daqiqada
+ * aytilgan gap montajda 4-daqiqada turgan bo'lishi mumkin.
+ */
+async function subtitrYasash() {
+  songgiIsh = { nomi: "Qayta urinish", fn: subtitrYasash };
+  els.log.innerHTML = ""; logOchi(false);
+  if (!(await checkMotor())) return;
+  if (!picked.length && !timeline) {
+    logOchi(true);
+    logLine("Avval video faylni tanlang yoki «Ochiq sequence'ni olish» ni "
+            + "bosing.", "warn");
+    return;
+  }
+  startProgress("Subtitr yasalmoqda…");
+  try {
+    const body = {};
+    if (timeline) body.timeline = timeline;
+    else body.files = picked.map((p) => p.path);
+    const r = await fetch(MOTOR + "/subtitr", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    logOchi(true);
+    for (const l of (j.log || [])) logLine(l);
+    if (j.from_sequence) {
+      logLine("Vaqtlar montajga ko'chirildi ✓", "okline");
+    }
+    logLine("Namuna: " + (j.preview || "").slice(0, 140));
+    logLine("Fayl: " + j.output, "okline");
+    logLine("Premiere'da: File > Import > shu SRT ni tanlang.");
+    stopProgress(true, j.line_count + " qator");
+  } catch (e) {
+    logOchi(true);
+    logLine("Subtitr yasalmadi: " + (e.message || e), "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
   }
 }
 
@@ -3383,6 +3431,7 @@ on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
 on(els.trImpBtn, transkriptYuklash);
+on(els.srtBtn, subtitrYasash);
 on(els.logCopy, copyLog);
 on(els.logBig, function () { els.log.classList.toggle("big"); });
 on(els.logToggle, function () { logOchi(!logOchiq); });
