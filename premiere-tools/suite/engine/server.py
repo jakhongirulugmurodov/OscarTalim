@@ -38,6 +38,7 @@ from intro import (run_intro, build_intro, load_transcript,
 from shorts import run_shorts, build_shorts
 from matn import run_matn, shriftlar, oldin_korish
 from harakat import run_harakat
+from gemini import run_import
 
 HOST, PORT = "127.0.0.1", 8765
 VERSION = "0.2.0"
@@ -289,7 +290,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._send(200, {"ok": True, "version": VERSION,
                              "modules": ["sync", "cut", "switch", "captions",
-                                         "intro", "shorts", "matn", "harakat"],
+                                         "intro", "shorts", "matn", "harakat", "gemini"],
                              "whisper": bool(find_whisper()),
                              "panel_build": panel_build(),
                              # qaysi model tayyor — panel yuklab olish
@@ -343,6 +344,26 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": True, "path": path})
             except Exception as e:
                 return self._send(500, {"error": str(e)})
+
+        if self.path == "/transkript-import":
+            # Gemini transkriptini (SRT/JSON) suite arxiviga olib kiradi.
+            # Shundan keyin Intro, Captions va matndan tanlash uni o'zi
+            # topadi — chunki hammasi bitta arxivdan qidiradi.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                req = json.loads(self.rfile.read(length) or b"{}")
+                fayl = req.get("fayl") or ""
+                manba = req.get("manba") or ""
+                if not fayl or not manba:
+                    return self._send(400, {"error":
+                        "Transkript fayli va video fayl ko'rsatilishi shart"})
+                lines = []
+                natija = run_import(fayl, manba, nomi=req.get("nomi"),
+                                    log=lines.append)
+                natija["log"] = lines
+                return self._send(200, natija)
+            except Exception as e:
+                return self._send(400, {"error": str(e)})
 
         if self.path == "/harakat":
             # Kadrga harakat rejasi. Og'ir ish yo'q — faqat manba

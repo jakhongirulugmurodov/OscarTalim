@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "1-Avg 16:00";
+const PANEL_BUILD = "2-Avg 09:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -56,6 +56,8 @@ const els = {
   capSearch: el("capSearch"),
   capSearchBtn: el("capSearchBtn"),
   introBtn: el("introBtn"),
+  trImpBtn: el("trImpBtn"),
+  trImpHolat: el("trImpHolat"),
   buildBtn: el("buildBtn"),
   reviewBtn: el("reviewBtn"),
   shortsBtn: el("shortsBtn"),
@@ -2844,6 +2846,57 @@ async function harakatQoshish() {
   }
 }
 
+
+/* Gemini transkriptini olib kirish.
+ *
+ * transcriber.py yasaydigan SRT (yoki JSON) faylni suite arxiviga
+ * o'tkazadi. Shundan keyin Intro lahzalarni matn bo'yicha tanlaydi —
+ * ilgari u faqat ovoz balandligiga qarab ishlardi.
+ *
+ * Transkript QAYSI video faylga tegishli ekani muhim: arxivdan aynan
+ * shu yo'l bo'yicha qidiriladi. Shuning uchun avval video tanlangan
+ * bo'lishi shart.
+ */
+async function transkriptYuklash() {
+  if (!picked.length) {
+    logOchi(true);
+    logLine("Avval video faylni tanlang yoki «Ochiq sequence'ni olish» ni "
+            + "bosing — transkript o'sha faylga bog'lanadi.", "warn");
+    return;
+  }
+  if (!(await checkMotor())) return;
+
+  let fayl = null;
+  try {
+    fayl = await lfs.getFileForOpening({ allowMultiple: false });
+  } catch (e) {
+    logLine("Fayl tanlanmadi: " + (e.message || e), "warn");
+    return;
+  }
+  if (!fayl || !fayl.nativePath) return;
+
+  els.trImpHolat.textContent = "yuklanmoqda…";
+  try {
+    const r = await fetch(MOTOR + "/transkript-import", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fayl: fayl.nativePath, manba: picked[0].path,
+                             nomi: picked[0].name.replace(/\.[^.]+$/, "") }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    logOchi(true);
+    for (const l of (j.log || [])) logLine(l);
+    logLine("Transkript «" + picked[0].name + "» ga bog'landi ✓", "okline");
+    logLine("Namuna: " + (j.preview || "").slice(0, 120));
+    logLine("Endi «Lahzalarni topish» ni bosing — matn hisobga olinadi.");
+    els.trImpHolat.textContent = j.line_count + " qator ✓";
+  } catch (e) {
+    logOchi(true);
+    logLine("Transkript yuklanmadi: " + (e.message || e), "warn");
+    els.trImpHolat.textContent = "";
+  }
+}
+
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
   const text = Array.from(els.log.querySelectorAll("div"))
@@ -3316,6 +3369,7 @@ on(els.switchBtn, function () { run("switch"); });
 on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
 on(els.introBtn, findMoments);
+on(els.trImpBtn, transkriptYuklash);
 on(els.logCopy, copyLog);
 on(els.logBig, function () { els.log.classList.toggle("big"); });
 on(els.logToggle, function () { logOchi(!logOchiq); });

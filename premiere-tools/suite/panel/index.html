@@ -291,6 +291,8 @@
                   font-size: 11.5px; }
   /* --- Intro: nomzodlar ro'yxati --- */
   body.tab-intro #introKnobs { display: block; }
+  #trImport { display: none; }
+  body.tab-intro #trImport { display: flex; }
   body.tab-intro .seqpick { display: block; text-align: center; margin-bottom: 12px;
     padding: 11px; border-radius: 8px; border: 1px solid #45464F;
     background-color: #17181C; }
@@ -625,6 +627,13 @@
       </div>
     </div>
 
+    <!-- Gemini transkriptini olib kirish. Arxivga tushgach Intro uni
+         o'zi topadi — alohida ulash kerak emas. -->
+    <div class="opts" id="trImport">
+      <span class="olbl">TRANSKRIPT</span>
+      <span class="mini" id="trImpBtn">Gemini transkriptini yuklash</span>
+      <span class="mini" id="trImpHolat"></span>
+    </div>
     <div class="knobs" id="introKnobs">
       <div class="opts">
         <span class="olbl">Nomzod</span>
