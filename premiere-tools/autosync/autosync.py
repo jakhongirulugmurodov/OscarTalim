@@ -516,7 +516,8 @@ def clipitem_xml(clip, idx, media_type, timebase, ntsc, first_use, seg,
 
 
 def build_xml(clips, seq_name, timebase, ntsc, width, height,
-              single_video_track=False, markers=None, file_ids=None):
+              single_video_track=False, markers=None, file_ids=None,
+              keep_tracks=False):
     """Sequence XML. Har klipda `segments` bo'lmasa — butun fayl bitta bo'lak.
 
     `single_video_track` — Switch uchun: hamma kamera bo'laklari bitta
@@ -525,6 +526,11 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
 
     `markers` — sequence markerlari: [{"frame": ..., "name": ...}]. Intro
     nomzodlarini ko'rib chiqishda har bo'lak nomi bilan belgilanadi.
+
+    `keep_tracks` — montaj tayyor sequence'dan olinganda: har klip
+    O'ZI turgan video trekda qoladi. Busiz har manba fayl uchun alohida
+    trek yasaladi va besh kamerali montaj besh qavatga chiqib ketadi —
+    montajchi esa kadrlarni ataylab ma'lum qavatlarga qo'ygan bo'ladi.
 
     `file_ids` — {fayl yo'li: "file-N"}. Bitta XML'da bir nechta sequence
     bo'lganda (Shorts) fayl id'lari barqaror bo'lishi SHART: har sequence
@@ -540,6 +546,15 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
                 for c in clips for s in c["segments"])
 
     video_tracks, audio_tracks, program = [], [], []
+    qavatlar = {}          # trek raqami -> [(boshlanish, clipitem)]
+
+    # Qavat ma'lumoti HAQIQATAN bormi. Eski panel `vtrack` yubormaydi —
+    # o'sha holatda hammasini bitta trekka yig'sak, ustma-ust turgan
+    # kliplar bir-birini bosib qoladi. Shuning uchun ma'lumot bo'lmasa
+    # eski yo'lga qaytamiz: har fayl o'z trekida.
+    if keep_tracks:
+        keep_tracks = any(sg.get("vtrack") is not None
+                          for c in clips for sg in c.get("segments", []))
     for i, clip in enumerate(clips, start=1):
         segs = clip["segments"]
         # Ovoz manbasi videodan boshqacha bo'lishi mumkin: kamera almashsa ham
@@ -558,6 +573,12 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
                      for n, s in enumerate(segs)]
             if single_video_track:
                 program += [(s["start"], item) for s, item in zip(segs, items)]
+            elif keep_tracks:
+                # Har bo'lak o'z trekiga: qavatlar montajdagidek qoladi
+                for s, item in zip(segs, items):
+                    qavat = s.get("vtrack")
+                    qavatlar.setdefault(0 if qavat is None else int(qavat),
+                                        []).append((s["start"], item))
             else:
                 video_tracks.append("\t\t\t\t<track>\n" + "\n".join(items)
                                     + "\n\t\t\t\t</track>")
@@ -573,6 +594,16 @@ def build_xml(clips, seq_name, timebase, ntsc, width, height,
         video_tracks = ["\t\t\t\t<track>\n"
                         + "\n".join(item for _, item in program)
                         + "\n\t\t\t\t</track>"]
+    elif keep_tracks and qavatlar:
+        # Bo'sh oraliq treklar ham yoziladi: aks holda V3 dagi klip V2 ga
+        # tushib qoladi va montajning qavat tartibi buziladi.
+        video_tracks = []
+        for n in range(max(qavatlar) + 1):
+            ichi = sorted(qavatlar.get(n, []), key=lambda x: x[0])
+            video_tracks.append(
+                "\t\t\t\t<track>\n"
+                + ("\n".join(item for _, item in ichi) + "\n" if ichi else "")
+                + "\t\t\t\t</track>")
 
     marker_xml = ""
     for mk in (markers or []):
@@ -703,7 +734,10 @@ def prepare_clips(files, timeline=None, log=print, progress=None):
             if clip:
                 clip["placements"].append(
                     {"start": float(item["start"]), "in": float(item["in"]),
-                     "out": float(item["out"])})
+                     "out": float(item["out"]),
+                     # Klip montajda qaysi video trekda turgan. Panel
+                     # yubormasa None bo'ladi va eski xatti-harakat qoladi.
+                     "vtrack": item.get("vtrack")})
         clips = [c for c in clips if c["placements"]]
         for c in clips:
             c["rel_offset"] = min(p["start"] - p["in"] for p in c["placements"])
@@ -770,6 +804,7 @@ def cut_to_segments(clips, keeps, fps, log=print):
                         "start": tl_f + (clip_a - a_f),
                         "in": src_in,
                         "out": src_in + (clip_b - clip_a),
+                        "vtrack": place.get("vtrack"),
                     })
         if not clip["segments"]:
             log(f"  {clip['name']}: bu bo'laklarda ishlatilmadi")

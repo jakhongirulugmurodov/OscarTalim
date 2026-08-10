@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "2-Avg 09:30";
+const PANEL_BUILD = "2-Avg 11:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -735,7 +735,11 @@ async function readSequence() {
         const inP = secs(await it.getInPoint());
         if (end <= start) continue;
         items.push({ path: path, start: start, in: inP, out: inP + (end - start),
-                     atrack: onAudioTrack });
+                     atrack: onAudioTrack,
+                     // Klip qaysi video qavatda turgani. Cut natijani shu
+                     // tartibda qayta yig'adi — montajchi kadrlarni
+                     // ataylab ma'lum qavatlarga qo'ygan bo'ladi.
+                     vtrack: onAudioTrack ? null : i });
       }
     }
 

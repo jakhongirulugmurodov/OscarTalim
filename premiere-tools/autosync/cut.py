@@ -215,7 +215,11 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
         raise RuntimeError("Kesishdan keyin klip qolmadi.")
 
     say(stage="Timeline yozilmoqda", percent=50)
-    xml = build_xml(clips, name, timebase, ntsc, width, height)
+    # Montaj tayyor sequence'dan olingan bo'lsa, kadrlar qaysi qavatda
+    # turgan bo'lsa o'sha yerda qolsin. Fayllar qo'lda tanlangan bo'lsa
+    # qavat tushunchasi yo'q — eski yo'l qoladi.
+    xml = build_xml(clips, name, timebase, ntsc, width, height,
+                    keep_tracks=bool(timeline))
     output = write_xml(xml, output, fallback, log)
     say(percent=100, detail="tayyor")
     log(f"Tayyor: {output}")
