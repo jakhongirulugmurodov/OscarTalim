@@ -373,9 +373,19 @@ function qurilmaNomi(ua, touchPoints) {
   if (/Linux/i.test(ua)) return "Linux kompyuterda";
   return "qurilmada";
 }
-(() => {
-  const nom = qurilmaNomi(navigator.userAgent, navigator.maxTouchPoints || 0);
+(async () => {
+  let nom = qurilmaNomi(navigator.userAgent, navigator.maxTouchPoints || 0);
   document.querySelectorAll(".qurilma").forEach(e => { e.textContent = nom; });
+  // Android'da aniq modelni so'raymiz (Apple/Windows buni bermaydi)
+  try {
+    if (navigator.userAgentData?.getHighEntropyValues) {
+      const d = await navigator.userAgentData.getHighEntropyValues(["model"]);
+      if (d.model && d.model.trim() && d.model !== "K") {
+        nom = `${nom} (${d.model.trim()})`;
+        document.querySelectorAll(".qurilma").forEach(e => { e.textContent = nom; });
+      }
+    }
+  } catch (e) { /* model olinmasa, umumiy nom qoladi */ }
 })();
 let natija = [];
 let joriyNom = "";
