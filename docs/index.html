@@ -262,7 +262,7 @@
     </div>
     <div id="keyEdit">
       <input type="password" id="apiKey" placeholder="AIza... kalitingizni qo'ying">
-      <p class="hint">Kalit faqat shu telefonda saqlanadi va faqat Google'ga yuboriladi.
+      <p class="hint">Kalit faqat shu <span class="qurilma">qurilmada</span> saqlanadi va faqat Google'ga yuboriladi.
         Kalit olish: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></p>
     </div>
   </div>
@@ -280,7 +280,7 @@
         <input type="file" id="fileInput" accept="video/*,audio/*">
         <span class="icon" id="fdIcon">📁</span>
         <span class="title" id="fdTitle">Fayl tanlash</span>
-        <span class="sub" id="fdSub">Video yoki audio · Instagram reel'ni telefonga saqlab yuklang</span>
+        <span class="sub" id="fdSub">Video yoki audio · Instagram reel'ni qurilmangizga saqlab yuklang</span>
       </label>
       <p class="hint">Katta videolardan (30 MB+) audio avtomatik ajratib olinadi —
         1 GB video ham tez yuboriladi.</p>
@@ -347,7 +347,7 @@
   <div class="card" id="tarixCard">
     <h2>📚 Tarix</h2>
     <p class="hint" id="tarixEmpty">Hozircha bo'sh — har bir transkripsiya shu yerda
-      avtomatik saqlanadi (faqat shu telefonda).</p>
+      avtomatik saqlanadi (faqat shu <span class="qurilma">qurilmada</span>).</p>
     <div id="tarixList"></div>
     <button class="small ghost" id="tarixTozaBtn" onclick="tarixTozalash()"
             style="display:none; color:var(--err); border-color:#fecaca">🗑 Hammasini o'chirish</button>
@@ -360,6 +360,15 @@
 
 <script>
 const API = "https://generativelanguage.googleapis.com";
+
+/* Qurilma turini aniqlab, matnlarda to'g'ri so'z ishlatamiz */
+(() => {
+  const ua = navigator.userAgent;
+  let nom = "kompyuterda";
+  if (/iPad|Tablet|Android(?!.*Mobile)/i.test(ua)) nom = "planshetda";
+  else if (/iPhone|iPod|Android.*Mobile|Mobile/i.test(ua)) nom = "telefonda";
+  document.querySelectorAll(".qurilma").forEach(e => { e.textContent = nom; });
+})();
 let natija = [];
 let joriyNom = "";
 let joriyTab = "fayl";
