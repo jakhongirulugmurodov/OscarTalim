@@ -361,12 +361,20 @@
 <script>
 const API = "https://generativelanguage.googleapis.com";
 
-/* Qurilma turini aniqlab, matnlarda to'g'ri so'z ishlatamiz */
+/* Qurilmani aniq nomi bilan ko'rsatamiz: Mac'da, iPhone'da, Windows kompyuterda... */
+function qurilmaNomi(ua, touchPoints) {
+  if (/iPhone|iPod/i.test(ua)) return "iPhone'da";
+  if (/iPad/i.test(ua)) return "iPad'da";
+  // Yangi iPad'lar o'zini Mac deb tanishtiradi, lekin sensorli ekrani bor
+  if (/Macintosh/i.test(ua)) return touchPoints > 1 ? "iPad'da" : "Mac'da";
+  if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? "Android telefonda" : "Android planshetda";
+  if (/Windows/i.test(ua)) return "Windows kompyuterda";
+  if (/CrOS/i.test(ua)) return "Chromebook'da";
+  if (/Linux/i.test(ua)) return "Linux kompyuterda";
+  return "qurilmada";
+}
 (() => {
-  const ua = navigator.userAgent;
-  let nom = "kompyuterda";
-  if (/iPad|Tablet|Android(?!.*Mobile)/i.test(ua)) nom = "planshetda";
-  else if (/iPhone|iPod|Android.*Mobile|Mobile/i.test(ua)) nom = "telefonda";
+  const nom = qurilmaNomi(navigator.userAgent, navigator.maxTouchPoints || 0);
   document.querySelectorAll(".qurilma").forEach(e => { e.textContent = nom; });
 })();
 let natija = [];
