@@ -3,6 +3,15 @@
 Tanlangan kliplarga pastdan suzib chiqish + fade animatsiyasi qo'yadigan
 CEP panel.
 
+## Oson yo'l (tavsiya): ORNATISH.command
+
+Shu papkadagi **ORNATISH.command** ni ikki marta bosing — u CSInterface.js
+ni Adobe'dan o'zi yuklaydi, papkani joyiga qo'yadi va PlayerDebugMode ni
+yoqadi. So'ng Premiere'ni qayta ochib: **Window > Extensions > Stagger
+Text**.
+
+Qo'lda qilmoqchi bo'lsangiz — quyidagi qadamlar.
+
 ## 1. CSInterface.js ni yuklab olish (bir martalik, majburiy)
 
 `client/js/CSInterface.js` hozir placeholder — uni Adobe'ning haqiqiy
