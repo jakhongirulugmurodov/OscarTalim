@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 21:40";
+const PANEL_BUILD = "14-Avg 22:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -3751,6 +3751,7 @@ async function fadeUpQollash() {
 
     step = "parametrlarni topish";
     const tayyor = [];
+    const inventar = [];   // topilmasa — nima ko'rilganini aytish uchun
     let otkazildi = 0, sabab = "";
     for (const item of items) {
       // Ovoz kliplarida komponent zanjiri yo'q — jim emas, sanab o'tamiz
@@ -3758,11 +3759,34 @@ async function fadeUpQollash() {
       try {
         const chain = await item.getComponentChain();
         const cnt = await chain.getComponentCount();
+
+        // MUHIM: getParam NOM emas, INDEKS oladi (hujjatdan tasdiqlandi).
+        // Shuning uchun parametrlar sanab chiqiladi va displayName
+        // bo'yicha topiladi. Topilmasa inventar log'ga chiqadi — keyingi
+        // tashxis taxminsiz bo'ladi.
         let pos = null, op = null;
-        for (let c = 0; c < cnt && (!pos || !op); c++) {
+        for (let c = 0; c < cnt; c++) {
           const comp = await chain.getComponentAtIndex(c);
-          if (!pos) { try { pos = await comp.getParam("Position"); } catch (e) { pos = null; } }
-          if (!op) { try { op = await comp.getParam("Opacity"); } catch (e) { op = null; } }
+          let compNomi = "";
+          try { compNomi = await comp.getDisplayName(); } catch (e) {}
+          const nomlar = [];
+          let pCnt = 0;
+          try { pCnt = await comp.getParamCount(); } catch (e) { pCnt = 0; }
+          for (let pi = 0; pi < pCnt; pi++) {
+            let prm = null;
+            try { prm = await comp.getParam(pi); } catch (e) { prm = null; }
+            if (!prm) continue;
+            let nom = "";
+            try { nom = String(await prm.displayName || ""); } catch (e) {}
+            nomlar.push(nom || ("#" + pi));
+            const past = nom.toLowerCase();
+            if (!pos && past === "position") pos = prm;
+            if (!op && past === "opacity") op = prm;
+          }
+          if (inventar.length < 8) {
+            inventar.push((compNomi || ("komponent " + c)) + " ("
+                          + (nomlar.join(", ") || "parametrsiz") + ")");
+          }
         }
         if (!pos || !op) {
           otkazildi++;
@@ -3770,10 +3794,19 @@ async function fadeUpQollash() {
           continue;
         }
 
-        // Ikki ALOHIDA qiymat obyekti kerak: bittasini o'zgartirganda
-        // ikkinchisi (yakuniy joy) o'z holida qolsin
-        const posA = await pos.getValue();
-        const posB = await pos.getValue();
+        // Qiymatni parametrning O'ZIDAN o'qiymiz — format taxmin
+        // qilinmaydi. Ikki ALOHIDA obyekt: bittasini o'zgartirganda
+        // ikkinchisi (yakuniy joy) o'z holida qolsin.
+        const oqi = async (prm, t) => {
+          if (typeof prm.getValueAtTime === "function") {
+            return await prm.getValueAtTime(t);
+          }
+          if (typeof prm.getValue === "function") return await prm.getValue();
+          return null;
+        };
+        const inSecV = secs(await item.getInPoint());
+        const posA = await oqi(pos, tickTime(ppro, inSecV));
+        const posB = await oqi(pos, tickTime(ppro, inSecV));
         const dy = px / 1080;   // Position 0..1 normalized, 1080 bo'yiga nisbatan
         if (posA && typeof posA.y === "number") posA.y += dy;
         else if (posA && typeof posA[1] === "number") posA[1] += dy;
@@ -3786,14 +3819,14 @@ async function fadeUpQollash() {
         // Yakuniy opacity — klipning hozirgisi (odatda 100). O'qilmasa 100.
         let opTola = 100;
         try {
-          const v = await op.getValue();
+          const v = await oqi(op, tickTime(ppro, inSecV));
           if (typeof v === "number" && v > 0) opTola = v;
         } catch (e) { /* 100 qoladi */ }
 
         // Keyframe vaqti MANBA o'qida: tezligi o'zgartirilgan klipda
         // timeline soniyasi bilan manba soniyasi teng emas — bu Harakat
         // modulida haqiqiy montajda tekshirilgan
-        const inSec = secs(await item.getInPoint());
+        const inSec = inSecV;
         let tezlik = 1;
         try {
           const st = secs(await item.getStartTime());
@@ -3802,10 +3835,17 @@ async function fadeUpQollash() {
           if (en > st && out > inSec) tezlik = (out - inSec) / (en - st);
         } catch (e) { /* 1 qoladi */ }
 
-        const uPos = keyframeUsuli(pos), uOp = keyframeUsuli(op);
-        if (!uPos.qoy || !uPos.vaqtli || !uOp.qoy || !uOp.vaqtli) {
+        // Keyframe yozishning haqiqiy yo'li (hujjatdan tasdiqlangan):
+        // createKeyframe(qiymat) -> Keyframe, keyframe.position = vaqt,
+        // createAddKeyframeAction(keyframe). Eski taxminiy
+        // createSetValueAtKeyframeAction hujjatda umuman yo'q.
+        const kfBor = (prm) => typeof prm.createKeyframe === "function"
+                    && typeof prm.createAddKeyframeAction === "function"
+                    && typeof prm.createSetTimeVaryingAction === "function";
+        if (!kfBor(pos) || !kfBor(op)) {
           otkazildi++;
-          if (!sabab) sabab = "bu Premiere'da keyframe metodi yo'q";
+          if (!sabab) sabab = "bu Premiere'da keyframe metodi yo'q "
+                            + "(createKeyframe/createAddKeyframeAction)";
           continue;
         }
 
@@ -3819,7 +3859,7 @@ async function fadeUpQollash() {
           } catch (e) { /* tozalanmasa — ustiga yozamiz */ }
         }
 
-        tayyor.push({ pos: pos, op: op, uPos: uPos, uOp: uOp,
+        tayyor.push({ pos: pos, op: op,
                       posA: posA, posB: posB, opTola: opTola,
                       t0: inSec, t1: inSec + dur * tezlik,
                       tOp: inSec + dur * 0.65 * tezlik });
@@ -3829,22 +3869,41 @@ async function fadeUpQollash() {
       }
     }
     if (!tayyor.length) {
+      // Inventar — tashxisning yarmi: qaysi komponentda qaysi parametrlar
+      // ko'ringanini aytamiz, keyingi tuzatish taxminsiz bo'ladi
+      if (inventar.length) {
+        logLine("Klipda ko'rilganlar:", "warn");
+        for (const q of inventar) logLine("  · " + q, "warn");
+      }
       throw new Error("Birorta tanlangan klipga qo'llab bo'lmadi"
                       + (sabab ? " — " + sabab : "")
-                      + ". Matn/grafika klipini tanlang.");
+                      + ". Log'da klipning komponentlari ro'yxati bor — "
+                      + "shuni yuborsangiz aniq tuzataman.");
     }
 
-    // Hammasi BITTA tranzaksiyada — bekor qilish bitta Cmd+Z
+    // Hammasi BITTA tranzaksiyada — bekor qilish bitta Cmd+Z.
+    // Keyframe obyektlari ham lockedAccess ichida yasaladi (build
+    // callback aynan o'sha yerda chaqiriladi) — tashqarida yasalgan
+    // obyektni Premiere «no longer valid» deb rad etadi.
     step = "yozish";
     const yozildi = runActions(project, () => {
       const acts = [];
       for (const t of tayyor) {
-        acts.push(t.pos[t.uPos.vaqtli](true));
-        acts.push(t.pos[t.uPos.qoy](tickTime(ppro, t.t0), t.posA, true));
-        acts.push(t.pos[t.uPos.qoy](tickTime(ppro, t.t1), t.posB, true));
-        acts.push(t.op[t.uOp.vaqtli](true));
-        acts.push(t.op[t.uOp.qoy](tickTime(ppro, t.t0), 0, true));
-        acts.push(t.op[t.uOp.qoy](tickTime(ppro, t.tOp), t.opTola, true));
+        acts.push(t.pos.createSetTimeVaryingAction(true));
+        const pA = t.pos.createKeyframe(t.posA);
+        pA.position = tickTime(ppro, t.t0);
+        const pB = t.pos.createKeyframe(t.posB);
+        pB.position = tickTime(ppro, t.t1);
+        acts.push(t.pos.createAddKeyframeAction(pA));
+        acts.push(t.pos.createAddKeyframeAction(pB));
+
+        acts.push(t.op.createSetTimeVaryingAction(true));
+        const oA = t.op.createKeyframe(0);
+        oA.position = tickTime(ppro, t.t0);
+        const oB = t.op.createKeyframe(t.opTola);
+        oB.position = tickTime(ppro, t.tOp);
+        acts.push(t.op.createAddKeyframeAction(oA));
+        acts.push(t.op.createAddKeyframeAction(oB));
       }
       return acts;
     }, "Fade-up animatsiya");

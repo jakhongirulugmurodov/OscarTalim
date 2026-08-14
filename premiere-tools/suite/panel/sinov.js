@@ -253,17 +253,20 @@ function qirqishMuhiti(q) {
     return o;
   }
 
-  /* Keyframe parametri (Position/Opacity). Qiymat har getValue()da
-     YANGI obyekt bo'lib qaytadi — haqiqiy Premiere ham shunday, va
-     panel shunga tayanadi (bir nusxani o'zgartirib ikkitasini buzmaslik). */
-  function fxParam(qiymat, nuqtami) {
-    const o = { _tv: false, _keys: [] };
-    o.getValue = async () => (nuqtami ? { x: qiymat.x, y: qiymat.y } : qiymat);
+  /* Keyframe parametri (Position/Opacity) — HAQIQIY API bo'yicha
+     (hujjatdan tasdiqlangan): displayName xossasi, getValueAtTime har
+     chaqirilganda YANGI obyekt qaytaradi, keyframe esa
+     createKeyframe(qiymat) -> position -> createAddKeyframeAction
+     zanjiri bilan qo'yiladi. Eski taxminiy createSetValueAtKeyframeAction
+     ATAYLAB yo'q — panel unga qaytsa, sinov yiqiladi. */
+  function fxParam(nomi, qiymat, nuqtami) {
+    const o = { _tv: false, _keys: [], displayName: nomi };
+    o.getValueAtTime = async () => (nuqtami ? { x: qiymat.x, y: qiymat.y } : qiymat);
     o.isTimeVarying = async () => o._tv;
     o.createSetTimeVaryingAction = (b) => ({ bajar() { o._tv = b; if (!b) o._keys = []; } });
-    o.createSetValueAtKeyframeAction = (t, v, ui) => ({
-      bajar() { o._keys.push({ t: t.seconds, v: v }); } });
-    o.createSetValueAction = (v) => ({ bajar() {} });
+    o.createKeyframe = (v) => ({ value: v, position: null });
+    o.createAddKeyframeAction = (kf) => ({
+      bajar() { o._keys.push({ t: kf.position.seconds, v: kf.value }); } });
     return o;
   }
 
@@ -273,14 +276,22 @@ function qirqishMuhiti(q) {
 
   // FX sinovi uchun: video klipga Motion(Position) va Opacity komponentlari
   const vKlip = treklarV[0][0];
-  vKlip._pos = fxParam({ x: 0.5, y: 0.5 }, true);
-  vKlip._op = fxParam(100, false);
+  vKlip._pos = fxParam("Position", { x: 0.5, y: 0.5 }, true);
+  vKlip._op = fxParam("Opacity", 100, false);
   vKlip.getOutPoint = async () => ({ seconds: vKlip.end - vKlip.start + vKlip.in });
+  // Haqiqiy tuzilish: Opacity komponenti (Opacity parametri bilan) va
+  // Motion komponenti (Position, Scale...). getParam INDEKS oladi.
+  const komponent = (nomi, params) => ({
+    getDisplayName: async () => nomi,
+    getMatchName: async () => nomi,
+    getParamCount: async () => params.length,
+    getParam: async (i) => params[i] || null,
+  });
   vKlip.getComponentChain = async () => ({
     getComponentCount: async () => 2,
     getComponentAtIndex: async (i) => (i === 0
-      ? { getParam: async (n) => (n === "Opacity" ? vKlip._op : null) }
-      : { getParam: async (n) => (n === "Position" ? vKlip._pos : null) }),
+      ? komponent("Opacity", [vKlip._op])
+      : komponent("Motion", [fxParam("Scale", 100, false), vKlip._pos])),
   });
 
   const seq = {
