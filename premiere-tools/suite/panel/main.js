@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 12:10";
+const PANEL_BUILD = "14-Avg 13:05";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -381,8 +381,8 @@ const TAB_TEXT = {
     pick: "yoki fayllarni qo'lda tanlang",
     seqTitle: "Ochiq sequence'ni olish",
     seqHint: "montajingiz saqlanadi — faqat pauzalar kesiladi",
-    next: "Endi «Montajni qirqish» ni bosing — pauzalar shu montajning "
-        + "o'zidan olib tashlanadi, yangi sequence yasalmaydi",
+    next: "Endi «Kesib, yangi sequence yasash» ni bosing — montajingiz "
+        + "saqlanadi, faqat pauzalar kesiladi",
   },
   switch: {
     pick: "kamera videolari (2+ fayl)",
@@ -478,11 +478,17 @@ const knobs = {
    uni jimlik tomonga yoki gap tomonga surib qo'yamiz. */
 let strictness = "orta";
 
-/* Cut natijasi qayerga tushadi: ochiq montajning O'ZIGA ("joyida") yoki
-   yangi sequence'ga ("yangi"). Standart — joyida, chunki yangi sequence
-   har safar manba fayllarni Project paneliga qaytadan olib kiradi va
-   ular to'planib qoladi. */
-let cutRejim = "joyida";
+/* Cut natijasi qayerga tushadi: yangi sequence'ga ("yangi") yoki ochiq
+   montajning O'ZIGA ("joyida").
+
+   Standart — "yangi", chunki u ishonchli ishlaydi. Fayllarning to'planib
+   qolish muammosi endi boshqa yo'l bilan hal qilingan: import «Podcast
+   Suite» biniga tushadi va «Tozalash» uni bir bosishda olib tashlaydi.
+
+   "joyida" hali sinovda: Premiere API'sida razor yo'q, shuning uchun
+   klip nusxa orqali bo'linadi va bu har Premiere versiyasida bir xil
+   ishlashiga hozircha kafolat yo'q. */
+let cutRejim = "yangi";
 
 function setupKnobs() {
   Object.values(knobs).forEach((k) => {
@@ -536,14 +542,17 @@ function cutRejimKorsat() {
   const tip = el("cutRejimTip");
   if (tip) {
     tip.innerHTML = joyida
-      ? "Ochiq montajning o'zidan pauzalar olib tashlanadi — <b>yangi "
-        + "sequence yasalmaydi va Project panelida fayllar takrorlanmaydi</b>. "
-        + "Yoqmasa Cmd+Z. Buning uchun yuqoridan «Ochiq sequence'ni olish» "
+      ? "<b>Sinovda.</b> Ochiq montajning o'zidan pauzalar olib tashlanadi, "
+        + "yangi sequence yasalmaydi. Premiere API'sida klipni ikkiga "
+        + "bo'lish (razor) yo'q — bo'linish nusxa orqali qilinadi, "
+        + "shuning uchun avval <b>qisqa montajda sinab ko'ring</b>. "
+        + "Ish boshlanishidan oldin loyiha saqlanadi; xato chiqsa "
+        + "montajga tegilmaydi. Yuqoridan «Ochiq sequence'ni olish» "
         + "bosilgan bo'lishi kerak."
-      : "Kesilgan montaj XML fayl bo'lib yoziladi va Premiere'ga alohida "
-        + "sequence bo'lib import qilinadi. <b>Har import manba fayllarni "
-        + "Project paneliga qaytadan qo'shadi</b> — bir necha marta "
-        + "ishlatilsa, ular to'planib boradi.";
+      : "Kesilgan montaj alohida sequence bo'lib import qilinadi. "
+        + "Import <b>«Podcast Suite» biniga</b> tushadi — ishingiz "
+        + "tugagach pastdagi <b>«Tozalash»</b> uni butunlay olib "
+        + "tashlaydi, ya'ni fayllar to'planib qolmaydi.";
   }
   // Import tugmasi faqat XML rejimida ma'noga ega. Inline style bilan
   // yashirmaymiz — u boshqa yorliqqa o'tganda ham qolib ketardi; body
@@ -3124,6 +3133,66 @@ function siljish(vaqt, pauzalar) {
   return s;
 }
 
+/* Montajdagi hamma klipni o'qib, ikki xil kalit bilan indekslaydi:
+ *   · trek+vaqt — aniq bir klipni topish uchun
+ *   · faqat vaqt — bir vaqtda turgan video+ovoz juftini topish uchun
+ * Ikkinchisi bog'langan (linked) kliplar uchun kerak: nusxa olinganda
+ * Premiere video bilan birga ovozini ham keltiradi, va biz ikkalasini
+ * ham topib, bir xil qirqishimiz kerak. */
+function klipKalit(audio, trek, start) {
+  return (audio ? "A" : "V") + trek + "@" + Math.round(start * 100);
+}
+
+/* Bog'langan (linked) video+ovoz juftini BITTA birlikka yig'adi.
+ *
+ * Nima uchun bu shunchalik muhim: Premiere klipni nusxalaganda uning
+ * bog'langan ovozini ham olib keladi. Video va ovozni alohida
+ * nusxalasak, har biriga ovoz qo'shilib, ikki barobar klip paydo
+ * bo'ladi, ular boshqa-boshqa joyga tushadi va bog'i uziladi — aynan
+ * shu xato chiqdi. Shuning uchun nusxa FAQAT yetakchidan (videodan)
+ * olinadi, ovoz o'zi ergashadi.
+ *
+ * Juftlik belgisi: bir manba fayl, bir vaqt oralig'i, bir in-nuqta. */
+function birlikYigish(hammasi) {
+  const birliklar = new Map();
+  for (const c of hammasi) {
+    const kalit = c.path + "|" + c.start.toFixed(3) + "|" + c.end.toFixed(3)
+                + "|" + c.in.toFixed(3);
+    let b = birliklar.get(kalit);
+    if (!b) {
+      b = { egalar: [], start: c.start, end: c.end, in: c.in,
+            yetakchi: null, nusxalar: {} };
+      birliklar.set(kalit, b);
+    }
+    b.egalar.push(c);
+    // Yetakchi — video; videosi bo'lmasa (rekorder ovozi) ovozning o'zi
+    if (!b.yetakchi || (b.yetakchi.audio && !c.audio)) b.yetakchi = c;
+  }
+  const rejalar = Array.from(birliklar.values());
+  rejalar.sort((x, y) => x.start - y.start);
+  return rejalar;
+}
+
+async function barchaKliplar(ppro, seq, vCount, aCount) {
+  const xarita = new Map();       // trek+vaqt → klip
+  const vaqtBoyicha = new Map();  // vaqt → [kliplar]
+  for (let i = 0; i < vCount + aCount; i++) {
+    const audio = i >= vCount;
+    const tr = audio ? await seq.getAudioTrack(i - vCount)
+                     : await seq.getVideoTrack(i);
+    if (!tr) continue;
+    const trek = audio ? i - vCount : i;
+    for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
+      const st = secs(await it.getStartTime());
+      xarita.set(klipKalit(audio, trek, st), it);
+      const k = Math.round(st * 100);
+      if (!vaqtBoyicha.has(k)) vaqtBoyicha.set(k, []);
+      vaqtBoyicha.get(k).push(it);
+    }
+  }
+  return { xarita: xarita, vaqtBoyicha: vaqtBoyicha };
+}
+
 async function montajniQirqish() {
   songgiIsh = { nomi: "Qayta urinish", fn: montajniQirqish };
   els.log.innerHTML = ""; logOchi(false);
@@ -3168,13 +3237,12 @@ async function montajniQirqish() {
         const en = secs(await it.getEndTime());
         const ip = secs(await it.getInPoint());
         if (en <= st) continue;
-        hammasi.push({ it: it, start: st, end: en, in: ip,
+        hammasi.push({ it: it, path: path || "", start: st, end: en, in: ip,
                        audio: audio, trek: audio ? i - vCount : i });
         if (path) {
-          // Bir klipning video va audio qismi ikkita element bo'lib
+          // Bir klipning video va ovoz qismi ikkita element bo'lib
           // keladi. Motorga ikkalasini yuborsak, ayni bir bo'lak ikki
-          // marta tahlil qilinadi — natija o'zgarmaydi, lekin vaqt
-          // behuda ketadi. Shuning uchun bittasini qoldiramiz.
+          // marta tahlil qilinadi — natija o'zgarmaydi, vaqt behuda ketadi.
           const kalit = path + "|" + st.toFixed(3) + "|" + ip.toFixed(3);
           if (!tlKorildi.has(kalit)) {
             tlKorildi.add(kalit);
@@ -3215,116 +3283,228 @@ async function montajniQirqish() {
     const jami = pauzalar.reduce((s, p) => s + (p.end - p.start), 0);
     logLine(pauzalar.length + " pauza · jami " + jami.toFixed(1) + "s kesiladi");
 
-    // --- 3. Har klip nechta bo'lakka bo'linishini hisoblaymiz ---
+    // --- 3. Bog'langan kliplarni BIR BIRLIK qilib yig'amiz ---
+    //
+    // Bu eng muhim joyi. Video va uning ovozi Premiere'da bog'langan
+    // (linked) turadi. Ikkalasini alohida nusxalasak, Premiere har
+    // nusxaga ovozni ham qo'shib beradi — natijada ikki barobar klip
+    // paydo bo'ladi, ular boshqa-boshqa joyga tushadi va bog'i uziladi.
+    // Aynan shu xato birinchi urinishda chiqdi.
+    //
+    // Shuning uchun juftlik bitta birlik sifatida qaraladi: nusxa
+    // FAQAT yetakchidan (videodan) olinadi, ovoz o'zi ergashadi.
     step = "reja";
+    const rejalar = birlikYigish(hammasi);
+
     let nusxaKerak = 0, ochiriladi = 0;
-    for (const c of hammasi) {
-      c.qoladi = joylashuvniHisobla(c, pauzalar);
-      if (!c.qoladi.length) ochiriladi++;
-      else nusxaKerak += c.qoladi.length - 1;
+    for (const b of rejalar) {
+      b.qoladi = joylashuvniHisobla(b, pauzalar);
+      if (!b.qoladi.length) ochiriladi++;
+      else nusxaKerak += b.qoladi.length - 1;
     }
+    logLine(rejalar.length + " klip (video+ovoz birga hisoblandi)");
     logLine(ochiriladi + " klip butunlay olib tashlanadi · "
-            + nusxaKerak + " klip ikkiga (yoki ko'proqqa) bo'linadi");
+            + nusxaKerak + " nusxa kerak bo'ladi");
 
     if (nusxaKerak > 0) {
       // --- 4. Nusxalarni MONTAJDAN TASHQARIGA yasaymiz ---
       //
       // Bu qadam hali hech narsani buzmaydi: nusxalar montaj oxiridan
-      // keyin, bo'sh joyga tushadi. Agar API kutilgandek ishlamasa,
-      // shu yerda to'xtaymiz va montaj tegilmagan holda qoladi.
+      // keyin, bo'sh joyga tushadi. API kutilgandek ishlamasa, shu
+      // yerda to'xtaymiz va montaj tegilmagan holda qoladi.
       step = "nusxalar";
       const oxir = secs(await seq.getEndTime());
       const chet = oxir + 60;          // montajdan ancha narida
-      logLine("Nusxalar tekshirilmoqda…");
+      logLine("Nusxalar yasalmoqda…");
 
       const editor = ppro.SequenceEditor.getEditor(seq);
       if (typeof editor.createCloneTrackItemAction !== "function") {
         throw new Error("Bu Premiere'da klip nusxasini olish metodi yo'q "
                         + "(createCloneTrackItemAction). Montajning o'zini "
-                        + "qirqib bo'lmaydi — «Pauzalarni kesish» ni "
-                        + "ishlating, u XML orqali yangi sequence yasaydi.");
+                        + "qirqib bo'lmaydi — «Natija: Yangi sequence» ni "
+                        + "tanlang.");
       }
 
       let joy = chet;
       const kutilgan = [];
       runActions(project, () => {
         const acts = [];
-        for (const c of hammasi) {
-          for (let k = 1; k < c.qoladi.length; k++) {
-            const surish = joy - c.start;
+        for (const b of rejalar) {
+          for (let k = 1; k < b.qoladi.length; k++) {
+            // alignToVideo = true: ovoz videosi bilan bir joyga tushsin
             acts.push(editor.createCloneTrackItemAction(
-              c.it, tickTime(ppro, surish), 0, 0, true, false));
-            kutilgan.push({ egasi: c, bolak: k, joy: joy });
-            joy += (c.end - c.start) + 5;
+              b.yetakchi.it, tickTime(ppro, joy - b.start), 0, 0, true, false));
+            kutilgan.push({ birlik: b, bolak: k, joy: joy });
+            joy += (b.end - b.start) + 5;
           }
         }
         return acts;
       }, "Nusxalar");
 
-      // Nusxalar haqiqatan paydo bo'ldimi — montajga tegishdan OLDIN
+      // --- 4b. Nusxa tranzaksiyasi montajni o'zgartirdi ---
+      //
+      // Undan OLDIN olingan klip obyektlari endi yaroqsiz: ularga
+      // tegilsa Premiere «A nullptr was dereferenced» beradi (aynan
+      // shu xato chiqdi). Shuning uchun hammasi qaytadan o'qiladi.
       step = "nusxalarni tekshirish";
-      const topilgan = new Map();
-      for (let i = 0; i < vCount + aCount; i++) {
-        const audio = i >= vCount;
-        const tr = audio ? await seq.getAudioTrack(i - vCount)
-                         : await seq.getVideoTrack(i);
-        if (!tr) continue;
-        for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
-          const st = secs(await it.getStartTime());
-          if (st >= chet - 0.5) topilgan.set(Math.round(st * 100), it);
-        }
-      }
-      const yetmadi = kutilgan.filter(
-        (x) => !topilgan.has(Math.round(x.joy * 100)));
-      if (yetmadi.length) {
-        throw new Error(
-          kutilgan.length + " nusxa kerak edi, " + topilgan.size + " tasi "
-          + "paydo bo'ldi. Montajga tegilmadi — hammasi joyida. "
-          + "Cmd+Z bilan nusxalarni olib tashlang va «Pauzalarni kesish» ni "
-          + "ishlating.");
-      }
-      logLine(kutilgan.length + " nusxa yasaldi va tekshirildi ✓", "okline");
+      const yangi = await barchaKliplar(ppro, seq, vCount, aCount);
+
+      let yetmadi = 0;
       for (const x of kutilgan) {
-        x.egasi.nusxalar = x.egasi.nusxalar || {};
-        x.egasi.nusxalar[x.bolak] = topilgan.get(Math.round(x.joy * 100));
+        // Shu vaqtda turgan hamma klip — video nusxasi va (bo'lsa)
+        // uning bog'langan ovozi
+        const topilgan = yangi.vaqtBoyicha.get(Math.round(x.joy * 100)) || [];
+        if (!topilgan.length) { yetmadi++; continue; }
+        x.birlik.nusxalar[x.bolak] = topilgan;
+      }
+      if (yetmadi) {
+        throw new Error(
+          kutilgan.length + " nusxa kerak edi, " + yetmadi + " tasi "
+          + "topilmadi. Montajga tegilmadi — hammasi joyida. Cmd+Z ni "
+          + "bir marta bosib nusxalarni olib tashlang, so'ng «Natija: "
+          + "Yangi sequence» bilan urining.");
+      }
+      const juft = kutilgan.filter(
+        (x) => (x.birlik.nusxalar[x.bolak] || []).length > 1).length;
+      logLine(kutilgan.length + " nusxa yasaldi va tekshirildi ✓"
+              + (juft ? "  (" + juft + " tasi ovozi bilan birga)" : ""),
+              "okline");
+
+      // Asl kliplarning havolalari ham yangilanadi
+      step = "havolalarni yangilash";
+      let yoqoldi = 0;
+      for (const c of hammasi) {
+        const t = yangi.xarita.get(klipKalit(c.audio, c.trek, c.start));
+        if (t) c.it = t; else { c.it = null; yoqoldi++; }
+      }
+      if (yoqoldi) {
+        throw new Error(
+          yoqoldi + " klip qayta o'qishda topilmadi. Montaj deyarli "
+          + "tegilmagan — Cmd+Z ni bir marta bosing.");
       }
     }
 
     // --- 5. Har bo'lakni qirqib, yakuniy joyiga qo'yamiz ---
+    //
+    // Bir bo'lakning video va ovoz yarmi BIR tranzaksiyada, bir xil
+    // qiymat bilan qirqiladi — shunda ular joyida ham, uzunligi ham
+    // mos qoladi va bog'i saqlanadi.
     step = "bo'laklarni joylashtirish";
     paintJob({ steps: [], step: 0, lines: [], stage: "Montaj qirqilmoqda",
-               percent: 70, overall: 70, detail: hammasi.length + " klip" });
+               percent: 70, overall: 70, detail: rejalar.length + " klip" });
+
+    const ish = [];
     let qoyildi = 0;
-    runActions(project, () => {
-      const acts = [];
-      for (const c of hammasi) {
-        for (let k = 0; k < c.qoladi.length; k++) {
-          const b = c.qoladi[k];
-          const item = k === 0 ? c.it : (c.nusxalar || {})[k];
-          if (!item) continue;
-          const manbaIn = c.in + (b.a - c.start);
-          const yangiStart = b.a - siljish(b.a, pauzalar);
-          try {
-            if (typeof item.createSetInPointAction === "function") {
-              acts.push(item.createSetInPointAction(tickTime(ppro, manbaIn)));
-              acts.push(item.createSetOutPointAction(
-                tickTime(ppro, manbaIn + (b.b - b.a))));
-            }
-            if (typeof item.createSetStartAction === "function") {
-              acts.push(item.createSetStartAction(tickTime(ppro, yangiStart)));
-              acts.push(item.createSetEndAction(
-                tickTime(ppro, yangiStart + (b.b - b.a))));
-            }
-            qoyildi++;
-          } catch (e) { /* bu bo'lak bo'lmadi — qolganini davom ettiramiz */ }
+    for (const b of rejalar) {
+      for (let k = 0; k < b.qoladi.length; k++) {
+        const q = b.qoladi[k];
+        const kliplar = k === 0
+          ? b.egalar.map((c) => c.it).filter(Boolean)
+          : (b.nusxalar[k] || []);
+        if (!kliplar.length) continue;
+        const uzunlik = q.b - q.a;
+        const manbaIn = b.in + (q.a - b.start);
+        const yangiStart = q.a - siljish(q.a, pauzalar);
+        if (!isFinite(manbaIn) || !isFinite(yangiStart) || uzunlik <= 0) continue;
+        // Hech narsa o'zgarmaydigan bo'lak — tegmaymiz. Uzun montajda
+        // bu minglab keraksiz amaldan qutqaradi.
+        if (Math.abs(manbaIn - b.in) < 1e-4
+            && Math.abs(yangiStart - b.start) < 1e-4
+            && Math.abs(uzunlik - (b.end - b.start)) < 1e-4) {
+          qoyildi++;
+          continue;
+        }
+        ish.push({ kliplar: kliplar, manbaIn: manbaIn,
+                   start: yangiStart, uzunlik: uzunlik });
+      }
+    }
+    // Chapga surilgan bo'lak avval bo'shagan joyga tushsin
+    ish.sort((x, y) => x.start - y.start);
+
+    const amallar = (w) => {
+      const a = [];
+      for (const item of w.kliplar) {
+        if (typeof item.createSetInPointAction === "function") {
+          a.push(item.createSetInPointAction(tickTime(ppro, w.manbaIn)));
+          a.push(item.createSetOutPointAction(
+            tickTime(ppro, w.manbaIn + w.uzunlik)));
+        }
+        if (typeof item.createSetStartAction === "function") {
+          a.push(item.createSetStartAction(tickTime(ppro, w.start)));
+          a.push(item.createSetEndAction(
+            tickTime(ppro, w.start + w.uzunlik)));
         }
       }
-      return acts;
-    }, "Montajni qirqish");
+      return a;
+    };
+
+    // --- 5a. Avval BITTA bo'lakni sinab, natijasini O'QIB ko'ramiz ---
+    //
+    // Ilgari minglab amal bitta tranzaksiyaga solinardi va xato chiqsa,
+    // sabab qaysi klipda ekani noma'lum qolardi. Endi bittasi qilinib,
+    // haqiqatan kutilgan joyga tushgani tekshiriladi.
+    if (ish.length) {
+      step = "sinov bo'lak";
+      const s = ish[0];
+      try {
+        runActions(project, () => amallar(s), "Sinov bo'lak");
+      } catch (e) {
+        throw new Error(
+          "Birinchi bo'lakni qirqib bo'lmadi: " + (e.message || e)
+          + ". Montaj deyarli tegilmagan — Cmd+Z ni bir marta bosing.");
+      }
+      const bSt = secs(await s.kliplar[0].getStartTime());
+      const bEn = secs(await s.kliplar[0].getEndTime());
+      if (Math.abs(bSt - s.start) > 0.05
+          || Math.abs((bEn - bSt) - s.uzunlik) > 0.05) {
+        throw new Error(
+          "Sinov bo'lak kutilgan joyga tushmadi: " + bSt.toFixed(2) + "–"
+          + bEn.toFixed(2) + "s, kutilgan " + s.start.toFixed(2) + "–"
+          + (s.start + s.uzunlik).toFixed(2) + "s. Qolgan kliplarga "
+          + "tegilmadi — Cmd+Z ni ikki marta bosing.");
+      }
+      logLine("Sinov bo'lak to'g'ri joyga tushdi ✓", "okline");
+      qoyildi++;
+      ish.shift();
+    }
+
+    // --- 5b. Qolganini bo'lak-bo'lak qo'yamiz ---
+    //
+    // Har 100 tasi alohida tranzaksiya: bittasi yiqilsa boshqalari
+    // saqlanadi, va jarayon ko'rinib turadi.
+    let yiqildi = 0;
+    const BATCH = 100;
+    for (let i = 0; i < ish.length; i += BATCH) {
+      const guruh = ish.slice(i, i + BATCH);
+      try {
+        runActions(project, () => guruh.map(amallar).flat(), "Montajni qirqish");
+        qoyildi += guruh.length;
+      } catch (e) {
+        // Guruh yiqilsa — bittalab urinamiz, aybdorini topamiz
+        let mahalliy = 0;
+        for (const w of guruh) {
+          try { runActions(project, () => amallar(w), "Bo'lak"); qoyildi++; }
+          catch (e2) { mahalliy++; }
+        }
+        if (mahalliy) {
+          yiqildi += mahalliy;
+          logLine(mahalliy + " bo'lak qo'yilmadi (" + (e.message || e) + ")",
+                  "warn");
+        }
+      }
+      paintJob({ steps: [], step: 0, lines: [], stage: "Montaj qirqilmoqda",
+                 percent: 70 + Math.round(25 * (i + guruh.length) / ish.length),
+                 overall: 70 + Math.round(25 * (i + guruh.length) / ish.length),
+                 detail: qoyildi + " bo'lak qo'yildi" });
+    }
 
     // --- 6. Butunlay pauzaga tushgan kliplarni olib tashlaymiz ---
     step = "ortiqchani olib tashlash";
-    const ortiqcha = hammasi.filter((c) => !c.qoladi.length).map((c) => c.it);
+    const ortiqcha = [];
+    for (const b of rejalar) {
+      if (b.qoladi.length) continue;
+      for (const c of b.egalar) if (c.it) ortiqcha.push(c.it);
+    }
     if (ortiqcha.length) {
       try {
         const ed = ppro.SequenceEditor.getEditor(seq);
@@ -3345,6 +3525,10 @@ async function montajniQirqish() {
 
     logLine("");
     logLine(qoyildi + " bo'lak joylashtirildi ✓", "okline");
+    if (yiqildi) {
+      logLine(yiqildi + " bo'lak qo'yilmadi — montajni ko'zdan kechiring.",
+              "warn");
+    }
     logLine("Montaj " + jami.toFixed(1) + " soniyaga qisqardi.");
     logLine("Yoqmasa Cmd+Z bilan qaytariladi (bir necha marta bosing — "
             + "nusxa, qirqim va o'chirish alohida qadamlar).");

@@ -393,6 +393,71 @@ async function sinov(nomi, qurilish, reja, tekshir) {
     return 1;
   })();
 
+  /* ───────────── Bog'langan video+ovoz juftini yig'ish
+   *
+   * Bu aynan bir marta yiqilgan joy: video va ovoz alohida nusxalanib,
+   * ovoz butunlay boshqa vaqtga tushib, bog'i uzilgan edi. Juft bitta
+   * birlikka yig'ilishi va nusxa faqat VIDEOdan olinishi shart. */
+  jami++; ok += (() => {
+    const g = muhit({}, rejaOddiy);
+    const ctx = vm.createContext(g);
+    try { vm.runInContext(KOD, ctx, { filename: "main.js" }); }
+    catch (e) { console.log("  ✗ juft yig'ish: kod yuklanmadi — " + e.message); return 0; }
+    const B = ctx.birlikYigish;
+    if (typeof B !== "function") {
+      console.log("  ✗ juft yig'ish: birlikYigish topilmadi"); return 0;
+    }
+
+    // Ikki kamera (video+ovoz bog'langan) + rekorder ovozi A2 da
+    const kliplar = [
+      { path: "/x/cam1.mp4", start: 0, end: 10, in: 0, audio: false, trek: 0 },
+      { path: "/x/cam1.mp4", start: 0, end: 10, in: 0, audio: true,  trek: 0 },
+      { path: "/x/cam2.mp4", start: 10, end: 20, in: 3, audio: false, trek: 0 },
+      { path: "/x/cam2.mp4", start: 10, end: 20, in: 3, audio: true,  trek: 0 },
+      { path: "/x/mic.wav",  start: 0, end: 20, in: 0, audio: true,  trek: 1 },
+    ];
+    const r = B(kliplar);
+    if (r.length !== 3) {
+      console.log(`  ✗ juft yig'ish: 3 birlik kutilgandi, ${r.length} ta`);
+      return 0;
+    }
+    // Ikki kamera juft bo'lib birlashishi va yetakchisi VIDEO bo'lishi kerak
+    const kamera = r.filter((b) => b.egalar.length === 2);
+    if (kamera.length !== 2) {
+      console.log(`  ✗ juft yig'ish: 2 juft kutilgandi, ${kamera.length} ta `
+                  + "— video va ovoz birlashmadi");
+      return 0;
+    }
+    if (kamera.some((b) => b.yetakchi.audio)) {
+      console.log("  ✗ juft yig'ish: yetakchi ovoz bo'lib qoldi — nusxa "
+                  + "videodan olinishi kerak");
+      return 0;
+    }
+    // Rekorder ovozi yolg'iz qoladi va o'zi yetakchi bo'ladi
+    const mic = r.find((b) => b.egalar.length === 1);
+    if (!mic || !mic.yetakchi.audio) {
+      console.log("  ✗ juft yig'ish: videosiz ovoz birligi noto'g'ri");
+      return 0;
+    }
+    // Vaqt bo'yicha tartiblangan bo'lishi kerak
+    for (let i = 1; i < r.length; i++) {
+      if (r[i].start < r[i - 1].start) {
+        console.log("  ✗ juft yig'ish: tartiblanmagan"); return 0;
+      }
+    }
+    // Turli fayllar bir vaqtda tursa ham aralashmasligi kerak
+    const ikki = B([
+      { path: "/x/a.mp4", start: 0, end: 5, in: 0, audio: false, trek: 0 },
+      { path: "/x/b.mp4", start: 0, end: 5, in: 0, audio: false, trek: 1 },
+    ]);
+    if (ikki.length !== 2) {
+      console.log("  ✗ juft yig'ish: turli fayllar bitta birlikka qo'shildi");
+      return 0;
+    }
+    console.log("  ✓ juft yig'ish: video+ovoz birga, yetakchi — video");
+    return 1;
+  })();
+
   console.log(`\n${ok}/${jami} sinov o'tdi`);
   process.exit(ok === jami ? 0 : 1);
 })();
