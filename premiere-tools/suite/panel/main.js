@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 19:30";
+const PANEL_BUILD = "14-Avg 20:20";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -3507,21 +3507,49 @@ async function montajniQirqish() {
         r.it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
       ]).flat(), "Manba qirqimi"), "manba qirqimi");
     };
-    const surish = (w) => {
-      majburiy(runActions(project, () => w.kliplar.map(
-        (r) => r.it.createSetStartAction(tickTime(ppro, w.start))),
-        "Joyiga surish"), "joyiga surish");
+    /* SURISH — createMoveAction bilan.
+     *
+     * createSetStartAction bu ishga YARAMAYDI: u klipni surmaydi, chap
+     * chetini cho'zadi (oxiri joyida qoladi). Haqiqiy montajda bo'lak
+     * «0.12–905.42s» bo'lib chiqqani shundan: boshi nishonga borgan,
+     * oxiri park'da qolgan.
+     *
+     * createMoveAction'ning hujjatdagi ta'rifi noaniq — qiymati nisbiy
+     * siljishmi yoki mutlaq joymi, yozilmagan. Shuning uchun taxmin
+     * qilmaymiz: avval nisbiy deb urinamiz, natijani klipdan o'qiymiz;
+     * to'g'ri kelmasa mutlaq qiymat bilan qayta urinamiz. Birinchi
+     * bo'lakda qaysi biri ishlagani ma'lum bo'ladi va log'ga yoziladi. */
+    const surish = async (w, joriy) => {
+      let st = joriy;
+      for (let urin = 0; urin < 2 && Math.abs(st - w.start) > 0.02; urin++) {
+        const delta = w.start - st;
+        majburiy(runActions(project, () => w.kliplar.map(
+          (r) => r.it.createMoveAction(tickTime(ppro, delta))),
+          "Joyiga surish"), "joyiga surish");
+        st = secs(await w.kliplar[0].it.getStartTime());
+        if (Math.abs(st - w.start) <= 0.02) break;
+        // Nisbiy ishlamadi — mutlaq qiymat bilan
+        majburiy(runActions(project, () => w.kliplar.map(
+          (r) => r.it.createMoveAction(tickTime(ppro, w.start))),
+          "Joyiga surish"), "joyiga surish");
+        st = secs(await w.kliplar[0].it.getStartTime());
+      }
+      return st;
     };
     const joylashtir = async (w) => {
+      if (typeof w.kliplar[0].it.createMoveAction !== "function") {
+        throw new Error("Bu Premiere'da klipni surish metodi yo'q "
+                        + "(createMoveAction) — «Natija: Yangi sequence» "
+                        + "ni ishlating");
+      }
       // Qirqim faqat kerak bo'lsa — manba oralig'i o'zgarmagan bo'lakka
       // (masalan, faqat chapga suriladigan butun klipga) tegilmaydi
       const qirqimKerak = Math.abs(w.manbaIn - w.inAsl) > 1e-4
                        || Math.abs(w.uzunlik - w.uzAsl) > 1e-4;
       if (qirqimKerak) qirqim(w);
-      // Qirqimdan keyin klip qayerda: in-nuqta surilgani boshini ham
-      // suradi (nusxa to'liq klip bo'lgani uchun ikkalasida bir xil)
-      const keyin = w.hozir + (qirqimKerak ? (w.manbaIn - w.inAsl) : 0);
-      if (Math.abs(keyin - w.start) > 0.002) surish(w);
+      // Klip hozir qayerda — arifmetika emas, o'qib bilamiz
+      const joriy = secs(await w.kliplar[0].it.getStartTime());
+      if (Math.abs(joriy - w.start) > 0.02) await surish(w, joriy);
       // HAR bo'lak joyiga tushgani klipning o'zidan o'qib tasdiqlanadi.
       // «Amal o'tdi» degani «klip joyida» degani emas — buni ikki marta
       // achchiq tajribada ko'rdik.

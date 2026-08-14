@@ -223,19 +223,22 @@ function qirqishMuhiti(q) {
         bajar() { o.start += t.seconds - o.in; o.in = t.seconds; } }),
       createSetOutPointAction: (t) => ({
         bajar() { o.end = o.start + (t.seconds - o.in); } }),
-      createSetStartAction: (t) => {
-        // Haqiqiy Premiere shu yerda «A nullptr was dereferenced» bergan
-        // edi. Sinov shuni taqlid qila olsin — panel bunda «tayyor»
-        // demasligi va sababni aniq yozishi kerak.
+      // DIQQAT: haqiqiy Premiere'da setStart klipni SURMAYDI — chap
+      // chetini cho'zadi, oxiri joyida qoladi. Haqiqiy montajda bo'lak
+      // «0.12–905.42s» bo'lib chiqqani shundan. Soxta API ham shunday
+      // tutadi: panel surish uchun setStart ishlatsa, sinov yiqiladi.
+      createSetStartAction: (t) => ({ bajar() { o.start = t.seconds; } }),
+      createSetEndAction: (t) => ({ bajar() { o.end = t.seconds; } }),
+      // Klipni haqiqatan suradigan amal. Semantika sozlanadi: nisbiy
+      // (standart) yoki q.mutlaqMove bilan mutlaq — panel ikkalasiga
+      // ham moslasha olishi kerak, chunki hujjatda bu yozilmagan.
+      createMoveAction: (t) => {
         if (q.joyRad) throw new Error("A nullptr was dereferenced.");
         return { bajar() {
-          // Haqiqiy Premiere klipni BAND joyga surishga ruxsat bermaydi
-          // («Invalid parameter»). Aynan shu xulq haqiqiy montajda
-          // chiqdi: park'dagi nusxa hali bo'shamagan joyga surildi.
-          // Tartib to'g'ri bo'lsa (chapdan o'ngga) bu hech qachon
-          // ishlamaydi; noto'g'ri bo'lsa — sinov yiqiladi.
           const d = o.end - o.start;
-          const a = t.seconds, b = t.seconds + d;
+          const a = q.mutlaqMove ? t.seconds : o.start + t.seconds;
+          const b = a + d;
+          // Premiere band joyga surishga ruxsat bermaydi
           const ro = o._a ? o._trekA : o._trekV;
           for (const x of ro) {
             if (x === o) continue;
@@ -245,10 +248,6 @@ function qirqishMuhiti(q) {
           }
           o.start = a; o.end = b;
         } };
-      },
-      createSetEndAction: (t) => {
-        if (q.joyRad) throw new Error("A nullptr was dereferenced.");
-        return { bajar() { o.end = t.seconds; } };
       },
     };
     return o;
@@ -661,10 +660,20 @@ async function sinov(nomi, qurilish, reja, tekshir) {
   jami++; ok += await (async () => {
     const r = await qirqishSinovi();
     if (r === true) {
-      console.log("  \u2713 joyida qirqish: uch bo'lak, ovoz video tagida");
+      console.log("  \u2713 joyida qirqish (nisbiy move): uch bo'lak, ovoz video tagida");
       return 1;
     }
-    console.log("  \u2717 joyida qirqish: " + r);
+    console.log("  \u2717 joyida qirqish (nisbiy move): " + r);
+    return 0;
+  })();
+
+  jami++; ok += await (async () => {
+    const r = await qirqishSinovi({ mutlaqMove: true });
+    if (r === true) {
+      console.log("  \u2713 joyida qirqish (mutlaq move): moslashib ishladi");
+      return 1;
+    }
+    console.log("  \u2717 joyida qirqish (mutlaq move): " + r);
     return 0;
   })();
 
