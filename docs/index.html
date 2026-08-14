@@ -311,6 +311,11 @@
             </select>
           </div>
         </div>
+        <label>Segmentlash</label>
+        <select id="segment">
+          <option value="nozik">Nozik — har nuqta va vergulda timecode</option>
+          <option value="standart">Standart — 3-8 soniyalik bo'laklar</option>
+        </select>
         <div class="checkbox">
           <input type="checkbox" id="tahrir" checked>
           <label for="tahrir">Tahrir o'tishi
@@ -449,6 +454,24 @@ const SCHEMA = {
   },
 };
 
+/* Kafolat: Gemini 1-2 so'zlik "siniq" segment qaytarsa ham,
+   uni oldingi segmentga qo'shib yuboramiz — timecode'lar toza qoladi */
+function segmentTozala(seglar) {
+  const out = [];
+  for (const s of seglar) {
+    const sozSoni = s.text.trim().split(/\s+/).filter(Boolean).length;
+    const qisqa = sozSoni < 3 || (s.end - s.start) < 0.8;
+    if (qisqa && out.length) {
+      const oldingi = out[out.length - 1];
+      oldingi.text = (oldingi.text.trim() + " " + s.text.trim()).trim();
+      oldingi.end = Math.max(oldingi.end, s.end);
+    } else {
+      out.push({ ...s });
+    }
+  }
+  return out;
+}
+
 // "MM:SS", "H:MM:SS" yoki oddiy soniya -> soniya (raqam)
 function soniyaga(t) {
   if (typeof t === "number") return t;
@@ -457,15 +480,22 @@ function soniyaga(t) {
   return p.reduce((acc, x) => acc * 60 + x, 0);
 }
 
-function prompt1(yozuv) {
+function prompt1(yozuv, rejim) {
   const y = yozuv === "lotin" ? "lotin (oʻzbek alifbosi)" : "kirill (ўзбек алифбоси)";
+  const segmentQoida = rejim === "nozik"
+    ? `3. Segmentlash NOZIK bo'lsin: har bir tinish belgisida (nuqta, vergul,
+   so'roq, undov, ikki nuqta) yangi segment boshla — uzun gap o'rtasidagi
+   vergulda ham. MUHIM ISTISNO: segment kamida 3 ta so'zdan iborat bo'lishi
+   shart. Agar tinish belgisigacha 1-2 ta so'z chiqsa, alohida segment
+   qilma — oldingi yoki keyingi bo'lakka qo'shib yoz.`
+    : `3. Har bir segment 3-8 soniya bo'lsin — caption uchun qulay uzunlikda.`;
   return `Sen o'zbek tili bo'yicha professional transkripsiya mutaxassisisan.
 Berilgan video/audiodagi barcha nutqni to'liq va so'zma-so'z matnga o'tkaz.
 
 Qoidalar:
 1. Matnni ${y} yozuvida yoz.
 2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz.
-3. Har bir segment 3-8 soniya bo'lsin — caption uchun qulay uzunlikda.
+${segmentQoida}
 4. "start" va "end" — video boshidan hisoblangan vaqt, "MM:SS" formatida
    (masalan "00:07", "01:23"; bir soatdan uzun bo'lsa "H:MM:SS").
 5. Punktuatsiyani to'g'ri qo'y.
@@ -690,7 +720,9 @@ async function boshla() {
 
     jarayon("indet");
     holat("Gemini transkripsiya qilmoqda... (1-2 daqiqa)", false, true);
-    let seglar = await generate(key, model, [mediaPart, { text: prompt1(yozuv) }]);
+    const rejim = $("segment").value;
+    let seglar = await generate(key, model, [mediaPart, { text: prompt1(yozuv, rejim) }]);
+    seglar = segmentTozala(seglar);
 
     if ($("tahrir").checked && seglar.length) {
       holat("Tahrir o'tishi — matn qayta tekshirilmoqda...", false, true);
