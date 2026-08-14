@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 13:40";
+const PANEL_BUILD = "14-Avg 15:00";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -3174,8 +3174,11 @@ function birlikYigish(hammasi) {
 }
 
 async function barchaKliplar(ppro, seq, vCount, aCount) {
-  const xarita = new Map();       // trek+vaqt → klip
-  const vaqtBoyicha = new Map();  // vaqt → [kliplar]
+  // Klipning o'zi emas, YOZUV saqlanadi: {it, audio, trek, start}.
+  // Video va ovoz yarmini ajratish uchun kerak — qaysi amal qaysi
+  // yarimda ishlashini bilmasak, xatoni tashxis qilib bo'lmaydi.
+  const xarita = new Map();       // trek+vaqt → yozuv
+  const vaqtBoyicha = new Map();  // vaqt → [yozuvlar]
   for (let i = 0; i < vCount + aCount; i++) {
     const audio = i >= vCount;
     const tr = audio ? await seq.getAudioTrack(i - vCount)
@@ -3184,10 +3187,11 @@ async function barchaKliplar(ppro, seq, vCount, aCount) {
     const trek = audio ? i - vCount : i;
     for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
       const st = secs(await it.getStartTime());
-      xarita.set(klipKalit(audio, trek, st), it);
+      const yozuv = { it: it, audio: audio, trek: trek, start: st };
+      xarita.set(klipKalit(audio, trek, st), yozuv);
       const k = Math.round(st * 100);
       if (!vaqtBoyicha.has(k)) vaqtBoyicha.set(k, []);
-      vaqtBoyicha.get(k).push(it);
+      vaqtBoyicha.get(k).push(yozuv);
     }
   }
   return { xarita: xarita, vaqtBoyicha: vaqtBoyicha };
@@ -3357,7 +3361,7 @@ async function montajniQirqish() {
         // uning bog'langan ovozi
         const topilgan = yangi.vaqtBoyicha.get(Math.round(x.joy * 100)) || [];
         if (!topilgan.length) { yetmadi++; continue; }
-        x.birlik.nusxalar[x.bolak] = topilgan;
+        x.birlik.nusxalar[x.bolak] = topilgan.map((t) => t.it);
       }
       if (yetmadi) {
         throw new Error(
@@ -3377,7 +3381,7 @@ async function montajniQirqish() {
       let yoqoldi = 0;
       for (const c of hammasi) {
         const t = yangi.xarita.get(klipKalit(c.audio, c.trek, c.start));
-        if (t) c.it = t; else { c.it = null; yoqoldi++; }
+        if (t) c.it = t.it; else { c.it = null; yoqoldi++; }
       }
       if (yoqoldi) {
         throw new Error(
@@ -3388,14 +3392,10 @@ async function montajniQirqish() {
 
     // --- 5. Har bo'lakni qirqib, yakuniy joyiga qo'yamiz ---
     //
-    // Bir bo'lakning video va ovoz yarmi BIR tranzaksiyada, bir xil
-    // qiymat bilan qirqiladi — shunda ular joyida ham, uzunligi ham
-    // mos qoladi va bog'i saqlanadi.
-    //
     // Har tranzaksiyadan keyin klip obyektlari yaroqsiz bo'lib qolishi
     // mumkin (nusxa bosqichida aynan shundan «nullptr» chiqdi), shuning
-    // uchun har guruhdan OLDIN montaj qaytadan o'qiladi va klip
-    // havolalari o'sha paytdagi joyi bo'yicha topiladi.
+    // uchun har guruhdan OLDIN montaj qaytadan o'qiladi va kliplar
+    // o'sha paytdagi joyi bo'yicha topiladi.
     step = "bo'laklarni joylashtirish";
     paintJob({ steps: [], step: 0, lines: [], stage: "Montaj qirqilmoqda",
                percent: 70, overall: 70, detail: rejalar.length + " klip" });
@@ -3432,9 +3432,8 @@ async function montajniQirqish() {
     // Chapga surilgan bo'lak avval bo'shagan joyga tushsin
     ish.sort((x, y) => x.start - y.start);
 
-    /* Ish elementini HOZIRGI montajdan topadi. Har tranzaksiyadan keyin
-       obyektlar yangilanishi kerak, shuning uchun bu har guruhda
-       qaytadan chaqiriladi. */
+    /* Ish elementini HOZIRGI montajdan topadi — {it, audio, trek} yozuvlari
+       bilan. Har tranzaksiyadan keyin qaytadan chaqiriladi. */
     const topib = (oq, w) => {
       if (w.hozir === undefined || w.hozir === null) return [];
       if (w.asl) {
@@ -3444,141 +3443,144 @@ async function montajniQirqish() {
       return oq.vaqtBoyicha.get(Math.round(w.hozir * 100)) || [];
     };
 
-    /* Qirqishning bir necha yo'li bor va qaysi biri ishlashi Premiere
-       versiyasiga bog'liq. «A nullptr was dereferenced» aynan shundan
-       chiqdi: to'rt amal bir tranzaksiyada berilganda rad etildi.
-       Shuning uchun endi panel BITTA bo'lakda har usulni sinab ko'radi
-       va ishlaganini qolganiga qo'llaydi. */
-    const USULLAR = [
-      {
-        nom: "in/out + start/end",
-        bor: (it) => typeof it.createSetInPointAction === "function"
-                  && typeof it.createSetStartAction === "function",
-        qoll: (kliplar, w) => {
-          runActions(project, () => {
-            const a = [];
-            for (const it of kliplar) {
-              a.push(it.createSetInPointAction(tickTime(ppro, w.manbaIn)));
-              a.push(it.createSetOutPointAction(
-                tickTime(ppro, w.manbaIn + w.uzunlik)));
-              a.push(it.createSetStartAction(tickTime(ppro, w.start)));
-              a.push(it.createSetEndAction(
-                tickTime(ppro, w.start + w.uzunlik)));
-            }
-            return a;
-          }, "Qirqish");
-        },
-      },
-      {
-        nom: "avval in/out, keyin start/end",
-        bor: (it) => typeof it.createSetInPointAction === "function"
-                  && typeof it.createSetStartAction === "function",
-        qoll: (kliplar, w) => {
-          runActions(project, () => kliplar.map((it) => [
-            it.createSetInPointAction(tickTime(ppro, w.manbaIn)),
-            it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
-          ]).flat(), "Manbani qirqish");
-          runActions(project, () => kliplar.map((it) => [
-            it.createSetStartAction(tickTime(ppro, w.start)),
-            it.createSetEndAction(tickTime(ppro, w.start + w.uzunlik)),
-          ]).flat(), "Joyiga qo'yish");
-        },
-      },
-      {
-        nom: "faqat start/end",
-        bor: (it) => typeof it.createSetStartAction === "function",
-        qoll: (kliplar, w) => {
-          runActions(project, () => kliplar.map((it) => [
-            it.createSetStartAction(tickTime(ppro, w.start)),
-            it.createSetEndAction(tickTime(ppro, w.start + w.uzunlik)),
-          ]).flat(), "Joyiga qo'yish");
-        },
-      },
-      {
-        nom: "in/out + move",
-        bor: (it) => typeof it.createSetInPointAction === "function"
-                  && typeof it.createMoveAction === "function",
-        qoll: async (kliplar, w) => {
-          runActions(project, () => kliplar.map((it) => [
-            it.createSetInPointAction(tickTime(ppro, w.manbaIn)),
-            it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
-          ]).flat(), "Manbani qirqish");
-          // Move NISBIY: masofa klipning shu paytdagi joyidan
-          // hisoblanadi, chunki in/out uni surgan bo'lishi mumkin.
-          const hozir = secs(await kliplar[0].getStartTime());
-          runActions(project, () => kliplar.map(
-            (it) => it.createMoveAction(tickTime(ppro, w.start - hozir))),
-            "Surish");
-        },
-      },
-      {
-        nom: "faqat in/out",
-        bor: (it) => typeof it.createSetInPointAction === "function",
-        qoll: (kliplar, w) => {
-          runActions(project, () => kliplar.map((it) => [
-            it.createSetInPointAction(tickTime(ppro, w.manbaIn)),
-            it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
-          ]).flat(), "Manbani qirqish");
-        },
-      },
-    ];
+    /* Ikki asosiy amal. Ular ATAYLAB alohida: birga berilganda Premiere
+       «A nullptr was dereferenced» qaytardi, shuning uchun endi qaysi
+       biri ishlashini bittalab aniqlaymiz. */
+    const AMAL = {
+      "manba (in/out)": (rec, w) => [
+        rec.it.createSetInPointAction(tickTime(ppro, w.manbaIn)),
+        rec.it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
+      ],
+      "joy (start/end)": (rec, w) => [
+        rec.it.createSetStartAction(tickTime(ppro, w.start)),
+        rec.it.createSetEndAction(tickTime(ppro, w.start + w.uzunlik)),
+      ],
+    };
+    const METOD = {
+      "manba (in/out)": ["createSetInPointAction", "createSetOutPointAction"],
+      "joy (start/end)": ["createSetStartAction", "createSetEndAction"],
+    };
+    const YARIM = {
+      video: (recs) => recs.filter((r) => !r.audio),
+      ovoz: (recs) => recs.filter((r) => r.audio),
+    };
 
-    // --- 5a. BITTA bo'lakda usullarni sinaymiz ---
+    // --- 5a. TASHXIS: qaysi amal qaysi yarimda ishlaydi ---
     //
-    // Natija O'QIB tekshiriladi: kutilgan joyga tushmasa keyingi usul
-    // sinaladi. Hech biri ishlamasa — qolgan kliplarga umuman
-    // tegilmaydi va qaysi usul nima deganini log'da ko'rasiz.
+    // Hujjatlarda bu yozilmagan va taxmin qilib tuzatib bo'lmaydi.
+    // Shuning uchun BITTA bo'lakda to'rt kombinatsiya alohida-alohida
+    // sinaladi va har birining natijasi log'ga yoziladi. Shundan keyin
+    // ishlaydiganidan usul yig'iladi.
     let usul = null;
+    // Surish kerak bo'ladigan bo'lak bormi — usul tanlashda hal qiluvchi
+    const surishKerak = ish.some((w) => Math.abs(w.start - w.hozir) > 0.05);
     if (ish.length) {
-      step = "sinov bo'lak";
-      const s = ish[0];
-      const sabablar = [];
-      for (const u of USULLAR) {
-        const oq = await barchaKliplar(ppro, seq, vCount, aCount);
-        const kliplar = topib(oq, s);
-        if (!kliplar.length) { sabablar.push(u.nom + ": klip topilmadi"); continue; }
-        if (!u.bor(kliplar[0])) { sabablar.push(u.nom + ": metodi yo'q"); continue; }
-        try {
-          await u.qoll(kliplar, s);
-        } catch (e) {
-          sabablar.push(u.nom + ": " + (e.message || e));
-          continue;
+      step = "tashxis";
+      // Sinov uchun ATAYLAB joyidan qimirlaydigan bo'lak olinadi. Aks
+      // holda tekshiruv surishni umuman sinamaydi: birinchi bo'lak
+      // odatda joyida qoladi va «uzunligi to'g'ri» degan natija
+      // surish ishlamasa ham chiqaveradi.
+      let sIdx = ish.findIndex((w) => Math.abs(w.start - w.hozir) > 0.05);
+      if (sIdx < 0) sIdx = 0;
+      const s = ish[sIdx];
+      logLine("");
+      logLine("Tashxis — qaysi amal ishlaydi:");
+
+      const holat = {};
+      for (const amalNom of Object.keys(AMAL)) {
+        for (const yarimNom of Object.keys(YARIM)) {
+          const nom = amalNom + " · " + yarimNom;
+          const oq = await barchaKliplar(ppro, seq, vCount, aCount);
+          const recs = YARIM[yarimNom](topib(oq, s));
+          if (!recs.length) { holat[nom] = "yo'q"; continue; }
+          // Metod bormi — amalni YASAMASDAN tekshiramiz. create*Action
+          // ni lockedAccess'dan tashqarida chaqirsak, Premiere obyektni
+          // «no longer valid» deb rad etadi.
+          if (!METOD[amalNom].every(
+                (m) => typeof recs[0].it[m] === "function")) {
+            holat[nom] = "metodi yo'q";
+            logLine("  · " + nom + " → metodi yo'q", "warn");
+            continue;
+          }
+          try {
+            runActions(project, () => recs.map((r) => AMAL[amalNom](r, s)).flat(),
+                       nom);
+            holat[nom] = "ok";
+          } catch (e) {
+            holat[nom] = (e.message || String(e)).slice(0, 70);
+          }
+          logLine("  · " + nom + " → " + holat[nom],
+                  holat[nom] === "ok" ? "okline" : "warn");
         }
-        // Haqiqatan kutilgan joyga tushdimi
-        const keyin = await barchaKliplar(ppro, seq, vCount, aCount);
-        const yangiKlip = keyin.vaqtBoyicha.get(Math.round(s.start * 100));
-        if (!yangiKlip || !yangiKlip.length) {
-          sabablar.push(u.nom + ": " + s.start.toFixed(2) + "s da klip yo'q");
-          continue;
-        }
-        const bSt = secs(await yangiKlip[0].getStartTime());
-        const bEn = secs(await yangiKlip[0].getEndTime());
-        if (Math.abs((bEn - bSt) - s.uzunlik) > 0.05) {
-          sabablar.push(u.nom + ": uzunlik " + (bEn - bSt).toFixed(2)
-                        + "s, kutilgan " + s.uzunlik.toFixed(2) + "s");
-          continue;
-        }
-        usul = u;
-        break;
       }
-      if (!usul) {
-        for (const sb of sabablar) logLine("  · " + sb, "warn");
+
+      // Natijani montajdan O'QIB tasdiqlaymiz — «ok» degani hali
+      // klip to'g'ri joyga tushdi degani emas.
+      const keyin = await barchaKliplar(ppro, seq, vCount, aCount);
+      const tushgan = keyin.vaqtBoyicha.get(Math.round(s.start * 100)) || [];
+      let tasdiq = "topilmadi";
+      if (tushgan.length) {
+        const bSt = secs(await tushgan[0].it.getStartTime());
+        const bEn = secs(await tushgan[0].it.getEndTime());
+        tasdiq = bSt.toFixed(2) + "–" + bEn.toFixed(2) + "s ("
+               + tushgan.length + " klip)";
+        // Joyi ham, uzunligi ham to'g'ri bo'lishi shart
+        if (Math.abs((bEn - bSt) - s.uzunlik) < 0.05
+            && Math.abs(bSt - s.start) < 0.05) {
+          usul = [];
+          for (const amalNom of Object.keys(AMAL)) {
+            const yarimlar = Object.keys(YARIM)
+              .filter((y) => holat[amalNom + " · " + y] === "ok");
+            if (yarimlar.length) usul.push({ amal: amalNom, yarimlar: yarimlar });
+          }
+        }
+      }
+      logLine("  Natija: " + s.start.toFixed(2) + "s da → " + tasdiq
+              + " · kutilgan uzunlik " + s.uzunlik.toFixed(2) + "s",
+              usul ? "okline" : "warn");
+
+      // Kliplarni surish kerak bo'lsa-yu, surish amali ishlamasa —
+      // to'xtaymiz. Faqat in/out bilan davom etsak, bo'laklar joyidan
+      // qimirlamay montaj butunlay buzilardi.
+      if (usul && surishKerak
+          && !usul.some((u) => u.amal === "joy (start/end)")) {
+        usul = null;
+        logLine("  Kliplarni surish amali ishlamadi — faqat qirqish bilan "
+                + "montaj to'g'ri chiqmaydi.", "warn");
+      }
+      if (!usul || !usul.length) {
         throw new Error(
-          "Hech bir qirqish usuli ishlamadi (yuqorida har birining sababi). "
-          + "Montaj deyarli tegilmagan — Cmd+Z ni bir necha marta bosing, "
-          + "so'ng «Natija: Yangi sequence» bilan urining. Log'ni menga "
-          + "yuborsangiz, shu ro'yxatga qarab moslashtiraman.");
+          "Bo'lakni kerakli joyga qo'yib bo'lmadi (yuqorida har amalning "
+          + "natijasi yozilgan). Montaj deyarli tegilmagan — Cmd+Z ni bir "
+          + "necha marta bosing, so'ng «Natija: Yangi sequence» bilan "
+          + "urining. Shu log'ni menga yuborsangiz, qaysi amal rad "
+          + "etilganiga qarab aniq tuzataman.");
       }
-      logLine("Ishlaydigan usul topildi: «" + usul.nom + "» ✓", "okline");
+      logLine("Ishlaydigan usul: "
+              + usul.map((u) => u.amal + " (" + u.yarimlar.join("+") + ")")
+                    .join(" → ") + " ✓", "okline");
       qoyildi++;
-      ish.shift();
+      ish.splice(sIdx, 1);
     }
+
+    /* Tanlangan usulni bir bo'lakka qo'llaydi. Har amal ALOHIDA
+       tranzaksiyada — birlashtirilgani aynan nullptr bergan edi. */
+    const qoll = (recs, w) => {
+      for (const u of usul) {
+        const tanlangan = recs.filter(
+          (r) => u.yarimlar.indexOf(r.audio ? "ovoz" : "video") >= 0);
+        if (!tanlangan.length) continue;
+        runActions(project, () => tanlangan.map((r) => AMAL[u.amal](r, w)).flat(),
+                   u.amal);
+      }
+    };
 
     // --- 5b. Qolganini guruh-guruh qo'yamiz ---
     //
     // Har guruhdan oldin montaj qaytadan o'qiladi — obyektlar
-    // eskirmasin. Guruh yiqilsa bittalab urinib, aybdori log'da
-    // ko'rsatiladi va qolgani saqlanadi.
+    // eskirmasin. Bo'lak yiqilsa, montaj qayta o'qilib bir marta
+    // qayta urinib ko'riladi.
+    step = "bo'laklarni joylashtirish";
     let yiqildi = 0;
     const BATCH = 50;
     for (let i = 0; i < ish.length; i += BATCH) {
@@ -3586,17 +3588,18 @@ async function montajniQirqish() {
       let oq = await barchaKliplar(ppro, seq, vCount, aCount);
       for (const w of guruh) {
         let xato = null;
-        const kliplar = topib(oq, w);
-        if (!kliplar.length) { yiqildi++; continue; }
-        try { await usul.qoll(kliplar, w); qoyildi++; continue; }
-        catch (e) { xato = e; }
+        const recs = topib(oq, w);
+        if (recs.length) {
+          try { qoll(recs, w); qoyildi++; continue; }
+          catch (e) { xato = e; }
+        }
         // Tranzaksiya obyektlarni eskirtirgan bo'lishi mumkin — montajni
         // qaytadan o'qib, shu bo'lakni bir marta qayta urinamiz.
         try {
           oq = await barchaKliplar(ppro, seq, vCount, aCount);
           const qayta = topib(oq, w);
-          if (!qayta.length) throw xato;
-          await usul.qoll(qayta, w);
+          if (!qayta.length) throw (xato || new Error("klip topilmadi"));
+          qoll(qayta, w);
           qoyildi++;
           continue;
         } catch (e2) { xato = e2; }
@@ -3624,8 +3627,8 @@ async function montajniQirqish() {
     for (const b of rejalar) {
       if (b.qoladi.length) continue;
       for (const c of b.egalar) {
-        const it = oxirgiOq.xarita.get(klipKalit(c.audio, c.trek, c.start));
-        if (it) ortiqcha.push(it);
+        const rec = oxirgiOq.xarita.get(klipKalit(c.audio, c.trek, c.start));
+        if (rec) ortiqcha.push(rec.it);
       }
     }
     if (ortiqcha.length) {

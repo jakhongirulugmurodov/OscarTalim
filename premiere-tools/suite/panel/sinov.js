@@ -193,6 +193,185 @@ function logMatni() {
 
 const KOD = fs.readFileSync(path.join(__dirname, "main.js"), "utf8");
 
+
+/* ═══════════════════ Joyida qirqish: boshdan-oxir sinov
+ *
+ * Bu sinov montajniQirqish() ni SOXTA Premiere bilan to'liq yugurtiradi.
+ * Soxta API haqiqiy Premiere kabi o'zini tutadi: nusxa olinganda
+ * bog'langan ovoz ham ko'chiriladi, amallar esa klip joyini haqiqatan
+ * o'zgartiradi. Shundan keyin natija tekshiriladi.
+ *
+ * Nima uchun kerak: bu yerda ikki xato chiqqan edi — ovoz video tagiga
+ * tushmay unlink bo'lib qolgani va tranzaksiyadan keyin obyektlar
+ * eskirgani. Ikkalasi ham faqat KOD ISHLAGANDA ko'rinadi. */
+function qirqishMuhiti(q) {
+  const treklarV = [[]], treklarA = [[]];
+
+  function klip(st, en, ip, audio, path) {
+    const o = {
+      _a: audio, _p: path, start: st, end: en, in: ip,
+      getStartTime: async () => ({ seconds: o.start }),
+      getEndTime: async () => ({ seconds: o.end }),
+      getInPoint: async () => ({ seconds: o.in }),
+      getProjectItem: async () => ({ getMediaFilePath: async () => path }),
+      createSetInPointAction: (t) => ({ bajar() { o.in = t.seconds; } }),
+      createSetOutPointAction: (t) => ({
+        bajar() { o.end = o.start + (t.seconds - o.in); } }),
+      createSetStartAction: (t) => {
+        // Haqiqiy Premiere shu yerda «A nullptr was dereferenced» bergan
+        // edi. Sinov shuni taqlid qila olsin — panel bunda «tayyor»
+        // demasligi va sababni aniq yozishi kerak.
+        if (q.joyRad) throw new Error("A nullptr was dereferenced.");
+        return { bajar() {
+          const d = o.end - o.start; o.start = t.seconds; o.end = o.start + d; } };
+      },
+      createSetEndAction: (t) => {
+        if (q.joyRad) throw new Error("A nullptr was dereferenced.");
+        return { bajar() { o.end = t.seconds; } };
+      },
+    };
+    return o;
+  }
+
+  // Bitta bog'langan juft: V1 da video, A1 da uning ovozi
+  treklarV[0].push(klip(0, 30, 0, false, "/m/a.mp4"));
+  treklarA[0].push(klip(0, 30, 0, true, "/m/a.mp4"));
+
+  const seq = {
+    name: "Sinov",
+    getVideoTrackCount: async () => treklarV.length,
+    getAudioTrackCount: async () => treklarA.length,
+    getVideoTrack: async (i) => (treklarV[i]
+      ? { getTrackItems: async () => treklarV[i].slice() } : null),
+    getAudioTrack: async (i) => (treklarA[i]
+      ? { getTrackItems: async () => treklarA[i].slice() } : null),
+    getEndTime: async () => ({ seconds: 30 }),
+    getSelection: async () => ({
+      _x: [], addItem(it) { this._x.push(it); return true; },
+      removeItem() { return true; }, getTrackItems: async () => [] }),
+    clearSelection: async () => true,
+  };
+
+  const editor = {
+    // Haqiqiy Premiere bog'langan klipni nusxalaganda OVOZINI HAM
+    // ko'chiradi. Soxta API shuni taqlid qiladi — aks holda sinov
+    // aynan o'sha xatoni o'tkazib yuborardi.
+    createCloneTrackItemAction: (it, t) => ({
+      bajar() {
+        const surish = t.seconds;
+        const juft = [];
+        for (const ro of treklarV) for (const x of ro) if (x === it) juft.push([x, treklarV]);
+        for (const ro of treklarA) for (const x of ro) if (x === it) juft.push([x, treklarA]);
+        // Bog'langan yarmi: bir manba, bir vaqt
+        for (const ro of (it._a ? treklarV : treklarA)) {
+          for (const x of ro) {
+            if (x._p === it._p && x.start === it.start && x.end === it.end) {
+              juft.push([x, it._a ? treklarV : treklarA]);
+            }
+          }
+        }
+        for (const [x, treklar] of juft) {
+          treklar[0].push(klip(x.start + surish, x.end + surish, x.in, x._a, x._p));
+        }
+      },
+    }),
+    createRemoveItemsAction: () => ({ bajar() {} }),
+  };
+
+  const project = {
+    save: async () => true,
+    getActiveSequence: async () => seq,
+    lockedAccess(fn) { return fn(); },
+    executeTransaction(fn) {
+      const amallar = [];
+      fn({ addAction: (a) => amallar.push(a) });
+      if (q.tranzaksiyaRad) return false;
+      for (const a of amallar) if (a && a.bajar) a.bajar();
+      return true;
+    },
+  };
+
+  return {
+    ppro: {
+      Project: { getActiveProject: async () => project },
+      ClipProjectItem: {}, Constants: { MediaType: { ANY: "any" } },
+      TickTime: { createWithSeconds: (s) => ({ seconds: s }) },
+      SequenceEditor: { getEditor: () => editor },
+      TrackItemSelection: {},
+    },
+    treklarV: treklarV, treklarA: treklarA,
+  };
+}
+
+async function qirqishSinovi(q) {
+  for (const k of Object.keys(kesh)) delete kesh[k];
+  const m = qirqishMuhiti(q || {});
+  const g = muhit({}, {});
+  // Faqat premierepro almashtiriladi — qolgan modullar (uxp, fs) o'z
+  // joyida qolsin, aks holda main.js yuklanmay qoladi.
+  const aslRequire = g.require;
+  g.require = (mod) => (mod === "premierepro" ? m.ppro : aslRequire(mod));
+  g.fetch = async (url) => ({
+    ok: true,
+    json: async () => {
+      if (String(url).indexOf("/cut") >= 0) {
+        return { pauses: [{ start: 10, end: 14 }, { start: 20, end: 22 }], logs: [] };
+      }
+      if (String(url).indexOf("/health") >= 0) {
+        return { ok: true, version: "0.2.0", modules: ["cut"], panel_build: null };
+      }
+      return {};
+    },
+  });
+
+  const ctx = vm.createContext(g);
+  try { vm.runInContext(KOD, ctx, { filename: "main.js" }); }
+  catch (e) { return "kod yuklanmadi — " + e.message; }
+
+  try { await ctx.montajniQirqish(); }
+  catch (e) { return "ISHLAB TURGANDA XATO — " + e.message; }
+
+  const log = logMatni();
+  // Kod xatosi log'ga yashirinib qolmasin — try/catch uni yutib yuboradi
+  for (const belgi of ["is not defined", "is not a function", "undefined is not",
+                       "Cannot read"]) {
+    if (log.indexOf(belgi) >= 0) return "kod xatosi log'da: «" + belgi + "»";
+  }
+  if (q && q.joyRad) {
+    // Amal rad etilgan: panel to'xtashi, sababni yozishi va YOLG'ON
+    // «tayyor» demasligi shart.
+    if (log.indexOf("To'xtadi") < 0) return "amal rad etildi, lekin to'xtamadi";
+    if (log.indexOf("nullptr") < 0) return "sabab log'da yozilmagan";
+    if (log.indexOf("bo'lak joylashtirildi") >= 0) return "yolg'on «tayyor» yozdi";
+    return true;
+  }
+  if (log.indexOf("To'xtadi") >= 0) {
+    return "to'xtadi: " + log.split("To'xtadi")[1].slice(0, 120);
+  }
+
+  // Kutilgan natija: [0,10] → 0–10, [14,20] → 10–16, [22,30] → 16–24
+  const kutilgan = [[0, 10], [10, 16], [16, 24]];
+  for (const [nom, ro] of [["V1", m.treklarV[0]], ["A1", m.treklarA[0]]]) {
+    const bor = ro.map((x) => [+x.start.toFixed(2), +x.end.toFixed(2)])
+                  .sort((a, b) => a[0] - b[0]);
+    if (JSON.stringify(bor) !== JSON.stringify(kutilgan)) {
+      return nom + ": " + JSON.stringify(bor) + ", kutilgan "
+           + JSON.stringify(kutilgan);
+    }
+  }
+  // Video va ovoz bir joyda turishi shart — bog'i uzilmasin
+  const v = m.treklarV[0].slice().sort((a, b) => a.start - b.start);
+  const a = m.treklarA[0].slice().sort((x, y) => x.start - y.start);
+  for (let i = 0; i < v.length; i++) {
+    if (Math.abs(v[i].start - a[i].start) > 0.01
+        || Math.abs(v[i].end - a[i].end) > 0.01) {
+      return "ovoz video tagida emas: V " + v[i].start + "–" + v[i].end
+           + " · A " + a[i].start + "–" + a[i].end;
+    }
+  }
+  return true;
+}
+
 async function sinov(nomi, qurilish, reja, tekshir) {
   YOZILGAN = []; TRANZAKSIYA = 0;
   for (const k of Object.keys(kesh)) delete kesh[k];
@@ -456,6 +635,26 @@ async function sinov(nomi, qurilish, reja, tekshir) {
     }
     console.log("  ✓ juft yig'ish: video+ovoz birga, yetakchi — video");
     return 1;
+  })();
+
+  jami++; ok += await (async () => {
+    const r = await qirqishSinovi();
+    if (r === true) {
+      console.log("  \u2713 joyida qirqish: uch bo'lak, ovoz video tagida");
+      return 1;
+    }
+    console.log("  \u2717 joyida qirqish: " + r);
+    return 0;
+  })();
+
+  jami++; ok += await (async () => {
+    const r = await qirqishSinovi({ joyRad: true });
+    if (r === true) {
+      console.log("  \u2713 amal rad etilsa: to'xtaydi va sababini yozadi");
+      return 1;
+    }
+    console.log("  \u2717 amal rad etilsa: " + r);
+    return 0;
   })();
 
   console.log(`\n${ok}/${jami} sinov o'tdi`);
