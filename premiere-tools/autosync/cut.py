@@ -166,7 +166,7 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
             threshold=DEFAULT_THRESHOLD, min_pause=DEFAULT_MIN_PAUSE,
             padding=DEFAULT_PADDING, strictness=DEFAULT_STRICTNESS,
             timeline=None, seq_format=None, fallback=None, log=print,
-            progress=None):
+            progress=None, xml_yozish=True):
     """Pauzalarni kesish.
 
     Ikki rejim bor:
@@ -214,15 +214,22 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     if not clips:
         raise RuntimeError("Kesishdan keyin klip qolmadi.")
 
-    say(stage="Timeline yozilmoqda", percent=50)
-    # Montaj tayyor sequence'dan olingan bo'lsa, kadrlar qaysi qavatda
-    # turgan bo'lsa o'sha yerda qolsin. Fayllar qo'lda tanlangan bo'lsa
-    # qavat tushunchasi yo'q — eski yo'l qoladi.
-    xml = build_xml(clips, name, timebase, ntsc, width, height,
-                    keep_tracks=bool(timeline))
-    output = write_xml(xml, output, fallback, log)
+    if xml_yozish:
+        say(stage="Timeline yozilmoqda", percent=50)
+        # Montaj tayyor sequence'dan olingan bo'lsa, kadrlar qaysi qavatda
+        # turgan bo'lsa o'sha yerda qolsin. Fayllar qo'lda tanlangan bo'lsa
+        # qavat tushunchasi yo'q — eski yo'l qoladi.
+        xml = build_xml(clips, name, timebase, ntsc, width, height,
+                        keep_tracks=bool(timeline))
+        output = write_xml(xml, output, fallback, log)
+        log(f"Tayyor: {output}")
+    else:
+        # Panel montajning O'ZINI qirqadi — XML kerak emas. Uni baribir
+        # yozsak, har ishga tushganda loyihaga keraksiz fayl qo'shiladi
+        # va Project panelida dublikatlar to'planib boradi.
+        output = None
+        log(f"{len(pauses)} pauza topildi — montajning o'zi qirqiladi")
     say(percent=100, detail="tayyor")
-    log(f"Tayyor: {output}")
 
     return {
         "output": output,

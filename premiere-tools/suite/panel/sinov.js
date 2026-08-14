@@ -326,6 +326,73 @@ async function sinov(nomi, qurilish, reja, tekshir) {
       return true;
     }) ? 1 : 0;
 
+  /* ───────────── Montajni joyida qirqish: hisob-kitobi
+   *
+   * Bu ikki funksiya butun ishning asosi: qaysi bo'lak qoladi va u
+   * yakuniy timeline'da qayerga tushadi. Xato bo'lsa montaj buziladi,
+   * shuning uchun Premiere'siz, sof matematika sifatida sinaladi. */
+  jami++; ok += (() => {
+    const g = muhit({}, rejaOddiy);
+    const ctx = vm.createContext(g);
+    try { vm.runInContext(KOD, ctx, { filename: "main.js" }); }
+    catch (e) { console.log("  ✗ qirqish hisobi: kod yuklanmadi — " + e.message); return 0; }
+
+    const J = ctx.joylashuvniHisobla, S = ctx.siljish;
+    if (typeof J !== "function" || typeof S !== "function") {
+      console.log("  ✗ qirqish hisobi: funksiyalar topilmadi");
+      return 0;
+    }
+    const teng = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const p = [{ start: 10, end: 14 }, { start: 20, end: 22 }];
+
+    // Klip ikkita pauza bilan uchta bo'lakka bo'linadi
+    if (!teng(J({ start: 0, end: 30 }, p),
+              [{ a: 0, b: 10 }, { a: 14, b: 20 }, { a: 22, b: 30 }])) {
+      console.log("  ✗ qirqish hisobi: uch bo'lakka bo'linmadi");
+      return 0;
+    }
+    // Butunlay pauza ichida qolgan klipdan hech narsa qolmaydi
+    if (J({ start: 10.5, end: 13 }, p).length !== 0) {
+      console.log("  ✗ qirqish hisobi: pauza ichidagi klip o'chirilmadi");
+      return 0;
+    }
+    // Pauzalarga umuman tegmagan klip butun qoladi
+    if (!teng(J({ start: 40, end: 50 }, p), [{ a: 40, b: 50 }])) {
+      console.log("  ✗ qirqish hisobi: tegilmagan klip bo'lindi");
+      return 0;
+    }
+    // Pauza chetiga tegib turgan klip qisqaradi, yo'qolmaydi
+    if (!teng(J({ start: 12, end: 18 }, p), [{ a: 14, b: 18 }])) {
+      console.log("  ✗ qirqish hisobi: chetdagi klip noto'g'ri qirqildi");
+      return 0;
+    }
+    // Siljish: 20-soniyagacha 4s olib tashlangan (10..14)
+    if (Math.abs(S(20, p) - 4) > 1e-9) {
+      console.log("  ✗ qirqish hisobi: siljish " + S(20, p) + ", kutilgan 4");
+      return 0;
+    }
+    // Birinchi pauzadan oldin hech narsa siljimaydi
+    if (S(5, p) !== 0) { console.log("  ✗ qirqish hisobi: erta siljish"); return 0; }
+    // Hamma pauzadan keyin — ikkalasining yig'indisi
+    if (Math.abs(S(30, p) - 6) > 1e-9) {
+      console.log("  ✗ qirqish hisobi: yakuniy siljish " + S(30, p));
+      return 0;
+    }
+    // Bo'laklar yakuniy timeline'da ustma-ust tushmasligi kerak
+    const b = J({ start: 0, end: 30 }, p);
+    let oxir = -1;
+    for (const x of b) {
+      const yangi = x.a - S(x.a, p);
+      if (yangi < oxir - 1e-9) {
+        console.log("  ✗ qirqish hisobi: bo'laklar ustma-ust tushdi");
+        return 0;
+      }
+      oxir = yangi + (x.b - x.a);
+    }
+    console.log("  ✓ qirqish hisobi: bo'laklar va siljish to'g'ri");
+    return 1;
+  })();
+
   console.log(`\n${ok}/${jami} sinov o'tdi`);
   process.exit(ok === jami ? 0 : 1);
 })();

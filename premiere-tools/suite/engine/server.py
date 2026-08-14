@@ -633,7 +633,9 @@ class Handler(BaseHTTPRequestHandler):
                     padding=float(req.get("padding", 0.12)),
                     seq_format=req.get("seq_format") or None,
                     timeline=seq_timeline, fallback=RESULTS_DIR, log=record,
-                    progress=step)
+                    progress=step,
+                    # Panel montajni joyida qirqadigan bo'lsa, XML yozilmaydi
+                    xml_yozish=not req.get("faqat_pauzalar"))
             else:
                 result = run_sync(
                     files, output=output,

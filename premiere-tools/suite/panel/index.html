@@ -431,6 +431,8 @@
   body.tab-captions .seqpick b { color: #E9A8CB; }
   .seqpick span { color: #8E909C; font-size: 12px; }
   body.tab-cut #syncBtn, body:not(.tab-cut) #cutBtn { display: none; }
+  /* Montaj joyida qirqilsa XML yozilmaydi — import qiladigan narsa yo'q */
+  body.tab-cut.cut-joyida #importBtn { display: none; }
   .knobs label {
     display: flex; align-items: center; gap: 10px;
     color: #8E909C; font-size: 12px; margin-bottom: 7px;
@@ -580,6 +582,19 @@
     </div>
 
     <div class="knobs" id="cutKnobs">
+      <!-- Natija qayerga tushadi. «Joyida» — Project panelida hech narsa
+           paydo bo'lmaydi, shuning uchun standart shu. -->
+      <label class="pickrow">Natija
+        <div class="picks" id="kCutRejim">
+          <div class="pick on" data-v="joyida">Shu montajda</div>
+          <div class="pick" data-v="yangi">Yangi sequence</div>
+        </div>
+      </label>
+      <p class="tip" id="cutRejimTip">Ochiq montajning o'zidan pauzalar olib
+        tashlanadi — <b>yangi sequence yasalmaydi va Project panelida
+        fayllar takrorlanmaydi</b>. Yoqmasa Cmd+Z. Buning uchun yuqoridan
+        «Ochiq sequence'ni olish» bosilgan bo'lishi kerak.</p>
+
       <label class="pickrow">Ovoz qat'iyligi
         <div class="picks" id="kStrict">
           <div class="pick" data-v="yumshoq">Yumshoq</div>
@@ -892,6 +907,10 @@
     <button class="btn primary" id="matnBtn">Matnlarni yasash</button>
     <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
     <span class="hint" id="hint">0 fayl</span>
+    <!-- Import qilingan narsalar bitta binda turadi; shu tugma o'sha binni
+         butunlay olib tashlaydi, ya'ni har ishdan keyin qo'lda tanlab
+         o'chirish shart emas. O'ngga suriladi — tasodifan bosilmasin. -->
+    <span class="mini rm" id="tozalaBtn" style="margin-left:auto">Tozalash</span>
   </div>
 
   <script src="main.js"></script>

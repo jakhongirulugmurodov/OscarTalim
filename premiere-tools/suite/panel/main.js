@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "3-Avg 10:20";
+const PANEL_BUILD = "14-Avg 12:10";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -93,6 +93,7 @@ const els = {
   seqHint: el("seqHint"),
   pickHint: el("pickHint"),
   importBtn: el("importBtn"),
+  tozalaBtn: el("tozalaBtn"),
   hint: el("hint"),
   diagBtn: document.getElementById("diagBtn"),
   updBtn: el("updBtn"),
@@ -380,7 +381,8 @@ const TAB_TEXT = {
     pick: "yoki fayllarni qo'lda tanlang",
     seqTitle: "Ochiq sequence'ni olish",
     seqHint: "montajingiz saqlanadi — faqat pauzalar kesiladi",
-    next: "Endi «Pauzalarni kesish» ni bosing — montajingiz saqlanadi",
+    next: "Endi «Montajni qirqish» ni bosing — pauzalar shu montajning "
+        + "o'zidan olib tashlanadi, yangi sequence yasalmaydi",
   },
   switch: {
     pick: "kamera videolari (2+ fayl)",
@@ -433,6 +435,7 @@ function setupTabs() {
       document.querySelectorAll(".tab").forEach((t) => t.classList.remove("on"));
       tab.classList.add("on");
       document.body.className = "tab-" + activeTab;
+      cutRejimKorsat();   // className qayta yozildi — rejim klassini tiklaymiz
       lastXml = null;
       timeline = null;
       seqFormat = null;
@@ -443,6 +446,8 @@ function setupTabs() {
       if (els.moments) els.moments.innerHTML = "";
       if (els.shortsList) els.shortsList.innerHTML = "";
       els.importBtn.disabled = true;
+      tozalashTasdiq = 0;   // yorliq almashtirilsa tasdiq kuchini yo'qotadi
+      if (els.tozalaBtn) els.tozalaBtn.textContent = "Tozalash";
       els.log.innerHTML = ""; logOchi(false);
       els.log.classList.remove("show");
       if (!pollTimer) els.job.className = "job";
@@ -473,6 +478,12 @@ const knobs = {
    uni jimlik tomonga yoki gap tomonga surib qo'yamiz. */
 let strictness = "orta";
 
+/* Cut natijasi qayerga tushadi: ochiq montajning O'ZIGA ("joyida") yoki
+   yangi sequence'ga ("yangi"). Standart — joyida, chunki yangi sequence
+   har safar manba fayllarni Project paneliga qaytadan olib kiradi va
+   ular to'planib qoladi. */
+let cutRejim = "joyida";
+
 function setupKnobs() {
   Object.values(knobs).forEach((k) => {
     if (!k.el || !k.el.addEventListener) return;
@@ -499,6 +510,47 @@ function setupKnobs() {
       strictness = pick.getAttribute("data-v") || "orta";
     });
   });
+
+  const rejimBox = el("kCutRejim");
+  if (rejimBox && rejimBox.querySelectorAll) {
+    rejimBox.querySelectorAll(".pick").forEach((pick) => {
+      pick.addEventListener("click", () => {
+        rejimBox.querySelectorAll(".pick").forEach((p) => p.classList.remove("on"));
+        pick.classList.add("on");
+        cutRejim = pick.getAttribute("data-v") || "joyida";
+        cutRejimKorsat();
+      });
+    });
+  }
+  cutRejimKorsat();
+}
+
+/* Tanlangan rejim tugma yozuvida va izohda ko'rinib tursin — bosishdan
+   oldin nima bo'lishini bilish kerak, keyin emas. */
+function cutRejimKorsat() {
+  const joyida = cutRejim === "joyida";
+  if (els.cutBtn) {
+    els.cutBtn.textContent = joyida ? "Montajni qirqish"
+                                    : "Kesib, yangi sequence yasash";
+  }
+  const tip = el("cutRejimTip");
+  if (tip) {
+    tip.innerHTML = joyida
+      ? "Ochiq montajning o'zidan pauzalar olib tashlanadi — <b>yangi "
+        + "sequence yasalmaydi va Project panelida fayllar takrorlanmaydi</b>. "
+        + "Yoqmasa Cmd+Z. Buning uchun yuqoridan «Ochiq sequence'ni olish» "
+        + "bosilgan bo'lishi kerak."
+      : "Kesilgan montaj XML fayl bo'lib yoziladi va Premiere'ga alohida "
+        + "sequence bo'lib import qilinadi. <b>Har import manba fayllarni "
+        + "Project paneliga qaytadan qo'shadi</b> — bir necha marta "
+        + "ishlatilsa, ular to'planib boradi.";
+  }
+  // Import tugmasi faqat XML rejimida ma'noga ega. Inline style bilan
+  // yashirmaymiz — u boshqa yorliqqa o'tganda ham qolib ketardi; body
+  // klassi esa CSS bilan faqat Cut yorlig'ida ta'sir qiladi.
+  if (document.body) {
+    document.body.classList[joyida ? "add" : "remove"]("cut-joyida");
+  }
 }
 
 /* ------------------------------------------------- Captions sozlamalari */
@@ -2992,6 +3044,317 @@ async function subtitrYasash() {
   }
 }
 
+
+/* ============================================ Montajning O'ZINI qirqish
+ *
+ * XML yozib, import qilib, yangi sequence yasash o'rniga — ochiq
+ * montajning o'zidan pauzalarni olib tashlaydi. Ikki foydasi bor:
+ * yangi sequence paydo bo'lmaydi va Project panelida fayllar
+ * takrorlanmaydi (har XML importi ularni qaytadan olib kiradi).
+ *
+ * Premiere API'sida RAZOR yo'q — klipni vaqt nuqtasidan ikkiga bo'lish
+ * metodi umuman mavjud emas (Sequence'da ham, Track'da ham, hujjatlar
+ * bo'yicha tekshirildi). Uning o'rnini NUSXA bosadi: klip ikkiga
+ * bo'linishi kerak bo'lsa, nusxa olinadi va ikkalasi kerakli joyidan
+ * qirqiladi. Nusxa effektlarni ham olib o'tadi — shuning uchun
+ * «project item'dan qayta qo'yish» yo'li tanlanmadi, u rang berish va
+ * effektlarni yo'qotardi.
+ *
+ * Tartib ataylab shunday: avval nusxalar montajdan TASHQARIGA (oxiridan
+ * keyin) yasaladi va haqiqatan paydo bo'lgani tekshiriladi. Shu
+ * bosqichgacha montajga umuman tegilmaydi — API kutilgandek
+ * ishlamasa, hech narsa buzilmagan holda to'xtaymiz.
+ */
+function joylashuvniHisobla(item, pauzalar) {
+  // Klipdan qaysi bo'laklar QOLADI va ular yakuniy timeline'da qayerga
+  // tushadi. Pauzalar vaqt bo'yicha tartiblangan bo'lishi shart.
+  const a = item.start, b = item.end;
+  const qoladi = [];
+  let kursor = a;
+  for (const p of pauzalar) {
+    if (p.end <= a || p.start >= b) continue;
+    const kesA = Math.max(a, p.start), kesB = Math.min(b, p.end);
+    if (kesA > kursor) qoladi.push({ a: kursor, b: kesA });
+    kursor = Math.max(kursor, kesB);
+  }
+  if (kursor < b) qoladi.push({ a: kursor, b: b });
+  return qoladi;
+}
+
+/* BO'SH tanlov. `seq.getSelection()` foydalanuvchi timeline'da tanlab
+ * qo'ygan kliplarni qaytaradi — ularga o'chirish amalini qo'shsak,
+ * foydalanuvchining o'z tanlagani ham o'chib ketardi. Shuning uchun
+ * avval bo'sh tanlov olishga urinamiz. */
+async function bosTanlov(ppro, seq) {
+  try {
+    const TIS = ppro.TrackItemSelection;
+    if (TIS && typeof TIS.createEmptySelection === "function") {
+      const s = TIS.createEmptySelection();
+      if (s && typeof s.addItem === "function") return s;
+    }
+  } catch (e) { /* pastdagi zaxira yo'l */ }
+  // Zaxira: montajdagi tanlovni tozalab, bo'shini olamiz
+  try {
+    if (typeof seq.clearSelection === "function") await seq.clearSelection();
+  } catch (e) { /* tozalanmasa ham quyida tekshiramiz */ }
+  const s = await seq.getSelection();
+  if (s && typeof s.getTrackItems === "function") {
+    const bor = await s.getTrackItems();
+    if (bor && bor.length && typeof s.removeItem === "function") {
+      for (const it of bor) s.removeItem(it);
+    }
+  }
+  return s;
+}
+
+/* MediaType nomi Premiere versiyalarida turlicha yozilgan — qaysinisi
+   bor bo'lsa o'shani olamiz, topilmasa matn ko'rinishida beramiz. */
+function mediaTuri(ppro) {
+  const c = (ppro.Constants && ppro.Constants.MediaType) || {};
+  return c.ANY || c.Any || c.any || "any";
+}
+
+function siljish(vaqt, pauzalar) {
+  // Shu nuqtadan OLDIN olib tashlanadigan umumiy vaqt
+  let s = 0;
+  for (const p of pauzalar) {
+    if (p.end <= vaqt) s += p.end - p.start;
+    else if (p.start < vaqt) s += vaqt - p.start;
+  }
+  return s;
+}
+
+async function montajniQirqish() {
+  songgiIsh = { nomi: "Qayta urinish", fn: montajniQirqish };
+  els.log.innerHTML = ""; logOchi(false);
+  startProgress("Montaj o'qilmoqda…");
+  let step = "boshlanish";
+  try {
+    if (!(await checkMotor())) { stopProgress(false, "motor yo'q"); return; }
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    if (!project) throw new Error("Ochiq loyiha yo'q");
+    const seq = await project.getActiveSequence();
+    if (!seq) throw new Error("Ochiq sequence yo'q — montajni oching");
+
+    // Montajning O'ZI o'zgaradi, shuning uchun avval loyihani saqlaymiz.
+    // Cmd+Z bor, lekin saqlangan nusxa ishonchliroq: undo tarixi
+    // Premiere yopilganda yo'qoladi.
+    step = "loyihani saqlash";
+    try {
+      if (typeof project.save === "function") {
+        await project.save();
+        logLine("Loyiha saqlandi — kerak bo'lsa shu holatga qaytasiz ✓",
+                "okline");
+      }
+    } catch (e) {
+      logLine("Loyiha saqlanmadi (" + (e.message || e) + "). Davom etamiz, "
+              + "lekin Cmd+S bosib qo'ying.", "warn");
+    }
+
+    // --- 1. Kliplarni o'qiymiz ---
+    step = "kliplarni o'qish";
+    const vCount = await seq.getVideoTrackCount();
+    const aCount = await seq.getAudioTrackCount();
+    const hammasi = [], tlItems = [], tlKorildi = new Set();
+    for (let i = 0; i < vCount + aCount; i++) {
+      const audio = i >= vCount;
+      const tr = audio ? await seq.getAudioTrack(i - vCount)
+                       : await seq.getVideoTrack(i);
+      if (!tr) continue;
+      for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
+        const path = await mediaPathOf(ppro, it);
+        const st = secs(await it.getStartTime());
+        const en = secs(await it.getEndTime());
+        const ip = secs(await it.getInPoint());
+        if (en <= st) continue;
+        hammasi.push({ it: it, start: st, end: en, in: ip,
+                       audio: audio, trek: audio ? i - vCount : i });
+        if (path) {
+          // Bir klipning video va audio qismi ikkita element bo'lib
+          // keladi. Motorga ikkalasini yuborsak, ayni bir bo'lak ikki
+          // marta tahlil qilinadi — natija o'zgarmaydi, lekin vaqt
+          // behuda ketadi. Shuning uchun bittasini qoldiramiz.
+          const kalit = path + "|" + st.toFixed(3) + "|" + ip.toFixed(3);
+          if (!tlKorildi.has(kalit)) {
+            tlKorildi.add(kalit);
+            tlItems.push({ path: path, start: st, in: ip, out: ip + (en - st) });
+          }
+        }
+      }
+    }
+    if (!hammasi.length) throw new Error("Montajda klip topilmadi");
+    logLine(hammasi.length + " klip o'qildi (" + vCount + " video, "
+            + aCount + " audio trek)");
+
+    // --- 2. Pauzalarni motordan so'raymiz ---
+    step = "pauzalarni topish";
+    paintJob({ steps: [], step: 0, lines: [], stage: "Pauzalar qidirilmoqda",
+               percent: 30, overall: 30, detail: tlItems.length + " klip" });
+    const r = await fetch(MOTOR + "/cut", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timeline: tlItems, faqat_pauzalar: true, threshold: "auto",
+        strictness: strictness,
+        min_pause: knobs.minPause.val(+knobs.minPause.el.value),
+        padding: knobs.padding.val(+knobs.padding.el.value),
+      }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Motor xatosi");
+    for (const l of (j.logs || [])) logLine(l);
+
+    const pauzalar = (j.pauses || [])
+      .map((p) => ({ start: p.start, end: p.end }))
+      .sort((x, y) => x.start - y.start);
+    if (!pauzalar.length) {
+      logLine("Kesiladigan pauza topilmadi — montaj o'zgarmadi.", "okline");
+      stopProgress(true, "pauza yo'q");
+      return;
+    }
+    const jami = pauzalar.reduce((s, p) => s + (p.end - p.start), 0);
+    logLine(pauzalar.length + " pauza · jami " + jami.toFixed(1) + "s kesiladi");
+
+    // --- 3. Har klip nechta bo'lakka bo'linishini hisoblaymiz ---
+    step = "reja";
+    let nusxaKerak = 0, ochiriladi = 0;
+    for (const c of hammasi) {
+      c.qoladi = joylashuvniHisobla(c, pauzalar);
+      if (!c.qoladi.length) ochiriladi++;
+      else nusxaKerak += c.qoladi.length - 1;
+    }
+    logLine(ochiriladi + " klip butunlay olib tashlanadi · "
+            + nusxaKerak + " klip ikkiga (yoki ko'proqqa) bo'linadi");
+
+    if (nusxaKerak > 0) {
+      // --- 4. Nusxalarni MONTAJDAN TASHQARIGA yasaymiz ---
+      //
+      // Bu qadam hali hech narsani buzmaydi: nusxalar montaj oxiridan
+      // keyin, bo'sh joyga tushadi. Agar API kutilgandek ishlamasa,
+      // shu yerda to'xtaymiz va montaj tegilmagan holda qoladi.
+      step = "nusxalar";
+      const oxir = secs(await seq.getEndTime());
+      const chet = oxir + 60;          // montajdan ancha narida
+      logLine("Nusxalar tekshirilmoqda…");
+
+      const editor = ppro.SequenceEditor.getEditor(seq);
+      if (typeof editor.createCloneTrackItemAction !== "function") {
+        throw new Error("Bu Premiere'da klip nusxasini olish metodi yo'q "
+                        + "(createCloneTrackItemAction). Montajning o'zini "
+                        + "qirqib bo'lmaydi — «Pauzalarni kesish» ni "
+                        + "ishlating, u XML orqali yangi sequence yasaydi.");
+      }
+
+      let joy = chet;
+      const kutilgan = [];
+      runActions(project, () => {
+        const acts = [];
+        for (const c of hammasi) {
+          for (let k = 1; k < c.qoladi.length; k++) {
+            const surish = joy - c.start;
+            acts.push(editor.createCloneTrackItemAction(
+              c.it, tickTime(ppro, surish), 0, 0, true, false));
+            kutilgan.push({ egasi: c, bolak: k, joy: joy });
+            joy += (c.end - c.start) + 5;
+          }
+        }
+        return acts;
+      }, "Nusxalar");
+
+      // Nusxalar haqiqatan paydo bo'ldimi — montajga tegishdan OLDIN
+      step = "nusxalarni tekshirish";
+      const topilgan = new Map();
+      for (let i = 0; i < vCount + aCount; i++) {
+        const audio = i >= vCount;
+        const tr = audio ? await seq.getAudioTrack(i - vCount)
+                         : await seq.getVideoTrack(i);
+        if (!tr) continue;
+        for (const it of await tr.getTrackItems(clipTypeConst(ppro), false)) {
+          const st = secs(await it.getStartTime());
+          if (st >= chet - 0.5) topilgan.set(Math.round(st * 100), it);
+        }
+      }
+      const yetmadi = kutilgan.filter(
+        (x) => !topilgan.has(Math.round(x.joy * 100)));
+      if (yetmadi.length) {
+        throw new Error(
+          kutilgan.length + " nusxa kerak edi, " + topilgan.size + " tasi "
+          + "paydo bo'ldi. Montajga tegilmadi — hammasi joyida. "
+          + "Cmd+Z bilan nusxalarni olib tashlang va «Pauzalarni kesish» ni "
+          + "ishlating.");
+      }
+      logLine(kutilgan.length + " nusxa yasaldi va tekshirildi ✓", "okline");
+      for (const x of kutilgan) {
+        x.egasi.nusxalar = x.egasi.nusxalar || {};
+        x.egasi.nusxalar[x.bolak] = topilgan.get(Math.round(x.joy * 100));
+      }
+    }
+
+    // --- 5. Har bo'lakni qirqib, yakuniy joyiga qo'yamiz ---
+    step = "bo'laklarni joylashtirish";
+    paintJob({ steps: [], step: 0, lines: [], stage: "Montaj qirqilmoqda",
+               percent: 70, overall: 70, detail: hammasi.length + " klip" });
+    let qoyildi = 0;
+    runActions(project, () => {
+      const acts = [];
+      for (const c of hammasi) {
+        for (let k = 0; k < c.qoladi.length; k++) {
+          const b = c.qoladi[k];
+          const item = k === 0 ? c.it : (c.nusxalar || {})[k];
+          if (!item) continue;
+          const manbaIn = c.in + (b.a - c.start);
+          const yangiStart = b.a - siljish(b.a, pauzalar);
+          try {
+            if (typeof item.createSetInPointAction === "function") {
+              acts.push(item.createSetInPointAction(tickTime(ppro, manbaIn)));
+              acts.push(item.createSetOutPointAction(
+                tickTime(ppro, manbaIn + (b.b - b.a))));
+            }
+            if (typeof item.createSetStartAction === "function") {
+              acts.push(item.createSetStartAction(tickTime(ppro, yangiStart)));
+              acts.push(item.createSetEndAction(
+                tickTime(ppro, yangiStart + (b.b - b.a))));
+            }
+            qoyildi++;
+          } catch (e) { /* bu bo'lak bo'lmadi — qolganini davom ettiramiz */ }
+        }
+      }
+      return acts;
+    }, "Montajni qirqish");
+
+    // --- 6. Butunlay pauzaga tushgan kliplarni olib tashlaymiz ---
+    step = "ortiqchani olib tashlash";
+    const ortiqcha = hammasi.filter((c) => !c.qoladi.length).map((c) => c.it);
+    if (ortiqcha.length) {
+      try {
+        const ed = ppro.SequenceEditor.getEditor(seq);
+        const tanlov = await bosTanlov(ppro, seq);
+        if (tanlov && typeof tanlov.addItem === "function") {
+          for (const it of ortiqcha) tanlov.addItem(it, false);
+          runActions(project, () => [ed.createRemoveItemsAction(
+            tanlov, false, mediaTuri(ppro), false)],
+            "Ortiqchani olib tashlash");
+        } else {
+          logLine(ortiqcha.length + " klipni olib tashlab bo'lmadi — "
+                  + "ularni qo'lda o'chiring", "warn");
+        }
+      } catch (e) {
+        logLine("Ortiqcha kliplar qoldi: " + (e.message || e), "warn");
+      }
+    }
+
+    logLine("");
+    logLine(qoyildi + " bo'lak joylashtirildi ✓", "okline");
+    logLine("Montaj " + jami.toFixed(1) + " soniyaga qisqardi.");
+    logLine("Yoqmasa Cmd+Z bilan qaytariladi (bir necha marta bosing — "
+            + "nusxa, qirqim va o'chirish alohida qadamlar).");
+    stopProgress(true, qoyildi + " bo'lak");
+  } catch (e) {
+    logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+}
+
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
   const text = Array.from(els.log.querySelectorAll("div"))
@@ -3134,6 +3497,19 @@ function yordamMatni(holat, izoh) {
       || t.indexOf("o'lchami o'qilmadi") >= 0) {
     return "Montaj o'lchami o'qilmadi — bu Premiere API'sining bu "
          + "versiyasidagi farq. Log'ni menga yuboring, moslashtiraman.";
+  }
+  // Joyida qirqish: nusxa bosqichida to'xtasa, montaj TEGILMAGAN bo'ladi.
+  // Buni aniq aytish kerak — aks holda odam montajim buzildimi deb
+  // qo'rqib, keraksiz Cmd+Z bosaveradi.
+  if (t.indexOf("nusxa kerak edi") >= 0
+      || t.indexOf("nusxasini olish metodi yo'q") >= 0) {
+    return "Montajga TEGILMADI — hammasi joyida. Bu Premiere versiyasida "
+         + "klip nusxalash boshqacha ishlayapti. «Natija: Yangi sequence» "
+         + "ni tanlab qayta urining, u har doim ishlaydi.";
+  }
+  if (t.indexOf("montajda klip topilmadi") >= 0) {
+    return "Ochiq montajda oddiy klip topilmadi. Yuqoridan «Ochiq "
+         + "sequence'ni olish» ni bosganingizga ishonch hosil qiling.";
   }
   if (t.indexOf("v1") >= 0 || t.indexOf("klip topilmadi") >= 0) {
     return "Eng pastki video trekda (V1) oddiy klip topilmadi. Multicam "
@@ -3412,6 +3788,131 @@ function updateRunButtons() {
 
 /* ------------------------------------------- Premiere'ga import */
 
+/* ==================================== Project panelini toza saqlash
+ *
+ * Muammo: XML import qilinganda Premiere sequence bilan birga MANBA
+ * fayllarni ham loyihaga qo'shadi. Bir epizod ustida bir necha marta
+ * ishlansa, Project panelida o'sha cam29706…cam29713 qayta-qayta paydo
+ * bo'ladi va ularni qo'lda tanlab o'chirishga to'g'ri keladi.
+ *
+ * Yechim ikki qavatli:
+ *   1) Import har doim BITTA binga tushadi — sochilmaydi;
+ *   2) «Tozalash» o'sha binni butunlay olib tashlaydi — bir bosish.
+ *
+ * Uchinchisi eng kuchlisi: Cut «Shu montajda» rejimida umuman import
+ * qilinmaydi, ya'ni tozalanadigan narsaning o'zi paydo bo'lmaydi.
+ */
+const SUITE_BIN = "Podcast Suite";
+
+async function suiteBini(project) {
+  // Bor bo'lsa topamiz, yo'q bo'lsa yasaymiz. Topilmasa ham ish
+  // to'xtamasin — null qaytsa, import eski yo'l bilan ketaveradi.
+  try {
+    const ppro = require("premierepro");
+    const root = await project.getRootItem();
+    if (!root || typeof root.getItems !== "function") return null;
+
+    const qidir = async () => {
+      for (const it of await root.getItems()) {
+        if (it && it.name === SUITE_BIN) {
+          return (ppro.FolderItem && typeof ppro.FolderItem.cast === "function")
+            ? (ppro.FolderItem.cast(it) || it) : it;
+        }
+      }
+      return null;
+    };
+
+    const bor = await qidir();
+    if (bor) return bor;
+    if (typeof root.createBinAction !== "function") return null;
+
+    // makeUnique = false: har safar «Podcast Suite 2», «3» chiqmasin.
+    // Amal runActions orqali yasaladi — createBinAction lockedAccess
+    // ichida chaqirilmasa, Premiere obyektni «no longer valid» deb rad etadi.
+    runActions(project, () => [root.createBinAction(SUITE_BIN, false)],
+               "Podcast Suite bini");
+    return await qidir();
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Ikki bosishli tasdiq: birinchi bosishda nima o'chishi aytiladi,
+   ikkinchisida o'chiriladi. Undo tarixidan tashqaridagi ishni bir
+   tasodifiy bosish bilan qilib qo'ymaslik uchun. */
+let tozalashTasdiq = 0;
+
+async function tozalash() {
+  let soralmoqda = false;   // tasdiq so'ralgan bo'lsa, holatni tiklamaymiz
+  try {
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    if (!project) throw new Error("Ochiq loyiha yo'q");
+    const root = await project.getRootItem();
+    if (!root || typeof root.getItems !== "function") {
+      throw new Error("Project paneli o'qilmadi");
+    }
+
+    let bin = null;
+    for (const it of await root.getItems()) {
+      if (it && it.name === SUITE_BIN) { bin = it; break; }
+    }
+    if (!bin) {
+      logOchi(true);
+      logLine("«" + SUITE_BIN + "» bini yo'q — tozalanadigan narsa topilmadi.",
+              "okline");
+      logLine("Cut «Shu montajda» rejimida ishlasa, Project paneliga hech "
+              + "narsa qo'shilmaydi — shuning uchun bin ham yasalmaydi.");
+      tozalashTasdiq = 0;
+      return;
+    }
+
+    let soni = 0;
+    try {
+      const papka = (ppro.FolderItem && typeof ppro.FolderItem.cast === "function")
+        ? ppro.FolderItem.cast(bin) : null;
+      if (papka && typeof papka.getItems === "function") {
+        soni = (await papka.getItems()).length;
+      }
+    } catch (e) { /* sonini bilmasak ham o'chira olamiz */ }
+
+    if (tozalashTasdiq !== 1) {
+      tozalashTasdiq = 1;
+      soralmoqda = true;
+      logOchi(true);
+      logLine("«" + SUITE_BIN + "» bini va ichidagi hamma narsa o'chiriladi"
+              + (soni ? " (" + soni + " element)" : "") + ".", "warn");
+      logLine("Ichida plagin yasagan sequence'lar ham bor — ular kerak "
+              + "bo'lsa, avval Project panelida binidan tashqariga sudrab "
+              + "chiqaring.");
+      logLine("Tasdiqlash uchun «Tozalash» ni yana bir bosing.");
+      if (els.tozalaBtn) els.tozalaBtn.textContent = "Rostdan o'chirilsinmi?";
+      return;
+    }
+
+    if (typeof root.createRemoveItemAction !== "function") {
+      throw new Error("Bu Premiere versiyasida bin o'chirish metodi yo'q — "
+                      + "Project panelida binni tanlab Delete bosing");
+    }
+    runActions(project, () => [root.createRemoveItemAction(bin)],
+               "Podcast Suite binini tozalash");
+
+    logOchi(true);
+    logLine("«" + SUITE_BIN + "» tozalandi ✓", "okline");
+    logLine("Yangi montajga o'tishingiz mumkin. Yoqmasa Cmd+Z.");
+  } catch (e) {
+    logOchi(true);
+    logLine("Tozalanmadi: " + (e.message || e), "warn");
+    logLine("Qo'lda: Project panelida «" + SUITE_BIN + "» binini tanlab "
+            + "Delete bosing.");
+  } finally {
+    if (!soralmoqda) {
+      tozalashTasdiq = 0;
+      if (els.tozalaBtn) els.tozalaBtn.textContent = "Tozalash";
+    }
+  }
+}
+
 async function doImport() {
   if (!lastXml) return;
   try {
@@ -3426,9 +3927,17 @@ async function doImport() {
       before = (await project.getSequences()).map((s) => s.guid.toString());
     } catch (e) { /* eski API — pastda nom bo'yicha qidiramiz */ }
 
+    // Hamma import bitta binga tushadi — keyin «Tozalash» shu binni
+    // butunlay olib tashlaydi. Ilgari har import manba fayllarni
+    // Project panelining ildiziga sochib yuborardi va ular ishdan-ishga
+    // to'planib borardi.
+    const bin = await suiteBini(project);
+
     // importFiles(filePaths, suppressUI, targetBin, asNumberedStills) — 25.6+
-    await project.importFiles([lastXml], true);
-    logLine("Sequence loyihaga qo'shildi ✓", "okline");
+    if (bin) await project.importFiles([lastXml], true, bin);
+    else await project.importFiles([lastXml], true);
+    logLine(bin ? "Sequence «" + SUITE_BIN + "» binga qo'shildi ✓"
+                : "Sequence loyihaga qo'shildi ✓", "okline");
 
     // Yangi sequence'ni topib, darhol ochamiz — qo'lda qidirish shart bo'lmasin
     try {
@@ -3459,7 +3968,24 @@ on(els.diagBtn, showDiagnostics);
 on(els.updBtn, doUpdate);
 on(els.pick, pickFiles);
 on(els.syncBtn, function () { run("sync"); });
-on(els.cutBtn, function () { run("cut"); });
+on(els.cutBtn, function () {
+  // «Joyida» rejim faqat ochiq montaj o'qilgan bo'lsa mumkin: qirqiladigan
+  // klip Premiere ichida turishi kerak. Fayllar qo'lda tanlangan bo'lsa
+  // qirqadigan montajning o'zi yo'q — buni jim o'tkazib yubormaymiz.
+  if (cutRejim === "joyida") {
+    if (!timeline) {
+      els.log.innerHTML = ""; logOchi(true);
+      logLine("Montajning o'zini qirqish uchun avval «Ochiq sequence'ni "
+              + "olish» ni bosing.", "warn");
+      logLine("Yoki «Natija: Yangi sequence» ni tanlang — u qo'lda "
+              + "tanlangan fayllardan ham ishlaydi.");
+      return;
+    }
+    montajniQirqish();
+    return;
+  }
+  run("cut");
+});
 on(els.switchBtn, function () { run("switch"); });
 on(els.capBtn, function () { run("captions"); });
 on(els.sampleBtn, function () { run("sample"); });
@@ -3491,6 +4017,7 @@ on(els.seqBtn, readSequence);
 on(els.matnAdd, addMatn);
 on(els.matnBtn, runMatn);
 on(els.importBtn, doImport);
+on(els.tozalaBtn, tozalash);
 
 setupTabs();
 setupKnobs();
@@ -3538,6 +4065,7 @@ if (els.trSearch && els.trSearch.addEventListener) {
   els.trSearch.addEventListener("input", function () { trRender(els.trSearch.value); });
 }
 document.body.className = "tab-sync";
+cutRejimKorsat();
 applyTabText();
 checkMotor().then(function (ok) { if (ok) { checkUpdates(); loadFonts(); } });
 setInterval(checkMotor, 5000);
