@@ -253,9 +253,35 @@ function qirqishMuhiti(q) {
     return o;
   }
 
+  /* Keyframe parametri (Position/Opacity). Qiymat har getValue()da
+     YANGI obyekt bo'lib qaytadi — haqiqiy Premiere ham shunday, va
+     panel shunga tayanadi (bir nusxani o'zgartirib ikkitasini buzmaslik). */
+  function fxParam(qiymat, nuqtami) {
+    const o = { _tv: false, _keys: [] };
+    o.getValue = async () => (nuqtami ? { x: qiymat.x, y: qiymat.y } : qiymat);
+    o.isTimeVarying = async () => o._tv;
+    o.createSetTimeVaryingAction = (b) => ({ bajar() { o._tv = b; if (!b) o._keys = []; } });
+    o.createSetValueAtKeyframeAction = (t, v, ui) => ({
+      bajar() { o._keys.push({ t: t.seconds, v: v }); } });
+    o.createSetValueAction = (v) => ({ bajar() {} });
+    return o;
+  }
+
   // Bitta bog'langan juft: V1 da video, A1 da uning ovozi
   treklarV[0].push(klip(0, 30, 0, false, "/m/a.mp4"));
   treklarA[0].push(klip(0, 30, 0, true, "/m/a.mp4"));
+
+  // FX sinovi uchun: video klipga Motion(Position) va Opacity komponentlari
+  const vKlip = treklarV[0][0];
+  vKlip._pos = fxParam({ x: 0.5, y: 0.5 }, true);
+  vKlip._op = fxParam(100, false);
+  vKlip.getOutPoint = async () => ({ seconds: vKlip.end - vKlip.start + vKlip.in });
+  vKlip.getComponentChain = async () => ({
+    getComponentCount: async () => 2,
+    getComponentAtIndex: async (i) => (i === 0
+      ? { getParam: async (n) => (n === "Opacity" ? vKlip._op : null) }
+      : { getParam: async (n) => (n === "Position" ? vKlip._pos : null) }),
+  });
 
   const seq = {
     name: "Sinov",
@@ -268,7 +294,8 @@ function qirqishMuhiti(q) {
     getEndTime: async () => ({ seconds: 30 }),
     getSelection: async () => ({
       _x: [], addItem(it) { this._x.push(it); return true; },
-      removeItem() { return true; }, getTrackItems: async () => [] }),
+      removeItem() { return true; },
+      getTrackItems: async () => (q.fxTanlov ? [treklarV[0][0]] : []) }),
     clearSelection: async () => true,
   };
 
@@ -685,6 +712,69 @@ async function sinov(nomi, qurilish, reja, tekshir) {
     }
     console.log("  \u2717 amal rad etilsa: " + r);
     return 0;
+  })();
+
+  /* ───────────── FX fade-up: boshdan-oxir
+   * Tanlangan klipga Position (nuqta) va Opacity keyframe'lari to'g'ri
+   * vaqtga, to'g'ri qiymat bilan tushishini tekshiradi. */
+  jami++; ok += await (async () => {
+    for (const k of Object.keys(kesh)) delete kesh[k];
+    const m = qirqishMuhiti({ fxTanlov: true });
+    const g = muhit({}, {});
+    const aslRequire = g.require;
+    g.require = (mod) => (mod === "premierepro" ? m.ppro : aslRequire(mod));
+    const ctx = vm.createContext(g);
+    try { vm.runInContext(KOD, ctx, { filename: "main.js" }); }
+    catch (e) { console.log("  \u2717 fx fade-up: kod yuklanmadi — " + e.message); return 0; }
+
+    // Slayder qiymatlari: 0.5s, 24px
+    kesh.kFxDur.value = "5";
+    kesh.kFxDist.value = "24";
+
+    try { await ctx.fadeUpQollash(); }
+    catch (e) { console.log("  \u2717 fx fade-up: ISHLAB TURGANDA XATO — " + e.message); return 0; }
+
+    const log = logMatni();
+    if (log.indexOf("To'xtadi") >= 0) {
+      console.log("  \u2717 fx fade-up: to'xtadi — " + log.split("To'xtadi")[1].slice(0, 100));
+      return 0;
+    }
+    const klip = m.treklarV[0][0];
+    const pos = klip._pos, op = klip._op;
+    if (!pos._tv || !op._tv) {
+      console.log("  \u2717 fx fade-up: time-varying yoqilmadi");
+      return 0;
+    }
+    if (pos._keys.length !== 2 || op._keys.length !== 2) {
+      console.log("  \u2717 fx fade-up: keyframe soni " + pos._keys.length
+                  + "/" + op._keys.length + ", kutilgan 2/2");
+      return 0;
+    }
+    // Position: boshi pastda (0.5 + 24/1080), oxiri markazda
+    const pA = pos._keys[0], pB = pos._keys[1];
+    if (Math.abs(pA.v.y - (0.5 + 24 / 1080)) > 1e-6 || Math.abs(pB.v.y - 0.5) > 1e-6) {
+      console.log("  \u2717 fx fade-up: Position qiymatlari noto'g'ri: "
+                  + pA.v.y + " / " + pB.v.y);
+      return 0;
+    }
+    // Ikkala keyframe qiymati BIR obyekt bo'lib qolmagan bo'lsin
+    if (pA.v === pB.v) {
+      console.log("  \u2717 fx fade-up: ikkala keyframe bitta obyektga bog'langan");
+      return 0;
+    }
+    // Opacity: 0 dan 100 ga, harakatdan OLDIN (0.65 * 0.5 = 0.325s) tugaydi
+    const oA = op._keys[0], oB = op._keys[1];
+    if (oA.v !== 0 || oB.v !== 100) {
+      console.log("  \u2717 fx fade-up: Opacity qiymatlari " + oA.v + "→" + oB.v);
+      return 0;
+    }
+    if (Math.abs(oB.t - 0.325) > 1e-6 || Math.abs(pB.t - 0.5) > 1e-6) {
+      console.log("  \u2717 fx fade-up: vaqtlar noto'g'ri — opacity "
+                  + oB.t + "s (kutilgan 0.325), position " + pB.t + "s (0.5)");
+      return 0;
+    }
+    console.log("  \u2713 fx fade-up: keyframe'lar to'g'ri, fade harakatdan oldin tugaydi");
+    return 1;
   })();
 
   jami++; ok += await (async () => {

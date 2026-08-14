@@ -258,7 +258,7 @@
   /* Cut sozlamalari — faqat Cut tabida ko'rinadi */
   .knobs { display: none; margin-bottom: 12px; }
   body.tab-cut #cutKnobs, body.tab-switch #switchKnobs,
-  body.tab-captions #capKnobs { display: block; }
+  body.tab-captions #capKnobs, body.tab-fx #fxKnobs { display: block; }
   #capTip { display: none; }
   body.tab-captions #capTip { display: block; }
   body:not(.tab-captions) #capBtn, body:not(.tab-captions) #sampleBtn { display: none; }
@@ -431,6 +431,17 @@
   body.tab-captions .seqpick b { color: #E9A8CB; }
   .seqpick span { color: #8E909C; font-size: 12px; }
   body.tab-cut #syncBtn, body:not(.tab-cut) #cutBtn { display: none; }
+  /* FX yorlig'i: fayl tanlash ham, motor ham kerak emas — faqat
+     timeline'dagi tanlov bilan ishlaydi */
+  body.tab-fx #pick, body.tab-fx #files, body.tab-fx #seqBtn,
+  body.tab-fx #trImport, body.tab-fx #capTip,
+  body.tab-fx #syncBtn, body.tab-fx #cutBtn, body.tab-fx #switchBtn,
+  body.tab-fx #shortsBtn, body.tab-fx #shortsBuildBtn,
+  body.tab-fx #markerBtn, body.tab-fx #trBtn, body.tab-fx #harBtn,
+  body.tab-fx #introBtn, body.tab-fx #reviewBtn, body.tab-fx #buildBtn,
+  body.tab-fx #sampleBtn, body.tab-fx #capBtn, body.tab-fx #srtBtn,
+  body.tab-fx #matnBtn, body.tab-fx #importBtn { display: none; }
+  body:not(.tab-fx) #fxBtn { display: none; }
   /* Montaj joyida qirqilsa XML yozilmaydi — import qiladigan narsa yo'q */
   body.tab-cut.cut-joyida #importBtn { display: none; }
   .knobs label {
@@ -552,6 +563,7 @@
     <div class="tab" data-tab="switch">Switch</div>
     <div class="tab" data-tab="intro">Intro</div>
     <div class="tab" data-tab="captions">Captions</div>
+    <div class="tab" data-tab="fx">FX</div>
   </div>
 
   <div class="body">
@@ -610,6 +622,21 @@
       <label>Chetga zaxira
         <input type="range" id="kPadding" min="0" max="50" value="12">
         <span id="vPadding">120 ms</span>
+      </label>
+    </div>
+
+    <div class="knobs" id="fxKnobs">
+      <p class="tip">Timeline'da matn/grafika klip(lar)ini belgilang —
+        har biriga <b>pastdan suzib chiqish + fade</b> tushadi. Matn avval
+        ko'rinib bo'ladi (fade harakatdan oldin tugaydi), keyin joyiga
+        «o'tirib» tugatadi. Yoqmasa Cmd+Z.</p>
+      <label>Davomiylik
+        <input type="range" id="kFxDur" min="2" max="20" value="5">
+        <span id="vFxDur">0.5 s</span>
+      </label>
+      <label>Masofa (pastdan)
+        <input type="range" id="kFxDist" min="0" max="100" value="24">
+        <span id="vFxDist">24 px</span>
       </label>
     </div>
 
@@ -901,6 +928,7 @@
     <button class="btn primary" id="sampleBtn" disabled>2 daqiqani sinash</button>
     <button class="btn primary" id="capBtn" disabled>To'liq transkripsiya</button>
     <button class="btn primary" id="srtBtn">Subtitr yasash</button>
+    <button class="btn primary" id="fxBtn">Tanlanganlarga qo'llash</button>
     <button class="btn primary" id="matnBtn">Matnlarni yasash</button>
     <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
     <span class="hint" id="hint">0 fayl</span>

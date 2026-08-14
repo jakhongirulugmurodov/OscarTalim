@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 20:20";
+const PANEL_BUILD = "14-Avg 21:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -94,6 +94,7 @@ const els = {
   pickHint: el("pickHint"),
   importBtn: el("importBtn"),
   tozalaBtn: el("tozalaBtn"),
+  fxBtn: el("fxBtn"),
   hint: el("hint"),
   diagBtn: document.getElementById("diagBtn"),
   updBtn: el("updBtn"),
@@ -408,6 +409,10 @@ const TAB_TEXT = {
     seqHint: "kadrlar shu montajdan o'qiladi",
     next: "Endi «Harakat qo'shish» ni bosing",
   },
+  fx: {
+    pick: "timeline'da matn/grafika klip(lar)ini belgilang",
+    next: "Kliplarni belgilab «Tanlanganlarga qo'llash» ni bosing",
+  },
   matn: {
     pick: "matnlarni quyida yozasiz — fayl tanlash shart emas",
     next: "Matn yozib, vaqtini bering va «Matnlarni yasash» ni bosing",
@@ -471,6 +476,10 @@ const knobs = {
              fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
   maxShot: { el: el("kMaxShot"), out: el("vMaxShot"),
              fmt: (v) => v + " s", val: (v) => v },
+  fxDur: { el: el("kFxDur"), out: el("vFxDur"),
+           fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
+  fxDist: { el: el("kFxDist"), out: el("vFxDist"),
+            fmt: (v) => v + " px", val: (v) => v },
 };
 
 /* Ovoz qat'iyligi — «jimlik chegarasi 0.18» degan son o'rniga. Chegarani
@@ -3702,6 +3711,177 @@ async function montajniQirqish() {
   }
 }
 
+/* ================================================= FX: fade-up
+ *
+ * Tanlangan kliplarga «pastdan suzib chiqish» animatsiyasi: Position
+ * pastdan o'z joyiga suzib keladi, Opacity 0 dan to'liq qiymatgacha —
+ * ataylab harakatdan OLDIN (davomiylikning 65% ida) tugaydi: matn avval
+ * ko'rinib bo'ladi, keyin joyiga «o'tirib» tugatadi.
+ *
+ * Motor kerak emas — hammasi Premiere ichida. Keyframe mashinasi
+ * (keyframeUsuli, runActions) Harakat modulida haqiqiy Premiere'da
+ * sinalgan; yangilik faqat Position qiymati — u son emas, nuqta,
+ * shuning uchun qiymat parametrdan O'QIB olinadi va nusxasi
+ * o'zgartiriladi (formatini taxmin qilmaymiz).
+ */
+async function fadeUpQollash() {
+  songgiIsh = { nomi: "Qayta urinish", fn: fadeUpQollash };
+  els.log.innerHTML = ""; logOchi(false);
+  startProgress("Tanlov o'qilmoqda…");
+  let step = "boshlanish";
+  try {
+    const ppro = require("premierepro");
+    const project = await ppro.Project.getActiveProject();
+    if (!project) throw new Error("Ochiq loyiha yo'q");
+    const seq = await project.getActiveSequence();
+    if (!seq) throw new Error("Ochiq sequence yo'q — montajni oching");
+
+    step = "tanlovni o'qish";
+    const tanlov = await seq.getSelection();
+    const items = (tanlov && typeof tanlov.getTrackItems === "function")
+      ? await tanlov.getTrackItems() : [];
+    if (!items || !items.length) {
+      throw new Error("Timeline'da klip tanlanmagan — matn/grafika "
+                      + "klip(lar)ini belgilab, qayta bosing");
+    }
+
+    const dur = knobs.fxDur.val(+knobs.fxDur.el.value);
+    const px = knobs.fxDist.val(+knobs.fxDist.el.value);
+    if (!(dur > 0)) throw new Error("Davomiylik musbat bo'lishi kerak");
+
+    step = "parametrlarni topish";
+    const tayyor = [];
+    let otkazildi = 0, sabab = "";
+    for (const item of items) {
+      // Ovoz kliplarida komponent zanjiri yo'q — jim emas, sanab o'tamiz
+      if (typeof item.getComponentChain !== "function") { otkazildi++; continue; }
+      try {
+        const chain = await item.getComponentChain();
+        const cnt = await chain.getComponentCount();
+        let pos = null, op = null;
+        for (let c = 0; c < cnt && (!pos || !op); c++) {
+          const comp = await chain.getComponentAtIndex(c);
+          if (!pos) { try { pos = await comp.getParam("Position"); } catch (e) { pos = null; } }
+          if (!op) { try { op = await comp.getParam("Opacity"); } catch (e) { op = null; } }
+        }
+        if (!pos || !op) {
+          otkazildi++;
+          if (!sabab) sabab = "Position/Opacity topilmadi";
+          continue;
+        }
+
+        // Ikki ALOHIDA qiymat obyekti kerak: bittasini o'zgartirganda
+        // ikkinchisi (yakuniy joy) o'z holida qolsin
+        const posA = await pos.getValue();
+        const posB = await pos.getValue();
+        const dy = px / 1080;   // Position 0..1 normalized, 1080 bo'yiga nisbatan
+        if (posA && typeof posA.y === "number") posA.y += dy;
+        else if (posA && typeof posA[1] === "number") posA[1] += dy;
+        else if (px > 0) {
+          otkazildi++;
+          if (!sabab) sabab = "Position qiymati notanish formatda";
+          continue;
+        }
+
+        // Yakuniy opacity — klipning hozirgisi (odatda 100). O'qilmasa 100.
+        let opTola = 100;
+        try {
+          const v = await op.getValue();
+          if (typeof v === "number" && v > 0) opTola = v;
+        } catch (e) { /* 100 qoladi */ }
+
+        // Keyframe vaqti MANBA o'qida: tezligi o'zgartirilgan klipda
+        // timeline soniyasi bilan manba soniyasi teng emas — bu Harakat
+        // modulida haqiqiy montajda tekshirilgan
+        const inSec = secs(await item.getInPoint());
+        let tezlik = 1;
+        try {
+          const st = secs(await item.getStartTime());
+          const en = secs(await item.getEndTime());
+          const out = secs(await item.getOutPoint());
+          if (en > st && out > inSec) tezlik = (out - inSec) / (en - st);
+        } catch (e) { /* 1 qoladi */ }
+
+        const uPos = keyframeUsuli(pos), uOp = keyframeUsuli(op);
+        if (!uPos.qoy || !uPos.vaqtli || !uOp.qoy || !uOp.vaqtli) {
+          otkazildi++;
+          if (!sabab) sabab = "bu Premiere'da keyframe metodi yo'q";
+          continue;
+        }
+
+        // Qayta bosilsa keyframe ustiga keyframe yig'ilmasin
+        for (const p of [pos, op]) {
+          try {
+            if (typeof p.isTimeVarying === "function" && await p.isTimeVarying()) {
+              runActions(project, () => [p.createSetTimeVaryingAction(false)],
+                         "Eski keyframe'larni tozalash");
+            }
+          } catch (e) { /* tozalanmasa — ustiga yozamiz */ }
+        }
+
+        tayyor.push({ pos: pos, op: op, uPos: uPos, uOp: uOp,
+                      posA: posA, posB: posB, opTola: opTola,
+                      t0: inSec, t1: inSec + dur * tezlik,
+                      tOp: inSec + dur * 0.65 * tezlik });
+      } catch (e) {
+        otkazildi++;
+        if (!sabab) sabab = (e.message || String(e)).slice(0, 60);
+      }
+    }
+    if (!tayyor.length) {
+      throw new Error("Birorta tanlangan klipga qo'llab bo'lmadi"
+                      + (sabab ? " — " + sabab : "")
+                      + ". Matn/grafika klipini tanlang.");
+    }
+
+    // Hammasi BITTA tranzaksiyada — bekor qilish bitta Cmd+Z
+    step = "yozish";
+    const yozildi = runActions(project, () => {
+      const acts = [];
+      for (const t of tayyor) {
+        acts.push(t.pos[t.uPos.vaqtli](true));
+        acts.push(t.pos[t.uPos.qoy](tickTime(ppro, t.t0), t.posA, true));
+        acts.push(t.pos[t.uPos.qoy](tickTime(ppro, t.t1), t.posB, true));
+        acts.push(t.op[t.uOp.vaqtli](true));
+        acts.push(t.op[t.uOp.qoy](tickTime(ppro, t.t0), 0, true));
+        acts.push(t.op[t.uOp.qoy](tickTime(ppro, t.tOp), t.opTola, true));
+      }
+      return acts;
+    }, "Fade-up animatsiya");
+    if (yozildi === false) {
+      throw new Error("Premiere o'zgarishlarni qabul qilmadi (tranzaksiya "
+                      + "rad etildi) — montaj o'zgarmagan. Qayta urining.");
+    }
+
+    // Haqiqatan yozildimi — birinchi klipdan o'qib tekshiramiz.
+    // «Amal o'tdi» degani «keyframe bor» degani emas — bu saboq
+    // joyida qirqishda ikki marta achchiq tasdiqlangan.
+    step = "tekshirish";
+    if (typeof tayyor[0].pos.isTimeVarying === "function") {
+      let bormi = false;
+      try { bormi = await tayyor[0].pos.isTimeVarying(); } catch (e) { bormi = true; }
+      if (!bormi) {
+        throw new Error("Keyframe yozilmadi (parametr time-varying "
+                        + "bo'lmadi) — montaj o'zgarmagan bo'lishi mumkin. "
+                        + "Log'ni yuboring.");
+      }
+    }
+
+    logLine(tayyor.length + " klipga fade-up qo'yildi ✓", "okline");
+    if (otkazildi) {
+      logLine(otkazildi + " klip o'tkazib yuborildi"
+              + (sabab ? " — " + sabab : ""), "warn");
+    }
+    logLine("Davomiylik " + dur.toFixed(1) + "s · masofa " + px + "px · "
+            + "fade " + (dur * 0.65).toFixed(2) + "s da tugaydi");
+    logLine("Yoqmasa bitta Cmd+Z bilan qaytariladi.");
+    stopProgress(true, tayyor.length + " klip");
+  } catch (e) {
+    logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");
+    stopProgress(false, (e.message || "").slice(0, 90));
+  }
+}
+
 /* Log matnini menga yuborish oson bo'lsin: avval buferga, bo'lmasa faylga */
 async function copyLog() {
   const text = Array.from(els.log.querySelectorAll("div"))
@@ -4365,6 +4545,7 @@ on(els.matnAdd, addMatn);
 on(els.matnBtn, runMatn);
 on(els.importBtn, doImport);
 on(els.tozalaBtn, tozalash);
+on(els.fxBtn, fadeUpQollash);
 
 setupTabs();
 setupKnobs();
