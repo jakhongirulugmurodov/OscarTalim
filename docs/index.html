@@ -165,6 +165,10 @@
     background: var(--white); color: var(--primary); border: 1.5px solid #bfdbfe;
     box-shadow: none;
   }
+  button.stop {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    box-shadow: 0 8px 20px -8px rgba(220,38,38,.5);
+  }
 
   /* ===== Jarayon ===== */
   .progress-wrap {
@@ -332,7 +336,7 @@
       </div>
     </details>
 
-    <button id="startBtn" onclick="boshla()">✨ Transkripsiya qilish</button>
+    <button id="startBtn" onclick="tugmaBosildi()">✨ Transkripsiya qilish</button>
     <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
     <div id="status"></div>
   </div>
@@ -543,12 +547,38 @@ function toast(msg) {
   t._timer = setTimeout(() => t.classList.remove("show"), 2200);
 }
 
+/* ===== Bekor qilish boshqaruvi ===== */
+let ishlayapti = false;
+let bekorQilindi = false;
+let joriyAbort = null;  // fetch so'rovlari uchun
+let joriyXhr = null;    // yuklash XHR
+let joriyFF = null;     // ffmpeg nusxasi
+
+function tugmaBosildi() {
+  if (ishlayapti) bekorQil();
+  else boshla();
+}
+
+function bekorQil() {
+  bekorQilindi = true;
+  try { joriyAbort?.abort(); } catch (e) { /* e'tiborsiz */ }
+  try { joriyXhr?.abort(); } catch (e) { /* e'tiborsiz */ }
+  try { joriyFF?.terminate(); } catch (e) { /* e'tiborsiz */ }
+}
+
+function tugmaHolati(ish) {
+  const b = $("startBtn");
+  b.textContent = ish ? "⏹ Bekor qilish" : "✨ Transkripsiya qilish";
+  b.classList.toggle("stop", ish);
+}
+
 /* ===== Gemini so'rovlari ===== */
 async function generate(key, model, parts) {
   for (let urinish = 1; urinish <= 3; urinish++) {
     try {
       const r = await fetch(`${API}/v1beta/models/${model}:generateContent?key=${key}`, {
         method: "POST",
+        signal: joriyAbort?.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts }],
@@ -567,7 +597,7 @@ async function generate(key, model, parts) {
       seglar.forEach(s => { s.start = soniyaga(s.start); s.end = soniyaga(s.end); });
       return seglar;
     } catch (e) {
-      if (urinish === 3) throw e;
+      if (bekorQilindi || e.name === "AbortError" || urinish === 3) throw e;
       holat(`Xato (${e.message}), qayta urinilmoqda ${urinish}/3...`, false, true);
       await new Promise(res => setTimeout(res, 2000 * urinish));
     }
@@ -577,6 +607,7 @@ async function generate(key, model, parts) {
 async function faylYuklash(key, file) {
   const start = await fetch(`${API}/upload/v1beta/files?key=${key}`, {
     method: "POST",
+    signal: joriyAbort?.signal,
     headers: {
       "X-Goog-Upload-Protocol": "resumable",
       "X-Goog-Upload-Command": "start",
@@ -592,7 +623,9 @@ async function faylYuklash(key, file) {
 
   let info = (await new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
+    joriyXhr = x;
     x.open("POST", uploadUrl);
+    x.onabort = () => reject(new Error("bekor qilindi"));
     x.setRequestHeader("X-Goog-Upload-Command", "upload, finalize");
     x.setRequestHeader("X-Goog-Upload-Offset", "0");
     x.upload.onprogress = e => {
@@ -610,10 +643,11 @@ async function faylYuklash(key, file) {
   })).file;
 
   while (info.state === "PROCESSING") {
+    if (bekorQilindi) throw new Error("bekor qilindi");
     jarayon("indet");
     holat("Google faylni qayta ishlamoqda...", false, true);
     await new Promise(res => setTimeout(res, 3000));
-    const r = await fetch(`${API}/v1beta/${info.name}?key=${key}`);
+    const r = await fetch(`${API}/v1beta/${info.name}?key=${key}`, { signal: joriyAbort?.signal });
     info = await r.json();
   }
   if (info.state === "FAILED") throw new Error("Google faylni qabul qilmadi");
@@ -647,6 +681,7 @@ async function audioAjrat(file) {
   const { FFmpeg } = FFmpegWASM;
   const { toBlobURL } = FFmpegUtil;
   const ff = new FFmpeg();
+  joriyFF = ff;
   await ff.load({
     coreURL: await toBlobURL(CORE_BASE + "/ffmpeg-core.js", "text/javascript"),
     wasmURL: await toBlobURL(CORE_BASE + "/ffmpeg-core.wasm", "application/wasm"),
@@ -663,6 +698,7 @@ async function audioAjrat(file) {
     if (!data.length) throw new Error("audio bo'sh chiqdi");
     return new File([data], out, { type: webm ? "audio/webm" : "audio/mp4" });
   } finally {
+    joriyFF = null;
     try { ff.terminate(); } catch (e) { /* e'tiborsiz */ }
   }
 }
@@ -685,7 +721,10 @@ async function boshla() {
   }
   localStorage.setItem("gemini_key", key);
 
-  $("startBtn").disabled = true;
+  ishlayapti = true;
+  bekorQilindi = false;
+  joriyAbort = new AbortController();
+  tugmaHolati(true);
   $("resultCard").style.display = "none";
   try {
     let mediaPart, videoMi;
@@ -702,7 +741,11 @@ async function boshla() {
           holat(`Audio ajratildi: ${(yubor.size / 1048576).toFixed(1)} MB ` +
                 `(${(file.size / 1048576).toFixed(0)} MB video o'rniga)`, false, true);
         } catch (e) {
+          if (bekorQilindi) throw e;
           console.warn("Audio ajratib bo'lmadi, video to'liq yuboriladi:", e);
+          holat(`⚠️ Audio ajratib bo'lmadi (sabab: ${e.message}).\n` +
+                `Video to'liq yuboriladi — sekinroq, lekin ishlayveradi.`, false, true);
+          await new Promise(res => setTimeout(res, 3500));
           yubor = file;
         }
       }
@@ -745,6 +788,12 @@ async function boshla() {
     holat(`Tayyor: ${seglar.length} segment. ✅`);
     toast("Tayyor! Tarixga saqlandi 📚");
   } catch (e) {
+    if (bekorQilindi) {
+      jarayon(null);
+      holat("Bekor qilindi. Hamma sozlama joyida — xohlaganda qayta boshlang.");
+      toast("Bekor qilindi ⏹");
+      return;
+    }
     let msg = "Xato: " + e.message;
     if (/Cannot fetch content/i.test(e.message)) {
       msg = "Gemini bu havoladagi videoni ocholmadi. Havola ochiq (public) YouTube " +
@@ -756,7 +805,10 @@ async function boshla() {
     }
     holat(msg, true);
   } finally {
-    $("startBtn").disabled = false;
+    ishlayapti = false;
+    joriyAbort = null;
+    joriyXhr = null;
+    tugmaHolati(false);
   }
 }
 
