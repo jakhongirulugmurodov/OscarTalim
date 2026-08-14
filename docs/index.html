@@ -210,6 +210,10 @@
     padding: 2px 8px; border-radius: 999px; margin-bottom: 4px;
   }
   .seg .text { font-size: .95rem; }
+  .pauza {
+    text-align: center; font-size: .72rem; color: #94a3b8; font-weight: 600;
+    margin: 2px 0; letter-spacing: .02em;
+  }
   #natijaNom {
     font-size: .82rem; color: var(--muted); margin: 0 0 10px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -347,6 +351,7 @@
     <div>
       <button class="small" onclick="yuklab('srt')">⬇ SRT</button>
       <button class="small" onclick="yuklab('txt')">⬇ TXT</button>
+      <button class="small" onclick="yuklab('json')">⬇ JSON</button>
       <button class="small ghost" onclick="nusxala(true)">🕐 Timecode bilan</button>
       <button class="small ghost" onclick="nusxala(false)">📋 Faqat matn</button>
     </div>
@@ -489,10 +494,14 @@ function prompt1(yozuv, rejim) {
   const segmentQoida = rejim === "nozik"
     ? `3. Segmentlash NOZIK bo'lsin: har bir tinish belgisida (nuqta, vergul,
    so'roq, undov, ikki nuqta) yangi segment boshla — uzun gap o'rtasidagi
-   vergulda ham. MUHIM ISTISNO: segment kamida 3 ta so'zdan iborat bo'lishi
-   shart. Agar tinish belgisigacha 1-2 ta so'z chiqsa, alohida segment
-   qilma — oldingi yoki keyingi bo'lakka qo'shib yoz.`
-    : `3. Har bir segment 3-8 soniya bo'lsin — caption uchun qulay uzunlikda.`;
+   vergulda ham. Nutqda 0.4 soniyadan uzun pauza bo'lsa, o'sha yerda ham
+   albatta segment tugat: pauza hech qachon segment ichida qolmasin,
+   segmentning "end" vaqti so'z tugagan paytda bo'lsin, pauzani qo'shma.
+   MUHIM ISTISNO: segment kamida 3 ta so'zdan iborat bo'lishi shart.
+   Agar tinish belgisigacha 1-2 ta so'z chiqsa, alohida segment qilma —
+   oldingi yoki keyingi bo'lakka qo'shib yoz.`
+    : `3. Har bir segment 3-8 soniya bo'lsin — caption uchun qulay uzunlikda.
+   Segmentning "end" vaqti so'z tugagan paytda bo'lsin — pauzani qo'shma.`;
   return `Sen o'zbek tili bo'yicha professional transkripsiya mutaxassisisan.
 Berilgan video/audiodagi barcha nutqni to'liq va so'zma-so'z matnga o'tkaz.
 
@@ -500,8 +509,10 @@ Qoidalar:
 1. Matnni ${y} yozuvida yoz.
 2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz.
 ${segmentQoida}
-4. "start" va "end" — video boshidan hisoblangan vaqt, "MM:SS" formatida
-   (masalan "00:07", "01:23"; bir soatdan uzun bo'lsa "H:MM:SS").
+4. "start" va "end" — video boshidan hisoblangan vaqt, "MM:SS.mmm"
+   formatida, millisekund bilan (masalan "00:07.250", "01:23.900";
+   bir soatdan uzun bo'lsa "H:MM:SS.mmm"). Vaqtlarni imkon qadar aniq
+   belgila — bu matn animatsiyasi uchun ishlatiladi.
 5. Punktuatsiyani to'g'ri qo'y.
 6. Ruscha yoki inglizcha aytilgan so'zlarni aynan aytilganidek yoz.
 7. Musiqa, pauza va shovqinlarni yozma — faqat nutqni yoz.
@@ -820,21 +831,35 @@ function vaqt(soniya) {
   const p = n => String(n).padStart(2, "0");
   return `${p(h)}:${p(m % 60)}:${p(s % 60)},${String(mil).padStart(3, "0")}`;
 }
-// MM:SS (bir soatdan uzun bo'lsa H:MM:SS)
-function vaqtQisqa(s) {
-  const t = Math.round(s), h = Math.floor(t / 3600),
-        m = Math.floor(t / 60) % 60, sek = t % 60;
+// MM:SS (aniq=true bo'lsa MM:SS.ss — animatsiya uchun millisekund bilan)
+function vaqtQisqa(s, aniq) {
+  const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
   const p = n => String(n).padStart(2, "0");
-  return (h ? h + ":" + p(m) : p(m)) + ":" + p(sek);
+  const sek = aniq
+    ? (s % 60).toFixed(2).padStart(5, "0")
+    : p(Math.round(s) % 60);
+  return (h ? h + ":" + p(m) : p(m)) + ":" + sek;
+}
+
+// Segmentlar orasidagi pauzalar (0.4s dan uzun jimliklar)
+function pauzaTop(seglar) {
+  const out = {};
+  for (let i = 1; i < seglar.length; i++) {
+    const g = seglar[i].start - seglar[i - 1].end;
+    if (g >= 0.4) out[i] = Math.round(g * 100) / 100;
+  }
+  return out;
 }
 
 /* ===== Natijani ko'rsatish va eksport ===== */
 function korsat(seglar, nom) {
   joriyNom = nom || "";
   $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
+  const pauzalar = pauzaTop(seglar);
   $("segments").innerHTML = seglar.map((s, i) =>
+    (pauzalar[i] ? `<div class="pauza">⏸ ${pauzalar[i]} s pauza</div>` : "") +
     `<div class="seg" style="animation-delay:${Math.min(i * 30, 400)}ms">` +
-    `<div class="time">${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}</div>` +
+    `<div class="time">${vaqtQisqa(s.start, true)} → ${vaqtQisqa(s.end, true)}</div>` +
     `<div class="text">${s.text.replace(/</g, "&lt;")}</div></div>`
   ).join("");
   $("resultCard").style.display = "block";
@@ -846,6 +871,21 @@ function yuklab(fmt) {
   if (fmt === "srt") {
     content = natija.map((s, i) =>
       `${i + 1}\n${vaqt(s.start)} --> ${vaqt(s.end)}\n${s.text.trim()}\n`).join("\n");
+  } else if (fmt === "json") {
+    // Animatsiya dasturlari uchun: segmentlar + pauzalar, soniyalarda
+    const pauzalar = pauzaTop(natija);
+    content = JSON.stringify({
+      segmentlar: natija.map(s => ({
+        start: Math.round(s.start * 1000) / 1000,
+        end: Math.round(s.end * 1000) / 1000,
+        text: s.text.trim(),
+      })),
+      pauzalar: Object.entries(pauzalar).map(([i, d]) => ({
+        start: Math.round(natija[i - 1].end * 1000) / 1000,
+        end: Math.round(natija[i].start * 1000) / 1000,
+        davomiylik: d,
+      })),
+    }, null, 2);
   } else {
     content = natija.map(s => s.text.trim()).join(" ") + "\n";
   }
@@ -860,9 +900,16 @@ function yuklab(fmt) {
 }
 
 function nusxala(timecode) {
-  const content = timecode
-    ? natija.map(s => `[${vaqtQisqa(s.start)} → ${vaqtQisqa(s.end)}] ${s.text.trim()}`).join("\n")
-    : natija.map(s => s.text.trim()).join(" ");
+  let content;
+  if (timecode) {
+    const pauzalar = pauzaTop(natija);
+    content = natija.map((s, i) =>
+      (pauzalar[i] ? `⏸ ${pauzalar[i]} s pauza\n` : "") +
+      `[${vaqtQisqa(s.start, true)} → ${vaqtQisqa(s.end, true)}] ${s.text.trim()}`
+    ).join("\n");
+  } else {
+    content = natija.map(s => s.text.trim()).join(" ");
+  }
   navigator.clipboard.writeText(content)
     .then(() => toast(timecode ? "Timecode bilan nusxalandi 🕐" : "Matn nusxalandi 📋"));
 }
