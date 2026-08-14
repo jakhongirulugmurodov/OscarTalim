@@ -296,9 +296,13 @@ function qirqishMuhiti(q) {
     save: async () => true,
     getActiveSequence: async () => seq,
     lockedAccess(fn) { return fn(); },
-    executeTransaction(fn) {
+    executeTransaction(fn, nomi) {
       const amallar = [];
       fn({ addAction: (a) => amallar.push(a) });
+      // «Jim rad»: xato tashlamaydi, amallarni BAJARMAYDI, false
+      // qaytaradi. Haqiqiy Premiere'da surish aynan shunday rad etilib,
+      // 55 nusxa park'da qolgan, panel esa «Tayyor ✓» deb yozgan edi.
+      if (q.jimRad && String(nomi).indexOf("surish") >= 0) return false;
       if (q.tranzaksiyaRad) return false;
       for (const a of amallar) if (a && a.bajar) a.bajar();
       return true;
@@ -351,11 +355,14 @@ async function qirqishSinovi(q) {
                        "Cannot read"]) {
     if (log.indexOf(belgi) >= 0) return "kod xatosi log'da: «" + belgi + "»";
   }
-  if (q && q.joyRad) {
+  if (q && (q.joyRad || q.jimRad)) {
     // Amal rad etilgan: panel to'xtashi, sababni yozishi va YOLG'ON
     // «tayyor» demasligi shart.
     if (log.indexOf("To'xtadi") < 0) return "amal rad etildi, lekin to'xtamadi";
-    if (log.indexOf("nullptr") < 0) return "sabab log'da yozilmagan";
+    if (q.joyRad && log.indexOf("nullptr") < 0) return "sabab log'da yozilmagan";
+    if (q.jimRad && log.indexOf("qabul qilmadi") < 0) {
+      return "jim rad sababi log'da yozilmagan";
+    }
     if (log.indexOf("bo'lak joylashtirildi") >= 0) return "yolg'on «tayyor» yozdi";
     return true;
   }
@@ -668,6 +675,16 @@ async function sinov(nomi, qurilish, reja, tekshir) {
       return 1;
     }
     console.log("  \u2717 amal rad etilsa: " + r);
+    return 0;
+  })();
+
+  jami++; ok += await (async () => {
+    const r = await qirqishSinovi({ jimRad: true });
+    if (r === true) {
+      console.log("  \u2713 jim rad (false): «tayyor» demaydi, to'xtaydi");
+      return 1;
+    }
+    console.log("  \u2717 jim rad (false): " + r);
     return 0;
   })();
 

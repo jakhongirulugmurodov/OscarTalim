@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 18:40";
+const PANEL_BUILD = "14-Avg 19:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -3256,6 +3256,7 @@ async function montajniQirqish() {
       }
     }
     if (!hammasi.length) throw new Error("Montajda klip topilmadi");
+    const montajOxiri = Math.max.apply(null, hammasi.map((c) => c.end));
     logLine(hammasi.length + " klip o'qildi (" + vCount + " video, "
             + aCount + " audio trek)");
 
@@ -3490,16 +3491,26 @@ async function montajniQirqish() {
      * turardi — Premiere trekda ustma-ust turishga ruxsat bermaydi.
      * Chapdan o'ngga birma-bir yurilsa, har bo'lakning joyi undan
      * oldingilari tomonidan allaqachon bo'shatilgan bo'ladi. */
+    // Premiere tranzaksiyani IKKI xil rad etadi: xato tashlab yoki
+    // jimgina false qaytarib. Ikkinchisi xavflisi — tekshirilmasa kod
+    // «tayyor» deb yozib qo'yadi, montaj esa qirqilmagan qoladi. Aynan
+    // shu chiqdi: 55 nusxa park'da qolib ketgan, panel «Tayyor ✓» degan.
+    const majburiy = (natija, nomi) => {
+      if (natija === false) {
+        throw new Error("Premiere «" + nomi + "» tranzaksiyasini qabul "
+                        + "qilmadi (jim rad etdi)");
+      }
+    };
     const qirqim = (w) => {
-      runActions(project, () => w.kliplar.map((r) => [
+      majburiy(runActions(project, () => w.kliplar.map((r) => [
         r.it.createSetInPointAction(tickTime(ppro, w.manbaIn)),
         r.it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
-      ]).flat(), "Manba qirqimi");
+      ]).flat(), "Manba qirqimi"), "manba qirqimi");
     };
     const surish = (w) => {
-      runActions(project, () => w.kliplar.map(
+      majburiy(runActions(project, () => w.kliplar.map(
         (r) => r.it.createSetStartAction(tickTime(ppro, w.start))),
-        "Joyiga surish");
+        "Joyiga surish"), "joyiga surish");
     };
     const joylashtir = async (w) => {
       // Qirqim faqat kerak bo'lsa — manba oralig'i o'zgarmagan bo'lakka
@@ -3511,6 +3522,17 @@ async function montajniQirqish() {
       // suradi (nusxa to'liq klip bo'lgani uchun ikkalasida bir xil)
       const keyin = w.hozir + (qirqimKerak ? (w.manbaIn - w.inAsl) : 0);
       if (Math.abs(keyin - w.start) > 0.002) surish(w);
+      // HAR bo'lak joyiga tushgani klipning o'zidan o'qib tasdiqlanadi.
+      // «Amal o'tdi» degani «klip joyida» degani emas — buni ikki marta
+      // achchiq tajribada ko'rdik.
+      const st = secs(await w.kliplar[0].it.getStartTime());
+      const en = secs(await w.kliplar[0].it.getEndTime());
+      if (Math.abs(st - w.start) > 0.05
+          || Math.abs((en - st) - w.uzunlik) > 0.05) {
+        throw new Error("bo'lak " + st.toFixed(2) + "–" + en.toFixed(2)
+                        + "s da qoldi, kutilgan " + w.start.toFixed(2) + "–"
+                        + (w.start + w.uzunlik).toFixed(2) + "s");
+      }
     };
 
     // --- 5a. Birinchi bo'lak — sinov. Natija klipning O'ZIDAN o'qiladi.
@@ -3612,8 +3634,32 @@ async function montajniQirqish() {
       }
     }
 
+    // --- 7. Yakuniy tekshiruv: park zonasi bo'sh qoldimi ---
+    //
+    // Kutilgan yakuniy uzunlikdan keyin klip qolgan bo'lsa, demak
+    // qandaydir nusxa joyiga surilmagan. Bunda «tayyor» deyish yolg'on
+    // bo'lardi — aynan shu yolg'on bir marta chiqdi (55 nusxa park'da
+    // qolib, panel «Tayyor ✓» degan).
+    step = "yakuniy tekshiruv";
+    const kutilganOxir = montajOxiri - jami;
+    const tekshiruv = await barchaKliplar(ppro, seq, vCount, aCount);
+    let chetdaQoldi = 0;
+    for (const kal of tekshiruv.vaqtBoyicha.keys()) {
+      if (kal / 100 > kutilganOxir + 1) {
+        chetdaQoldi += tekshiruv.vaqtBoyicha.get(kal).length;
+      }
+    }
+    if (chetdaQoldi) {
+      throw new Error(
+        chetdaQoldi + " klip montaj oxiridan tashqarida (park'da) qolib "
+        + "ketdi — natija chala. File > Revert bilan qaytaring va "
+        + "log'ni menga yuboring.");
+    }
+
     logLine("");
     logLine(qoyildi + " bo'lak joylashtirildi ✓", "okline");
+    logLine("Yakuniy tekshiruv: montaj oxiri ~" + kutilganOxir.toFixed(0)
+            + "s, park bo'sh ✓", "okline");
     if (yiqildi) {
       logLine(yiqildi + " bo'lak qo'yilmadi — montajni ko'zdan kechiring.",
               "warn");
