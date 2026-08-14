@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 16:10";
+const PANEL_BUILD = "14-Avg 17:30";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -3276,8 +3276,15 @@ async function montajniQirqish() {
     if (!r.ok) throw new Error(j.error || "Motor xatosi");
     for (const l of (j.logs || [])) logLine(l);
 
+    // Pauza chegaralari KADR to'riga moslanadi. Motor 0.01s aniqlikda
+    // ishlaydi, Premiere esa kadrlar bilan — 50fps'da kadr 0.02s.
+    // Kadrga tushmagan vaqt bilan berilgan amalni Premiere rad etishi
+    // yoki o'zicha yaxlitlab, bo'laklar orasida tirqish qoldirishi mumkin.
+    const fps = (j.format && j.format.fps) || 0;
+    const kadr = (t) => (fps > 0 ? Math.round(t * fps) / fps : t);
     const pauzalar = (j.pauses || [])
-      .map((p) => ({ start: p.start, end: p.end }))
+      .map((p) => ({ start: kadr(p.start), end: kadr(p.end) }))
+      .filter((p) => p.end > p.start)
       .sort((x, y) => x.start - y.start);
     if (!pauzalar.length) {
       logLine("Kesiladigan pauza topilmadi — montaj o'zgarmadi.", "okline");
@@ -3419,12 +3426,13 @@ async function montajniQirqish() {
         }
         ish.push({
           // Klip HOZIR qayerda turibdi: asl bo'lak o'z joyida, nusxa esa
-          // montaj oxiridan keyingi «park» joyida. Qayta o'qiganda klip
-          // aynan shu bo'yicha topiladi.
+          // montaj oxiridan keyingi «park» joyida (nusxa TO'LIQ klip,
+          // shuning uchun uning in-nuqtasi ham asliniki bilan bir xil).
           asl: k === 0,
           egalar: k === 0 ? b.egalar.map(
             (c) => ({ audio: c.audio, trek: c.trek })) : null,
           hozir: k === 0 ? b.start : (b.parkJoy || {})[k],
+          inAsl: b.in, uzAsl: b.end - b.start,
           manbaIn: manbaIn, start: yangiStart, uzunlik: uzunlik,
         });
       }
@@ -3461,162 +3469,90 @@ async function montajniQirqish() {
         + "Montaj deyarli tegilmagan — Cmd+Z ni bir marta bosing.");
     }
 
-    /* Ikki asosiy amal. Ular ATAYLAB alohida: birga berilganda Premiere
-       «A nullptr was dereferenced» qaytardi, shuning uchun endi qaysi
-       biri ishlashini bittalab aniqlaymiz. */
-    const AMAL = {
-      "manba (in/out)": (rec, w) => [
-        rec.it.createSetInPointAction(tickTime(ppro, w.manbaIn)),
-        rec.it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
-      ],
-      "joy (start/end)": (rec, w) => [
-        rec.it.createSetStartAction(tickTime(ppro, w.start)),
-        rec.it.createSetEndAction(tickTime(ppro, w.start + w.uzunlik)),
-      ],
+    /* Bo'lakni joyiga qo'yish IKKI qadamda, har biri alohida
+     * tranzaksiyada (to'rt amal birga berilganda «nullptr» chiqqan):
+     *
+     *   1) manba qirqimi (in/out) — klip manbaning kerakli qismini
+     *      ko'rsatadigan bo'ladi. Diqqat: in-nuqta surilganda klip
+     *      timeline'da ham suriladi (boshidan qirqilgani uchun);
+     *   2) joyiga surish (start) — klip yakuniy joyiga o'tadi.
+     *
+     * TARTIB HAL QILUVCHI. Oldingi urinish «Invalid parameter» bilan
+     * yiqildi, chunki bo'lak hali BAND joyga surilgan edi: park'dagi
+     * nusxa montaj boshiga surilmoqchi bo'ldi, u yerda esa asl klip
+     * turardi — Premiere trekda ustma-ust turishga ruxsat bermaydi.
+     * Chapdan o'ngga birma-bir yurilsa, har bo'lakning joyi undan
+     * oldingilari tomonidan allaqachon bo'shatilgan bo'ladi. */
+    const qirqim = (w) => {
+      runActions(project, () => w.kliplar.map((r) => [
+        r.it.createSetInPointAction(tickTime(ppro, w.manbaIn)),
+        r.it.createSetOutPointAction(tickTime(ppro, w.manbaIn + w.uzunlik)),
+      ]).flat(), "Manba qirqimi");
     };
-    const METOD = {
-      "manba (in/out)": ["createSetInPointAction", "createSetOutPointAction"],
-      "joy (start/end)": ["createSetStartAction", "createSetEndAction"],
+    const surish = (w) => {
+      runActions(project, () => w.kliplar.map(
+        (r) => r.it.createSetStartAction(tickTime(ppro, w.start))),
+        "Joyiga surish");
     };
-    const YARIM = {
-      video: (recs) => recs.filter((r) => !r.audio),
-      ovoz: (recs) => recs.filter((r) => r.audio),
+    const joylashtir = async (w) => {
+      // Qirqim faqat kerak bo'lsa — manba oralig'i o'zgarmagan bo'lakka
+      // (masalan, faqat chapga suriladigan butun klipga) tegilmaydi
+      const qirqimKerak = Math.abs(w.manbaIn - w.inAsl) > 1e-4
+                       || Math.abs(w.uzunlik - w.uzAsl) > 1e-4;
+      if (qirqimKerak) qirqim(w);
+      // Qirqimdan keyin klip qayerda: in-nuqta surilgani boshini ham
+      // suradi (nusxa to'liq klip bo'lgani uchun ikkalasida bir xil)
+      const keyin = w.hozir + (qirqimKerak ? (w.manbaIn - w.inAsl) : 0);
+      if (Math.abs(keyin - w.start) > 0.002) surish(w);
     };
 
-    // --- 5a. TASHXIS: qaysi amal qaysi yarimda ishlaydi ---
+    // --- 5a. Birinchi bo'lak — sinov. Natija klipning O'ZIDAN o'qiladi.
     //
-    // Hujjatlarda bu yozilmagan va taxmin qilib tuzatib bo'lmaydi.
-    // Shuning uchun BITTA bo'lakda to'rt kombinatsiya alohida-alohida
-    // sinaladi va har birining natijasi log'ga yoziladi. Shundan keyin
-    // ishlaydiganidan usul yig'iladi.
-    let usul = null;
-    // Surish kerak bo'ladigan bo'lak bormi — usul tanlashda hal qiluvchi
-    const surishKerak = ish.some((w) => Math.abs(w.start - w.hozir) > 0.05);
+    // Kutilgan joyga tushmasa, qolgan bo'laklarga umuman tegilmaydi:
+    // montajda bitta bo'lakdan boshqa hamma narsa joyida qoladi.
+    step = "sinov bo'lak";
     if (ish.length) {
-      step = "tashxis";
-      // Sinov uchun ATAYLAB joyidan qimirlaydigan bo'lak olinadi. Aks
-      // holda tekshiruv surishni umuman sinamaydi: birinchi bo'lak
-      // odatda joyida qoladi va «uzunligi to'g'ri» degan natija
-      // surish ishlamasa ham chiqaveradi.
-      let sIdx = ish.findIndex((w) => Math.abs(w.start - w.hozir) > 0.05);
-      if (sIdx < 0) sIdx = 0;
-      const s = ish[sIdx];
-      logLine("");
-      logLine("Tashxis — qaysi amal ishlaydi:");
-
-      const holat = {};
-      for (const amalNom of Object.keys(AMAL)) {
-        for (const yarimNom of Object.keys(YARIM)) {
-          const nom = amalNom + " · " + yarimNom;
-          const recs = YARIM[yarimNom](s.kliplar);
-          // HAR holat yoziladi. Ilgari «yo'q» holati jim o'tkazib
-          // yuborilardi va log'da faqat bitta qator qolib, tashxis
-          // yarim ko'rinardi.
-          if (!recs.length) {
-            holat[nom] = "bu yarmi yo'q";
-          } else if (!METOD[amalNom].every(
-                       (m) => typeof recs[0].it[m] === "function")) {
-            // Metod bormi — amalni YASAMASDAN tekshiramiz. create*Action
-            // ni lockedAccess'dan tashqarida chaqirsak, Premiere obyektni
-            // «no longer valid» deb rad etadi.
-            holat[nom] = "metodi yo'q";
-          } else {
-            try {
-              runActions(project,
-                         () => recs.map((r) => AMAL[amalNom](r, s)).flat(), nom);
-              holat[nom] = "ok";
-            } catch (e) {
-              holat[nom] = (e.message || String(e)).slice(0, 70);
-            }
-          }
-          logLine("  · " + nom + " → " + holat[nom],
-                  holat[nom] === "ok" ? "okline" : "warn");
-        }
+      const s0 = ish[0];
+      try {
+        await joylashtir(s0);
+      } catch (e) {
+        throw new Error("Birinchi bo'lak qo'yilmadi: " + (e.message || e)
+                        + ". Montaj deyarli tegilmagan — Cmd+Z ni bir-ikki "
+                        + "marta bosing.");
       }
-
-      // Natijani klipning O'ZIDAN o'qib tasdiqlaymiz — «ok» degani hali
-      // klip to'g'ri joyga tushdi degani emas. Joy bo'yicha qidirmaymiz:
-      // amallar klipni surib yuborgan bo'lishi mumkin.
-      const bSt = secs(await s.kliplar[0].it.getStartTime());
-      const bEn = secs(await s.kliplar[0].it.getEndTime());
-      const tasdiq = bSt.toFixed(2) + "–" + bEn.toFixed(2) + "s";
-      if (Math.abs((bEn - bSt) - s.uzunlik) < 0.05
-          && Math.abs(bSt - s.start) < 0.05) {
-        usul = [];
-        for (const amalNom of Object.keys(AMAL)) {
-          const yarimlar = Object.keys(YARIM)
-            .filter((y) => holat[amalNom + " · " + y] === "ok");
-          if (yarimlar.length) usul.push({ amal: amalNom, yarimlar: yarimlar });
-        }
-      }
-      logLine("  Natija: klip " + tasdiq + " da · kutilgan "
-              + s.start.toFixed(2) + "–" + (s.start + s.uzunlik).toFixed(2) + "s",
-              usul ? "okline" : "warn");
-
-      // Ovoz yarmi videosi bilan bir joyda turibdimi — bu asosiy talab
-      const ovozYarim = YARIM.ovoz(s.kliplar);
-      if (usul && ovozYarim.length) {
-        const aSt = secs(await ovozYarim[0].it.getStartTime());
-        const aEn = secs(await ovozYarim[0].it.getEndTime());
-        if (Math.abs(aSt - bSt) > 0.05 || Math.abs(aEn - bEn) > 0.05) {
-          logLine("  Ovoz video tagida emas: " + aSt.toFixed(2) + "–"
-                  + aEn.toFixed(2) + "s", "warn");
-          usul = null;
-        } else {
-          logLine("  Ovoz video tagida ✓", "okline");
-        }
-      }
-
-      // Kliplarni surish kerak bo'lsa-yu, surish amali ishlamasa —
-      // to'xtaymiz. Faqat in/out bilan davom etsak, bo'laklar joyidan
-      // qimirlamay montaj butunlay buzilardi.
-      if (usul && surishKerak
-          && !usul.some((u) => u.amal === "joy (start/end)")) {
-        usul = null;
-        logLine("  Kliplarni surish amali ishlamadi — faqat qirqish bilan "
-                + "montaj to'g'ri chiqmaydi.", "warn");
-      }
-      if (!usul || !usul.length) {
+      const bSt = secs(await s0.kliplar[0].it.getStartTime());
+      const bEn = secs(await s0.kliplar[0].it.getEndTime());
+      if (Math.abs(bSt - s0.start) > 0.05
+          || Math.abs((bEn - bSt) - s0.uzunlik) > 0.05) {
         throw new Error(
-          "Bo'lakni kerakli joyga qo'yib bo'lmadi (yuqorida har amalning "
-          + "natijasi yozilgan). Montaj deyarli tegilmagan — Cmd+Z ni bir "
-          + "necha marta bosing, so'ng «Natija: Yangi sequence» bilan "
-          + "urining. Shu log'ni menga yuborsangiz, qaysi amal rad "
-          + "etilganiga qarab aniq tuzataman.");
+          "Sinov bo'lak kutilgan joyga tushmadi: " + bSt.toFixed(2) + "–"
+          + bEn.toFixed(2) + "s, kutilgan " + s0.start.toFixed(2) + "–"
+          + (s0.start + s0.uzunlik).toFixed(2) + "s. Qolgan kliplarga "
+          + "tegilmadi — Cmd+Z ni bir-ikki marta bosing va log'ni yuboring.");
       }
-      logLine("Ishlaydigan usul: "
-              + usul.map((u) => u.amal + " (" + u.yarimlar.join("+") + ")")
-                    .join(" → ") + " ✓", "okline");
+      logLine("Sinov bo'lak to'g'ri joyga tushdi ✓", "okline");
       qoyildi++;
-      ish.splice(sIdx, 1);
+      ish.shift();
     }
 
-    /* Tanlangan usulni bir bo'lakka qo'llaydi. Har amal ALOHIDA
-       tranzaksiyada — birlashtirilgani aynan nullptr bergan edi. */
-    const qoll = (recs, w) => {
-      for (const u of usul) {
-        const tanlangan = recs.filter(
-          (r) => u.yarimlar.indexOf(r.audio ? "ovoz" : "video") >= 0);
-        if (!tanlangan.length) continue;
-        runActions(project, () => tanlangan.map((r) => AMAL[u.amal](r, w)).flat(),
-                   u.amal);
-      }
-    };
-
-    // --- 5b. Qolganini qo'yamiz ---
-    //
-    // Havolalar oldindan olingan, shuning uchun qayta qidirish yo'q.
-    // Bo'lak yiqilsa sanaladi va sababi yoziladi — jim o'tkazilmaydi.
+    // --- 5b. Qolgani — chapdan o'ngga, birma-bir ---
     step = "bo'laklarni joylashtirish";
     let yiqildi = 0;
     for (let i = 0; i < ish.length; i++) {
       const w = ish[i];
-      try { qoll(w.kliplar, w); qoyildi++; }
+      try { await joylashtir(w); qoyildi++; }
       catch (e) {
         yiqildi++;
         if (yiqildi <= 3) {
           logLine("Bo'lak qo'yilmadi (" + w.start.toFixed(1) + "s): "
                   + (e.message || e), "warn");
+        }
+        // Birin-ketin ko'p yiqilsa — davom etishning ma'nosi yo'q,
+        // qolganlari ham band joy ustiga tushaveradi.
+        if (yiqildi >= 10) {
+          throw new Error(
+            yiqildi + " bo'lak ketma-ket qo'yilmadi — to'xtatildi. "
+            + "Cmd+Z bilan qaytarib, log'ni yuboring.");
         }
       }
       if (i % 25 === 0 || i === ish.length - 1) {
@@ -3625,6 +3561,16 @@ async function montajniQirqish() {
                    percent: foiz, overall: foiz,
                    detail: qoyildi + "/" + (ish.length + 1) + " bo'lak" });
       }
+    }
+
+    // Qisman muvaffaqiyat — muvaffaqiyat emas: ba'zi bo'laklar
+    // qo'yilmagan bo'lsa montaj chala holatda, buni «tayyor» deb
+    // bo'lmaydi.
+    if (yiqildi) {
+      throw new Error(
+        qoyildi + " bo'lak qo'yildi, " + yiqildi + " tasi QO'YILMADI — "
+        + "montaj chala. Cmd+Z bilan qaytaring (bir necha marta) va "
+        + "log'ni menga yuboring.");
     }
 
     // --- 6. Butunlay pauzaga tushgan kliplarni olib tashlaymiz ---
@@ -3668,8 +3614,8 @@ async function montajniQirqish() {
               "warn");
     }
     logLine("Montaj " + jami.toFixed(1) + " soniyaga qisqardi.");
-    logLine("Yoqmasa Cmd+Z bilan qaytariladi (bir necha marta bosing — "
-            + "nusxa, qirqim va o'chirish alohida qadamlar).");
+    logLine("Yoqmasa: File > Revert — ish boshida saqlangan holatga bir "
+            + "qadamda qaytadi (Cmd+Z bilan bo'lak-bo'lak qaytarish uzoq).");
     stopProgress(true, qoyildi + " bo'lak");
   } catch (e) {
     logLine("To'xtadi (" + step + "): " + (e.message || e), "warn");

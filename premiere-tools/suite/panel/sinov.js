@@ -210,6 +210,7 @@ function qirqishMuhiti(q) {
   function klip(st, en, ip, audio, path) {
     const o = {
       _a: audio, _p: path, start: st, end: en, in: ip,
+      _trekV: treklarV[0], _trekA: treklarA[0],
       getStartTime: async () => ({ seconds: o.start }),
       getEndTime: async () => ({ seconds: o.end }),
       getInPoint: async () => ({ seconds: o.in }),
@@ -228,7 +229,22 @@ function qirqishMuhiti(q) {
         // demasligi va sababni aniq yozishi kerak.
         if (q.joyRad) throw new Error("A nullptr was dereferenced.");
         return { bajar() {
-          const d = o.end - o.start; o.start = t.seconds; o.end = o.start + d; } };
+          // Haqiqiy Premiere klipni BAND joyga surishga ruxsat bermaydi
+          // («Invalid parameter»). Aynan shu xulq haqiqiy montajda
+          // chiqdi: park'dagi nusxa hali bo'shamagan joyga surildi.
+          // Tartib to'g'ri bo'lsa (chapdan o'ngga) bu hech qachon
+          // ishlamaydi; noto'g'ri bo'lsa — sinov yiqiladi.
+          const d = o.end - o.start;
+          const a = t.seconds, b = t.seconds + d;
+          const ro = o._a ? o._trekA : o._trekV;
+          for (const x of ro) {
+            if (x === o) continue;
+            if (a < x.end - 1e-6 && x.start < b - 1e-6) {
+              throw new Error("Invalid parameter.");
+            }
+          }
+          o.start = a; o.end = b;
+        } };
       },
       createSetEndAction: (t) => {
         if (q.joyRad) throw new Error("A nullptr was dereferenced.");
