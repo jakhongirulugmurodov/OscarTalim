@@ -214,7 +214,12 @@ function qirqishMuhiti(q) {
       getEndTime: async () => ({ seconds: o.end }),
       getInPoint: async () => ({ seconds: o.in }),
       getProjectItem: async () => ({ getMediaFilePath: async () => path }),
-      createSetInPointAction: (t) => ({ bajar() { o.in = t.seconds; } }),
+      // Haqiqiy Premiere'da in-nuqtani surish klipning BOSHINI qirqadi,
+      // ya'ni u timeline'da ham suriladi. Ilgari panel klipni eski joyi
+      // bo'yicha qidirar edi va shu sababdan «topilmadi» derdi —
+      // soxta API buni taqlid qilmasa, sinov o'sha xatoni ko'rmaydi.
+      createSetInPointAction: (t) => ({
+        bajar() { o.start += t.seconds - o.in; o.in = t.seconds; } }),
       createSetOutPointAction: (t) => ({
         bajar() { o.end = o.start + (t.seconds - o.in); } }),
       createSetStartAction: (t) => {
