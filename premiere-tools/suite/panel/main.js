@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "2-Avg 16:00";
+const PANEL_BUILD = "3-Avg 10:20";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -1951,6 +1951,40 @@ async function dumpApi(ppro, seq) {
     }
     if (seq) {
       logLong("Sequence metodlari", methodNames(seq).join(", "));
+
+      // Sequence'ni JOYIDA o'zgartirish mumkinmi — kesish, siljitish,
+      // olib tashlash. Bu yo'l bo'lsa, Cut yangi sequence yasamasdan
+      // montajning o'zini qirqishi mumkin.
+      try {
+        const ed = ppro.SequenceEditor.getEditor(seq);
+        const m = methodNames(ed);
+        logLong("SequenceEditor metodlari", m.join(", "));
+        const kesish = m.filter((x) =>
+          /remove|delete|lift|extract|ripple|trim|razor|split|move/i.test(x));
+        logLine(kesish.length
+          ? "Joyida kesish uchun: " + kesish.join(", ")
+          : "SequenceEditor'da kesish/olib tashlash metodi topilmadi", 
+          kesish.length ? "okline" : "warn");
+      } catch (e) {
+        logLine("SequenceEditor o'qilmadi: " + (e.message || e), "warn");
+      }
+
+      // Klipning o'zini siljitish/qirqish mumkinmi
+      try {
+        const tr = await seq.getVideoTrack(0);
+        const items = tr ? await tr.getTrackItems(clipTypeConst(ppro), false) : [];
+        if (items.length) {
+          const m = methodNames(items[0]);
+          logLong("TrackItem metodlari", m.join(", "));
+          const ozgartir = m.filter((x) => /create(Set|Move|Remove)/i.test(x));
+          logLine(ozgartir.length
+            ? "Klipni o'zgartirish uchun: " + ozgartir.join(", ")
+            : "TrackItem'da o'zgartirish metodi topilmadi",
+            ozgartir.length ? "okline" : "warn");
+        }
+      } catch (e) {
+        logLine("TrackItem o'qilmadi: " + (e.message || e), "warn");
+      }
       // Montaj o'lchami — eng ko'p muammo chiqqan joy. Qayerdan
       // topilgani ham yoziladi, chunki nomlar versiyaga qarab o'zgaradi.
       const o = await seqOlchami(seq);

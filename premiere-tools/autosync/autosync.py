@@ -469,8 +469,15 @@ def file_xml(clip, file_id, timebase, ntsc, full=True):
         lines += ["\t\t\t\t\t\t\t\t<video>",
                   "\t\t\t\t\t\t\t\t\t<samplecharacteristics>",
                   rate_xml(timebase, ntsc, 10).replace(" " * 10, "\t" * 10),
-                  f"\t\t\t\t\t\t\t\t\t\t<width>{clip['width']}</width>",
-                  f"\t\t\t\t\t\t\t\t\t\t<height>{clip['height']}</height>",
+                  # DIQQAT: bu yerda EKRANDAGI emas, FAYLDA SAQLANGAN
+                  # o'lcham yozilishi kerak. Telefon/kamera vertikal
+                  # yozuvni gorizontal qilib saqlab, yoniga «90 daraja
+                  # burilsin» degan bayroq qo'yadi. Premiere faylni
+                  # ochganda saqlangan o'lchamni ko'radi va burilishni
+                  # O'ZI qo'llaydi. Bu yerga ekrandagi o'lchamni yozsak,
+                  # ikkisi mos kelmay qoladi va kadr yonboshlab tushadi.
+                  f"\t\t\t\t\t\t\t\t\t\t<width>{clip.get('raw_width') or clip['width']}</width>",
+                  f"\t\t\t\t\t\t\t\t\t\t<height>{clip.get('raw_height') or clip['height']}</height>",
                   "\t\t\t\t\t\t\t\t\t</samplecharacteristics>",
                   "\t\t\t\t\t\t\t\t</video>"]
     if clip["has_audio"]:
