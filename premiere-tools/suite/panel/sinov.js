@@ -277,23 +277,16 @@ function qirqishMuhiti(q) {
     // Haqiqiy Premiere bog'langan klipni nusxalaganda OVOZINI HAM
     // ko'chiradi. Soxta API shuni taqlid qiladi — aks holda sinov
     // aynan o'sha xatoni o'tkazib yuborardi.
+    // Haqiqiy Premiere nusxa olganda FAQAT berilgan klipni ko'chiradi —
+    // bog'langan ovozni O'ZI olib kelmaydi. Buni haqiqiy montajda
+    // ko'rdik: faqat video nusxalanganda ovoz butunlay yo'qolib qoldi.
+    // Soxta API ham xuddi shunday tutadi — panel ikkala yarmini o'zi
+    // nusxalamasa, sinovdagi ovoz tekshiruvi yiqiladi.
     createCloneTrackItemAction: (it, t) => ({
       bajar() {
-        const surish = t.seconds;
-        const juft = [];
-        for (const ro of treklarV) for (const x of ro) if (x === it) juft.push([x, treklarV]);
-        for (const ro of treklarA) for (const x of ro) if (x === it) juft.push([x, treklarA]);
-        // Bog'langan yarmi: bir manba, bir vaqt
-        for (const ro of (it._a ? treklarV : treklarA)) {
-          for (const x of ro) {
-            if (x._p === it._p && x.start === it.start && x.end === it.end) {
-              juft.push([x, it._a ? treklarV : treklarA]);
-            }
-          }
-        }
-        for (const [x, treklar] of juft) {
-          treklar[0].push(klip(x.start + surish, x.end + surish, x.in, x._a, x._p));
-        }
+        const ro = it._a ? treklarA : treklarV;
+        ro[0].push(klip(it.start + t.seconds, it.end + t.seconds,
+                        it.in, it._a, it._p));
       },
     }),
     createRemoveItemsAction: () => ({ bajar() {} }),

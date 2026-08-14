@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 17:30";
+const PANEL_BUILD = "14-Avg 18:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -3296,14 +3296,12 @@ async function montajniQirqish() {
 
     // --- 3. Bog'langan kliplarni BIR BIRLIK qilib yig'amiz ---
     //
-    // Bu eng muhim joyi. Video va uning ovozi Premiere'da bog'langan
-    // (linked) turadi. Ikkalasini alohida nusxalasak, Premiere har
-    // nusxaga ovozni ham qo'shib beradi — natijada ikki barobar klip
-    // paydo bo'ladi, ular boshqa-boshqa joyga tushadi va bog'i uziladi.
-    // Aynan shu xato birinchi urinishda chiqdi.
-    //
-    // Shuning uchun juftlik bitta birlik sifatida qaraladi: nusxa
-    // FAQAT yetakchidan (videodan) olinadi, ovoz o'zi ergashadi.
+    // Bu eng muhim joyi. Video va uning ovozi bitta birlik sifatida
+    // qaraladi: ikkalasi bir xil offset bilan nusxalanadi (bir joyga
+    // tushadi) va bir tranzaksiyada, bir xil qiymat bilan qirqiladi.
+    // Birinchi urinishda har yarim o'z park joyini olgani uchun ovoz
+    // videodan uzoqqa tushib ketgan edi; keyin faqat videoni nusxalab
+    // ko'rdik — Premiere ovozni o'zi olib kelmas ekan, ovoz yo'qoldi.
     step = "reja";
     const rejalar = birlikYigish(hammasi);
 
@@ -3342,12 +3340,19 @@ async function montajniQirqish() {
         const acts = [];
         for (const b of rejalar) {
           for (let k = 1; k < b.qoladi.length; k++) {
-            // alignToVideo = true: ovoz videosi bilan bir joyga tushsin
-            acts.push(editor.createCloneTrackItemAction(
-              b.yetakchi.it, tickTime(ppro, joy - b.start), 0, 0, true, false));
+            // Juftning HAR yarmi alohida nusxalanadi — video ham, ovoz
+            // ham — bir xil offset bilan, shunda park'da bir joyga
+            // tushadi. Faqat videoni nusxalash yetmaydi: Premiere'ning
+            // nusxa amali bog'langan ovozni O'ZI olib kelmaydi — buni
+            // haqiqiy montajda ko'rdik (ovoz butunlay yo'qolib qolgan).
+            for (const c of b.egalar) {
+              acts.push(editor.createCloneTrackItemAction(
+                c.it, tickTime(ppro, joy - b.start), 0, 0, true, false));
+            }
             b.parkJoy = b.parkJoy || {};
             b.parkJoy[k] = joy;
-            kutilgan.push({ birlik: b, bolak: k, joy: joy });
+            kutilgan.push({ birlik: b, bolak: k, joy: joy,
+                            soni: b.egalar.length });
             joy += (b.end - b.start) + 5;
           }
         }
@@ -3362,23 +3367,25 @@ async function montajniQirqish() {
       step = "nusxalarni tekshirish";
       const yangi = await barchaKliplar(ppro, seq, vCount, aCount);
 
-      let yetmadi = 0;
+      let yetmadi = 0, ortiq = 0;
       for (const x of kutilgan) {
-        // Shu vaqtda turgan hamma klip — video nusxasi va (bo'lsa)
-        // uning bog'langan ovozi
         const topilgan = yangi.vaqtBoyicha.get(Math.round(x.joy * 100)) || [];
-        if (!topilgan.length) { yetmadi++; continue; }
+        // Soni AYNAN mos bo'lishi shart. Kam — nusxa yasalmagan. Ko'p —
+        // Premiere'ning bu versiyasi bog'langan ovozni o'zi ham olib
+        // kelgan va bizning ovoz nusxamiz bilan ikkilangan; bu holda
+        // davom etib bo'lmaydi, ikki ovoz bir joyga tushadi.
+        if (topilgan.length < x.soni) { yetmadi++; continue; }
+        if (topilgan.length > x.soni) { ortiq++; continue; }
         x.birlik.nusxalar[x.bolak] = topilgan.map((t) => t.it);
       }
-      if (yetmadi) {
+      if (yetmadi || ortiq) {
         throw new Error(
-          kutilgan.length + " nusxa kerak edi, " + yetmadi + " tasi "
-          + "topilmadi. Montajga tegilmadi — hammasi joyida. Cmd+Z ni "
-          + "bir marta bosib nusxalarni olib tashlang, so'ng «Natija: "
-          + "Yangi sequence» bilan urining.");
+          kutilgan.length + " nusxa kerak edi: " + yetmadi + " tasi chiqmadi, "
+          + ortiq + " tasi ikkilangan. Montajning asosiy qismiga tegilmadi — "
+          + "Cmd+Z ni bir marta bosib nusxalarni olib tashlang, so'ng "
+          + "«Natija: Yangi sequence» bilan urining va log'ni yuboring.");
       }
-      const juft = kutilgan.filter(
-        (x) => (x.birlik.nusxalar[x.bolak] || []).length > 1).length;
+      const juft = kutilgan.filter((x) => x.soni > 1).length;
       logLine(kutilgan.length + " nusxa yasaldi va tekshirildi ✓"
               + (juft ? "  (" + juft + " tasi ovozi bilan birga)" : ""),
               "okline");
@@ -3575,19 +3582,17 @@ async function montajniQirqish() {
 
     // --- 6. Butunlay pauzaga tushgan kliplarni olib tashlaymiz ---
     //
-    // Bu kliplar butunlay pauza ichida qolgani uchun hech qayerga
-    // ko'chirilmagan — joyi o'zgarmagan. Lekin oradagi tranzaksiyalar
-    // obyektlarni eskirtirgan, shuning uchun ular joyi bo'yicha
-    // qaytadan topiladi.
+    // DIQQAT: bu yerda joy bo'yicha qidirish MUMKIN EMAS. Joylashtirish
+    // tugagach, o'chiriladigan klipning eski o'rnini allaqachon boshqa
+    // (to'g'ri qo'yilgan) bo'lak egallagan bo'lishi mumkin — joy
+    // bo'yicha qidirsak, aynan o'shani o'chirib yuborardik. Saqlangan
+    // havolalar esa hali ham o'sha klipning o'zini ko'rsatadi: 5-bosqich
+    // butun ish davomida shu havolalar bilan ishladi.
     step = "ortiqchani olib tashlash";
     const ortiqcha = [];
-    const oxirgiOq = await barchaKliplar(ppro, seq, vCount, aCount);
     for (const b of rejalar) {
       if (b.qoladi.length) continue;
-      for (const c of b.egalar) {
-        const rec = oxirgiOq.xarita.get(klipKalit(c.audio, c.trek, c.start));
-        if (rec) ortiqcha.push(rec.it);
-      }
+      for (const c of b.egalar) if (c.it) ortiqcha.push(c.it);
     }
     if (ortiqcha.length) {
       try {
