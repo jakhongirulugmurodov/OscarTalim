@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <title>Stagger Text</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h1>Stagger Text</h1>
+  <p class="izoh">Tanlangan kliplarga pastdan suzib chiqish + fade
+    animatsiyasi qo'yadi. Avval timeline'da klip(lar)ni belgilang.</p>
+
+  <label for="dur">Davomiylik (sekund)</label>
+  <input type="number" id="dur" value="0.5" min="0.1" step="0.1">
+
+  <label for="dist">Masofa (px)</label>
+  <input type="number" id="dist" value="24" min="0" step="1">
+
+  <button id="apply">Qo'llash</button>
+
+  <div id="natija"></div>
+
+  <!-- CSInterface.js — Adobe'ning standart fayli, INSTALL.md da
+       qayerdan olish yozilgan. U bo'lmasa panel ishlamaydi. -->
+  <script src="js/CSInterface.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

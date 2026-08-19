@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* Panel har qanday balandlikda ishlashi kerak: tablar tepada, tugmalar
+     pastda qotib turadi, o'rtadagi maydon aylantiriladi. Aks holda panel
+     past bo'lsa tugmalarga yetib bo'lmaydi. */
+  html, body { height: 100%; }
+  body {
+    margin: 0; padding: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    background-color: #191A1D; color: #D6D7DC;
+    font-family: "Segoe UI", "SF Pro Text", sans-serif;
+    font-size: 13px;
+  }
+  /* --- tablar --- */
+  .tabs {
+    display: flex; gap: 2px; flex: none; flex-wrap: wrap;
+    background-color: #212227;
+    border-bottom: 1px solid #303138;
+    padding: 0 8px;
+  }
+  .tab {
+    padding: 9px 13px; color: #8E909C;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.on {
+    color: #FFFFFF; border-bottom-color: #3BB8C9;
+  }
+  .tab.soon { opacity: 0.45; }
+  /* --- asosiy maydon --- */
+  .body { padding: 14px; flex: 1; overflow-y: auto; min-height: 0; }
+  .motor {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; margin-bottom: 12px;
+    background-color: #121316; border-radius: 6px;
+    color: #8E909C; font-size: 12px;
+  }
+  .motor .led {
+    width: 9px; height: 9px; border-radius: 50%;
+    background-color: #E05656;
+  }
+  .motor.ok .led { background-color: #4CC38A; }
+  .motor .diag {
+    margin-left: auto; padding: 3px 9px; border-radius: 5px;
+    background-color: #2A2B31; color: #C9CAD2; font-size: 11px;
+  }
+  .motor.ok .diag { display: none; }
+  .motor .upd {
+    display: none; margin-left: 8px; padding: 3px 10px; border-radius: 5px;
+    background-color: #3BB8C9; color: #06272C; font-size: 11px; font-weight: 700;
+  }
+  .motor.hasupd .upd { display: inline-block; }
+  .motor.ok .upd { margin-left: auto; }
+  /* --- ish jarayoni qatori ---
+     Uch savolga javob beradi: qaysi bosqich, qancha vaqt o'tdi, qancha qoldi.
+     Eng muhimi — «ishlayaptimi yo'qmi» degan savol: nuqta puls uradi, chiziq
+     ustidan yorug'lik yuguradi, soat har sekundda o'zgaradi. Qator panelning
+     eng pastida, tugmalar ustida turadi — hech narsani to'smaydi. */
+  /* Eski kod ogohlantirishi — tepada yopishib turadi, o'tkazib yuborilmasin */
+  .stale {
+    display: none; position: sticky; top: 0; z-index: 6;
+    background-color: #3A1518; border: 1px solid #7A2A2F;
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .stale.show { display: block; }
+  #staleBar b { display: block; color: #FF8E8E; margin-bottom: 2px; }
+  #staleBar span { display: block; color: #E2C4C4; font-size: 12px; }
+  #staleBar .how { color: #C9CAD2; margin-top: 4px; }
+  /* Ish jarayoni PANEL PASTIDA, tugmalar ustida turadi.
+     Ilgari u .body ichida «yopishib» turardi va kontentni bosib qolardi —
+     aynan shu halaqit berardi. Endi o'z qatori bor, hech narsani
+     to'smaydi va ish ketayotganda ham ro'yxat to'liq ko'rinadi. */
+  .job {
+    display: none; flex: none;
+    background-color: #121316; border-top: 1px solid #2B2C33;
+    padding: 8px 14px 7px;
+  }
+  .job.on { display: block; }
+  .job-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .job-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: none;
+    background-color: #3BB8C9; animation: puls 1.4s ease-in-out infinite;
+  }
+  @keyframes puls { 0%,100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: .35; transform: scale(.72); } }
+  .job-stage {
+    flex: 1; color: #E9EAEF; font-weight: 600; font-size: 13px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .job-step {
+    color: #8E909C; font-size: 11px; font-family: ui-monospace, Consolas, monospace;
+    white-space: nowrap;
+  }
+  .job-bar {
+    position: relative; height: 5px; border-radius: 3px;
+    background-color: #24252B; overflow: hidden; margin-bottom: 6px;
+  }
+  .job-fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+    background-color: #3BB8C9; border-radius: 4px;
+    transition: width .45s ease-out;
+  }
+  /* Hozirgi bosqich oralig'i — ustidan yorug'lik yuguradi: foiz noma'lum
+     bo'lganda ham «qimirlayapti» degan belgi shu. */
+  .job-seg {
+    position: absolute; top: 0; bottom: 0; left: 0; width: 0;
+    background-color: rgba(255,255,255,.05); overflow: hidden;
+    transition: left .45s ease-out, width .45s ease-out;
+  }
+  .job-seg::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 45%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+    animation: yugur 1.6s linear infinite;
+  }
+  @keyframes yugur { from { left: -50%; } to { left: 105%; } }
+  .job-ticks span {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background-color: #121316;
+  }
+  /* Nafas chizig'i va bosqich chiplari — pastdagi ixcham qatorda o'rin
+     egallamasin. Kerak bo'lsa «Batafsil» bilan ochiladi. */
+  .job-pulse {
+    display: none; align-items: flex-end; gap: 2px; height: 11px;
+    margin-bottom: 7px; overflow: hidden;
+  }
+  .job.batafsil .job-pulse { display: flex; }
+  .job-pulse i {
+    width: 3px; height: 3px; border-radius: 1px; flex: none;
+    background-color: #3A3B43; transition: height .25s ease-out;
+  }
+  .job-pulse i.hi { height: 11px; background-color: #3BB8C9; }
+  body.tab-cut .job-pulse i.hi { background-color: #E5A44A; }
+  body.tab-switch .job-pulse i.hi { background-color: #5BC46A; }
+  body.tab-captions .job-pulse i.hi { background-color: #E07BB0; }
+  .job.done .job-pulse, .job.err .job-pulse { display: none; }
+  .job-chips {
+    display: none; flex-wrap: wrap; gap: 5px 8px; margin-bottom: 8px;
+    font-size: 11px; color: #6E707A;
+  }
+  .job.batafsil .job-chips { display: flex; }
+  .job-more {
+    margin-left: 8px; padding: 2px 8px; border-radius: 5px;
+    background-color: #2A2B31; color: #8E909C; font-size: 10.5px;
+    white-space: nowrap;
+  }
+  .job-chips .c { white-space: nowrap; }
+  .job-chips .c.ok { color: #4CC38A; }
+  .job-chips .c.now { color: #E9EAEF; font-weight: 600; }
+  .job-ft {
+    display: flex; align-items: baseline; gap: 3px 8px;
+    font-size: 12px; color: #8E909C;
+    flex-wrap: wrap;
+  }
+  /* 420px dok kengligida fayl nomi + vaqt + «qancha qoldi» bir qatorga
+     sig'maydi. Vaqt siqilib «1:12 / o'tdi» bo'lib ikkiga bo'linardi.
+     Shuning uchun fayl nomi butun qatorni egallaydi, vaqt va qolgan
+     vaqt esa keyingi qatorda yonma-yon turadi — ikkalasi ham qisqa. */
+  .job-detail {
+    flex: 1 1 100%; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* O'z qatorini to'liq egallaydi — siqilish ehtimoli yo'q */
+  .job-meta {
+    flex: 1 1 100%; white-space: nowrap; color: #C9CAD2;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  .job-meta b { color: #E9EAEF; font-weight: 700; }
+  .job-eta { color: #8E909C; margin-left: 8px; }
+  /* Yordam qatori — faqat kerak bo'lganda ochiladi */
+  .job-help {
+    display: none; align-items: baseline; gap: 8px; margin-top: 7px;
+    padding-top: 7px; border-top: 1px solid #2B2C33;
+    font-size: 11.5px; color: #C9AA6E; line-height: 1.45;
+  }
+  .job.err .job-help, .job.qotdi .job-help { display: flex; }
+  .job-help #jobHelpTxt { flex: 1; }
+  .job-retry {
+    flex: none; padding: 3px 10px; border-radius: 5px; white-space: nowrap;
+    background-color: #3BB8C9; color: #06272C; font-weight: 700;
+  }
+  body.tab-harakat .job-retry { background-color: #C48BE0; color: #2A1233; }
+  body.tab-cut .job-retry { background-color: #E5A44A; }
+  body.tab-switch .job-retry { background-color: #5BC46A; }
+  body.tab-captions .job-retry { background-color: #E07BB0; }
+  /* holatlar */
+  /* DIQQAT: bu klass «qotdi» deb ataladi, «stale» emas.
+     Yuqorida «.stale b/span { display: block }» qoidalari bor (eski kod
+     ogohlantirishi uchun) va ular job qutisiga ham tegib, ichidagi
+     hamma yozuvni ustma-ust tushirib yuborardi. */
+  .job.qotdi .job-dot { animation-duration: 3s; background-color: #E5A44A; }
+  .job.done .job-dot, .job.err .job-dot { animation: none; }
+  .job.done .job-dot { background-color: #4CC38A; }
+  .job.err .job-dot { background-color: #E05656; }
+  .job.done .job-seg::after, .job.err .job-seg::after { animation: none; display: none; }
+  .job.done .job-fill { background-color: #4CC38A; }
+  .job.err .job-fill { background-color: #E05656; }
+  /* tab rangiga moslashish */
+  body.tab-cut .job-fill, body.tab-cut .job-dot { background-color: #E5A44A; }
+  body.tab-switch .job-fill, body.tab-switch .job-dot { background-color: #5BC46A; }
+  body.tab-captions .job-fill, body.tab-captions .job-dot { background-color: #E07BB0; }
+  body.tab-cut .job.done .job-fill, body.tab-switch .job.done .job-fill,
+  body.tab-captions .job.done .job-fill { background-color: #4CC38A; }
+  .drop {
+    border: 1.5px dashed #45464F; border-radius: 8px;
+    padding: 16px; text-align: center; color: #8E909C;
+    margin-bottom: 12px;
+  }
+  .drop b { color: #C9CAD2; }
+  .files { margin-bottom: 12px; }
+  .file {
+    display: flex; align-items: center; gap: 10px;
+    background-color: #121316; border: 1px solid #2B2C33;
+    border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;
+  }
+  .file .nm { flex: 1; color: #E9EAEF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file .off { color: #7FD8E4; font-size: 12px; }
+  .file .off.bad { color: #E5A44A; font-weight: 600; }
+  .file.badrow { border-color: #6A4A18; background-color: #221C11; }
+  .file .conf { color: #8E909C; font-size: 11px; }
+  .file .rm { color: #8E909C; padding: 0 4px; }
+  .log {
+    background-color: #121316; border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 12px;
+    color: #8E909C; font-size: 12px; line-height: 1.5;
+    max-height: 120px; overflow-y: auto;
+    display: none;
+  }
+  .log.show { display: block; }
+  .log.big { max-height: none; }
+  /* Tashxis matnini menga yuborish uchun: nusxalash yoki faylga yozish */
+  .logbar { display: none; gap: 7px; margin-bottom: 6px; }
+  .logbar.show { display: flex; }
+  .logbar span {
+    padding: 3px 9px; border-radius: 5px; background-color: #2A2B31;
+    color: #C9CAD2; font-size: 11px; white-space: nowrap;
+  }
+  .log .warn { color: #E5A44A; }
+  .log .okline { color: #4CC38A; }
+  .foot {
+    display: flex; gap: 10px; align-items: center; flex: none;
+    flex-wrap: wrap; padding: 12px 14px;
+    background-color: #212227; border-top: 1px solid #303138;
+  }
+  .btn {
+    padding: 9px 16px; border-radius: 6px;
+    border: 1px solid #45464F; background-color: #2A2B31;
+    color: #C9CAD2; font-size: 13px; font-weight: 600;
+  }
+  .btn.primary {
+    background-color: #3BB8C9; border-color: #3BB8C9; color: #06272C;
+  }
+  .btn:disabled { opacity: 0.4; }
+  .hint { color: #8E909C; font-size: 12px; }
+  /* Cut sozlamalari — faqat Cut tabida ko'rinadi */
+  .knobs { display: none; margin-bottom: 12px; }
+  body.tab-cut #cutKnobs, body.tab-switch #switchKnobs,
+  body.tab-captions #capKnobs, body.tab-fx #fxKnobs { display: block; }
+  #capTip { display: none; }
+  body.tab-captions #capTip { display: block; }
+  body:not(.tab-captions) #capBtn, body:not(.tab-captions) #sampleBtn { display: none; }
+  body.tab-captions #syncBtn, body.tab-captions #cutBtn,
+  body.tab-captions #switchBtn { display: none; }
+  body.tab-captions .tab.on { border-bottom-color: #E07BB0; }
+  body.tab-captions .btn.primary {
+    background-color: #E07BB0; border-color: #E07BB0; color: #2B0A1D;
+  }
+  /* Captions sozlamalari */
+  .opts { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .olbl {
+    font-size: 11px; color: #8E909C; letter-spacing: .05em; text-transform: uppercase;
+    font-family: ui-monospace, Consolas, monospace; min-width: 44px;
+  }
+  .opills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .opill {
+    padding: 4px 11px; border-radius: 99px; border: 1px solid #45464F;
+    color: #9DA0AC; font-size: 12px; text-align: center;
+  }
+  .opill em { display: block; font-style: normal; font-size: 10px; opacity: .75; }
+  .opill.on { background-color: #E07BB0; border-color: transparent; color: #2B0A1D; font-weight: 700; }
+  /* Yetishmayotgan qism haqida oldindan ogohlantirish — tugmani bosib,
+     kutib o'tirib, keyin xato ko'rish yomon tajriba. */
+  .warnbox { display: none; margin-bottom: 12px; padding: 11px 13px;
+             border-radius: 8px; border: 1px solid #6A4A18;
+             background-color: #221C11; line-height: 1.5; }
+  .warnbox.show { display: block; }
+  .warnbox b { display: block; color: #E5A44A; margin-bottom: 3px; }
+  .warnbox span { color: #C9CAD2; font-size: 12px; }
+  .warnbox code { color: #8FD0E8; font-family: ui-monospace, Consolas, monospace;
+                  font-size: 11.5px; }
+  /* --- Intro: nomzodlar ro'yxati --- */
+  body.tab-intro #introKnobs { display: block; }
+  #trImport { display: none; }
+  body.tab-intro #trImport, body.tab-captions #trImport { display: flex; }
+  body.tab-intro .seqpick { display: block; text-align: center; margin-bottom: 12px;
+    padding: 11px; border-radius: 8px; border: 1px solid #45464F;
+    background-color: #17181C; }
+  body.tab-intro .seqpick b { color: #C4A6F0; }
+  body:not(.tab-intro) #introBtn, body:not(.tab-intro) #buildBtn,
+  body:not(.tab-intro) #reviewBtn { display: none; }
+  body.tab-intro #syncBtn, body.tab-intro #cutBtn, body.tab-intro #switchBtn,
+  body.tab-intro #capBtn, body.tab-intro #sampleBtn { display: none; }
+  body.tab-intro .tab.on { border-bottom-color: #A97CE8; }
+  body.tab-intro .btn.primary { background-color: #A97CE8; border-color: #A97CE8;
+                                color: #170A28; }
+  body.tab-intro .job-fill, body.tab-intro .job-dot,
+  body.tab-intro .job-pulse i.hi { background-color: #A97CE8; }
+  .moments { margin-bottom: 12px; }
+  .mom {
+    display: flex; align-items: flex-start; gap: 9px;
+    background-color: #121316; border: 1px solid #2B2C33;
+    border-radius: 6px; padding: 8px 10px; margin-bottom: 6px;
+  }
+  .mom.off { opacity: .45; }
+  .mom .box {
+    width: 15px; height: 15px; border-radius: 4px; flex: none; margin-top: 1px;
+    border: 1px solid #5A5B66; text-align: center; font-size: 11px;
+    line-height: 14px; color: #170A28;
+  }
+  .mom.on .box { background-color: #A97CE8; border-color: #A97CE8; }
+  .mom .mid { flex: 1; min-width: 0; }
+  .mom .top { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+  .mom .tc {
+    color: #C4A6F0; font-size: 12px; font-weight: 700;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+  .mom .kind {
+    font-size: 10.5px; padding: 1px 7px; border-radius: 99px;
+    background-color: #2A2B31; color: #C9CAD2; text-transform: lowercase;
+  }
+  .mom .kind.marker { background-color: #2E2440; color: #D6BCFA; }
+  .mom .kind.kulgi { background-color: #253326; color: #9BD9A0; }
+  .mom .kind.savol { background-color: #1F3038; color: #8FD0E8; }
+  .mom .len { color: #6E707A; font-size: 11px; margin-left: auto; }
+  .mom .txt {
+    color: #9DA0AC; font-size: 12px; line-height: 1.45; margin-top: 3px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .mom .why { color: #6E707A; font-size: 11px; margin-top: 2px; }
+  /* --- Shorts: Intro bilan bir xil ro'yxat, boshqa rang --- */
+  body.tab-shorts #shortsKnobs { display: block; }
+  body.tab-shorts .seqpick { display: block; text-align: center; margin-bottom: 12px;
+    padding: 11px; border-radius: 8px; border: 1px solid #45464F;
+    background-color: #17181C; }
+  body.tab-shorts .seqpick b { color: #8FD0E8; }
+  body:not(.tab-shorts) #shortsBtn, body:not(.tab-shorts) #shortsBuildBtn,
+  body:not(.tab-shorts) #markerBtn, body:not(.tab-shorts) #trBtn { display: none; }
+  body.tab-matn #markerBtn, body.tab-matn #trBtn { display: none; }
+  body:not(.tab-harakat) #harBtn { display: none; }
+  body:not(.tab-captions) #srtBtn { display: none; }
+  /* Captions XML yasamaydi — SRT fayl yozadi. «Premiere'ga import»
+     bu tabda hech qachon yonmaydi, ya'ni faqat joy egallab, «nega
+     ishlamayapti?» degan savol tug'diradi. */
+  body.tab-captions #importBtn { display: none; }
+  body.tab-harakat #importBtn, body.tab-harakat #trBtn,
+  body.tab-harakat #markerBtn { display: none; }
+  body.tab-harakat #syncBtn, body.tab-harakat #cutBtn, body.tab-harakat #switchBtn,
+  body.tab-harakat #capBtn, body.tab-harakat #sampleBtn, body.tab-harakat #introBtn,
+  body.tab-harakat #buildBtn, body.tab-harakat #reviewBtn, body.tab-harakat #matnBtn,
+  body.tab-harakat #shortsBtn, body.tab-harakat #shortsBuildBtn { display: none; }
+  #harKnobs { display: none; }
+  body.tab-harakat #harKnobs { display: block; }
+  /* Harakat faqat ochiq sequence bilan ishlaydi — fayl tanlash keraksiz */
+  body.tab-harakat .drop { display: none; }
+  body.tab-harakat .seqpick { display: block; text-align: center; margin-bottom: 12px;
+    border: 1.5px dashed #45464F; border-radius: 8px; padding: 14px; }
+  body.tab-harakat .tab.on { border-bottom-color: #C48BE0; }
+  body.tab-harakat .btn.primary { background-color: #C48BE0; border-color: #C48BE0;
+    color: #2A1233; }
+  body.tab-harakat .job-fill, body.tab-harakat .job-dot,
+  body.tab-harakat .job-pulse i.hi { background-color: #C48BE0; }
+  body.tab-shorts #syncBtn, body.tab-shorts #cutBtn, body.tab-shorts #switchBtn,
+  body.tab-shorts #capBtn, body.tab-shorts #sampleBtn, body.tab-shorts #introBtn,
+  body.tab-shorts #buildBtn, body.tab-shorts #reviewBtn { display: none; }
+  body.tab-shorts .tab.on { border-bottom-color: #4EA8DE; }
+  body.tab-shorts .btn.primary { background-color: #4EA8DE; border-color: #4EA8DE;
+                                 color: #06202E; }
+  body.tab-shorts .job-fill, body.tab-shorts .job-dot,
+  body.tab-shorts .job-pulse i.hi { background-color: #4EA8DE; }
+  body.tab-shorts .mom.on .box { background-color: #4EA8DE; border-color: #4EA8DE; }
+  body.tab-shorts .mom .tc { color: #8FD0E8; }
+  .searchbox { display: flex; gap: 8px; margin-top: 10px; }
+  .searchbox input {
+    flex: 1; min-width: 0; padding: 7px 11px; border-radius: 6px;
+    border: 1px solid #45464F; background-color: #121316; color: #E9EAEF; font-size: 12.5px;
+  }
+  .sbtn {
+    padding: 7px 13px; border-radius: 6px; background-color: #2A2B31;
+    color: #C9CAD2; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  }
+  body:not(.tab-switch) #switchBtn, body.tab-switch #syncBtn,
+  body.tab-switch #cutBtn { display: none; }
+  body.tab-switch .tab.on { border-bottom-color: #5BC46A; }
+  body.tab-switch .btn.primary { background-color: #5BC46A; border-color: #5BC46A; color: #07230D; }
+  body.tab-switch .knobs input[type="range"] { accent-color: #5BC46A; }
+  /* kamera vazifasi */
+  .file .role {
+    font-size: 11.5px; padding: 3px 10px; border-radius: 99px;
+    background-color: #2A2B31; color: #C9CAD2; white-space: nowrap;
+  }
+  .file .role.speaker { background-color: #25332A; color: #8FD9A0; }
+  .file .role.wide { background-color: #2E3038; color: #C9CAD2; }
+  .file .role.alt { background-color: #2C2A38; color: #B9AEE8; }
+  .file .role.insert { background-color: #33291F; color: #E0B98A; }
+  /* Ovoz manbasi tugmasi — tanlanmagani ham ko'zga tashlanib tursin,
+     aks holda foydalanuvchi uni umuman payqamaydi. */
+  .file .snd {
+    font-size: 11.5px; padding: 3px 10px; border-radius: 99px;
+    border: 1px dashed #4A4B55; color: #9DA0AC; white-space: nowrap;
+  }
+  .file .snd.on {
+    border: 1px solid #3D7E96; background-color: #1F3038;
+    color: #8FD0E8; font-weight: 700;
+  }
+  .seqpick { display: none; }
+  body.tab-sync .seqpick,
+  body.tab-cut .seqpick, body.tab-switch .seqpick, body.tab-captions .seqpick {
+    display: block; text-align: center; margin-bottom: 12px;
+    padding: 11px; border-radius: 8px;
+    border: 1px solid #45464F; background-color: #17181C;
+  }
+  .seqpick b { display: block; color: #C9CAD2; }
+  body.tab-sync .seqpick b { color: #7FD8E4; }
+  body.tab-cut .seqpick { border-color: #6A4A18; background-color: #221C11; }
+  body.tab-cut .seqpick b { color: #E5A44A; }
+  body.tab-switch .seqpick b { color: #8FD9A0; }
+  body.tab-captions .seqpick b { color: #E9A8CB; }
+  .seqpick span { color: #8E909C; font-size: 12px; }
+  body.tab-cut #syncBtn, body:not(.tab-cut) #cutBtn { display: none; }
+  /* FX yorlig'i: fayl tanlash ham, motor ham kerak emas — faqat
+     timeline'dagi tanlov bilan ishlaydi */
+  body.tab-fx #pick, body.tab-fx #files, body.tab-fx #seqBtn,
+  body.tab-fx #trImport, body.tab-fx #capTip,
+  body.tab-fx #syncBtn, body.tab-fx #cutBtn, body.tab-fx #switchBtn,
+  body.tab-fx #shortsBtn, body.tab-fx #shortsBuildBtn,
+  body.tab-fx #markerBtn, body.tab-fx #trBtn, body.tab-fx #harBtn,
+  body.tab-fx #introBtn, body.tab-fx #reviewBtn, body.tab-fx #buildBtn,
+  body.tab-fx #sampleBtn, body.tab-fx #capBtn, body.tab-fx #srtBtn,
+  body.tab-fx #matnBtn, body.tab-fx #importBtn { display: none; }
+  body:not(.tab-fx) #fxBtn { display: none; }
+  /* Montaj joyida qirqilsa XML yozilmaydi — import qiladigan narsa yo'q */
+  body.tab-cut.cut-joyida #importBtn { display: none; }
+  .knobs label {
+    display: flex; align-items: center; gap: 10px;
+    color: #8E909C; font-size: 12px; margin-bottom: 7px;
+  }
+  .knobs label > span {
+    color: #E9EAEF; font-size: 12px; min-width: 62px; text-align: right;
+  }
+  .knobs input[type="range"] { flex: 1; accent-color: #E5A44A; }
+  /* Qat'iylik tanlagichi — son o'rniga odam tilidagi uchta variant */
+  .knobs label.pickrow { align-items: center; }
+  .picks { display: flex; gap: 6px; flex: 1; }
+  .pick {
+    flex: 1; text-align: center; font-size: 11.5px; padding: 5px 4px;
+    border-radius: 6px; border: 1px solid #45464F;
+    background-color: #2A2B31; color: #C9CAD2;
+  }
+  .pick.on {
+    background-color: #E5A44A; border-color: #E5A44A; color: #2A1B04;
+    font-weight: 600;
+  }
+  .knobs .tip { margin: 9px 0 0; color: #8E909C; font-size: 11.5px; line-height: 1.5; }
+  .knobs .tip b { color: #8FD0E8; }
+  body.tab-cut .tab.on { border-bottom-color: #E5A44A; }
+  body.tab-cut .btn.primary { background-color: #E5A44A; border-color: #E5A44A; color: #2A1B04; }
+  /* ---------------------------------------------------------- Matn tabi */
+  #matnPanel { display: none; }
+  body.tab-matn #matnPanel { display: block; }
+  /* Matn tabida fayl tanlash va sequence o'qish kerak emas: o'lcham va
+     playhead vaqti to'g'ridan-to'g'ri ochiq sequence'dan olinadi. */
+  body.tab-matn #pick, body.tab-matn .files, body.tab-matn .seqpick { display: none; }
+  body:not(.tab-matn) #matnBtn { display: none; }
+  body.tab-matn #syncBtn, body.tab-matn #cutBtn, body.tab-matn #switchBtn,
+  body.tab-matn #capBtn, body.tab-matn #sampleBtn, body.tab-matn #introBtn,
+  body.tab-matn #buildBtn, body.tab-matn #reviewBtn,
+  body.tab-matn #shortsBtn, body.tab-matn #shortsBuildBtn { display: none; }
+  body.tab-matn .tab.on { border-bottom-color: #A78BFA; }
+  body.tab-matn .btn.primary {
+    background-color: #A78BFA; border-color: #A78BFA; color: #1E1533;
+  }
+  body.tab-matn .job-fill, body.tab-matn .job-dot,
+  body.tab-matn .job-pulse i.hi { background-color: #A78BFA; }
+  .mrow {
+    display: flex; gap: 7px; align-items: flex-start; margin-bottom: 7px;
+    background-color: #26272D; border: 1px solid #35363E;
+    border-radius: 8px; padding: 8px;
+  }
+  /* Transkript ro'yxati — uzun yozuvni tez ko'zdan kechirish uchun */
+  .trlist {
+    max-height: 46vh; min-height: 120px; overflow-y: auto; margin-bottom: 10px;
+    border: 1px solid #2B2C33; border-radius: 8px; background-color: #121316;
+  }
+  .trline {
+    display: flex; gap: 9px; padding: 5px 10px; align-items: baseline;
+    border-bottom: 1px solid #1E1F24; line-height: 1.4;
+  }
+  .trline:last-child { border-bottom: none; }
+  .trline .t {
+    color: #6E707A; font-size: 10.5px; min-width: 42px;
+    font-family: ui-monospace, Consolas, monospace; flex: none;
+  }
+  .trline .x { color: #C9CAD2; font-size: 12px; }
+  .trline.on { background-color: #1B2B33; }
+  .trline.on .x { color: #E9EAEF; }
+  .trline.on .t { color: #8FD0E8; }
+  .trline.hit .x { color: #FFD24A; }
+  .trhead {
+    display: flex; gap: 8px; align-items: baseline;
+    color: #8E909C; font-size: 11.5px; margin-bottom: 6px;
+  }
+  #trSearch {
+    flex: 1; min-width: 0; background-color: #1E1F24; color: #E9EAEF;
+    border: 1px solid #45464F; border-radius: 6px; padding: 6px 9px;
+    font-size: 12px;
+  }
+  .mrow textarea {
+    flex: 1; min-width: 0; min-height: 46px; resize: vertical;
+    background-color: #1E1F24; color: #E9EAEF; font-size: 12.5px;
+    border: 1px solid #45464F; border-radius: 6px; padding: 6px 8px;
+    font-family: inherit; line-height: 1.35;
+  }
+  .mrow .mtimes { display: flex; flex-direction: column; gap: 5px; width: 96px; }
+  .mrow input[type="text"] {
+    width: 100%; background-color: #1E1F24; color: #E9EAEF; font-size: 12px;
+    border: 1px solid #45464F; border-radius: 6px; padding: 5px 7px;
+  }
+  .mrow .mbtns { display: flex; flex-direction: column; gap: 5px; }
+  .mini {
+    font-size: 11px; padding: 4px 7px; border-radius: 5px; text-align: center;
+    background-color: #2F3038; border: 1px solid #45464F; color: #C9CAD2;
+    white-space: nowrap;
+  }
+  .mini.rm { color: #E8908F; }
+  .mlbl { font-size: 10.5px; color: #8E909C; margin-bottom: -2px; }
+  #matnPreview {
+    display: block; max-width: 100%; margin: 0 auto 10px;
+    border-radius: 8px; border: 1px solid #35363E; max-height: 260px;
+  }
+  .prevbox { text-align: center; margin-bottom: 10px; }
+  .prevbox .hintline { color: #8E909C; font-size: 11.5px; }
+  .mstyle { display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 10px; }
+  .mstyle select, .mstyle input[type="text"] {
+    background-color: #2A2B31; color: #E9EAEF; font-size: 12px;
+    border: 1px solid #45464F; border-radius: 6px; padding: 5px 8px;
+  }
+  .mstyle select { max-width: 168px; }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 5px; border: 1px solid #55565F;
+  }
+  .swatch.on { border-color: #E9EAEF; border-width: 2px; }
+</style>
+</head>
+<body>
+  <div class="tabs">
+    <div class="tab on" data-tab="sync">Sync</div>
+    <div class="tab" data-tab="cut">Cut</div>
+    <div class="tab" data-tab="switch">Switch</div>
+    <div class="tab" data-tab="intro">Intro</div>
+    <div class="tab" data-tab="captions">Captions</div>
+    <div class="tab" data-tab="fx">FX</div>
+  </div>
+
+  <div class="body">
+    <div id="motor" class="motor">
+      <span class="led"></span>
+      <span id="motorTxt">Motor qidirilmoqda…</span>
+      <span class="diag" id="diagBtn">tekshirish</span>
+      <span class="upd" id="updBtn">Yangilash</span>
+    </div>
+
+    <div class="stale" id="staleBar">
+      <b>Panel eski kod bilan ishlayapti</b>
+      <span id="staleTxt"></span>
+      <span class="how">UXP Developer Tools → «Podcast Suite» → ••• Unload,
+      so'ng ••• Load &amp; Watch</span>
+    </div>
+
+    <div class="drop" id="pick">
+      <b>Fayllarni tanlash uchun bosing</b><br>
+      <span id="pickHint">kamera videolari va rekorder audiosi (2+ fayl)</span>
+    </div>
+
+    <div class="files" id="files"></div>
+
+    <div class="seqpick" id="seqBtn">
+      <b id="seqTitle">Ochiq sequence'ni olish</b>
+      <span id="seqHint">montajingiz saqlanadi — faqat pauzalar kesiladi</span>
+    </div>
+
+    <div class="knobs" id="cutKnobs">
+      <!-- Natija qayerga tushadi. «Joyida» — Project panelida hech narsa
+           paydo bo'lmaydi, shuning uchun standart shu. -->
+      <label class="pickrow">Natija
+        <div class="picks" id="kCutRejim">
+          <div class="pick on" data-v="yangi">Yangi sequence</div>
+          <div class="pick" data-v="joyida">Shu montajda (sinovda)</div>
+        </div>
+      </label>
+      <p class="tip" id="cutRejimTip"></p>
+
+      <label class="pickrow">Ovoz qat'iyligi
+        <div class="picks" id="kStrict">
+          <div class="pick" data-v="yumshoq">Yumshoq</div>
+          <div class="pick on" data-v="orta">O'rtacha</div>
+          <div class="pick" data-v="qattiq">Faqat baland</div>
+        </div>
+      </label>
+      <p class="tip" id="strictTip">Chegara har yozuvning <b>o'z ovoz
+        darajasidan</b> avtomatik olinadi — qo'lda son kiritish shart emas.
+        <b>Faqat baland</b>: past tondagi shovqin, nafas, uzoqdan kelgan
+        ovozlar kesiladi, faqat aniq gapirilgan joylar qoladi.</p>
+      <label>Eng qisqa pauza
+        <input type="range" id="kMinPause" min="2" max="30" value="7">
+        <span id="vMinPause">0.7 s</span>
+      </label>
+      <label>Chetga zaxira
+        <input type="range" id="kPadding" min="0" max="50" value="12">
+        <span id="vPadding">120 ms</span>
+      </label>
+    </div>
+
+    <div class="knobs" id="fxKnobs">
+      <p class="tip">Timeline'da matn/grafika klip(lar)ini belgilang —
+        har biriga <b>pastdan suzib chiqish + fade</b> tushadi. Matn avval
+        ko'rinib bo'ladi (fade harakatdan oldin tugaydi), keyin joyiga
+        «o'tirib» tugatadi. Yoqmasa Cmd+Z.</p>
+      <label>Davomiylik
+        <input type="range" id="kFxDur" min="2" max="20" value="5">
+        <span id="vFxDur">0.5 s</span>
+      </label>
+      <label>Masofa (pastdan)
+        <input type="range" id="kFxDist" min="0" max="100" value="24">
+        <span id="vFxDist">24 px</span>
+      </label>
+    </div>
+
+    <!-- Gemini transkriptini olib kirish. Arxivga tushgach Intro uni
+         o'zi topadi — alohida ulash kerak emas. -->
+    <div class="opts" id="trImport">
+      <span class="olbl">TRANSKRIPT</span>
+      <span class="mini" id="trImpBtn">Gemini transkriptini yuklash</span>
+      <span class="mini" id="trImpHolat"></span>
+    </div>
+    <p class="tip" id="capTip">Ikki yo'l bor.<br>
+    <b>Gemini transkripti</b> — yuqoridagi «Gemini transkriptini yuklash»
+    bilan SRT/JSON ni olib kiring, so'ng <b>«Subtitr yasash»</b> ni bosing.
+    Montaj ochiq bo'lsa vaqtlar montajga ko'chiriladi.<br>
+    <b>Whisper</b> — kompyuterda o'zi transkripsiya qiladi (o'rnatilgan
+    bo'lsa). Uzun yozuvda bir necha daqiqa ketadi.</p>
+    <div class="knobs" id="capKnobs">
+      <div class="warnbox" id="capWarn">
+        <b>Subtitr motori o'rnatilmagan</b>
+        <span>whisper.cpp topilmadi. Finder'da
+        <code>PodcastSuite ▸ premiere-tools ▸ suite ▸ ORNATISH.command</code>
+        ni ikki marta bosing — u o'zi o'rnatadi va motorni qayta yoqadi.</span>
+      </div>
+      <div class="opts">
+        <span class="olbl">Til</span>
+        <span class="opills" id="capLang">
+          <span class="opill on" data-v="uz">O'zbek</span>
+          <span class="opill" data-v="ru">Rus</span>
+          <span class="opill" data-v="en">Ingliz</span>
+          <span class="opill" data-v="avto">Avto</span>
+        </span>
+      </div>
+      <div class="opts">
+        <span class="olbl">Model</span>
+        <span class="opills" id="capModel">
+          <span class="opill" data-v="tez">Tez<em>~5 daq</em></span>
+          <span class="opill on" data-v="balans">Balans<em>~12 daq</em></span>
+          <span class="opill" data-v="aniq">Aniq<em>~15 daq</em></span>
+        </span>
+      </div>
+      <p class="tip">Avval <b>«2 daqiqani sinash»</b> ni bosing — model bir marta
+      yuklanadi va o'z ovozingizda sifatni ko'rasiz. Yoqsa, to'liq transkripsiya
+      qilasiz.<br>Sequence olinsa, subtitr vaqtlari montajga moslanadi —
+      kesilgan joylar tushib qoladi.</p>
+      <div class="searchbox">
+        <input type="text" id="capSearch" placeholder="Arxivdan qidirish: mavzu yoki gap…">
+        <span class="sbtn" id="capSearchBtn">Qidirish</span>
+      </div>
+    </div>
+
+    <div class="knobs" id="introKnobs">
+      <div class="opts">
+        <span class="olbl">Nomzod</span>
+        <span class="opills" id="introLimit">
+          <span class="opill" data-v="10">10 ta</span>
+          <span class="opill on" data-v="18">18 ta</span>
+          <span class="opill" data-v="30">30 ta</span>
+        </span>
+      </div>
+      <p class="tip">Motor nomzodlarni topadi — <b>tanlovni siz qilasiz</b>.
+      Qatorni bosib belgilaysiz/olib tashlaysiz; nomzod ustiga ikki marta
+      bosilsa, Premiere playhead o'sha joyga sakraydi.<br>
+      <b>«Nomzodlarni ko'rish»</b> — hammasi ketma-ket yig'ilgan alohida
+      sequence, har biri marker bilan raqamlangan. 50 daqiqani titkilash
+      o'rniga ikki daqiqada eshitib chiqasiz, keyin shu ro'yxatda
+      belgilaysiz.</p>
+      <div class="moments" id="moments"></div>
+    </div>
+
+    <div class="knobs" id="shortsKnobs">
+      <div class="opts">
+        <span class="olbl">Rejim</span>
+        <span class="opills" id="shortsMode">
+          <span class="opill on" data-v="avto">Avtomatik topish</span>
+          <span class="opill" data-v="marker">Mening markerlarim</span>
+          <span class="opill" data-v="matn">Matndan tanlash</span>
+        </span>
+      </div>
+      <div class="opts">
+        <span class="olbl">Bo'lak</span>
+        <span class="opills" id="shortsLimit">
+          <span class="opill" data-v="5">5 ta</span>
+          <span class="opill on" data-v="8">8 ta</span>
+          <span class="opill" data-v="14">14 ta</span>
+        </span>
+      </div>
+      <div id="trPanel" style="display:none">
+        <div class="opts">
+          <span class="mini" id="trLoad">Matnni yuklash</span>
+          <span class="mini" id="trClear">Tanlovni tozalash</span>
+        </div>
+        <div class="opts">
+          <input type="text" id="trSearch" placeholder="Matndan qidirish… (pul, birinchi marta)">
+        </div>
+        <p class="tip" id="trTip">Qatorni bosing — playhead o'sha joyga boradi
+        va qator <b>tanlanadi</b>. Ketma-ket qatorlar bitta bo'lakka qo'shiladi.</p>
+        <div class="trlist" id="trList"></div>
+      </div>
+
+      <div class="opts" id="markerFormat" style="display:none">
+        <span class="olbl">Format</span>
+        <span class="opills" id="markerAspect">
+          <span class="opill on" data-v="reels">Reels 9:16</span>
+          <span class="opill" data-v="manba">Manba (o'zgarmasin)</span>
+        </span>
+      </div>
+
+      <div class="knobs" id="markerKnobs" style="display:none">
+        <label>Markerdan oldin
+          <input type="range" id="kMarkerOldin" min="0" max="60" value="0">
+          <span id="vMarkerOldin">0 s</span>
+        </label>
+        <label>Markerdan keyin
+          <input type="range" id="kMarkerKeyin" min="5" max="90" value="30">
+          <span id="vMarkerKeyin">30 s</span>
+        </label>
+      </div>
+
+      <p class="tip" id="shortsTipMarker" style="display:none">
+      <b>Mening markerlarim</b> — tanlovni siz qilasiz, mashina taxmin
+      qilmaydi. Podcastni eshitib boring, yoqqan joyingizda <b>M</b> tugmasini
+      bosing. Har marker bitta bo'lak bo'ladi: boshi markerdan
+      <b>2 soniya oldin</b> olinadi (M ni bosgunimizcha vaqt ketadi) va
+      keyingi jimlikkacha cho'ziladi.<br>
+      Timeline'da markerni <b>cho'zib</b> belgilasangiz — aynan o'sha oraliq
+      olinadi. Musiqa, jingle bo'lgan yozuvda eng ishonchli yo'l shu.</p>
+
+      <p class="tip" id="markerTip" style="display:none">
+      <b>«Markerlardan yig'ish»</b> — ish butunlay Premiere ichida bajariladi,
+      shuning uchun o'sha joyda timeline'da <b>nima bo'lsa hammasi</b> chiqadi:
+      kadr, ovoz, <b>matn va grafika</b>, effektlar, ovoz darajalari.
+      Multicam ham ishlaydi.<br>
+      Hamma marker <b>bitta sequence</b>ga ketma-ket yig'iladi. Yonma-yon
+      tushgan markerlar birlashtiriladi — bir joy ikki marta tushmaydi.<br>
+      Bo'lak <b>markerdan boshlanadi</b> (yuqoridagi «oldin» 0 bo'lsa).
+      Markerni timeline'da cho'zib belgilasangiz — aynan o'sha oraliq.<br>
+      <b>Reels 9:16</b> tanlansa, natija sequence'i vertikal qilinadi va
+      kadr balandlik bo'yicha to'ldiriladi (markazdan). Yuzni kerakli
+      joyga surish uchun klipni tanlab, Effect Controls &gt; Motion &gt;
+      Position ni o'zgartirasiz.</p>
+      <p class="tip" id="shortsTipAuto">Har bo'lak — <b>tugallangan fikr</b> (20–60 s), chegaralari
+      jimlik bo'yicha kesiladi: gap o'rtasidan boshlanmaydi.<br>
+      Tanlanganlarning har biri <b>alohida sequence</b> bo'lib chiqadi.
+      Vertikal (9:16) qilish uchun Premiere'da o'sha sequence'larni tanlab,
+      o'ng tugma → <b>Auto Reframe Sequence</b> → 9:16. Yuzni Adobe'ning o'zi
+      kuzatadi — bizdan yaxshi qiladi.</p>
+      <div class="moments" id="shortsList"></div>
+    </div>
+
+    <div id="matnPanel">
+      <div class="prevbox">
+        <img id="matnPreview" alt="">
+        <span class="hintline" id="matnPrevHint">Matn yozing — shu yerda
+          aynan qanday chiqishi ko'rinadi</span>
+      </div>
+
+      <div class="mstyle">
+        <select id="mFont" title="Shrift"></select>
+        <select id="mSize" title="O'lcham">
+          <option value="44">Kichik</option>
+          <option value="58" selected>O'rtacha</option>
+          <option value="74">Katta</option>
+          <option value="92">Juda katta</option>
+        </select>
+        <select id="mPos" title="Joylashuv">
+          <option value="past" selected>Pastda</option>
+          <option value="orta">O'rtada</option>
+          <option value="tepa">Tepada</option>
+        </select>
+        <span class="pick on" id="mBold" style="flex:0 0 auto;padding:5px 10px">Qalin</span>
+        <span class="swatch on" data-c="#FFFFFF" style="background:#FFFFFF"></span>
+        <span class="swatch" data-c="#FFD24A" style="background:#FFD24A"></span>
+        <span class="swatch" data-c="#8FD0E8" style="background:#8FD0E8"></span>
+        <span class="swatch" data-c="#111111" style="background:#111111"></span>
+      </div>
+
+      <div id="matnList"></div>
+      <div class="seqpick" id="matnAdd" style="display:block;text-align:center">
+        <b>+ Matn qo'shish</b>
+        <span>vaqtini timeline'dagi playhead'dan olsa bo'ladi</span>
+      </div>
+
+      <p class="tip">Animatsiya ataylab <b>sezilmaydigan</b> qilingan: matn
+      pastdan 28 piksel ko'tarilib, sekinlashib to'xtaydi va ochiladi
+      (0,55 s). Sakrash, kattalashish, so'z-ma-so'z chiqish yo'q — tomoshabin
+      matnning paydo bo'lganini sezmaydi.<br>
+      O'lcham va kadr chastotasi <b>ochiq sequence'dan</b> olinadi, shuning
+      uchun reels ham, YouTube ham o'zi to'g'ri chiqadi.</p>
+    </div>
+
+    <div class="knobs" id="switchKnobs">
+      <label>Eng qisqa kadr
+        <input type="range" id="kMinShot" min="10" max="80" value="25">
+        <span id="vMinShot">2.5 s</span>
+      </label>
+      <label>Eng uzun kadr
+        <input type="range" id="kMaxShot" min="8" max="60" value="25">
+        <span id="vMaxShot">25 s</span>
+      </label>
+      <p class="tip">Ovozi yaxshi yozilgan fayl yonidagi <b>♪</b> belgisini
+      bosing — kamera almashsa ham ovoz o'sha bitta manbadan keladi. O'sha fayl
+      kamera sifatida ham ishlatilaveradi.</p>
+    </div>
+
+    <div class="logbar" id="logBar">
+      <span id="logToggle">Log'ni ochish</span>
+      <span id="logCopy">Log'ni nusxalash</span>
+      <span id="logBig">Kattalashtirish</span>
+    </div>
+      <div id="harKnobs">
+        <p class="tip"><b>Har kesimda</b> — har plan boshqa masofadan
+        boshlanadi, ya'ni kesim ko'rinadi. Bu eng sezilarli va eng
+        ishonchli (keyframe kerak emas).<br>
+        <b>Sekin harakat</b> — kadr oraliq davomida sekin suriladi. Bu
+        ataylab sezilmas: harakat payqalmaydi, lekin kadr «tirik» bo'ladi.<br>
+        Manba montajdan kattaroq bo'lsa (4K → 1080p) sifat umuman
+        yo'qolmaydi. Vertikal montajda kadr allaqachon kattalashtirilgan
+        bo'ladi — bunda log'da kadr manbadan <b>necha barobar</b>
+        kattalashishi aniq yoziladi, qaror sizniki.</p>
+        <div class="opts" id="harRejimBox">
+          <span class="olbl">NIMA QILSIN</span>
+          <span class="opill on" data-v="kesim">Har kesimda</span>
+          <span class="opill" data-v="sekin">Sekin harakat</span>
+          <span class="opill" data-v="ikkala">Ikkalasi</span>
+        </div>
+        <div class="opts" id="harOraliqBox">
+          <span class="olbl">HAR QANCHA VAQTDA</span>
+          <span class="opill" data-v="10">10 soniya</span>
+          <span class="opill on" data-v="15">15 soniya</span>
+          <span class="opill" data-v="30">30 soniya</span>
+          <span class="opill" data-v="60">1 daqiqa</span>
+        </div>
+        <div class="opts" id="harKuchBox">
+          <span class="olbl">QANCHALIK</span>
+          <span class="opill" data-v="yumshoq">Yumshoq</span>
+          <span class="opill on" data-v="orta">O'rtacha</span>
+          <span class="opill" data-v="kuchli">Kuchli</span>
+        </div>
+      </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="job" id="job">
+      <div class="job-hd">
+        <span class="job-dot"></span>
+        <span class="job-stage" id="jobStage">Boshlanmoqda…</span>
+        <span class="job-step" id="jobStep"></span>
+        <span class="job-more" id="jobMore">Batafsil</span>
+      </div>
+      <div class="job-bar">
+        <div class="job-fill" id="jobFill"></div>
+        <div class="job-seg" id="jobSeg"></div>
+        <div class="job-ticks" id="jobTicks"></div>
+      </div>
+      <!-- Nafas chizig'i: har bir bo'lakcha motordan kelgan javob.
+           Animatsiya emas — ma'lumot kelmasa, o'sishi ham to'xtaydi. -->
+      <div class="job-pulse" id="jobPulse"></div>
+      <div class="job-chips" id="jobChips"></div>
+      <div class="job-ft">
+        <span class="job-detail" id="jobDetail"></span>
+        <!-- Vaqt va «qancha qoldi» BITTA bo'lakda: ular orasida flex
+             siqilishi bo'lmaydi, ya'ni «1:12 / o'tdi» deb ikkiga
+             bo'linib ketishi ham mumkin emas. -->
+        <span class="job-meta"><b id="jobElapsed">0:00</b> o'tdi<span
+              class="job-eta" id="jobEta"></span></span>
+      </div>
+      <!-- Ish to'xtasa yoki qotib qolsa: nima qilish kerakligi va
+           qayta urinish tugmasi. Foydalanuvchi «endi nima?» degan
+           savol bilan yolg'iz qolmasin. -->
+      <div class="job-help" id="jobHelp">
+        <span id="jobHelpTxt"></span>
+        <span class="job-retry" id="jobRetry">Qayta urinish</span>
+      </div>
+    </div>
+
+  <div class="foot">
+    <button class="btn primary" id="syncBtn" disabled>Sinxronlash</button>
+    <button class="btn primary" id="cutBtn" disabled>Pauzalarni kesish</button>
+    <button class="btn primary" id="switchBtn" disabled>Kameralarni taqsimlash</button>
+    <button class="btn primary" id="shortsBtn" disabled>Bo'laklarni topish</button>
+    <button class="btn" id="shortsBuildBtn" disabled>Shorts yasash</button>
+    <button class="btn primary" id="markerBtn">Markerlardan yig'ish</button>
+    <button class="btn primary" id="trBtn" disabled>Tanlanganlardan yig'ish</button>
+    <button class="btn primary" id="harBtn">Harakat qo'shish</button>
+    <button class="btn primary" id="introBtn" disabled>Lahzalarni topish</button>
+    <button class="btn" id="reviewBtn" disabled>Nomzodlarni ko'rish</button>
+    <button class="btn" id="buildBtn" disabled>Intro yasash</button>
+    <button class="btn primary" id="sampleBtn" disabled>2 daqiqani sinash</button>
+    <button class="btn primary" id="capBtn" disabled>To'liq transkripsiya</button>
+    <button class="btn primary" id="srtBtn">Subtitr yasash</button>
+    <button class="btn primary" id="fxBtn">Tanlanganlarga qo'llash</button>
+    <button class="btn primary" id="matnBtn">Matnlarni yasash</button>
+    <button class="btn" id="importBtn" disabled>Premiere'ga import</button>
+    <span class="hint" id="hint">0 fayl</span>
+    <!-- Import qilingan narsalar bitta binda turadi; shu tugma o'sha binni
+         butunlay olib tashlaydi, ya'ni har ishdan keyin qo'lda tanlab
+         o'chirish shart emas. O'ngga suriladi — tasodifan bosilmasin. -->
+    <span class="mini rm" id="tozalaBtn" style="margin-left:auto">Tozalash</span>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

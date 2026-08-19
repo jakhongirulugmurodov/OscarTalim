@@ -1,0 +1,84 @@
+/* Premiere interfeysiga mos qorong'i mavzu — ortiqcha bezaksiz */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #2b2b2b;
+  color: #d8d8d8;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 12px;
+  padding: 14px;
+}
+
+h1 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.izoh {
+  color: #9a9a9a;
+  margin-bottom: 14px;
+  line-height: 1.45;
+}
+
+label {
+  display: block;
+  color: #9a9a9a;
+  margin-bottom: 4px;
+}
+
+input {
+  width: 100%;
+  background-color: #1f1f1f;
+  color: #d8d8d8;
+  border: 1px solid #444;
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #6a6a6a;
+}
+
+button {
+  width: 100%;
+  background-color: #4b4b4b;
+  color: #e8e8e8;
+  border: 1px solid #5c5c5c;
+  border-radius: 3px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #575757;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#natija {
+  margin-top: 12px;
+  line-height: 1.45;
+  min-height: 16px;
+}
+
+#natija.ok {
+  color: #8fd9a0;
+}
+
+#natija.xato {
+  color: #e8908f;
+}
