@@ -319,6 +319,20 @@
             </select>
           </div>
         </div>
+        <label>Aniqlik dvigateli</label>
+        <select id="dvigatel">
+          <option value="gemini">Gemini — segment aniqligi (±0.5 s)</option>
+          <option value="scribe">Scribe — so'z darajasida (~10 ms)</option>
+        </select>
+        <div id="scribeKeyWrap" style="display:none">
+          <label>ElevenLabs API kalit</label>
+          <input type="password" id="elevenKey" placeholder="sk_... kalitingizni qo'ying">
+          <p class="hint">Kalit olish: <a href="https://elevenlabs.io/app/settings/api-keys"
+            target="_blank">elevenlabs.io → API Keys</a> (bepul tarif sinashga yetadi).
+            Scribe rejimida har bir so'zning aniq vaqti olinadi — matn animatsiyasi uchun.
+            Model/yozuv/tahrir sozlamalari bu rejimda ishlatilmaydi, YouTube havola emas,
+            faqat fayl qabul qilinadi.</p>
+        </div>
         <label>Segmentlash</label>
         <select id="segment">
           <option value="nozik">Nozik — har nuqta va vergulda timecode</option>
@@ -402,6 +416,7 @@ function qurilmaNomi(ua, touchPoints) {
   } catch (e) { /* model olinmasa, umumiy nom qoladi */ }
 })();
 let natija = [];
+let joriySozlar = null; // Scribe rejimida so'z darajasidagi vaqtlar
 let joriyNom = "";
 let joriyTab = "fayl";
 
@@ -424,6 +439,14 @@ function kalitTahrir() {
   $("apiKey").focus();
 }
 kalitKorinish();
+
+/* ElevenLabs (Scribe) kaliti va dvigatel tanlovi */
+$("elevenKey").value = localStorage.getItem("eleven_key") || "";
+$("elevenKey").addEventListener("change", () =>
+  localStorage.setItem("eleven_key", $("elevenKey").value.trim()));
+$("dvigatel").addEventListener("change", () => {
+  $("scribeKeyWrap").style.display = $("dvigatel").value === "scribe" ? "block" : "none";
+});
 
 /* ===== Tablar va fayl tanlash ===== */
 function tabTanla(t) {
@@ -714,6 +737,91 @@ async function audioAjrat(file) {
   }
 }
 
+/* ===== ElevenLabs Scribe: so'z darajasidagi vaqtlar ===== */
+function scribeTranskript(kalit, file) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("model_id", "scribe_v1");
+    fd.append("file", file);
+    fd.append("language_code", "uzb");
+    fd.append("timestamps_granularity", "word");
+    fd.append("tag_audio_events", "false");
+    const x = new XMLHttpRequest();
+    joriyXhr = x;
+    x.open("POST", "https://api.elevenlabs.io/v1/speech-to-text");
+    x.setRequestHeader("xi-api-key", kalit);
+    x.upload.onprogress = e => {
+      if (!e.lengthComputable) return;
+      const foiz = Math.round(e.loaded / e.total * 100);
+      if (foiz < 100) {
+        jarayon(foiz);
+        holat(`Scribe'ga yuklanmoqda: ${foiz}% (${(e.loaded / 1048576).toFixed(0)}/${(e.total / 1048576).toFixed(0)} MB)`, false, true);
+      } else {
+        jarayon("indet");
+        holat("Scribe so'zma-so'z tahlil qilmoqda...", false, true);
+      }
+    };
+    x.onload = () => {
+      let j = {};
+      try { j = JSON.parse(x.responseText); } catch (e) { /* bo'sh javob */ }
+      if (x.status >= 300) {
+        const d = j.detail;
+        return reject(new Error(
+          (d && (d.message || (typeof d === "string" ? d : ""))) ||
+          (x.status === 401 ? "ElevenLabs kaliti noto'g'ri yoki muddati tugagan" :
+           `Scribe xatosi (HTTP ${x.status})`)));
+      }
+      const sozlar = (j.words || [])
+        .filter(w => w.type === "word" && typeof w.start === "number")
+        .map(w => ({ text: String(w.text).trim(), start: w.start, end: w.end }));
+      resolve(sozlar);
+    };
+    x.onerror = () => reject(new Error("Tarmoq xatosi — Scribe'ga ulanib bo'lmadi"));
+    x.onabort = () => reject(new Error("bekor qilindi"));
+    x.send(fd);
+  });
+}
+
+/* So'zlardan caption segmentlari: pauza (0.4s+), tinish belgisi
+   yoki 12 so'z chegarasida bo'linadi; 3 so'zdan kam bo'lak chiqmaydi */
+function sozlardanSegmentlar(sozlar) {
+  const seglar = [];
+  let joriy = null;
+  for (const w of sozlar) {
+    if (!joriy) { joriy = { start: w.start, end: w.end, text: w.text }; continue; }
+    const pauza = w.start - joriy.end >= 0.4;
+    const sozSoni = joriy.text.split(/\s+/).length;
+    const tinish = /[.,!?:;…]$/.test(joriy.text);
+    if (pauza || (tinish && sozSoni >= 3) || sozSoni >= 12) {
+      seglar.push(joriy);
+      joriy = { start: w.start, end: w.end, text: w.text };
+    } else {
+      joriy.text += " " + w.text;
+      joriy.end = w.end;
+    }
+  }
+  if (joriy) seglar.push(joriy);
+  return segmentTozala(seglar);
+}
+
+/* Katta videodan audioni ajratib beradi; bo'lmasa faylni o'zini qaytaradi */
+async function faylTayyorla(file) {
+  if (!(file.type || "").startsWith("video") || file.size <= 30e6) return file;
+  try {
+    const yubor = await audioAjrat(file);
+    holat(`Audio ajratildi: ${(yubor.size / 1048576).toFixed(1)} MB ` +
+          `(${(file.size / 1048576).toFixed(0)} MB video o'rniga)`, false, true);
+    return yubor;
+  } catch (e) {
+    if (bekorQilindi) throw e;
+    console.warn("Audio ajratib bo'lmadi, video to'liq yuboriladi:", e);
+    holat(`⚠️ Audio ajratib bo'lmadi (sabab: ${e.message}).\n` +
+          `Video to'liq yuboriladi — sekinroq, lekin ishlayveradi.`, false, true);
+    await new Promise(res => setTimeout(res, 3500));
+    return file;
+  }
+}
+
 /* ===== Asosiy jarayon ===== */
 async function boshla() {
   const key = ($("apiKey").value || localStorage.getItem("gemini_key") || "").trim();
@@ -722,7 +830,15 @@ async function boshla() {
   const model = $("model").value;
   const yozuv = $("yozuv").value;
 
-  if (!key) return holat("Avval API kalitni kiriting (1-bo'lim).", true);
+  const dvigatel = $("dvigatel").value;
+  const elevenKey = ($("elevenKey").value || localStorage.getItem("eleven_key") || "").trim();
+
+  if (dvigatel === "scribe") {
+    if (!elevenKey) return holat("Scribe uchun ElevenLabs kalitini kiriting (⚙️ Sozlamalar ichida).", true);
+    if (joriyTab === "yt") return holat("Scribe YouTube havola bilan ishlamaydi — videoni «Fayl» orqali yuklang.", true);
+  } else if (!key) {
+    return holat("Avval API kalitni kiriting (1-bo'lim).", true);
+  }
   if (!yt && !file) {
     return holat(joriyTab === "yt" ? "YouTube havolasini qo'ying." : "Avval fayl tanlang.", true);
   }
@@ -730,7 +846,8 @@ async function boshla() {
     return holat("Havola orqali faqat YouTube ishlaydi. Instagram va boshqa " +
       "platformalardagi videoni telefonga saqlab, «Fayl» bo'limi orqali yuklang.", true);
   }
-  localStorage.setItem("gemini_key", key);
+  if (key) localStorage.setItem("gemini_key", key);
+  if (elevenKey) localStorage.setItem("eleven_key", elevenKey);
 
   ishlayapti = true;
   bekorQilindi = false;
@@ -738,65 +855,67 @@ async function boshla() {
   tugmaHolati(true);
   $("resultCard").style.display = "none";
   try {
-    let mediaPart, videoMi;
-    if (yt) {
-      mediaPart = { fileData: { fileUri: yt } };
-      videoMi = true;
-    } else {
+    let seglar;
+    const nom = file ? file.name : yt;
+
+    if (dvigatel === "scribe") {
+      /* === Scribe: so'z darajasidagi aniqlik === */
       if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
-      let yubor = file;
-      // Katta videolardan avval audioni ajratamiz — yuklash 10-30x tezlashadi
-      if ((file.type || "").startsWith("video") && file.size > 30e6) {
-        try {
-          yubor = await audioAjrat(file);
-          holat(`Audio ajratildi: ${(yubor.size / 1048576).toFixed(1)} MB ` +
-                `(${(file.size / 1048576).toFixed(0)} MB video o'rniga)`, false, true);
-        } catch (e) {
-          if (bekorQilindi) throw e;
-          console.warn("Audio ajratib bo'lmadi, video to'liq yuboriladi:", e);
-          holat(`⚠️ Audio ajratib bo'lmadi (sabab: ${e.message}).\n` +
-                `Video to'liq yuboriladi — sekinroq, lekin ishlayveradi.`, false, true);
-          await new Promise(res => setTimeout(res, 3500));
-          yubor = file;
-        }
-      }
+      const yubor = await faylTayyorla(file);
       jarayon(0);
-      holat(`Fayl yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
-      const f = await faylYuklash(key, yubor);
-      mediaPart = { fileData: { fileUri: f.uri, mimeType: f.mime } };
-      videoMi = (f.mime || "").startsWith("video");
-    }
-    // Tejamkor rejim: kadrlar deyarli olinmaydi (10 soniyada 1 kadr),
-    // token sarfi ~5x kamayadi — uzun videolar bepul limitga sig'adi
-    if ($("tejamkor").checked && videoMi) {
-      mediaPart.videoMetadata = { fps: 0.1 };
-    }
+      holat(`Scribe'ga yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
+      const sozlar = await scribeTranskript(elevenKey, yubor);
+      if (!sozlar.length) throw new Error("Videoda nutq topilmadi.");
+      joriySozlar = sozlar;
+      seglar = sozlardanSegmentlar(sozlar);
+    } else {
+      /* === Gemini: segment aniqligi === */
+      joriySozlar = null;
+      let mediaPart, videoMi;
+      if (yt) {
+        mediaPart = { fileData: { fileUri: yt } };
+        videoMi = true;
+      } else {
+        if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
+        const yubor = await faylTayyorla(file);
+        jarayon(0);
+        holat(`Fayl yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
+        const f = await faylYuklash(key, yubor);
+        mediaPart = { fileData: { fileUri: f.uri, mimeType: f.mime } };
+        videoMi = (f.mime || "").startsWith("video");
+      }
+      // Tejamkor rejim: kadrlar deyarli olinmaydi (10 soniyada 1 kadr),
+      // token sarfi ~5x kamayadi — uzun videolar bepul limitga sig'adi
+      if ($("tejamkor").checked && videoMi) {
+        mediaPart.videoMetadata = { fps: 0.1 };
+      }
 
-    jarayon("indet");
-    holat("Gemini transkripsiya qilmoqda... (1-2 daqiqa)", false, true);
-    const rejim = $("segment").value;
-    let seglar = await generate(key, model, [mediaPart, { text: prompt1(yozuv, rejim) }]);
-    seglar = segmentTozala(seglar);
+      jarayon("indet");
+      holat("Gemini transkripsiya qilmoqda... (1-2 daqiqa)", false, true);
+      const rejim = $("segment").value;
+      seglar = await generate(key, model, [mediaPart, { text: prompt1(yozuv, rejim) }]);
+      seglar = segmentTozala(seglar);
 
-    if ($("tahrir").checked && seglar.length) {
-      holat("Tahrir o'tishi — matn qayta tekshirilmoqda...", false, true);
-      try {
-        const tahrirlangan = await generate(key, model, [mediaPart, { text: prompt2(seglar) }]);
-        if (tahrirlangan.length === seglar.length) {
-          seglar.forEach((s, i) => { s.text = tahrirlangan[i].text; });
+      if ($("tahrir").checked && seglar.length) {
+        holat("Tahrir o'tishi — matn qayta tekshirilmoqda...", false, true);
+        try {
+          const tahrirlangan = await generate(key, model, [mediaPart, { text: prompt2(seglar) }]);
+          if (tahrirlangan.length === seglar.length) {
+            seglar.forEach((s, i) => { s.text = tahrirlangan[i].text; });
+          }
+        } catch (e) {
+          console.warn("Tahrir o'tishi xatosi, asl matn qoldirildi:", e);
         }
-      } catch (e) {
-        console.warn("Tahrir o'tishi xatosi, asl matn qoldirildi:", e);
       }
     }
 
     if (!seglar.length) throw new Error("Videoda nutq topilmadi.");
     natija = seglar;
-    const nom = file ? file.name : yt;
-    tarixgaSaqla(nom, seglar);
+    tarixgaSaqla(nom, seglar, joriySozlar);
     korsat(seglar, nom);
     jarayon(null);
-    holat(`Tayyor: ${seglar.length} segment. ✅`);
+    holat(`Tayyor: ${seglar.length} segment` +
+          (joriySozlar ? `, ${joriySozlar.length} so'z (so'z darajasida)` : "") + ". ✅");
     toast("Tayyor! Tarixga saqlandi 📚");
   } catch (e) {
     if (bekorQilindi) {
@@ -872,9 +991,9 @@ function yuklab(fmt) {
     content = natija.map((s, i) =>
       `${i + 1}\n${vaqt(s.start)} --> ${vaqt(s.end)}\n${s.text.trim()}\n`).join("\n");
   } else if (fmt === "json") {
-    // Animatsiya dasturlari uchun: segmentlar + pauzalar, soniyalarda
+    // Animatsiya dasturlari uchun: segmentlar + pauzalar (+ so'zlar), soniyalarda
     const pauzalar = pauzaTop(natija);
-    content = JSON.stringify({
+    const obj = {
       segmentlar: natija.map(s => ({
         start: Math.round(s.start * 1000) / 1000,
         end: Math.round(s.end * 1000) / 1000,
@@ -885,7 +1004,15 @@ function yuklab(fmt) {
         end: Math.round(natija[i].start * 1000) / 1000,
         davomiylik: d,
       })),
-    }, null, 2);
+    };
+    if (joriySozlar && joriySozlar.length) {
+      obj.sozlar = joriySozlar.map(w => ({
+        text: w.text,
+        start: Math.round(w.start * 1000) / 1000,
+        end: Math.round(w.end * 1000) / 1000,
+      }));
+    }
+    content = JSON.stringify(obj, null, 2);
   } else {
     content = natija.map(s => s.text.trim()).join(" ") + "\n";
   }
@@ -950,9 +1077,11 @@ function davomiylikMatn(seglar) {
   return m >= 60 ? `${Math.floor(m / 60)} soat ${m % 60} daq` : `${m} daq ${s % 60} son`;
 }
 
-function tarixgaSaqla(nom, seglar) {
+function tarixgaSaqla(nom, seglar, sozlar) {
   const list = tarixOl();
-  list.unshift({ id: Date.now(), nom, sana: new Date().toISOString(), seglar });
+  const yozuv = { id: Date.now(), nom, sana: new Date().toISOString(), seglar };
+  if (sozlar && sozlar.length) yozuv.sozlar = sozlar;
+  list.unshift(yozuv);
   while (list.length > 60) list.pop();
   tarixYoz(list);
   tarixKorsat();
@@ -977,6 +1106,7 @@ function tarixOch(id) {
   const t = tarixOl().find(x => x.id === id);
   if (!t) return;
   natija = t.seglar;
+  joriySozlar = t.sozlar || null;
   korsat(t.seglar, t.nom);
 }
 
