@@ -215,6 +215,16 @@
     margin: 2px 0; letter-spacing: .02em;
   }
   .seg .spk { font-size: .78rem; font-weight: 700; margin: 2px 0 1px; }
+  .sozlar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+  .soz {
+    font-size: .7rem; background: var(--white); border: 1px solid var(--border);
+    border-radius: 7px; padding: 2px 6px; display: inline-flex; align-items: baseline; gap: 4px;
+  }
+  .soz i {
+    font-style: normal; font-family: ui-monospace, monospace;
+    font-size: .64rem; color: #b45309; font-weight: 600;
+  }
+  .soz.taxminiy { border-style: dashed; opacity: .75; }
   #natijaNom {
     font-size: .82rem; color: var(--muted); margin: 0 0 10px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -320,6 +330,15 @@
             </select>
           </div>
         </div>
+        <label>So'z darajasidagi timecode</label>
+        <select id="sozRejim">
+          <option value="hook">Faqat boshi (hook — birinchi 15 s)</option>
+          <option value="hamma">Hamma so'zlar</option>
+          <option value="yoq">O'chiq</option>
+        </select>
+        <p class="hint">Har bir so'zning alohida vaqti olinadi — matn animatsiyasi uchun.
+          Qo'shimcha bitta so'rov ketadi; «Hamma so'zlar» uzun videolarda limitni tezroq
+          sarflaydi.</p>
         <label>Segmentlash</label>
         <select id="segment">
           <option value="nozik">Nozik — har nuqta va vergulda timecode</option>
@@ -492,6 +511,50 @@ function segmentTozala(seglar) {
   return out;
 }
 
+/* Segment ichidagi so'zlarni uzunligiga qarab taqsimlaydi.
+   Gemini so'z vaqtlarini bermasa yoki noto'g'ri bersa — shu ishlatiladi. */
+function sozlarniChamala(seg) {
+  const sozlar = seg.text.trim().split(/\s+/).filter(Boolean);
+  const jamiUzunlik = sozlar.reduce((a, w) => a + w.length, 0) || 1;
+  const davom = Math.max(seg.end - seg.start, 0.001);
+  let t = seg.start;
+  return sozlar.map(w => {
+    const d = davom * (w.length / jamiUzunlik);
+    const soz = { text: w, start: +t.toFixed(3), end: +(t + d).toFixed(3), taxminiy: true };
+    t += d;
+    return soz;
+  });
+}
+
+/* Gemini qaytargan so'z ro'yxatini segmentlarga taqsimlaydi.
+   So'zlar soni mos kelsa — aniq vaqtlar, aks holda chamalab beriladi. */
+function sozlarniBiriktir(seglar, gSozlar) {
+  let k = 0;
+  for (const seg of seglar) {
+    const kutilgan = seg.text.trim().split(/\s+/).filter(Boolean).length;
+    const nomzod = [];
+    // Segment oralig'iga tushadigan so'zlarni olamiz (chetiga 0.3s bo'shliq)
+    while (k < gSozlar.length && gSozlar[k].start < seg.end + 0.3) {
+      if (gSozlar[k].start >= seg.start - 0.3) nomzod.push(gSozlar[k]);
+      k++;
+    }
+    if (nomzod.length === kutilgan && kutilgan > 0) {
+      // Aniq moslik: matnni o'zimiznikidan olamiz, vaqtni Gemini'dan
+      const matnSozlar = seg.text.trim().split(/\s+/).filter(Boolean);
+      let oldingi = seg.start;
+      seg.sozlar = nomzod.map((w, i) => {
+        const start = Math.max(oldingi, Math.min(w.start, seg.end));
+        const end = Math.max(start, Math.min(w.end, seg.end));
+        oldingi = end;
+        return { text: matnSozlar[i], start: +start.toFixed(3), end: +end.toFixed(3) };
+      });
+    } else {
+      seg.sozlar = sozlarniChamala(seg);
+    }
+  }
+  return seglar;
+}
+
 /* So'zlovchi belgisiga barqaror rang beradi (ro'yxatdagi tartibiga qarab) */
 const SOZLOVCHI_RANG = ["#2563eb", "#16a34a", "#c026d3", "#ea580c", "#0891b2", "#7c3aed"];
 function sozlovchiRang(nomlar, nom) {
@@ -545,6 +608,23 @@ ${segmentQoida}
 6. Ruscha yoki inglizcha aytilgan so'zlarni aynan aytilganidek yoz.
 7. Musiqa, pauza va shovqinlarni yozma — faqat nutqni yoz.
 8. Hech bir gapni tashlab ketma va o'zingdan hech narsa qo'shma.${sozlovchiQoida}`;
+}
+
+function promptSoz(boshi, oxiri, matn) {
+  return `Bu audioning ${vaqtQisqa(boshi, true)} dan ${vaqtQisqa(oxiri, true)} gacha
+bo'lgan qismidagi HAR BIR SO'ZNI alohida element qilib qaytar.
+
+Qoidalar:
+1. Har bir element — bitta so'z. So'zni bo'laklarga bo'lma, ikkitasini qo'shma.
+2. "start" — so'z aytila boshlagan payt, "end" — tugagan payt, "MM:SS.mmm"
+   formatida (masalan "00:07.250"). Millisekundgacha aniq belgila —
+   bu matn animatsiyasi uchun ishlatiladi.
+3. Tinish belgilarini so'zning o'zi bilan birga qoldir (masalan "aytaman,").
+4. So'zlar vaqt bo'yicha ketma-ket bo'lsin, bitta so'zni ham tashlab ketma.
+5. Musiqa va shovqinni yozma — faqat aytilgan so'zlarni.
+
+Shu qismda aytilgan matn (tekshirish uchun):
+"${matn}"`;
 }
 
 function prompt2(segmentlar) {
@@ -832,6 +912,30 @@ async function boshla() {
     tarixgaSaqla(nom, seglar);
     korsat(seglar, nom);
     jarayon(null);
+    /* So'z darajasidagi vaqtlar — qo'shimcha o'tish */
+    const sozRejim = $("sozRejim").value;
+    if (sozRejim !== "yoq" && seglar.length) {
+      const nishon = sozRejim === "hook"
+        ? seglar.filter(s => s.start < 15)
+        : seglar;
+      if (nishon.length) {
+        holat(sozRejim === "hook"
+          ? "Hook qismi so'zma-so'z o'lchanmoqda..."
+          : "Har bir so'z vaqti o'lchanmoqda...", false, true);
+        try {
+          const matn = nishon.map(s => s.text.trim()).join(" ");
+          const gSozlar = await generate(key, model,
+            [mediaPart, { text: promptSoz(nishon[0].start, nishon[nishon.length - 1].end, matn) }],
+            schemaTuz(false));
+          sozlarniBiriktir(nishon, gSozlar);
+        } catch (e) {
+          if (bekorQilindi) throw e;
+          console.warn("So'z vaqtlari olinmadi, chamalab beriladi:", e);
+          nishon.forEach(s => { s.sozlar = sozlarniChamala(s); });
+        }
+      }
+    }
+
     const sozlovchilar = [...new Set(seglar.map(s => s.speaker).filter(Boolean))];
     holat(`Tayyor: ${seglar.length} segment` +
           (sozlovchilar.length ? `, ${sozlovchilar.length} so'zlovchi` : "") + ". ✅");
@@ -902,7 +1006,13 @@ function korsat(seglar, nom) {
       (rang ? `;border-left:3px solid ${rang}` : "") + `">` +
       `<div class="time">${vaqtQisqa(s.start, true)} → ${vaqtQisqa(s.end, true)}</div>` +
       (s.speaker ? `<div class="spk" style="color:${rang}">${String(s.speaker).replace(/</g, "&lt;")}</div>` : "") +
-      `<div class="text">${s.text.replace(/</g, "&lt;")}</div></div>`;
+      `<div class="text">${s.text.replace(/</g, "&lt;")}</div>` +
+      (s.sozlar ? `<div class="sozlar">` + s.sozlar.map(w =>
+        `<span class="soz${w.taxminiy ? " taxminiy" : ""}"` +
+        (w.taxminiy ? ` title="taxminiy vaqt"` : "") + `>` +
+        `${w.text.replace(/</g, "&lt;")}<i>${w.start.toFixed(2)}</i></span>`
+      ).join("") + `</div>` : "") +
+      `</div>`;
   }).join("");
   $("resultCard").style.display = "block";
   $("resultCard").scrollIntoView({ behavior: "smooth" });
@@ -923,6 +1033,7 @@ function yuklab(fmt) {
         end: Math.round(s.end * 1000) / 1000,
         ...(s.speaker ? { speaker: s.speaker } : {}),
         text: s.text.trim(),
+        ...(s.sozlar ? { sozlar: s.sozlar } : {}),
       })),
       pauzalar: Object.entries(pauzalar).map(([i, d]) => ({
         start: Math.round(natija[i - 1].end * 1000) / 1000,
