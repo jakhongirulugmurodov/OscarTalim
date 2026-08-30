@@ -67,17 +67,21 @@ Mashqdan keyingi javobga qarab:
 
 `k` 0.5 va 3 oralig'ida ushlab turiladi. Sozlamalardan istalgan vaqtda tiklash mumkin.
 
-## Ishga tushirish
+## Ochish
 
-Oddiy statik sayt — server kerak emas:
+Ochiq havola (hech qanday ro'yxatdan o'tish kerak emas):
+
+**https://jakhongirulugmurodov.github.io/OscarTalim/anjuman/**
+
+Telefonda brauzer menyusidan "Bosh ekranga qo'shish" desangiz alohida ilovaga
+aylanadi va internetsiz ham ishlaydi.
+
+Mahalliy sinash uchun:
 
 ```bash
 python3 -m http.server 8000
-# keyin: http://localhost:8000/pushup/
+# keyin: http://localhost:8000/docs/anjuman/
 ```
-
-GitHub Pages'da `/pushup/` manzilida ochiladi. Telefonda brauzer menyusidan
-"Bosh ekranga qo'shish" desangiz alohida ilovaga aylanadi.
 
 ## Ma'lumot
 
@@ -87,7 +91,7 @@ yuborilmaydi. Sozlamalar → "Nusxa olish" orqali JSON ko'rinishida saqlab olish
 ## Fayllar
 
 ```
-pushup/
+docs/anjuman/
 ├── index.html            # butun dastur (HTML + CSS + JS)
 ├── sw.js                 # offline uchun service worker
 ├── manifest.webmanifest  # PWA manifesti
