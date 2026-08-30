@@ -383,6 +383,13 @@ input[type=range]{width:150px;accent-color:var(--tile)}
   border-radius:var(--r-s);padding:12px 14px;font-size:.83rem;color:var(--ink-2);
 }
 .note b{color:var(--gold)}
+.ta{
+  width:100%;height:170px;resize:vertical;
+  background:var(--bg-deep);color:var(--ink-2);
+  border:1px solid var(--line);border-radius:10px;padding:10px;
+  font-size:.72rem;font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.4;
+}
+.ta:focus{outline:2px solid var(--tile);outline-offset:1px}
 
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001ms !important;transition-duration:.001ms !important}
@@ -578,7 +585,13 @@ function load(){
       settings:{...DEF.settings, ...(p.settings||{})} };
   }catch(e){ return structuredClone(DEF); }
 }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){
+    // Xotira to'lgan yoki yozishga ruxsat yo'q (masalan yashirin rejim)
+    try{ toast("Saqlanmadi! Sozlama → Zaxira nusxa orqali ma'lumotni saqlab qo'ying", 5000); }catch(e2){}
+  }
+}
 
 /* ============================================================
    3. YORDAMCHILAR
@@ -966,12 +979,17 @@ function renderSettings(){
         '</span></div><button class="btn" id="btn-resetk">Tiklash</button></div>'+
     '</div>'+
 
-    '<div class="card"><span class="eyebrow">Ma\'lumot</span>'+
-      '<div class="set-row"><div class="lbl"><b>Nusxa olish</b><span>Barcha mashg\'ulotlar JSON faylda</span></div>'+
-        '<button class="btn" id="btn-export">Ko\'rish</button></div>'+
+    '<div class="card"><span class="eyebrow">Ma\'lumot xavfsizligi</span>'+
+      '<div class="set-row"><div class="lbl"><b>Saqlash holati</b><span id="storage-state">tekshirilmoqda...</span></div>'+
+        '<span class="pill" id="storage-pill">—</span></div>'+
+      '<div class="set-row"><div class="lbl"><b>Zaxira nusxa</b><span>'+S.sessions.length+' ta mashg\'ulot · matn sifatida saqlab qo\'ying</span></div>'+
+        '<button class="btn" id="btn-export">Nusxa olish</button></div>'+
+      '<div class="set-row"><div class="lbl"><b>Zaxiradan tiklash</b><span>Saqlab qo\'ygan matnni qaytarish</span></div>'+
+        '<button class="btn" id="btn-import">Tiklash</button></div>'+
       '<div class="set-row"><div class="lbl"><b>Hammasini o\'chirish</b><span>Tarix, rekordlar, sozlamalar</span></div>'+
         '<button class="btn" id="btn-wipe" style="color:var(--clay)">O\'chirish</button></div>'+
     '</div>'+
+    '<div id="install-tip"></div>'+
     '<p class="dim" style="font-size:.74rem;text-align:center;padding:6px 0 4px">Ma\'lumot faqat shu telefonda saqlanadi. Internet talab qilinmaydi.</p>';
 
   updateModeNote();
@@ -997,11 +1015,43 @@ function renderSettings(){
   $("#btn-resetk").addEventListener("click",()=>{
     S.k=structuredClone(DEF.k); save(); renderSettings(); toast("Koeffitsientlar tiklandi");
   });
+  renderStorageState();
+  renderInstallTip();
+
   $("#btn-export").addEventListener("click",()=>{
-    modal('<h2>Ma\'lumot nusxasi</h2><p class="muted" style="font-size:.85rem;margin:8px 0 12px">Matnni nusxalab saqlang.</p>'+
-      '<textarea readonly style="width:100%;height:190px;background:var(--bg-deep);color:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.72rem;font-family:monospace">'+
-      JSON.stringify(S)+'</textarea>'+
-      '<button class="btn block" style="margin-top:12px" onclick="closeModal()">Yopish</button>');
+    modal('<h2>Zaxira nusxa</h2><p class="muted" style="font-size:.85rem;margin:8px 0 12px">'+
+      'Quyidagi matnni nusxalab, o\'zingizga qulay joyga saqlang (eslatmalar, Telegram "Saqlangan xabarlar", pochta). '+
+      'Kerak bo\'lganda "Tiklash" orqali qaytarasiz.</p>'+
+      '<textarea id="exp-txt" readonly class="ta">'+JSON.stringify(S)+'</textarea>'+
+      '<div class="grid-2" style="margin-top:12px"><button class="btn" onclick="closeModal()">Yopish</button>'+
+      '<button class="btn primary" id="exp-copy">Nusxalash</button></div>');
+    $("#exp-copy").addEventListener("click",async()=>{
+      const t=$("#exp-txt");
+      try{ await navigator.clipboard.writeText(t.value); toast("Nusxalandi"); }
+      catch(e){ t.focus(); t.select(); toast("Matnni belgilab, qo'lda nusxalang", 3200); }
+    });
+  });
+
+  $("#btn-import").addEventListener("click",()=>{
+    modal('<h2>Zaxiradan tiklash</h2><p class="muted" style="font-size:.85rem;margin:8px 0 12px">'+
+      'Saqlab qo\'ygan matnni shu yerga joylashtiring. Hozirgi ma\'lumot <b>butunlay almashtiriladi</b>.</p>'+
+      '<textarea id="imp-txt" class="ta" placeholder=\'{"v":1,"maxTest":...\'></textarea>'+
+      '<div class="grid-2" style="margin-top:12px"><button class="btn" onclick="closeModal()">Bekor qilish</button>'+
+      '<button class="btn primary" id="imp-go">Tiklash</button></div>');
+    $("#imp-go").addEventListener("click",()=>{
+      const raw=$("#imp-txt").value.trim();
+      if(!raw) return toast("Matn bo'sh");
+      let p;
+      try{ p=JSON.parse(raw); }
+      catch(e){ return toast("Matn buzilgan — to'liq nusxalanganiga ishonch hosil qiling", 3400); }
+      if(!p || typeof p!=="object" || !Array.isArray(p.sessions))
+        return toast("Bu Anjuman zaxirasiga o'xshamaydi", 3200);
+      S={ ...structuredClone(DEF), ...p,
+          k:{...DEF.k, ...(p.k||{})},
+          settings:{...DEF.settings, ...(p.settings||{})} };
+      save(); closeModal(); renderSettings();
+      toast(S.sessions.length+" ta mashg'ulot tiklandi", 2800);
+    });
   });
   $("#btn-wipe").addEventListener("click",()=>{
     modal('<h2>Hammasi o\'chirilsinmi?</h2><p class="muted" style="font-size:.88rem;margin:10px 0 16px">'+
@@ -1023,6 +1073,56 @@ function updateModeNote(){
   const n=$("#mode-note"), h=$("#mode-hint");
   if(n) n.innerHTML=notes[S.settings.mode];
   if(h) h.textContent=hints[S.settings.mode];
+}
+
+/* --- Xotira: brauzer ma'lumotni o'chirib yubormasligi uchun --- */
+const isStandalone = ()=>
+  (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+  navigator.standalone === true;
+const isIOS = ()=> /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+
+async function requestPersist(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      if(await navigator.storage.persisted()) return true;
+      return await navigator.storage.persist();
+    }
+  }catch(e){}
+  return false;
+}
+async function renderStorageState(){
+  const el=$("#storage-state"), pill=$("#storage-pill");
+  if(!el) return;
+  let persisted=false, known=false;
+  try{
+    if(navigator.storage && navigator.storage.persisted){
+      persisted = await navigator.storage.persisted(); known=true;
+      if(!persisted) persisted = await requestPersist();
+    }
+  }catch(e){}
+  if(!$("#storage-state")) return;                 // ekran almashgan bo'lsa
+  if(persisted){
+    el.textContent="Himoyalangan — brauzer o'chirib yubormaydi";
+    pill.textContent="Himoyada"; pill.className="pill tile";
+  } else if(isIOS() && !isStandalone()){
+    el.innerHTML="Safari 7 kun ishlatilmasa o'chirishi mumkin. <b>Bosh ekranga qo'shing.</b>";
+    pill.textContent="Xavf"; pill.className="pill clay";
+  } else {
+    el.textContent = known
+      ? "Oddiy saqlash — brauzer tozalansa yo'qoladi"
+      : "Oddiy saqlash (bu brauzer holatni bildirmaydi)";
+    pill.textContent="Oddiy"; pill.className="pill gold";
+  }
+}
+function renderInstallTip(){
+  const box=$("#install-tip"); if(!box) return;
+  if(isStandalone()){ box.innerHTML=""; return; }
+  const how = isIOS()
+    ? "pastdagi <b>Ulashish</b> (⬆️) tugmasi → <b>\"Add to Home Screen\"</b>"
+    : "brauzer menyusi (⋮) → <b>\"Ilovani o'rnatish\"</b> yoki <b>\"Bosh ekranga qo'shish\"</b>";
+  box.innerHTML='<div class="note">Dastur hozir brauzerda ochilgan. Bosh ekranga qo\'shsangiz '+
+    'statistika ishonchli saqlanadi, ekran o\'chmaydi va internetsiz ishlaydi — '+how+'.</div>';
 }
 
 /* ============================================================
@@ -1484,6 +1584,7 @@ function stopCamera(){
 window.closeModal=closeModal;
 renderHome();
 show("home");
+requestPersist();   // brauzerdan ma'lumotni o'chirmaslikni so'raymiz
 
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   window.addEventListener("load",()=>{
