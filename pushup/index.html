@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0A1119">
+<meta name="description" content="Anjuman (otjimaniya) mashg'ulotlari uchun ovozli murabbiy: avtomatik sanoq, dam olish taymeri va sizga moslashadigan reja.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Anjuman Murabbiy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&family=Commissioner:wght@300;400;500;600;700&display=swap">
+<style>
+/* ============================================================
+   ANJUMAN MURABBIY — Registon koshini: chuqur indigo, feruza, oltin
+   ============================================================ */
+:root{
+  --bg:        #0A1119;
+  --bg-deep:   #060C12;
+  --surface:   #101C28;
+  --surface-2: #172734;
+  --line:      #223849;
+  --line-soft: #1a2c3a;
+
+  --ink:       #E9F2F6;
+  --ink-2:     #A7BECC;
+  --ink-3:     #6C8798;
+
+  --tile:      #2BC4CE;   /* feruza — asosiy harakat */
+  --tile-deep: #16929B;
+  --tile-glow: rgba(43,196,206,.18);
+  --gold:      #E3B23C;   /* rekord, yutuq */
+  --clay:      #D2603A;   /* maksimal / charchaguncha */
+  --good:      #4CC38A;
+  --warn:      #E08A3C;
+
+  --r-s: 10px;
+  --r-m: 16px;
+  --r-l: 24px;
+
+  --sans: "Commissioner", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --disp: "Oswald", "Segoe UI Semibold", system-ui, sans-serif;
+
+  --pad: 18px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.55;
+  overscroll-behavior:none;
+  touch-action:manipulation;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Fon: koshin naqshiga ishora — juda past kontrastli romb to'r */
+body::before{
+  content:"";
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(1100px 700px at 50% -15%, rgba(43,196,206,.10), transparent 62%),
+    repeating-linear-gradient(45deg, rgba(43,196,206,.030) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(-45deg, rgba(227,178,60,.022) 0 1px, transparent 1px 26px);
+}
+
+#app{position:relative;z-index:1;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+
+/* ---------- Umumiy tipografiya ---------- */
+h1,h2,h3{margin:0;font-family:var(--disp);font-weight:500;letter-spacing:.01em;text-wrap:balance}
+h1{font-size:1.5rem}
+h2{font-size:1.18rem}
+h3{font-size:1rem}
+p{margin:0}
+.eyebrow{
+  font-family:var(--sans);font-size:.68rem;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+}
+.num{font-family:var(--disp);font-variant-numeric:tabular-nums;font-weight:500;line-height:1}
+.muted{color:var(--ink-2)}
+.dim{color:var(--ink-3)}
+
+/* ---------- Ekranlar ---------- */
+.screen{display:none;flex:1;flex-direction:column}
+.screen.on{display:flex}
+.scroller{flex:1;overflow-y:auto;padding:calc(var(--safe-t) + 14px) var(--pad) 96px;-webkit-overflow-scrolling:touch}
+
+/* ---------- Kartalar ---------- */
+.card{
+  background:var(--surface);
+  border:1px solid var(--line-soft);
+  border-radius:var(--r-m);
+  padding:16px;
+}
+.card + .card{margin-top:12px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:10px}
+.row.between{justify-content:space-between}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+
+/* ---------- Tugmalar ---------- */
+.btn{
+  font-family:var(--sans);font-size:.95rem;font-weight:600;
+  color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:var(--r-s);
+  padding:13px 18px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .08s ease, background .15s ease, border-color .15s ease;
+}
+.btn:active{transform:scale(.975)}
+.btn:focus-visible{outline:2px solid var(--tile);outline-offset:2px}
+.btn.primary{
+  background:linear-gradient(180deg,var(--tile),var(--tile-deep));
+  color:#04181B;border-color:transparent;font-weight:700;
+  letter-spacing:.02em;
+  box-shadow:0 6px 22px -10px rgba(43,196,206,.9);
+}
+.btn.gold{background:linear-gradient(180deg,var(--gold),#B98A22);color:#1B1305;border-color:transparent;font-weight:700}
+.btn.ghost{background:transparent}
+.btn.block{width:100%}
+.btn.lg{padding:17px 22px;font-size:1.05rem}
+.btn:disabled{opacity:.42;cursor:default}
+
+.icon-btn{
+  width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
+  cursor:pointer;font-size:1.05rem;line-height:1;padding:0;
+}
+.icon-btn:active{transform:scale(.94)}
+
+/* ---------- Sarlavha paneli ---------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(var(--safe-t) + 14px) var(--pad) 6px;
+}
+.wordmark{display:flex;align-items:center;gap:9px}
+.wordmark .mark{width:26px;height:26px;flex:none}
+.wordmark b{font-family:var(--disp);font-weight:600;font-size:1.12rem;letter-spacing:.09em;text-transform:uppercase}
+.pill{
+  font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);
+  background:var(--surface);
+}
+.pill.tile{color:var(--tile);border-color:rgba(43,196,206,.4);background:rgba(43,196,206,.09)}
+.pill.gold{color:var(--gold);border-color:rgba(227,178,60,.4);background:rgba(227,178,60,.09)}
+.pill.clay{color:var(--clay);border-color:rgba(210,96,58,.45);background:rgba(210,96,58,.1)}
+
+/* ---------- Bugungi mashg'ulot ---------- */
+.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#12222F 0%,#0D1721 100%);
+  border:1px solid var(--line);border-radius:var(--r-l);
+  padding:20px 18px 18px;
+}
+.hero::after{
+  content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;
+  background:radial-gradient(circle,var(--tile-glow),transparent 68%);pointer-events:none;
+}
+.hero h2{font-size:1.6rem;margin-top:2px}
+.plan-list{display:flex;flex-direction:column;gap:2px;margin:16px 0 18px}
+.plan-line{
+  display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--line-soft);
+}
+.plan-line:last-child{border-bottom:0}
+.plan-line .idx{
+  font-family:var(--disp);font-size:.8rem;color:var(--ink-3);
+  border:1px solid var(--line);border-radius:6px;height:24px;display:grid;place-items:center;
+}
+.plan-line .nm{font-weight:600;font-size:.95rem}
+.plan-line .sub{font-size:.74rem;color:var(--ink-3)}
+.plan-line .tgt{font-family:var(--disp);font-size:1.15rem;color:var(--tile);white-space:nowrap}
+.plan-line .tgt small{font-size:.62rem;color:var(--ink-3);letter-spacing:.08em;display:block;text-align:right;font-family:var(--sans)}
+
+/* ---------- Hafta chizig'i ---------- */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{
+  text-align:center;padding:9px 0 8px;border-radius:var(--r-s);
+  background:var(--surface-2);border:1px solid transparent;
+}
+.day .d{font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.day .n{font-family:var(--disp);font-size:1.05rem;margin-top:2px;color:var(--ink-2)}
+.day.done{background:rgba(43,196,206,.13);border-color:rgba(43,196,206,.38)}
+.day.done .n{color:var(--tile)}
+.day.today{border-color:var(--gold)}
+.day.today .d{color:var(--gold)}
+
+/* ---------- Statistika plitkalari ---------- */
+.tile{
+  background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-m);
+  padding:14px 14px 13px;
+}
+.tile .v{font-family:var(--disp);font-size:1.85rem;line-height:1;font-variant-numeric:tabular-nums}
+.tile .l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:6px}
+.tile.gold .v{color:var(--gold)}
+.tile.tile-t .v{color:var(--tile)}
+.tile.clay .v{color:var(--clay)}
+
+/* ---------- Pastki navigatsiya ---------- */
+.tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:rgba(10,17,25,.92);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line-soft);
+  padding:8px 6px calc(8px + var(--safe-b));
+}
+.tab{
+  background:none;border:0;cursor:pointer;color:var(--ink-3);
+  font-family:var(--sans);font-size:.66rem;font-weight:600;letter-spacing:.06em;
+  display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;
+}
+.tab svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--tile)}
+
+/* ============================================================
+   MASHG'ULOT EKRANI
+   ============================================================ */
+#screen-run{background:var(--bg-deep)}
+.run-wrap{flex:1;display:flex;flex-direction:column;padding:calc(var(--safe-t) + 12px) var(--pad) calc(16px + var(--safe-b))}
+.run-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.segs{flex:1;display:flex;gap:3px}
+.seg{flex:1;height:4px;border-radius:2px;background:var(--line-soft)}
+.seg.fill{background:var(--tile)}
+.seg.now{background:var(--gold)}
+
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative}
+
+/* Sanoq maydoni: butun ekran tugma (burun bilan bosish uchun) */
+#tapzone{position:absolute;inset:-24px;z-index:2;background:transparent;border:0;cursor:pointer;user-select:none}
+#tapzone:focus-visible{outline:2px solid var(--tile);outline-offset:-6px;border-radius:var(--r-l)}
+
+.dial{position:relative;width:min(78vw,320px);aspect-ratio:1;display:grid;place-items:center;margin:6px 0 4px}
+.dial svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.dial .trk{fill:none;stroke:var(--line-soft);stroke-width:5}
+.dial .bar{fill:none;stroke:var(--tile);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .25s ease}
+.dial.amrap .bar{stroke:var(--clay)}
+.dial .count{
+  font-family:var(--disp);font-weight:500;font-variant-numeric:tabular-nums;
+  font-size:min(30vw,8.4rem);line-height:.86;letter-spacing:-.02em;
+  transition:transform .12s ease;
+}
+.dial .count.bump{transform:scale(1.08)}
+.dial .of{font-family:var(--disp);font-size:1.05rem;color:var(--ink-3);letter-spacing:.05em;margin-top:6px}
+
+.ex-name{font-family:var(--disp);font-size:1.7rem;margin-top:2px}
+.ex-focus{font-size:.8rem;color:var(--ink-3);margin-top:2px}
+.hint{
+  font-size:.85rem;color:var(--ink-2);margin-top:12px;max-width:31ch;
+  min-height:2.6em;display:flex;align-items:center;justify-content:center;
+}
+.run-actions{display:flex;flex-direction:column;gap:9px;margin-top:14px;position:relative;z-index:3}
+.run-actions .side{display:flex;gap:9px}
+.run-actions .side .btn{flex:1}
+
+/* Nafas ritmi — ekran tempga qarab "nafas oladi" */
+.breath{
+  position:absolute;inset:-16%;z-index:0;pointer-events:none;border-radius:50%;
+  background:radial-gradient(circle, rgba(43,196,206,.42) 0%, rgba(43,196,206,.14) 45%, transparent 72%);
+  transform:scale(var(--breath,1));opacity:var(--breath-o,0);
+}
+.phase-tag{
+  font-family:var(--disp);font-size:.95rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--tile);height:1.4em;
+}
+.phase-tag.down{color:var(--gold)}
+
+/* Kamera o'lchagich */
+.cam-meter{width:min(78vw,320px);margin-top:14px}
+.cam-bar{position:relative;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.cam-bar i{position:absolute;inset:0 auto 0 0;width:var(--v,0%);background:var(--tile);border-radius:4px}
+.cam-marks{position:relative;height:12px;margin-top:3px}
+.cam-marks span{position:absolute;top:0;width:1px;height:7px;background:var(--ink-3)}
+.cam-marks span::after{content:attr(data-l);position:absolute;top:7px;left:-9px;font-size:.55rem;color:var(--ink-3)}
+#cam-video{position:absolute;width:2px;height:2px;opacity:0;pointer-events:none;left:-10px}
+
+/* Dam olish */
+.rest-num{font-family:var(--disp);font-size:min(34vw,9rem);line-height:.9;font-variant-numeric:tabular-nums;color:var(--gold)}
+.next-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);
+  padding:14px 16px;margin-top:18px;width:min(92vw,420px);text-align:left;
+}
+
+/* Fikr-mulohaza */
+.fb-grid{display:flex;flex-direction:column;gap:10px;width:min(92vw,420px);margin-top:20px}
+.fb{
+  text-align:left;padding:15px 17px;border-radius:var(--r-m);
+  background:var(--surface);border:1px solid var(--line);cursor:pointer;color:var(--ink);
+  font-family:var(--sans);
+}
+.fb:active{transform:scale(.985)}
+.fb b{display:block;font-size:1.02rem;font-weight:700}
+.fb span{font-size:.78rem;color:var(--ink-3)}
+.fb.easy{border-color:rgba(76,195,138,.45)} .fb.easy b{color:var(--good)}
+.fb.norm{border-color:rgba(43,196,206,.45)} .fb.norm b{color:var(--tile)}
+.fb.hard{border-color:rgba(224,138,60,.45)} .fb.hard b{color:var(--warn)}
+
+/* Yakun */
+.sum-line{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:.92rem}
+.sum-line:last-child{border-bottom:0}
+.sum-line b{font-family:var(--disp);font-size:1.1rem;font-weight:500}
+
+/* ---------- Mashqlar qo'llanmasi ---------- */
+.ex-card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-m);overflow:hidden}
+.ex-card + .ex-card{margin-top:12px}
+.ex-head{display:flex;gap:14px;padding:14px 16px;align-items:center}
+.ex-head .dia{width:74px;height:74px;flex:none;background:var(--bg-deep);border-radius:var(--r-s);border:1px solid var(--line-soft)}
+.ex-body{padding:0 16px 15px;font-size:.88rem;color:var(--ink-2);display:flex;flex-direction:column;gap:9px}
+.cue{display:flex;gap:9px;align-items:flex-start}
+.cue i{width:5px;height:5px;border-radius:50%;background:var(--tile);flex:none;margin-top:8px}
+.cue.no i{background:var(--clay)}
+
+/* ---------- Statistika ---------- */
+.chart{margin-top:14px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:132px;position:relative;padding-bottom:1px;border-bottom:1px solid var(--line)}
+.bars .gl{position:absolute;left:0;right:0;height:1px;background:var(--line-soft)}
+.bcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative;cursor:pointer}
+.bcol i{display:block;background:var(--tile);border-radius:4px 4px 0 0;transition:filter .15s ease}
+.bcol.zero i{background:transparent;border-top:1px dashed var(--line);height:0}
+.bcol.last i{background:var(--gold)}
+.bcol:hover i{filter:brightness(1.25)}
+.blabels{display:flex;gap:6px;margin-top:7px}
+.blabels span{flex:1;text-align:center;font-size:.62rem;color:var(--ink-3);letter-spacing:.04em}
+#tip{
+  position:fixed;z-index:60;pointer-events:none;opacity:0;transform:translate(-50%,-118%);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:7px 10px;font-size:.76rem;white-space:nowrap;transition:opacity .12s ease;
+  box-shadow:0 10px 30px -12px #000;
+}
+#tip.on{opacity:1}
+.split{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin-top:12px;background:var(--bg-deep)}
+.split i{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:.76rem;color:var(--ink-2)}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.hist{display:flex;flex-direction:column}
+.hrow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line-soft);font-size:.87rem}
+.hrow:last-child{border-bottom:0}
+.hrow .dt{color:var(--ink-2)}
+.hrow .rp{font-family:var(--disp);font-size:1.05rem}
+
+/* ---------- Sozlamalar ---------- */
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line-soft)}
+.set-row:last-child{border-bottom:0}
+.set-row .lbl{flex:1;min-width:0}
+.set-row .lbl b{display:block;font-size:.94rem;font-weight:600}
+.set-row .lbl span{font-size:.76rem;color:var(--ink-3)}
+.choice{display:flex;gap:5px;background:var(--bg-deep);padding:4px;border-radius:var(--r-s);border:1px solid var(--line-soft)}
+.choice button{
+  border:0;background:transparent;color:var(--ink-3);font-family:var(--sans);
+  font-size:.79rem;font-weight:600;padding:7px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;
+}
+.choice button.on{background:var(--tile);color:#04181B}
+.sw{width:50px;height:29px;border-radius:15px;background:var(--surface-2);border:1px solid var(--line);position:relative;cursor:pointer;flex:none}
+.sw i{position:absolute;top:2px;left:2px;width:23px;height:23px;border-radius:50%;background:var(--ink-3);transition:.18s ease}
+.sw.on{background:rgba(43,196,206,.25);border-color:var(--tile)}
+.sw.on i{left:23px;background:var(--tile)}
+input[type=range]{width:150px;accent-color:var(--tile)}
+
+/* ---------- Toast / Modal ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%) translateY(14px);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);
+  padding:11px 16px;font-size:.86rem;z-index:70;opacity:0;transition:.22s ease;pointer-events:none;
+  max-width:88vw;text-align:center;box-shadow:0 14px 40px -16px #000;
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(4,8,12,.8);backdrop-filter:blur(4px)}
+.modal.on{display:flex}
+.modal .box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);padding:22px;max-width:400px;width:100%}
+
+.note{
+  background:rgba(227,178,60,.08);border:1px solid rgba(227,178,60,.28);
+  border-radius:var(--r-s);padding:12px 14px;font-size:.83rem;color:var(--ink-2);
+}
+.note b{color:var(--gold)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  .breath{transform:none !important}
+}
+@media (min-width:640px){
+  .scroller{padding-left:max(var(--pad),calc(50vw - 300px));padding-right:max(var(--pad),calc(50vw - 300px))}
+  .topbar{padding-left:max(var(--pad),calc(50vw - 300px));padding-right:max(var(--pad),calc(50vw - 300px))}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ BUGUN ============ -->
+  <section class="screen on" id="screen-home">
+    <div class="topbar">
+      <div class="wordmark">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="29" height="29" rx="8" fill="none" stroke="#2BC4CE" stroke-width="1.6"/>
+          <path d="M8 21.5 L16 9 L24 21.5" fill="none" stroke="#E3B23C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="24.5" r="1.8" fill="#2BC4CE"/>
+        </svg>
+        <b>Anjuman</b>
+      </div>
+      <div class="row">
+        <span class="pill tile" id="phase-pill">1-oylik</span>
+      </div>
+    </div>
+    <div class="scroller">
+      <div class="stack">
+        <div class="hero" id="hero"></div>
+        <div class="card">
+          <div class="row between" style="margin-bottom:12px">
+            <span class="eyebrow">Bu hafta</span>
+            <span class="pill" id="week-count">0 / 4</span>
+          </div>
+          <div class="week" id="week-strip"></div>
+        </div>
+        <div class="grid-3" id="quick-stats"></div>
+        <div id="phase-nudge"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MASHQLAR QO'LLANMASI ============ -->
+  <section class="screen" id="screen-guide">
+    <div class="topbar"><h1>Mashqlar</h1><span class="pill">4 ta harakat</span></div>
+    <div class="scroller"><div id="guide-list"></div></div>
+  </section>
+
+  <!-- ============ STATISTIKA ============ -->
+  <section class="screen" id="screen-stats">
+    <div class="topbar"><h1>Statistika</h1><span class="pill" id="stats-total">0</span></div>
+    <div class="scroller"><div class="stack" id="stats-body"></div></div>
+  </section>
+
+  <!-- ============ SOZLAMALAR ============ -->
+  <section class="screen" id="screen-set">
+    <div class="topbar"><h1>Sozlamalar</h1></div>
+    <div class="scroller"><div class="stack" id="settings-body"></div></div>
+  </section>
+
+  <!-- ============ MASHG'ULOT (to'liq ekran) ============ -->
+  <section class="screen" id="screen-run">
+    <div class="run-wrap">
+      <div class="run-top">
+        <button class="icon-btn" id="run-exit" aria-label="Chiqish">&#10005;</button>
+        <div class="segs" id="segs"></div>
+        <span class="pill" id="run-clock">0:00</span>
+      </div>
+      <div class="stage" id="stage"></div>
+    </div>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-scr="home">
+      <svg viewBox="0 0 24 24"><path d="M4 12v7h16v-7"/><path d="M2 11 12 3l10 8"/></svg>Bugun</button>
+    <button class="tab" data-scr="guide">
+      <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 7.5h7M8 11h5"/></svg>Mashqlar</button>
+    <button class="tab" data-scr="stats">
+      <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Statistika</button>
+    <button class="tab" data-scr="set">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.6M12 18.9v2.6M21.5 12h-2.6M5.1 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1 5.3 5.3"/></svg>Sozlama</button>
+  </nav>
+</div>
+
+<video id="cam-video" playsinline muted></video>
+<div id="toast"></div>
+<div id="tip"></div>
+<div class="modal" id="modal"><div class="box" id="modal-box"></div></div>
+
+<script>
+"use strict";
+/* ============================================================
+   1. MA'LUMOTLAR: mashqlar va rejalar
+   ============================================================ */
+const EX = {
+  standard:{
+    name:"Oddiy anjuman", en:"Standard push-up",
+    focus:"Ko'krak + yelka",
+    muscles:{chest:.45, tri:.3, sh:.25},
+    dia:"standard",
+    cues:[
+      "Qo'llar yelkadan biroz kengroq, kaft to'liq yerda.",
+      "Tirsak tanadan 45 daraja burchakda ochilsin — yonga emas.",
+      "Bosh, dumba, tovon bitta tekis chiziqda.",
+      "Ko'krak yerga 2-3 sm qolguncha tushing."
+    ],
+    dont:["Dumbani ko'tarib yubormang.","Boshni oldinga cho'zmang."]
+  },
+  wide:{
+    name:"Keng ushlab", en:"Wide grip push-up",
+    focus:"Ko'krakning tashqi qismi",
+    muscles:{chest:.65, tri:.15, sh:.2},
+    dia:"wide",
+    cues:[
+      "Qo'llar yelkadan ancha keng — taxminan 1.5 barobar.",
+      "Barmoqlar biroz tashqariga qaragan bo'lsin.",
+      "Ko'krakni kerib, kurak suyaklarini birlashtiring.",
+      "Amplituda qisqaroq — pastga to'liq tushing, ammo yelkani og'ritmang."
+    ],
+    dont:["Juda keng qo'ymang — yelka bo'g'imi shikastlanadi."]
+  },
+  diamond:{
+    name:"Olmos (diamond)", en:"Diamond push-up",
+    focus:"Tricep + ichki ko'krak",
+    muscles:{chest:.3, tri:.55, sh:.15},
+    dia:"diamond",
+    cues:[
+      "Bosh va ko'rsatkich barmoqlaridan uchburchak (olmos) yasang.",
+      "Qo'llar ko'krak o'rtasi ostida.",
+      "Tirsaklar tanaga yaqin — yonga ochilmasin.",
+      "Bu eng og'iri: 5 marta ham natija."
+    ],
+    dont:["Bilakni og'ritsa, qo'llarni 2-3 sm ochib qo'ying."]
+  },
+  incline:{
+    name:"Oyoq balandda", en:"Feet-elevated push-up",
+    focus:"Yuqori ko'krak + old yelka",
+    muscles:{chest:.4, tri:.22, sh:.38},
+    dia:"incline",
+    cues:[
+      "Oyoqlarni stul yoki krovatga qo'ying (30-50 sm).",
+      "Qanchalik baland bo'lsa, shunchalik og'ir.",
+      "Tana yana tik chiziq — bel egilmasin.",
+      "Bo'yin bo'sh, ko'z oldingi yerga qarasin."
+    ],
+    dont:["Belni bukmang — qorin mushagini taranglashtiring."]
+  }
+};
+
+const PLANS = {
+  1:{ id:1, title:"1-oylik reja", sub:"Baza yaratish", goal:"Ko'krak va tricepni kuchaytirish",
+      days:4, weeks:4, rest:75,
+      items:[
+        {ex:"standard", sets:4, reps:11, txt:"3-4 set × 10-12"},
+        {ex:"wide",     sets:3, reps:9,  txt:"2-3 set × 8-10"},
+        {ex:"diamond",  sets:2, amrap:true, txt:"2 set × maksimal"}
+      ]},
+  2:{ id:2, title:"3-oylik reja", sub:"Progress va murakkablashtirish", goal:"Mushak massasi va kuchni oshirish",
+      days:5, weeks:12, rest:75,
+      items:[
+        {ex:"incline",  sets:3, reps:16, txt:"3 set × 15-18"},
+        {ex:"wide",     sets:3, reps:18, txt:"3 set × 15-20"},
+        {ex:"diamond",  sets:3, reps:13, txt:"3 set × 12-15"},
+        {ex:"standard", sets:1, burnout:true, txt:"1 set × charchaguncha"}
+      ]}
+};
+
+const BASE_MAX = 20;           // reja qaysi daraja uchun yozilgan
+const DAY_NAMES = ["Du","Se","Ch","Pa","Ju","Sh","Ya"];
+
+/* ============================================================
+   2. HOLAT (localStorage)
+   ============================================================ */
+const KEY = "oscar_anjuman_v1";
+const DEF = {
+  v:1, maxTest:null, phase:1,
+  k:{standard:1, wide:1, diamond:1, incline:1},
+  sessions:[],
+  settings:{ mode:"tap", tempo:3, rest:75, sound:true, voice:true, warmup:true, camSens:.5 }
+};
+let S = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return structuredClone(DEF);
+    const p = JSON.parse(raw);
+    return { ...structuredClone(DEF), ...p,
+      k:{...DEF.k, ...(p.k||{})},
+      settings:{...DEF.settings, ...(p.settings||{})} };
+  }catch(e){ return structuredClone(DEF); }
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ============================================================
+   3. YORDAMCHILAR
+   ============================================================ */
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const todayKey = ()=> dkey(new Date());
+function dkey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function mmss(s){ s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function mondayOf(d){ const x=new Date(d); const w=(x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-w); return x; }
+
+function toast(msg, ms){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"), ms||2200);
+}
+function modal(html){
+  $("#modal-box").innerHTML=html; $("#modal").classList.add("on");
+}
+function closeModal(){ $("#modal").classList.remove("on"); }
+$("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
+
+/* --- Maqsadli takrorlar: kalibrovka + avto-moslashuv --- */
+function scale(){
+  const m = S.maxTest ? S.maxTest.reps : BASE_MAX;
+  return clamp(m/BASE_MAX, .3, 3);
+}
+function targetFor(item){
+  if(item.amrap || item.burnout) return null;
+  const k = S.k[item.ex] || 1;
+  return Math.max(3, Math.round(item.reps * scale() * k));
+}
+function planItems(){ return PLANS[S.phase].items; }
+function sessionVolume(){
+  return planItems().reduce((a,it)=>{
+    const t = targetFor(it);
+    return a + (t ? t*it.sets : 0);
+  },0);
+}
+
+/* ============================================================
+   4. OVOZ: bip signallari + nutq
+   ============================================================ */
+let AC=null;
+function audio(){
+  if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(AC.state==="suspended") AC.resume();
+  return AC;
+}
+function beep(freq, dur, vol, type){
+  if(!S.settings.sound) return;
+  const ac=audio(); if(!ac) return;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||"sine"; o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(vol||.18, ac.currentTime+.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+(dur||.09));
+  o.connect(g); g.connect(ac.destination);
+  o.start(); o.stop(ac.currentTime+(dur||.09)+.02);
+}
+const SFX={
+  tick:()=>beep(520,.05,.10),
+  down:()=>beep(392,.12,.13),
+  up:()=>beep(587,.10,.13),
+  rep:()=>beep(880,.07,.16),
+  last:()=>beep(1046,.12,.2),
+  setEnd:()=>{ beep(660,.12,.18); setTimeout(()=>beep(880,.18,.18),120); },
+  restEnd:()=>{ beep(700,.1,.2); setTimeout(()=>beep(900,.1,.2),160); setTimeout(()=>beep(1200,.26,.22),320); },
+  done:()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.22,.2,"triangle"), i*130)); },
+  pr:()=>{ [784,988,1318].forEach((f,i)=>setTimeout(()=>beep(f,.3,.22,"triangle"), i*150)); }
+};
+
+let VOICES=[], VOICE=null;
+function pickVoice(){
+  VOICES = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+  const by = p => VOICES.find(v => (v.lang||"").toLowerCase().startsWith(p));
+  // O'zbekcha bo'lmasa turkcha ovoz lotin o'zbekchani eng yaxshi o'qiydi
+  VOICE = by("uz") || by("tr") || by("az") || by("ru") || VOICES[0] || null;
+}
+if(window.speechSynthesis){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text){
+  if(!S.settings.voice || !window.speechSynthesis) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    if(VOICE){ u.voice=VOICE; u.lang=VOICE.lang; }
+    u.rate=1.02; u.pitch=1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* --- Ekran o'chmasin --- */
+let wakeLock=null;
+async function keepAwake(on){
+  try{
+    if(on && "wakeLock" in navigator){ wakeLock = await navigator.wakeLock.request("screen"); }
+    else if(wakeLock){ await wakeLock.release(); wakeLock=null; }
+  }catch(e){}
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState==="visible" && run && !wakeLock) keepAwake(true);
+});
+
+/* ============================================================
+   5. SVG: qo'l qo'yish sxemalari
+   ============================================================ */
+function diagram(type, size){
+  const s = size||74;
+  const head = '<circle cx="50" cy="16" r="7.5" fill="#22384A"/>';
+  const body = '<rect x="38" y="24" width="24" height="46" rx="11" fill="#1B2C3B"/>';
+  const legs = '<rect x="44" y="66" width="5" height="22" rx="2.5" fill="#1B2C3B"/><rect x="51" y="66" width="5" height="22" rx="2.5" fill="#1B2C3B"/>';
+  const hand = (x,y,r)=> '<ellipse cx="'+x+'" cy="'+y+'" rx="7" ry="9" transform="rotate('+(r||0)+' '+x+' '+y+')" fill="#2BC4CE"/>';
+  let inner="";
+  if(type==="standard") inner = head+body+legs+hand(26,36)+hand(74,36);
+  else if(type==="wide") inner = head+body+legs+hand(15,34,-18)+hand(85,34,18);
+  else if(type==="diamond") inner = head+body+legs+
+      hand(43,40,28)+hand(57,40,-28)+
+      '<path d="M50 29 L61 40 L50 51 L39 40 Z" fill="none" stroke="#E3B23C" stroke-width="2" stroke-linejoin="round"/>';
+  else if(type==="incline"){
+    // yon ko'rinish: oyoq balandda
+    inner =
+      '<rect x="6" y="72" width="88" height="3" rx="1.5" fill="#22384A"/>'+
+      '<rect x="70" y="46" width="26" height="26" rx="3" fill="#16232F" stroke="#22384A" stroke-width="1.4"/>'+
+      '<path d="M20 58 L74 44" stroke="#1B2C3B" stroke-width="13" stroke-linecap="round"/>'+
+      '<circle cx="16" cy="59" r="7.5" fill="#22384A"/>'+
+      '<path d="M24 60 L24 72" stroke="#2BC4CE" stroke-width="6" stroke-linecap="round"/>'+
+      '<path d="M40 56 L40 72" stroke="#2BC4CE" stroke-width="6" stroke-linecap="round"/>';
+  }
+  return '<svg viewBox="0 0 100 100" width="'+s+'" height="'+s+'" aria-hidden="true">'+inner+'</svg>';
+}
+
+/* ============================================================
+   6. NAVIGATSIYA
+   ============================================================ */
+function show(id){
+  $$(".screen").forEach(s=>s.classList.toggle("on", s.id==="screen-"+id));
+  $$(".tab").forEach(t=>t.classList.toggle("on", t.dataset.scr===id));
+  $("#tabs").style.display = (id==="run") ? "none" : "grid";
+  if(id==="home") renderHome();
+  if(id==="guide") renderGuide();
+  if(id==="stats") renderStats();
+  if(id==="set") renderSettings();
+}
+$$(".tab").forEach(t=> t.addEventListener("click", ()=>{ audio(); show(t.dataset.scr); }));
+
+/* ============================================================
+   7. BUGUN EKRANI
+   ============================================================ */
+function renderHome(){
+  const P = PLANS[S.phase];
+  $("#phase-pill").textContent = P.title;
+
+  const done = S.sessions.some(x=>x.d===todayKey());
+  const hero = $("#hero");
+
+  if(!S.maxTest){
+    hero.innerHTML =
+      '<span class="eyebrow">Birinchi qadam</span>'+
+      '<h2>Darajangizni aniqlaymiz</h2>'+
+      '<p class="muted" style="margin-top:8px;font-size:.9rem">Bitta test: oddiy anjumanni charchaguncha bajaring. '+
+      'Shu raqamga qarab butun reja siz uchun qayta hisoblanadi — na juda oson, na imkonsiz bo\'ladi.</p>'+
+      '<div class="note" style="margin-top:14px">Hozir <b>0</b> marta qilsangiz ham muammo emas. Reja shundan boshlanadi.</div>'+
+      '<button class="btn primary block lg" style="margin-top:16px" id="btn-calib">Testni boshlash</button>';
+    $("#btn-calib").addEventListener("click", ()=>startSession("calib"));
+  } else {
+    const rows = P.items.map((it,i)=>{
+      const e=EX[it.ex], t=targetFor(it);
+      return '<div class="plan-line">'+
+        '<span class="idx">'+(i+1)+'</span>'+
+        '<span><span class="nm">'+e.name+'</span><span class="sub">'+e.focus+' · '+it.txt+'</span></span>'+
+        '<span class="tgt">'+(t? it.sets+"×"+t : '<span style="color:var(--clay)">MAKS</span>')+
+          '<small>'+(t? "set × takror" : it.sets+" set")+'</small></span>'+
+      '</div>';
+    }).join("");
+    hero.innerHTML =
+      '<div class="row between"><span class="eyebrow">'+(done?"Bugun bajarildi":"Bugungi mashg'ulot")+'</span>'+
+        (done?'<span class="pill tile">✓</span>':'<span class="pill">'+sessionVolume()+' takror</span>')+'</div>'+
+      '<h2>'+P.sub+'</h2>'+
+      '<div class="plan-list">'+rows+'</div>'+
+      '<button class="btn '+(done?"":"primary")+' block lg" id="btn-start">'+(done?"Yana bir marta bajarish":"Mashg'ulotni boshlash")+'</button>';
+    $("#btn-start").addEventListener("click", ()=>startSession("workout"));
+  }
+
+  // Hafta chizig'i
+  const mon = mondayOf(new Date());
+  const setDays = new Set(S.sessions.map(x=>x.d));
+  let wk="", cnt=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(mon); d.setDate(mon.getDate()+i);
+    const k=dkey(d), isDone=setDays.has(k), isToday=k===todayKey();
+    if(isDone) cnt++;
+    wk += '<div class="day'+(isDone?" done":"")+(isToday?" today":"")+'">'+
+          '<div class="d">'+DAY_NAMES[i]+'</div><div class="n">'+(isDone?"✓":d.getDate())+'</div></div>';
+  }
+  $("#week-strip").innerHTML=wk;
+  $("#week-count").textContent = cnt+" / "+P.days;
+
+  // Tezkor statistika
+  const total = S.sessions.reduce((a,x)=>a+x.total,0);
+  const pr = S.maxTest ? S.maxTest.reps : 0;
+  const bestBurn = S.sessions.reduce((a,x)=>Math.max(a, x.burnout||0), 0);
+  $("#quick-stats").innerHTML =
+    tileHTML(total, "Jami takror", "tile-t")+
+    tileHTML(S.sessions.length, "Mashg'ulot", "")+
+    tileHTML(Math.max(pr,bestBurn), "Rekord set", "gold");
+
+  // Fazani almashtirish taklifi
+  const nud=$("#phase-nudge");
+  const inPhase = S.sessions.filter(x=>x.phase===S.phase).length;
+  if(S.phase===1 && inPhase>=16){
+    nud.innerHTML='<div class="card" style="border-color:rgba(227,178,60,.35)">'+
+      '<span class="eyebrow" style="color:var(--gold)">Keyingi bosqich</span>'+
+      '<h3 style="margin-top:6px">16 ta mashg\'ulot tugadi</h3>'+
+      '<p class="muted" style="font-size:.87rem;margin-top:6px">Baza tayyor. 3-oylik rejaga o\'tish vaqti: oyoq balandda anjuman va yakuniy burnout set qo\'shiladi.</p>'+
+      '<button class="btn gold block" style="margin-top:12px" id="btn-phase2">3-oylik rejaga o\'tish</button></div>';
+    $("#btn-phase2").addEventListener("click", ()=>{ S.phase=2; save(); renderHome(); toast("3-oylik reja yoqildi"); });
+  } else nud.innerHTML="";
+}
+function tileHTML(v,l,cls){
+  return '<div class="tile '+(cls||"")+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
+}
+
+/* ============================================================
+   8. MASHQLAR QO'LLANMASI
+   ============================================================ */
+function renderGuide(){
+  $("#guide-list").innerHTML = Object.keys(EX).map(id=>{
+    const e=EX[id];
+    const cues = e.cues.map(c=>'<div class="cue"><i></i><span>'+c+'</span></div>').join("");
+    const dont = e.dont.map(c=>'<div class="cue no"><i></i><span>'+c+'</span></div>').join("");
+    return '<div class="ex-card">'+
+      '<div class="ex-head"><div class="dia">'+diagram(e.dia,74)+'</div>'+
+      '<div><h3>'+e.name+'</h3><div class="dim" style="font-size:.76rem">'+e.en+'</div>'+
+      '<div style="margin-top:6px;font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tile)">'+e.focus+'</div></div></div>'+
+      '<div class="ex-body">'+cues+dont+'</div></div>';
+  }).join("") +
+  '<div class="note" style="margin-top:14px">Sxemada <b>feruza shakl</b> — kaftlar qayerda turishi. '+
+  '"Oyoq balandda" mashqi yon ko\'rinishda ko\'rsatilgan.</div>';
+}
+
+/* ============================================================
+   9. STATISTIKA
+   ============================================================ */
+function renderStats(){
+  const box=$("#stats-body");
+  const total=S.sessions.reduce((a,x)=>a+x.total,0);
+  $("#stats-total").textContent = total+" takror";
+
+  if(!S.sessions.length){
+    box.innerHTML='<div class="card" style="text-align:center;padding:34px 18px">'+
+      '<h3>Hali ma\'lumot yo\'q</h3><p class="muted" style="margin-top:8px;font-size:.9rem">'+
+      'Birinchi mashg\'ulotdan keyin bu yerda haftalik hajm, rekordlar va mushak taqsimoti paydo bo\'ladi.</p></div>';
+    return;
+  }
+
+  // --- Haftalik hajm (8 hafta) ---
+  const weeks=[];
+  const mon=mondayOf(new Date());
+  for(let i=7;i>=0;i--){
+    const st=new Date(mon); st.setDate(mon.getDate()-i*7);
+    const en=new Date(st); en.setDate(st.getDate()+7);
+    const tot=S.sessions.filter(s=>{const d=new Date(s.d+"T00:00:00");return d>=st&&d<en;}).reduce((a,s)=>a+s.total,0);
+    weeks.push({label:(st.getDate())+"/"+(st.getMonth()+1), v:tot, last:i===0});
+  }
+  const mx=Math.max(1,...weeks.map(w=>w.v));
+  const bars = weeks.map(w=>
+    '<div class="bcol'+(w.last?" last":"")+(w.v?"":" zero")+'" data-v="'+w.v+'" data-l="'+w.label+'">'+
+    (w.v ? '<i style="height:'+Math.max(3,w.v/mx*100)+'%"></i>' : '<i style="height:0"></i>')+'</div>').join("");
+  const labels = weeks.map(w=>'<span>'+w.label+'</span>').join("");
+
+  // --- Mushak taqsimoti ---
+  const mus={chest:0,tri:0,sh:0};
+  S.sessions.forEach(s=> s.items.forEach(it=>{
+    const m=EX[it.ex]; if(!m) return;
+    const reps=it.sets.reduce((a,b)=>a+b,0);
+    mus.chest+=reps*m.muscles.chest; mus.tri+=reps*m.muscles.tri; mus.sh+=reps*m.muscles.sh;
+  }));
+  const msum=Math.max(1,mus.chest+mus.tri+mus.sh);
+  const MUC={chest:"var(--tile)",tri:"var(--gold)",sh:"var(--clay)"};
+  const MUN={chest:"Ko'krak",tri:"Tricep",sh:"Yelka"};
+  const split=Object.keys(mus).map(k=>'<i style="flex:'+(mus[k]/msum)+';background:'+MUC[k]+'"></i>').join("");
+  const legend=Object.keys(mus).map(k=>'<span><b style="background:'+MUC[k]+'"></b>'+MUN[k]+' '+Math.round(mus[k]/msum*100)+'%</span>').join("");
+
+  // --- Rekordlar ---
+  const bestBurn=S.sessions.reduce((a,x)=>Math.max(a,x.burnout||0),0);
+  const bestSet=S.sessions.reduce((a,x)=>Math.max(a, ...x.items.flatMap(i=>i.sets)),0);
+  const streak=weekStreak();
+
+  // --- Tarix ---
+  const hist=S.sessions.slice(-12).reverse().map(s=>{
+    const d=new Date(s.d+"T00:00:00");
+    return '<div class="hrow"><span class="dt">'+d.getDate()+"."+String(d.getMonth()+1).padStart(2,"0")+
+      ' · '+PLANS[s.phase].title+'</span>'+
+      '<span class="rp">'+s.total+(s.burnout?' <span class="dim" style="font-size:.7rem">burnout '+s.burnout+'</span>':'')+'</span></div>';
+  }).join("");
+
+  box.innerHTML =
+    '<div class="grid-3">'+
+      tileHTML(bestSet,"Eng katta set","gold")+
+      tileHTML(bestBurn||"—","Burnout rekord","clay")+
+      tileHTML(streak,"Hafta seriyasi","tile-t")+
+    '</div>'+
+    '<div class="card"><span class="eyebrow">Haftalik hajm — jami takrorlar</span>'+
+      '<div class="chart"><div class="bars" id="bars">'+
+        '<div class="gl" style="bottom:33%"></div><div class="gl" style="bottom:66%"></div><div class="gl" style="bottom:99%"></div>'+
+        bars+'</div><div class="blabels">'+labels+'</div></div>'+
+      '<div class="dim" style="font-size:.74rem;margin-top:8px">Eng baland ustun: '+mx+' takror · oltin ustun — joriy hafta</div>'+
+    '</div>'+
+    '<div class="card"><span class="eyebrow">Mushak guruhlari bo\'yicha hajm</span>'+
+      '<div class="split">'+split+'</div><div class="legend">'+legend+'</div></div>'+
+    '<div class="card"><span class="eyebrow">Tarix</span><div class="hist" style="margin-top:8px">'+hist+'</div></div>';
+
+  // hover/tap tooltip
+  const tip=$("#tip");
+  $$("#bars .bcol").forEach(c=>{
+    const showTip=e=>{
+      const r=c.getBoundingClientRect();
+      tip.textContent=c.dataset.l+" — "+c.dataset.v+" takror";
+      tip.style.left=(r.left+r.width/2)+"px"; tip.style.top=r.top+"px";
+      tip.classList.add("on");
+    };
+    c.addEventListener("mouseenter",showTip);
+    c.addEventListener("click",e=>{ showTip(e); setTimeout(()=>tip.classList.remove("on"),1600); });
+    c.addEventListener("mouseleave",()=>tip.classList.remove("on"));
+  });
+}
+function weekStreak(){
+  if(!S.sessions.length) return 0;
+  const need=PLANS[S.phase].days-1;
+  let n=0, mon=mondayOf(new Date());
+  for(let i=0;i<52;i++){
+    const st=new Date(mon); st.setDate(mon.getDate()-i*7);
+    const en=new Date(st); en.setDate(st.getDate()+7);
+    const c=new Set(S.sessions.filter(s=>{const d=new Date(s.d+"T00:00:00");return d>=st&&d<en;}).map(s=>s.d)).size;
+    if(c>=Math.max(1,need)) n++;
+    else if(i>0) break;
+  }
+  return n;
+}
+
+/* ============================================================
+   10. SOZLAMALAR
+   ============================================================ */
+function renderSettings(){
+  const st=S.settings;
+  const modeBtns=[["tap","Teginish"],["metro","Metronom"],["camera","Kamera"]]
+    .map(m=>'<button data-mode="'+m[0]+'" class="'+(st.mode===m[0]?"on":"")+'">'+m[1]+'</button>').join("");
+  const restBtns=[45,60,75,90,120].map(r=>'<button data-rest="'+r+'" class="'+(st.rest===r?"on":"")+'">'+r+'s</button>').join("");
+
+  $("#settings-body").innerHTML =
+    '<div class="card"><span class="eyebrow">Sanash usuli</span>'+
+      '<div class="set-row" style="border:0;padding-top:12px"><div class="lbl"><b>Rejim</b><span id="mode-hint"></span></div></div>'+
+      '<div class="choice" id="mode-choice" style="margin-bottom:8px">'+modeBtns+'</div>'+
+      '<div class="note" id="mode-note"></div>'+
+    '</div>'+
+
+    '<div class="card"><span class="eyebrow">Ritm va dam</span>'+
+      '<div class="set-row" style="flex-direction:column;align-items:stretch;gap:10px">'+
+        '<div class="row between"><div class="lbl"><b>Tempo</b><span>Bir takror uchun vaqt · pastga 2/3, yuqoriga 1/3</span></div>'+
+        '<span class="num" style="font-size:1.25rem;color:var(--tile)" id="tempo-v">'+st.tempo.toFixed(1)+'s</span></div>'+
+        '<input type="range" id="tempo" min="2" max="5" step="0.5" value="'+st.tempo+'" style="width:100%"></div>'+
+      '<div class="set-row"><div class="lbl"><b>Dam olish</b><span>Setlar orasidagi vaqt</span></div></div>'+
+      '<div class="choice" id="rest-choice">'+restBtns+'</div>'+
+    '</div>'+
+
+    '<div class="card"><span class="eyebrow">Ovoz</span>'+
+      '<div class="set-row"><div class="lbl"><b>Signal ovozlari</b><span>Sanoq, dam tugashi, rekord</span></div>'+
+        '<div class="sw '+(st.sound?"on":"")+'" data-sw="sound"><i></i></div></div>'+
+      '<div class="set-row"><div class="lbl"><b>Ovozli murabbiy</b><span id="voice-hint">Mashq nomi va sonlarni ovoz bilan aytadi</span></div>'+
+        '<div class="sw '+(st.voice?"on":"")+'" data-sw="voice"><i></i></div></div>'+
+      '<div class="set-row"><div class="lbl"><b>Isinish</b><span>Mashg\'ulot oldidan 40 soniya</span></div>'+
+        '<div class="sw '+(st.warmup?"on":"")+'" data-sw="warmup"><i></i></div></div>'+
+    '</div>'+
+
+    '<div class="card"><span class="eyebrow">Daraja</span>'+
+      '<div class="set-row"><div class="lbl"><b>Maksimal test</b><span>'+
+        (S.maxTest? S.maxTest.reps+" marta · "+S.maxTest.date : "hali topshirilmagan")+'</span></div>'+
+        '<button class="btn" id="btn-recalib">Qayta</button></div>'+
+      '<div class="set-row"><div class="lbl"><b>Reja</b><span>'+PLANS[S.phase].title+' · '+PLANS[S.phase].sub+'</span></div>'+
+        '<div class="choice" id="phase-choice">'+
+        '<button data-ph="1" class="'+(S.phase===1?"on":"")+'">1-oy</button>'+
+        '<button data-ph="2" class="'+(S.phase===2?"on":"")+'">3-oy</button></div></div>'+
+      '<div class="set-row"><div class="lbl"><b>Moslashuv koeffitsienti</b><span>'+
+        Object.keys(S.k).map(k=>EX[k].name.split(" ")[0]+" "+Math.round(S.k[k]*100)+"%").join(" · ")+
+        '</span></div><button class="btn" id="btn-resetk">Tiklash</button></div>'+
+    '</div>'+
+
+    '<div class="card"><span class="eyebrow">Ma\'lumot</span>'+
+      '<div class="set-row"><div class="lbl"><b>Nusxa olish</b><span>Barcha mashg\'ulotlar JSON faylda</span></div>'+
+        '<button class="btn" id="btn-export">Ko\'rish</button></div>'+
+      '<div class="set-row"><div class="lbl"><b>Hammasini o\'chirish</b><span>Tarix, rekordlar, sozlamalar</span></div>'+
+        '<button class="btn" id="btn-wipe" style="color:var(--clay)">O\'chirish</button></div>'+
+    '</div>'+
+    '<p class="dim" style="font-size:.74rem;text-align:center;padding:6px 0 4px">Ma\'lumot faqat shu telefonda saqlanadi. Internet talab qilinmaydi.</p>';
+
+  updateModeNote();
+  $$("#mode-choice button").forEach(b=>b.addEventListener("click",()=>{
+    S.settings.mode=b.dataset.mode; save(); renderSettings();
+  }));
+  $$("#rest-choice button").forEach(b=>b.addEventListener("click",()=>{
+    S.settings.rest=+b.dataset.rest; save(); renderSettings();
+  }));
+  $$("#phase-choice button").forEach(b=>b.addEventListener("click",()=>{
+    S.phase=+b.dataset.ph; save(); renderSettings(); toast(PLANS[S.phase].title+" yoqildi");
+  }));
+  $("#tempo").addEventListener("input",e=>{
+    S.settings.tempo=+e.target.value; $("#tempo-v").textContent=S.settings.tempo.toFixed(1)+"s"; save();
+  });
+  $$("[data-sw]").forEach(sw=>sw.addEventListener("click",()=>{
+    const k=sw.dataset.sw; S.settings[k]=!S.settings[k]; save();
+    sw.classList.toggle("on",S.settings[k]);
+    if(k==="voice" && S.settings[k]) speak("Ovozli murabbiy yoqildi");
+    if(k==="sound" && S.settings[k]) SFX.rep();
+  }));
+  $("#btn-recalib").addEventListener("click",()=>startSession("calib"));
+  $("#btn-resetk").addEventListener("click",()=>{
+    S.k=structuredClone(DEF.k); save(); renderSettings(); toast("Koeffitsientlar tiklandi");
+  });
+  $("#btn-export").addEventListener("click",()=>{
+    modal('<h2>Ma\'lumot nusxasi</h2><p class="muted" style="font-size:.85rem;margin:8px 0 12px">Matnni nusxalab saqlang.</p>'+
+      '<textarea readonly style="width:100%;height:190px;background:var(--bg-deep);color:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.72rem;font-family:monospace">'+
+      JSON.stringify(S)+'</textarea>'+
+      '<button class="btn block" style="margin-top:12px" onclick="closeModal()">Yopish</button>');
+  });
+  $("#btn-wipe").addEventListener("click",()=>{
+    modal('<h2>Hammasi o\'chirilsinmi?</h2><p class="muted" style="font-size:.88rem;margin:10px 0 16px">'+
+      S.sessions.length+' ta mashg\'ulot, rekordlar va sozlamalar butunlay yo\'qoladi. Bu amalni bekor qilib bo\'lmaydi.</p>'+
+      '<div class="grid-2"><button class="btn" onclick="closeModal()">Bekor qilish</button>'+
+      '<button class="btn" style="background:var(--clay);color:#fff;border-color:transparent" id="wipe-yes">Ha, o\'chirilsin</button></div>');
+    $("#wipe-yes").addEventListener("click",()=>{
+      S=structuredClone(DEF); save(); closeModal(); show("home"); toast("Ma'lumot o'chirildi");
+    });
+  });
+}
+function updateModeNote(){
+  const notes={
+    tap:"Har takrorda ekranning istalgan joyiga teging — qo'l yerda qolgani uchun <b>burun yoki peshona</b> bilan tegish qulay. Telefon boshingiz ostida tursin.",
+    metro:"Dastur tempo bilan <b>o'zi sanaydi</b> va bip qiladi. Siz shunchaki ritmga ergashasiz. Charchasangiz — \"Set tugadi\" tugmasi.",
+    camera:"Telefonni yerga, <b>ko'kragingiz ostiga</b> qo'ying, ekran yuqoriga qarasin. Pastga tushganingizda kamera qorayadi — dastur shundan sanaydi. Rasm hech qayerga yuborilmaydi."
+  };
+  const hints={tap:"Ekranga tegib sanash",metro:"Avtomatik, ritm bilan",camera:"Kamera harakatni o'zi sanaydi"};
+  const n=$("#mode-note"), h=$("#mode-hint");
+  if(n) n.innerHTML=notes[S.settings.mode];
+  if(h) h.textContent=hints[S.settings.mode];
+}
+
+/* ============================================================
+   11. MASHG'ULOT DVIGATELI
+   ============================================================ */
+let run=null;
+
+function buildSteps(kind){
+  const steps=[];
+  if(kind==="calib"){
+    steps.push({t:"prep", ex:"standard", title:"Maksimal test", sub:"Charchaguncha — to'xtay olmagunicha", amrap:true});
+    steps.push({t:"set", ex:"standard", setNo:1, setTotal:1, target:null, amrap:true, calib:true});
+    steps.push({t:"done"});
+    return steps;
+  }
+  const P=PLANS[S.phase];
+  if(S.settings.warmup) steps.push({t:"warmup", sec:40});
+  P.items.forEach((it,ii)=>{
+    const tgt=targetFor(it);
+    steps.push({t:"prep", ex:it.ex, itemIdx:ii, title:EX[it.ex].name,
+      sub:(tgt? it.sets+" set × "+tgt+" takror" : it.sets+" set × maksimal"), amrap:!tgt});
+    for(let s=1;s<=it.sets;s++){
+      steps.push({t:"set", ex:it.ex, itemIdx:ii, setNo:s, setTotal:it.sets,
+        target:tgt, amrap:!tgt, burnout:!!it.burnout});
+      const lastSet = s===it.sets;
+      const lastItem = ii===P.items.length-1;
+      if(lastSet) steps.push({t:"feedback", ex:it.ex, itemIdx:ii});
+      if(!(lastSet && lastItem)) steps.push({t:"rest", sec: it.burnout?0:(S.settings.rest + (it.ex==="diamond"?15:0))});
+    }
+  });
+  steps.push({t:"done"});
+  return steps;
+}
+
+function startSession(kind){
+  audio();
+  run={
+    kind, steps:buildSteps(kind), i:-1, t0:Date.now(),
+    results:{}, count:0, burnout:null, newPR:false
+  };
+  keepAwake(true);
+  show("run");
+  startClock();
+  next();
+}
+
+function renderSegs(){
+  const setIdxs=run.steps.map((s,j)=>s.t==="set"?j:-1).filter(j=>j>=0);
+  const cur=run.steps[run.i];
+  const html=setIdxs.map(j=>{
+    let cls="seg";
+    if(j<run.i) cls+=" fill";
+    else if(j===run.i && cur && cur.t==="set") cls+=" now";
+    return '<div class="'+cls+'"></div>';
+  }).join("");
+  $("#segs").innerHTML=html || '<div class="seg"></div>';
+}
+
+let clockT=null;
+function startClock(){
+  clearInterval(clockT);
+  clockT=setInterval(()=>{
+    if(!run) return clearInterval(clockT);
+    $("#run-clock").textContent=mmss((Date.now()-run.t0)/1000);
+  },1000);
+}
+
+function next(){ run.i++; render(); }
+
+function render(){
+  stopEngines();
+  renderSegs();
+  const st=run.steps[run.i];
+  if(!st) return finish();
+  if(st.t==="warmup")  return renderWarmup(st);
+  if(st.t==="prep")    return renderPrep(st);
+  if(st.t==="set")     return renderSet(st);
+  if(st.t==="rest")    return st.sec>0 ? renderRest(st) : next();
+  if(st.t==="feedback")return renderFeedback(st);
+  if(st.t==="done")    return finish();
+}
+
+/* --- Isinish --- */
+function renderWarmup(st){
+  let left=st.sec;
+  $("#stage").innerHTML=
+    '<span class="eyebrow">Isinish</span>'+
+    '<div class="rest-num num" id="wu">'+left+'</div>'+
+    '<p class="hint">Yelka aylantirish, bilak cho\'zish, 10 ta sekin yarim anjuman. Mushaklarni uyg\'oting.</p>'+
+    '<div class="run-actions" style="width:min(92vw,420px)"><button class="btn block" id="wu-skip">O\'tkazib yuborish</button></div>';
+  speak("Isinish. Qirq soniya.");
+  $("#wu-skip").addEventListener("click",next);
+  run.timer=setInterval(()=>{
+    left--; const el=$("#wu"); if(el) el.textContent=left;
+    if(left<=3&&left>0) SFX.tick();
+    if(left<=0){ clearInterval(run.timer); SFX.restEnd(); next(); }
+  },1000);
+}
+
+/* --- Mashqqa tayyorgarlik --- */
+function renderPrep(st){
+  const e=EX[st.ex];
+  const cues=e.cues.slice(0,3).map(c=>'<div class="cue"><i></i><span>'+c+'</span></div>').join("");
+  $("#stage").innerHTML=
+    '<span class="eyebrow">'+(run.kind==="calib"?"Kalibrovka":"Keyingi mashq")+'</span>'+
+    '<div style="margin:10px 0 4px">'+diagram(e.dia,120)+'</div>'+
+    '<h2 class="ex-name">'+st.title+'</h2>'+
+    '<div class="ex-focus">'+e.focus+' · '+st.sub+'</div>'+
+    '<div class="next-card" style="font-size:.85rem;color:var(--ink-2);display:flex;flex-direction:column;gap:8px">'+cues+'</div>'+
+    '<div class="run-actions" style="width:min(92vw,420px)">'+
+      '<button class="btn primary lg block" id="prep-go">Tayyorman</button></div>';
+  speak(st.title+". "+st.sub);
+  $("#prep-go").addEventListener("click",()=>countdownThen(next));
+}
+
+function countdownThen(cb){
+  let n=3;
+  const stage=$("#stage");
+  stage.innerHTML='<div class="rest-num num" id="cd">3</div><p class="hint">Joylashing...</p>';
+  SFX.tick();
+  run.timer=setInterval(()=>{
+    n--;
+    const el=$("#cd");
+    if(n>0){ if(el) el.textContent=n; SFX.tick(); }
+    else{ clearInterval(run.timer); if(el){el.textContent="BOSHLADIK"; el.style.fontSize="min(13vw,3.4rem)";} SFX.restEnd(); setTimeout(cb,520); }
+  },800);
+}
+
+/* --- SET: sanash --- */
+function renderSet(st){
+  run.count=0; run.ending=false;
+  const e=EX[st.ex];
+  const label = st.amrap ? (st.burnout?"CHARCHAGUNCHA":"MAKSIMAL") : st.setNo+" / "+st.setTotal+" SET";
+  const hints={
+    tap:"Har takrorda ekranga teging — burun yoki peshona bilan.",
+    metro:"Ritmga ergashing. Pastga uzun, yuqoriga qisqa.",
+    camera:"Telefon ko'krak ostida. Pastga tushing — o'zi sanaydi."
+  };
+  $("#stage").innerHTML=
+    '<button id="tapzone" aria-label="Takrorni sanash"></button>'+
+    '<span class="eyebrow">'+label+'</span>'+
+    '<h2 class="ex-name" style="font-size:1.35rem;margin-top:4px">'+e.name+'</h2>'+
+    '<div class="dial'+(st.amrap?" amrap":"")+'">'+
+      '<div class="breath"></div>'+
+      '<svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="45"/>'+
+      '<circle class="bar" id="ring" cx="50" cy="50" r="45" stroke-dasharray="282.7" stroke-dashoffset="282.7"/></svg>'+
+      '<div><div class="count num" id="cnt">0</div>'+
+      '<div class="of">'+(st.amrap?"MAKS":"/ "+st.target)+'</div></div>'+
+    '</div>'+
+    '<div class="phase-tag" id="ptag"></div>'+
+    (S.settings.mode==="camera" ? camMeterHTML() : '<p class="hint">'+hints[S.settings.mode]+'</p>')+
+    '<div class="run-actions" style="width:min(92vw,420px)">'+
+      '<button class="btn primary lg block" id="set-end">Set tugadi</button>'+
+      '<div class="side"><button class="btn ghost" id="set-minus">− 1 ta</button>'+
+      '<button class="btn ghost" id="set-plus">+ 1 ta</button></div></div>';
+
+  speak(st.amrap ? (e.name+". Charchaguncha.") : (e.name+". "+st.target+" marta."));
+
+  $("#tapzone").addEventListener("click", ()=>{ if(S.settings.mode==="tap") addRep(st); });
+  $("#set-plus").addEventListener("click", e2=>{ e2.stopPropagation(); addRep(st); });
+  $("#set-minus").addEventListener("click", e2=>{ e2.stopPropagation(); run.count=Math.max(0,run.count-1); paintCount(st); });
+  $("#set-end").addEventListener("click", e2=>{ e2.stopPropagation(); endSet(st); });
+
+  paintCount(st);
+  if(S.settings.mode==="metro") startMetronome(st);
+  if(S.settings.mode==="camera") startCamera(st);
+}
+
+function camMeterHTML(){
+  return '<div class="cam-meter"><div class="cam-bar"><i id="cam-fill"></i></div>'+
+    '<div class="cam-marks"><span id="mk-d" data-l="past" style="left:35%"></span>'+
+    '<span id="mk-u" data-l="tepa" style="left:65%"></span></div>'+
+    '<p class="hint" id="cam-hint" style="min-height:1.6em;margin-top:6px">Kamera sozlanmoqda...</p></div>';
+}
+
+function addRep(st){
+  if(run.ending) return;
+  run.count++;
+  paintCount(st);
+  if(st.target && run.count>=st.target){
+    run.ending=true; SFX.last(); setTimeout(()=>endSet(st),650);
+  } else {
+    SFX.rep();
+    if(S.settings.voice && run.count%5===0) speak(String(run.count));
+  }
+}
+function paintCount(st){
+  const c=$("#cnt"); if(!c) return;
+  c.textContent=run.count;
+  c.classList.add("bump"); setTimeout(()=>c.classList.remove("bump"),130);
+  const ring=$("#ring");
+  if(ring){
+    const p = st.target ? clamp(run.count/st.target,0,1) : clamp(run.count/25,0,1);
+    ring.setAttribute("stroke-dashoffset", (282.7*(1-p)).toFixed(1));
+  }
+}
+
+function endSet(st){
+  stopEngines();
+  const reps=run.count;
+  if(st.calib){
+    S.maxTest={reps:Math.max(0,reps), date:todayKey()};
+    S.k=structuredClone(DEF.k);
+    save();
+    return renderCalibResult(reps);
+  }
+  if(!run.results[st.ex]) run.results[st.ex]={ex:st.ex, sets:[], target:st.target};
+  run.results[st.ex].sets.push(reps);
+  if(st.burnout){
+    run.burnout=reps;
+    const best=S.sessions.reduce((a,x)=>Math.max(a,x.burnout||0),0);
+    if(reps>best && reps>0){ run.newPR=true; SFX.pr(); }
+  } else SFX.setEnd();
+  next();
+}
+
+/* --- Dam olish --- */
+function renderRest(st){
+  let left=st.sec;
+  const nx=nextSetInfo();
+  $("#stage").innerHTML=
+    '<span class="eyebrow">Dam oling</span>'+
+    '<div class="rest-num num" id="rest">'+mmss(left)+'</div>'+
+    (nx?'<div class="next-card"><span class="eyebrow">Keyingisi</span>'+
+        '<div class="row between" style="margin-top:6px"><b style="font-size:1.02rem">'+nx.name+'</b>'+
+        '<span class="pill tile">'+nx.info+'</span></div></div>':'')+
+    '<div class="run-actions" style="width:min(92vw,420px)">'+
+      '<div class="side"><button class="btn" id="rest-add">+20 soniya</button>'+
+      '<button class="btn primary" id="rest-skip">Tayyorman</button></div></div>';
+  speak("Dam. "+st.sec+" soniya.");
+  const tick=()=>{
+    left--;
+    const el=$("#rest"); if(el) el.textContent=mmss(left);
+    if(left===10) speak("O'n soniya");
+    if(left<=3&&left>0) SFX.tick();
+    if(left<=0){ clearInterval(run.timer); SFX.restEnd(); next(); }
+  };
+  run.timer=setInterval(tick,1000);
+  $("#rest-add").addEventListener("click",()=>{ left+=20; $("#rest").textContent=mmss(left); });
+  $("#rest-skip").addEventListener("click",()=>{ clearInterval(run.timer); next(); });
+}
+function nextSetInfo(){
+  for(let j=run.i+1;j<run.steps.length;j++){
+    const s=run.steps[j];
+    if(s.t==="set") return {name:EX[s.ex].name, info: s.amrap?"maksimal":(s.setNo+"/"+s.setTotal+" · "+s.target+" ta")};
+    if(s.t==="prep") return {name:EX[s.ex].name, info:s.sub};
+  }
+  return null;
+}
+
+/* --- Fikr-mulohaza: keyingi safargi raqamlar shu yerda tug'iladi --- */
+function renderFeedback(st){
+  const e=EX[st.ex], r=run.results[st.ex];
+  const got=r?r.sets.reduce((a,b)=>a+b,0):0;
+  const want=r&&r.target?r.target*r.sets.length:got;
+  $("#stage").innerHTML=
+    '<span class="eyebrow">'+e.name+' tugadi</span>'+
+    '<div class="rest-num num" style="color:var(--tile);font-size:min(24vw,6rem)">'+got+'</div>'+
+    '<p class="hint">'+(r&&r.target? "Maqsad "+want+" ta edi. Qanday o\'tdi?" : "Qanday o\'tdi?")+'</p>'+
+    '<div class="fb-grid">'+
+      '<button class="fb easy" data-f="easy"><b>Oson edi</b><span>Yana 3-4 ta qila olardim → keyingi safar ko\'proq</span></button>'+
+      '<button class="fb norm" data-f="norm"><b>Normal</b><span>Qiyin, lekin uddaladim → asta oshadi</span></button>'+
+      '<button class="fb hard" data-f="hard"><b>Juda qiyin</b><span>Zo\'rg\'a tugatdim → keyingi safar yengillashadi</span></button>'+
+    '</div>';
+  $$(".fb").forEach(b=>b.addEventListener("click",()=>{
+    applyFeedback(st.ex, b.dataset.f, got, want);
+    SFX.tick(); next();
+  }));
+}
+function applyFeedback(ex, f, got, want){
+  let k=S.k[ex]||1;
+  if(f==="easy") k*=1.06;
+  else if(f==="norm") k*=1.025;
+  else k*=0.98;
+  if(want>0 && got < want*0.85) k*=0.92;   // maqsadning 85% dan kam bajarildi
+  S.k[ex]=clamp(k,.5,3);
+  save();
+}
+
+/* --- Kalibrovka natijasi --- */
+function renderCalibResult(reps){
+  const lvl = reps<8?"Boshlang'ich":reps<20?"O'rta":reps<35?"Kuchli":"Ilg'or";
+  const rows=PLANS[1].items.map(it=>{
+    const t=targetFor(it);
+    return '<div class="sum-line"><span>'+EX[it.ex].name+'</span><b>'+(t? it.sets+"×"+t : it.sets+"× maks")+'</b></div>';
+  }).join("");
+  $("#stage").innerHTML=
+    '<span class="eyebrow">Natija</span>'+
+    '<div class="rest-num num" style="color:var(--gold)">'+reps+'</div>'+
+    '<h2 class="ex-name">'+lvl+' daraja</h2>'+
+    '<div class="next-card"><span class="eyebrow">Reja siz uchun shunday bo\'ldi</span>'+
+      '<div style="margin-top:8px">'+rows+'</div></div>'+
+    '<p class="hint">Har mashg\'ulotdan keyin "oson/qiyin" javobingizga qarab bu raqamlar o\'zi o\'zgarib boradi.</p>'+
+    '<div class="run-actions" style="width:min(92vw,420px)">'+
+      '<button class="btn primary lg block" id="calib-ok">Ajoyib</button></div>';
+  SFX.pr(); speak("Natija "+reps+". Reja tayyor.");
+  $("#calib-ok").addEventListener("click",exitRun);
+}
+
+/* --- Yakun --- */
+function finish(){
+  stopEngines(); clearInterval(clockT);
+  const items=Object.values(run.results);
+  const total=items.reduce((a,i)=>a+i.sets.reduce((x,y)=>x+y,0),0);
+  const dur=Math.round((Date.now()-run.t0)/1000);
+
+  if(run.kind==="workout" && total>0){
+    S.sessions.push({d:todayKey(), phase:S.phase, total, items, burnout:run.burnout, dur});
+    save();
+  }
+  const rows=items.map(i=>'<div class="sum-line"><span>'+EX[i.ex].name+' <span class="dim">'+i.sets.join(" · ")+'</span></span>'+
+    '<b>'+i.sets.reduce((a,b)=>a+b,0)+'</b></div>').join("");
+
+  $("#stage").innerHTML=
+    '<span class="eyebrow">Mashg\'ulot tugadi</span>'+
+    '<div class="rest-num num" style="color:var(--tile)">'+total+'</div>'+
+    '<div class="ex-focus">takror · '+mmss(dur)+'</div>'+
+    (run.newPR?'<div class="pill gold" style="margin-top:14px">★ Yangi burnout rekordi: '+run.burnout+'</div>':'')+
+    '<div class="next-card"><span class="eyebrow">Setlar</span><div style="margin-top:6px">'+(rows||'<span class="dim">—</span>')+'</div></div>'+
+    '<p class="hint">'+finishNote(total)+'</p>'+
+    '<div class="run-actions" style="width:min(92vw,420px)">'+
+      '<button class="btn primary lg block" id="fin-ok">Tugatish</button></div>';
+  SFX.done(); speak("Tugadi. Jami "+total+" takror. Barakalla!");
+  $("#fin-ok").addEventListener("click",exitRun);
+}
+function finishNote(total){
+  const P=PLANS[S.phase];
+  const mon=mondayOf(new Date());
+  const cnt=new Set(S.sessions.filter(s=>new Date(s.d+"T00:00:00")>=mon).map(s=>s.d)).size;
+  if(cnt>=P.days) return "Bu haftalik norma bajarildi — "+cnt+"/"+P.days+". Dam ham mashqning bir qismi.";
+  return "Bu hafta "+cnt+"/"+P.days+". Keyingi mashg'ulot 1-2 kundan keyin.";
+}
+
+function exitRun(){
+  stopEngines(); clearInterval(clockT); clearInterval(run&&run.timer);
+  keepAwake(false);
+  run=null;
+  show("home");
+}
+$("#run-exit").addEventListener("click",()=>{
+  if(!run) return show("home");
+  modal('<h2>Mashg\'ulotni to\'xtatamizmi?</h2>'+
+    '<p class="muted" style="font-size:.88rem;margin:10px 0 16px">Bajarilgan setlar saqlanmaydi.</p>'+
+    '<div class="grid-2"><button class="btn" onclick="closeModal()">Davom etish</button>'+
+    '<button class="btn" style="background:var(--clay);color:#fff;border-color:transparent" id="exit-yes">To\'xtatish</button></div>');
+  $("#exit-yes").addEventListener("click",()=>{ closeModal(); exitRun(); });
+});
+
+/* ============================================================
+   12. SANASH DVIGATELLARI: metronom va kamera
+   ============================================================ */
+let metroRAF=null, camRAF=null, camStream=null;
+
+function stopEngines(){
+  if(run&&run.timer){ clearInterval(run.timer); run.timer=null; }
+  if(metroRAF){ cancelAnimationFrame(metroRAF); metroRAF=null; }
+  if(camRAF){ cancelAnimationFrame(camRAF); camRAF=null; }
+  stopCamera();
+  if(window.speechSynthesis) try{ speechSynthesis.cancel(); }catch(e){}
+}
+
+/* --- Metronom: ekran nafas oladi --- */
+function startMetronome(st){
+  const T=S.settings.tempo*1000;
+  const downT=T*(2/3);
+  let t0=performance.now(), phase="down", lastPhase="";
+  const breath=$(".breath"), tag=$("#ptag");
+  const loop=(now)=>{
+    if(!run) return;
+    const el=(now-t0)%T;
+    phase = el<downT ? "down" : "up";
+    const p = phase==="down" ? el/downT : (el-downT)/(T-downT);
+    const sc = phase==="down" ? 1-0.35*p : 0.65+0.35*p;
+    if(breath){ breath.style.setProperty("--breath",(0.7+sc*0.55).toFixed(3));
+                breath.style.setProperty("--breath-o",(0.18+sc*0.3).toFixed(3)); }
+    if(phase!==lastPhase){
+      if(tag){ tag.textContent = phase==="down"?"PASTGA":"YUQORIGA"; tag.classList.toggle("down",phase==="down"); }
+      if(phase==="down"){ SFX.down(); }
+      else{ SFX.up(); addRep(st); }
+      lastPhase=phase;
+    }
+    metroRAF=requestAnimationFrame(loop);
+  };
+  if(tag) tag.textContent="PASTGA";
+  SFX.down(); lastPhase="down";
+  metroRAF=requestAnimationFrame(loop);
+}
+
+/* --- Kamera: ko'krak ostidagi telefon yorug'lik o'zgarishini o'qiydi --- */
+async function startCamera(st){
+  const hint=$("#cam-hint");
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    if(hint) hint.textContent="Bu brauzerda kamera ishlamaydi — ekranga tegib sanang.";
+    $("#tapzone").addEventListener("click",()=>addRep(st));
+    return;
+  }
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"user", width:{ideal:320}, height:{ideal:240}}, audio:false });
+  }catch(err){
+    if(hint) hint.innerHTML="Kameraga ruxsat berilmadi. Hozircha <b>ekranga tegib</b> sanang.";
+    $("#tapzone").addEventListener("click",()=>addRep(st));
+    return;
+  }
+  const v=$("#cam-video");
+  v.srcObject=camStream;
+  try{ await v.play(); }catch(e){}
+
+  const cv=document.createElement("canvas"); cv.width=32; cv.height=24;
+  const cx=cv.getContext("2d",{willReadFrequently:true});
+  let lo=255, hi=0, state="up", lastRep=0, warm=performance.now(), frames=0;
+  const sens=S.settings.camSens;
+
+  const loop=()=>{
+    if(!run||!camStream) return;
+    camRAF=requestAnimationFrame(loop);
+    frames++; if(frames%2) return;             // ~30fps -> ~15 o'lchov/s
+    try{ cx.drawImage(v,0,0,32,24); }catch(e){ return; }
+    let d;
+    try{ d=cx.getImageData(8,6,16,12).data; }catch(e){ return; }
+    let sum=0;
+    for(let i=0;i<d.length;i+=4) sum += 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    const val=sum/(d.length/4);
+
+    lo = val<lo ? val : lo + (val-lo)*0.0015;
+    hi = val>hi ? val : hi + (val-hi)*0.0015;
+    const range=hi-lo;
+
+    const fill=$("#cam-fill");
+    if(fill) fill.style.setProperty("--v", clamp((val-lo)/Math.max(range,1)*100,0,100).toFixed(0)+"%");
+
+    const now=performance.now();
+    const ready = range>12 && now-warm>1500;
+    const hint2=$("#cam-hint");
+    if(hint2){
+      hint2.textContent = ready ? "Sanamoqda — pastga to'liq tushing"
+        : "Sozlanmoqda... 2 marta sekin qilib ko'ring";
+    }
+    if(!ready) return;
+
+    const dT = lo + range*(0.45 - 0.2*sens);
+    const uT = lo + range*(0.72 - 0.2*sens);
+    if(state==="up" && val<dT){ state="down"; SFX.down(); }
+    else if(state==="down" && val>uT){
+      state="up";
+      if(now-lastRep>450){ lastRep=now; addRep(st); }
+    }
+  };
+  camRAF=requestAnimationFrame(loop);
+}
+function stopCamera(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  const v=$("#cam-video"); if(v) v.srcObject=null;
+}
+
+/* ============================================================
+   13. ISHGA TUSHIRISH
+   ============================================================ */
+window.closeModal=closeModal;
+renderHome();
+show("home");
+
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
