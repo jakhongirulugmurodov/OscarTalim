@@ -367,6 +367,7 @@
       </div>
     </details>
 
+    <p class="hint" id="sorovHisob" style="margin-top:14px"></p>
     <button id="startBtn" onclick="tugmaBosildi()">✨ Transkripsiya qilish</button>
     <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
     <div id="status"></div>
@@ -692,11 +693,48 @@ function tugmaHolati(ish) {
   b.classList.toggle("stop", ish);
 }
 
+/* ===== Kunlik so'rov hisobi (bepul limitni kuzatish) ===== */
+const KUNLIK_LIMIT = 20; // bepul tarifda gemini-2.5-flash uchun
+
+function bugun() {
+  return new Date().toISOString().slice(0, 10);
+}
+function sorovOl() {
+  try {
+    const d = JSON.parse(localStorage.getItem("sorov_hisob")) || {};
+    return d.kun === bugun() ? d.soni : 0;
+  } catch { return 0; }
+}
+function sorovQosh() {
+  const soni = sorovOl() + 1;
+  try { localStorage.setItem("sorov_hisob", JSON.stringify({ kun: bugun(), soni })); }
+  catch (e) { /* e'tiborsiz */ }
+  sorovKorsat();
+}
+function kerakliSorov() {
+  // Har transkripsiya: asosiy + (tahrir) + (so'z vaqtlari)
+  return 1 + ($("tahrir").checked ? 1 : 0) + ($("sozRejim").value !== "yoq" ? 1 : 0);
+}
+function sorovKorsat() {
+  const ishlatilgan = sorovOl();
+  const qolgan = Math.max(KUNLIK_LIMIT - ishlatilgan, 0);
+  const kerak = kerakliSorov();
+  const ogoh = qolgan < kerak;
+  $("sorovHisob").innerHTML =
+    `<span style="color:${ogoh ? "var(--err)" : "var(--muted)"}">` +
+    `Bugungi bepul limit: <b>${qolgan}/${KUNLIK_LIMIT}</b> so'rov qoldi · ` +
+    `bu transkripsiya <b>${kerak}</b> ta sarflaydi` +
+    (ogoh ? " — limit yetmasligi mumkin" : "") + `</span>`;
+}
+["tahrir", "sozRejim"].forEach(id => $(id).addEventListener("change", sorovKorsat));
+sorovKorsat();
+
 /* ===== Gemini so'rovlari ===== */
 async function generate(key, model, parts, schema) {
   const URINISH = 5;
   for (let urinish = 1; urinish <= URINISH; urinish++) {
     try {
+      sorovQosh();
       const r = await fetch(`${API}/v1beta/models/${model}:generateContent?key=${key}`, {
         method: "POST",
         signal: joriyAbort?.signal,
@@ -718,7 +756,9 @@ async function generate(key, model, parts, schema) {
       seglar.forEach(s => { s.start = soniyaga(s.start); s.end = soniyaga(s.end); });
       return seglar;
     } catch (e) {
-      if (bekorQilindi || e.name === "AbortError" || urinish === URINISH) throw e;
+      // Kvota tugaganda qayta urinish foydasiz — darrov to'xtaymiz
+      const kvota = /quota|RESOURCE_EXHAUSTED|429/i.test(e.message);
+      if (bekorQilindi || e.name === "AbortError" || kvota || urinish === URINISH) throw e;
       // Server bandligida (503/overloaded) uzoqroq kutamiz — tez urinish yordam bermaydi
       const band = /high demand|overloaded|UNAVAILABLE|503/i.test(e.message);
       const kutish = band ? Math.min(8000 * urinish, 30000) : 2000 * urinish;
@@ -963,9 +1003,20 @@ async function boshla() {
       msg = "Gemini bu havoladagi videoni ocholmadi. Havola ochiq (public) YouTube " +
         "videosi ekanini tekshiring. Boshqa platforma videolarini fayl sifatida yuklang.";
     } else if (/quota|RESOURCE_EXHAUSTED|429/i.test(e.message)) {
-      msg = /limit: 0/.test(e.message)
-        ? "Bepul tarifda bu model ishlamaydi. Sozlamalardan «Flash» modelini tanlab, qayta urining."
-        : "Bepul kunlik/daqiqalik limit tugadi. Bir necha daqiqa kutib qayta urining yoki ertaga davom eting.";
+      const limit = (e.message.match(/limit:\s*(\d+)/) || [])[1];
+      if (limit === "0") {
+        msg = "Bepul tarifda bu model ishlamaydi. ⚙️ Sozlamalardan «Flash» modelini tanlab, qayta urining.";
+      } else if (/per_day|free_tier_requests/i.test(e.message)) {
+        msg = `Bugungi bepul limit tugadi (kuniga ${limit || "20"} so'rov).\n` +
+          `Ertaga yangilanadi. Tezroq kerak bo'lsa — aistudio.google.com da ` +
+          `billing ulasangiz limit ancha oshadi.\n\n` +
+          `Limitni tejash uchun ⚙️ Sozlamalarda «Tahrir o'tishi» va ` +
+          `«So'z darajasidagi timecode» ni o'chiring — har biri qo'shimcha so'rov sarflaydi.`;
+      } else {
+        const kut = (e.message.match(/retry in ([\d.]+)s/i) || [])[1];
+        msg = `Daqiqalik limit tugadi. ${kut ? Math.ceil(+kut) + " soniyadan" : "Bir daqiqadan"} ` +
+          `keyin qayta urining.`;
+      }
     }
     holat(msg, true);
   } finally {
