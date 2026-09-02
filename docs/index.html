@@ -593,6 +593,15 @@ function tugmaHolati(ish) {
   b.classList.toggle("stop", ish);
 }
 
+/* YouTube havolasini standart ko'rinishga keltiradi.
+   Ulashish havolasidagi ?si=... kabi parametrlarni Gemini qabul qilmaydi. */
+function youtubeTozala(url) {
+  const m = String(url).trim().match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|live\/|embed\/|v\/))([A-Za-z0-9_-]{11})/i
+  );
+  return m ? `https://www.youtube.com/watch?v=${m[1]}` : String(url).trim();
+}
+
 /* ===== Kunlik so'rov hisobi (bepul limitni kuzatish) ===== */
 const KUNLIK_LIMIT = 20; // bepul tarifda gemini-2.5-flash uchun
 
@@ -807,7 +816,8 @@ async function boshla() {
     const nom = file ? file.name : yt;
     let mediaPart, videoMi;
     if (yt) {
-      mediaPart = { fileData: { fileUri: yt } };
+      // Kuzatuv parametrlarini (?si=..., &t=...) tozalaymiz — Gemini ularni qabul qilmaydi
+      mediaPart = { fileData: { fileUri: youtubeTozala(yt) } };
       videoMi = true;
     } else {
       if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
@@ -829,8 +839,22 @@ async function boshla() {
     const rejim = $("segment").value;
     const sozlovchi = $("sozlovchi").checked;
     const schema = schemaTuz(sozlovchi);
-    let seglar = await generate(key, model,
+    const soragich = () => generate(key, model,
       [mediaPart, { text: prompt1(yozuv, rejim, sozlovchi) }], schema);
+    let seglar;
+    try {
+      seglar = await soragich();
+    } catch (e) {
+      // Ba'zi videolarda tejamkor rejim (fps) qabul qilinmaydi — usiz qayta urinamiz
+      if (!bekorQilindi && mediaPart.videoMetadata && /invalid argument/i.test(e.message)) {
+        console.warn("videoMetadata qabul qilinmadi, usiz urinilmoqda:", e);
+        holat("Tejamkor rejimsiz qayta urinilmoqda...", false, true);
+        delete mediaPart.videoMetadata;
+        seglar = await soragich();
+      } else {
+        throw e;
+      }
+    }
     seglar = segmentTozala(seglar);
 
     if (!seglar.length) throw new Error("Videoda nutq topilmadi.");
@@ -854,6 +878,10 @@ async function boshla() {
       msg = "Google serverlari hozir juda band (bu vaqtinchalik holat, sizning " +
         "kalitingizga aloqasi yo'q). Bir necha daqiqadan keyin qayta urining " +
         "yoki ⚙️ Sozlamalardan boshqa modelni tanlab ko'ring.";
+    } else if (/invalid argument/i.test(e.message)) {
+      msg = "Gemini bu so'rovni qabul qilmadi. Ehtimol havola noto'g'ri yoki video " +
+        "yopiq (private/unlisted). Havolani brauzerda ochib tekshiring, yoki videoni " +
+        "yuklab olib «Fayl» bo'limi orqali yuboring.";
     } else if (/Cannot fetch content/i.test(e.message)) {
       msg = "Gemini bu havoladagi videoni ocholmadi. Havola ochiq (public) YouTube " +
         "videosi ekanini tekshiring. Boshqa platforma videolarini fayl sifatida yuklang.";
