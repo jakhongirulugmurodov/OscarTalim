@@ -1,6 +1,6 @@
 # Funksiyalar holati
 
-Oxirgi yangilanish: 2026-08-14 · panel build `14-Avg 22:30`
+Oxirgi yangilanish: 2026-09-02 · panel build `2-Sen 09:40`
 
 Bu fayl — haqiqiy montajda nima sinalgan-u nima sinalmaganining ro'yxati.
 «Kodda ishlaydi» bilan «Premiere'da ishlaydi» boshqa-boshqa narsa ekanini
@@ -28,7 +28,7 @@ bir necha marta ko'rdik, shuning uchun holat faqat REAL testdan keyin
 | **Sync** | Ilgari ishlagan, oxirgi o'zgarishlardan keyin qayta tekshirilmagan |
 | **Switch** | Ilgari ishlagan; yaqinda server xatosi (TypeError) tuzatildi — qayta sinash kerak |
 | **Tozalash** | Yangi qo'shilgan, oddiy amal, lekin real bosib ko'rilmagan |
-| **Cut → Shu montajda** | Sinovda. To'rt marta yiqilib, har safar aniq sabab topildi (nusxa eskirishi, ovoz juftligi, setStart cho'zishi, jim rad). Oxirgi varianti (createMoveAction, har bo'lak tekshiruvi) real montajda hali tasdiqlanmagan. FAQAT qisqa montajda sinash; ish oldidan loyiha o'zi saqlanadi, xato chiqsa File > Revert |
+| **Cut → Shu montajda** | 2-sentabrda real montajda BIRINCHI MARTA oxirigacha ishladi (58 bo'lak, 7 soniya). Natija sifati bo'yicha bitta kamchilik topildi va tuzatildi: pauzalar orasidagi qisqa orolchalar keraksiz qirqim qoldirardi (`min_keep`). Tuzatishdan keyin qayta sinash kerak |
 
 ## ❌ Voz kechilgan
 

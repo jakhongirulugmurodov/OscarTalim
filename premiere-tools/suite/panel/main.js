@@ -9,7 +9,7 @@
  * ikkala shaklni ham sinab ko'ramiz va ishlaganini eslab qolamiz. */
 /* Panel qurilgan vaqt. Panel qayta yuklanmagan bo'lsa, bu yerda eski
  * sana turadi — «yangi kod o'rnatildimi?» degan savol shu bilan hal bo'ladi. */
-const PANEL_BUILD = "14-Avg 22:30";
+const PANEL_BUILD = "2-Sen 09:40";
 
 const MOTOR_URLS = ["http://127.0.0.1:8765", "http://localhost:8765"];
 let MOTOR = MOTOR_URLS[0];
@@ -468,6 +468,9 @@ const knobs = {
               fmt: (v) => (v / 10).toFixed(1) + " s", val: (v) => v / 10 },
   padding: { el: el("kPadding"), out: el("vPadding"),
              fmt: (v) => v * 10 + " ms", val: (v) => v / 100 },
+  minKeep: { el: el("kMinKeep"), out: el("vMinKeep"),
+             fmt: (v) => (v ? (v / 10).toFixed(2) + " s" : "o'chirilgan"),
+             val: (v) => v / 10 },
   markerOldin: { el: el("kMarkerOldin"), out: el("vMarkerOldin"),
                  fmt: (v) => v + " s", val: (v) => v },
   markerKeyin: { el: el("kMarkerKeyin"), out: el("vMarkerKeyin"),
@@ -3280,6 +3283,7 @@ async function montajniQirqish() {
         strictness: strictness,
         min_pause: knobs.minPause.val(+knobs.minPause.el.value),
         padding: knobs.padding.val(+knobs.padding.el.value),
+        min_keep: knobs.minKeep.val(+knobs.minKeep.el.value),
       }),
     });
     const j = await r.json();
@@ -3292,10 +3296,25 @@ async function montajniQirqish() {
     // yoki o'zicha yaxlitlab, bo'laklar orasida tirqish qoldirishi mumkin.
     const fps = (j.format && j.format.fps) || 0;
     const kadr = (t) => (fps > 0 ? Math.round(t * fps) / fps : t);
-    const pauzalar = (j.pauses || [])
+    const xomPauzalar = (j.pauses || [])
       .map((p) => ({ start: kadr(p.start), end: kadr(p.end) }))
       .filter((p) => p.end > p.start)
       .sort((x, y) => x.start - y.start);
+
+    // Motor pauzalarni allaqachon birlashtirgan, lekin kadr to'riga
+    // yaxlitlash ularni yana bir-biriga yaqinlashtirishi mumkin. Shu
+    // yerda qaytadan birlashtiramiz — aks holda bir-ikki kadrlik
+    // bo'lakcha alohida klip bo'lib qolardi.
+    const eng = knobs.minKeep.val(+knobs.minKeep.el.value);
+    const pauzalar = [];
+    for (const p of xomPauzalar) {
+      const oxirgi = pauzalar[pauzalar.length - 1];
+      if (oxirgi && p.start - oxirgi.end < Math.max(eng, 1 / (fps || 50))) {
+        oxirgi.end = Math.max(oxirgi.end, p.end);
+      } else {
+        pauzalar.push({ start: p.start, end: p.end });
+      }
+    }
     if (!pauzalar.length) {
       logLine("Kesiladigan pauza topilmadi — montaj o'zgarmadi.", "okline");
       stopProgress(true, "pauza yo'q");
@@ -4287,6 +4306,7 @@ async function run(kind) {
     body.strictness = strictness;
     body.min_pause = knobs.minPause.val(+knobs.minPause.el.value);
     body.padding = knobs.padding.val(+knobs.padding.el.value);
+    body.min_keep = knobs.minKeep.val(+knobs.minKeep.el.value);
   }
 
   startProgress(isCap ? "Transkripsiya boshlanmoqda…"

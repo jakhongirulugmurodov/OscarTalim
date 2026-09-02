@@ -631,6 +631,7 @@ class Handler(BaseHTTPRequestHandler):
                     strictness=req.get("strictness") or "orta",
                     min_pause=float(req.get("min_pause", 0.7)),
                     padding=float(req.get("padding", 0.12)),
+                    min_keep=float(req.get("min_keep", 0.30)),
                     seq_format=req.get("seq_format") or None,
                     timeline=seq_timeline, fallback=RESULTS_DIR, log=record,
                     progress=step,

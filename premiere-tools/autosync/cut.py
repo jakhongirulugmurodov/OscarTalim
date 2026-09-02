@@ -27,6 +27,7 @@ DEFAULT_THRESHOLD = "auto"  # chegara yozuvning o'zidan olinadi (pastga qarang)
 MANUAL_THRESHOLD = 0.18     # «auto» ishlamasa ishlatiladigan eski qiymat
 DEFAULT_MIN_PAUSE = 0.7    # shundan qisqa pauzalar tegilmaydi (soniya)
 DEFAULT_PADDING = 0.12     # gap chetlaridan qoldiriladigan zaxira (soniya)
+DEFAULT_MIN_KEEP = 0.30    # shundan qisqa QOLADIGAN bo'lak — bo'lak emas
 
 
 # Qat'iylik: chegarani jimlik tomonga yoki gap tomonga suradi.
@@ -150,6 +151,37 @@ def find_pauses(mask, min_pause, padding):
     return pauses
 
 
+def merge_short_keeps(pauses, min_keep):
+    """Ikki pauza orasidagi juda qisqa ovoz orolchasini ham kesadi.
+
+    Nima uchun kerak: `find_pauses` faqat PAUZA uzunligini tekshiradi,
+    ular orasida QOLADIGAN bo'lak qancha bo'lishini emas. Ikki uzun
+    pauza orasida 0.1 soniyalik nafas yoki chapillash qolsa, u alohida
+    klip bo'lib timeline'ga tushadi: montajchi ko'zi bilan hech narsa
+    kesilmagandek ko'rinadi, lekin o'rtada keraksiz qirqim turadi.
+    Haqiqiy montajda aynan shu ko'rindi.
+
+    Bunday orolcha deyarli har doim nafas, lab tovushi yoki stul
+    g'ichirlashi — gap emas. Shuning uchun ikki pauza birlashtiriladi
+    va orolcha ular bilan birga ketadi.
+
+    min_keep = 0 bo'lsa — hech narsa birlashtirilmaydi.
+    """
+    if not pauses or min_keep <= 0:
+        return list(pauses), 0
+
+    natija = [list(pauses[0])]
+    birlashdi = 0
+    for a, b in pauses[1:]:
+        if a - natija[-1][1] < min_keep:
+            # Orolcha juda qisqa — oldingi pauzani shu yergacha cho'zamiz
+            natija[-1][1] = max(natija[-1][1], b)
+            birlashdi += 1
+        else:
+            natija.append([a, b])
+    return [(a, b) for a, b in natija], birlashdi
+
+
 def keep_segments(pauses, total_sec):
     """Pauzalar orasidagi saqlanadigan bo'laklar."""
     keeps, cursor = [], 0.0
@@ -165,6 +197,7 @@ def keep_segments(pauses, total_sec):
 def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
             threshold=DEFAULT_THRESHOLD, min_pause=DEFAULT_MIN_PAUSE,
             padding=DEFAULT_PADDING, strictness=DEFAULT_STRICTNESS,
+            min_keep=DEFAULT_MIN_KEEP,
             timeline=None, seq_format=None, fallback=None, log=print,
             progress=None, xml_yozish=True):
     """Pauzalarni kesish.
@@ -191,9 +224,15 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
     loud = loudness_lane(clips, total_bins)
     threshold = resolve_threshold(loud, threshold, strictness, log=log)
     pauses = find_pauses(loud >= threshold, min_pause, padding)
+    xom_soni = len(pauses)
+    pauses, birlashdi = merge_short_keeps(pauses, min_keep)
     saved = sum(b - a for a, b in pauses)
     log(f"Pauzalar: {len(pauses)} ta, jami {saved:.1f}s "
         f"({saved / total_sec * 100:.0f}%) qisqaradi")
+    if birlashdi:
+        log(f"  {birlashdi} ta keraksiz qirqim olib tashlandi — pauzalar "
+            f"orasidagi {min_keep:.2f}s dan qisqa orolchalar (nafas, "
+            f"shovqin) ham kesildi")
 
     keeps = keep_segments(pauses, total_sec)
     if not keeps:
@@ -239,6 +278,8 @@ def run_cut(files, output="kesilgan.xml", name="Podcast Suite — Cut",
         "saved_sec": round(saved, 2),
         "threshold": round(float(threshold), 3),
         "strictness": strictness,
+        "min_keep": round(float(min_keep), 3),
+        "merged": birlashdi,
         "format": {"width": width, "height": height,
                    "shape": "vertikal" if height > width else
                             ("kvadrat" if height == width else "gorizontal"),
