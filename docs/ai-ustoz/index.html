@@ -1,0 +1,702 @@
+<title>AI Ustoz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  --paper:#F6F8FB; --surface:#FFFFFF; --surface-2:#EDF2F7;
+  --grid:#D4E1EE; --rule:#DFE7EF;
+  --ink:#16212E; --ink-soft:#5B6C7E; --ink-faint:#8496A7;
+  --pen:#C4392B; --pen-soft:#FAEBE8;
+  --ok:#2C7A5B; --ok-soft:#E7F2ED;
+  --warn:#8F5D0C; --warn-soft:#FAF0DC;
+  --font-display:'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif;
+  --font-body:'Source Serif 4',Georgia,'Times New Roman',serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1520; --surface:#16212E; --surface-2:#1D2A38;
+    --grid:#26394C; --rule:#243444;
+    --ink:#E3EAF2; --ink-soft:#94A7B9; --ink-faint:#6E8296;
+    --pen:#F0776A; --pen-soft:#361D1A;
+    --ok:#5FBF93; --ok-soft:#113025;
+    --warn:#DDAE55; --warn-soft:#2C2312;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1520; --surface:#16212E; --surface-2:#1D2A38;
+  --grid:#26394C; --rule:#243444;
+  --ink:#E3EAF2; --ink-soft:#94A7B9; --ink-faint:#6E8296;
+  --pen:#F0776A; --pen-soft:#361D1A;
+  --ok:#5FBF93; --ok-soft:#113025;
+  --warn:#DDAE55; --warn-soft:#2C2312;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--font-body); font-size:17px; line-height:1.62;
+  margin:0; padding:0 0 80px;
+  -webkit-font-smoothing:antialiased;
+}
+.doc{
+  display:grid;
+  grid-template-columns:[full-start] minmax(18px,1fr) [main-start] min(70ch,100%) [main-end] minmax(18px,1fr) [full-end];
+  row-gap:0;
+}
+.doc>*{grid-column:main}
+.doc>.wide{grid-column:full; width:min(1060px,100% - 36px); margin-inline:auto}
+
+/* ---------- header ---------- */
+header.masthead{
+  grid-column:full; width:100%;
+  border-bottom:1px solid var(--rule);
+  background:
+    repeating-linear-gradient(to bottom,transparent 0 31px,var(--grid) 31px 32px);
+  padding:0;
+}
+.masthead-inner{width:min(1060px,100% - 36px); margin-inline:auto; padding:54px 0 40px}
+.eyebrow{
+  font-family:var(--font-mono); font-size:11.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--pen); margin:0 0 14px;
+}
+h1{
+  font-family:var(--font-display); font-weight:800; font-size:clamp(42px,7.5vw,74px);
+  line-height:.98; letter-spacing:-.025em; margin:0; text-wrap:balance;
+}
+h1 .sub{display:block; font-weight:600; font-size:clamp(19px,2.6vw,27px); color:var(--ink-soft); letter-spacing:-.01em; margin-top:14px; line-height:1.25}
+.masthead-meta{
+  display:flex; flex-wrap:wrap; gap:8px 26px; margin-top:28px;
+  font-family:var(--font-mono); font-size:12px; color:var(--ink-faint);
+}
+.masthead-meta b{color:var(--ink-soft); font-weight:600}
+
+/* ---------- typography ---------- */
+h2{
+  font-family:var(--font-display); font-weight:700; font-size:clamp(25px,3.6vw,33px);
+  letter-spacing:-.018em; line-height:1.14; margin:64px 0 6px; text-wrap:balance;
+}
+h2 .num{
+  display:block; font-family:var(--font-mono); font-size:11.5px; font-weight:600;
+  letter-spacing:.16em; color:var(--pen); margin-bottom:9px;
+}
+h3{
+  font-family:var(--font-display); font-weight:600; font-size:19.5px;
+  letter-spacing:-.008em; margin:38px 0 4px; text-wrap:balance;
+}
+h3 .num{font-family:var(--font-mono); font-size:13px; color:var(--ink-faint); margin-right:9px; font-weight:400}
+p{margin:14px 0}
+.lede{font-size:19.5px; line-height:1.55; color:var(--ink-soft); margin-top:16px}
+strong{font-weight:600}
+a{color:var(--pen); text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--pen); outline-offset:3px; border-radius:2px}
+ul,ol{margin:14px 0; padding-left:22px}
+li{margin:7px 0}
+code{font-family:var(--font-mono); font-size:.85em; background:var(--surface-2); padding:1px 5px; border-radius:3px}
+hr{border:0; border-top:1px solid var(--rule); margin:56px 0 0}
+
+/* ---------- key findings ---------- */
+.findings{display:grid; gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:6px; overflow:hidden; margin:30px 0 8px}
+@media(min-width:720px){.findings{grid-template-columns:1fr 1fr}}
+.finding{background:var(--surface); padding:22px 22px 24px}
+.finding .verdict{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; font-weight:600; display:inline-block; margin-bottom:10px;
+  padding:3px 8px; border-radius:3px;
+}
+.v-ok{color:var(--ok); background:var(--ok-soft)}
+.v-warn{color:var(--warn); background:var(--warn-soft)}
+.v-risk{color:var(--pen); background:var(--pen-soft)}
+.finding h4{font-family:var(--font-display); font-weight:600; font-size:17px; margin:0 0 6px; letter-spacing:-.005em}
+.finding p{margin:0; font-size:15.5px; line-height:1.5; color:var(--ink-soft)}
+
+/* ---------- teacher's margin note ---------- */
+.note{
+  border-left:3px solid var(--pen); background:var(--pen-soft);
+  padding:16px 20px 18px; margin:26px 0; border-radius:0 5px 5px 0;
+}
+.note.is-tip{border-left-color:var(--ok); background:var(--ok-soft)}
+.note.is-warn{border-left-color:var(--warn); background:var(--warn-soft)}
+.note .tag{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.15em;
+  text-transform:uppercase; font-weight:600; color:var(--pen); display:block; margin-bottom:7px;
+}
+.note.is-tip .tag{color:var(--ok)}
+.note.is-warn .tag{color:var(--warn)}
+.note p{margin:0; font-size:16px; line-height:1.55}
+.note p+p{margin-top:10px}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto; margin:24px 0; border:1px solid var(--rule); border-radius:6px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14.5px; font-family:var(--font-body)}
+caption{
+  caption-side:top; text-align:left; padding:14px 18px 0;
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+th,td{padding:11px 16px; text-align:left; vertical-align:top; border-bottom:1px solid var(--rule)}
+thead th{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase;
+  font-weight:600; color:var(--ink-soft); background:var(--surface-2); white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.mono,th.mono,.num-cell{font-family:var(--font-mono); font-size:13px; font-variant-numeric:tabular-nums; white-space:nowrap}
+td.field{font-family:var(--font-mono); font-size:12.5px; color:var(--ink); white-space:nowrap}
+.pill{font-family:var(--font-mono); font-size:10.5px; font-weight:600; letter-spacing:.08em; padding:2px 7px; border-radius:3px; white-space:nowrap; text-transform:uppercase}
+.p-ok{color:var(--ok); background:var(--ok-soft)}
+.p-warn{color:var(--warn); background:var(--warn-soft)}
+.p-risk{color:var(--pen); background:var(--pen-soft)}
+
+/* ---------- diagrams ---------- */
+figure{margin:34px 0; padding:0}
+figure svg{display:block; width:100%; max-width:100%; height:auto; color:var(--ink)}
+.figwrap{background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:22px 20px 8px; overflow-x:auto}
+figcaption{
+  font-family:var(--font-mono); font-size:12px; line-height:1.5; color:var(--ink-soft);
+  margin-top:14px; padding-left:2px;
+}
+.dg-box{fill:var(--surface-2); stroke:currentColor; stroke-width:1.2}
+.dg-box.is-ok{stroke:var(--ok); stroke-width:1.8; fill:var(--ok-soft)}
+.dg-box.is-warn{stroke:var(--warn); stroke-width:1.8; fill:var(--warn-soft)}
+.dg-box.is-risk{stroke:var(--pen); stroke-width:1.8; fill:var(--pen-soft)}
+.dg-t{fill:currentColor; font-family:var(--font-mono); font-size:12.5px; font-weight:600}
+.dg-s{fill:var(--ink-soft); font-family:var(--font-mono); font-size:10.5px}
+.dg-e{fill:var(--ink-faint); font-family:var(--font-mono); font-size:10px}
+.dg-l{stroke:currentColor; stroke-width:1.2; fill:none}
+.dg-l.dash{stroke-dasharray:5 4; stroke:var(--ink-faint)}
+.dg-arrow{fill:currentColor}
+.dg-frame{fill:none; stroke:var(--pen); stroke-width:1.4; stroke-dasharray:7 5}
+.dg-badge{font-family:var(--font-mono); font-size:9.5px; font-weight:600; letter-spacing:.1em}
+.t-ok{fill:var(--ok)} .t-warn{fill:var(--warn)} .t-risk{fill:var(--pen)}
+
+/* ---------- phases ---------- */
+.phases{display:grid; gap:14px; margin:28px 0}
+.phase{background:var(--surface); border:1px solid var(--rule); border-left:3px solid var(--pen); border-radius:0 6px 6px 0; padding:20px 22px}
+.phase .ph-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; margin-bottom:8px}
+.phase .ph-n{font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:.14em; color:var(--pen)}
+.phase h4{font-family:var(--font-display); font-weight:600; font-size:18px; margin:0; letter-spacing:-.008em}
+.phase .ph-time{font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-left:auto}
+.phase p{margin:0 0 8px; font-size:15.5px; color:var(--ink-soft); line-height:1.5}
+.phase ul{margin:8px 0 0; font-size:15px}
+.phase li{color:var(--ink-soft)}
+
+/* ---------- advice ---------- */
+.advice{list-style:none; padding:0; margin:26px 0; counter-reset:adv}
+.advice>li{
+  counter-increment:adv; position:relative; padding:18px 0 18px 46px;
+  border-top:1px solid var(--rule); margin:0;
+}
+.advice>li:last-child{border-bottom:1px solid var(--rule)}
+.advice>li::before{
+  content:counter(adv,decimal-leading-zero); position:absolute; left:0; top:19px;
+  font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--pen);
+}
+.advice h4{font-family:var(--font-display); font-weight:600; font-size:17.5px; margin:0 0 5px; letter-spacing:-.008em}
+.advice p{margin:0; font-size:16px; line-height:1.55; color:var(--ink-soft)}
+
+/* ---------- sources ---------- */
+.cite{
+  font-family:var(--font-mono); font-size:10px; font-weight:600; vertical-align:super;
+  text-decoration:none; color:var(--pen); padding:0 1px;
+}
+.sources{list-style:none; counter-reset:src; padding:0; margin:22px 0; font-size:14.5px}
+.sources li{counter-increment:src; position:relative; padding-left:34px; margin:11px 0; color:var(--ink-soft); line-height:1.5}
+.sources li::before{
+  content:"[" counter(src) "]"; position:absolute; left:0; top:1px;
+  font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+}
+.sources a{word-break:break-word}
+footer.end{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); font-family:var(--font-mono); font-size:11.5px; color:var(--ink-faint); line-height:1.7}
+@media(prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="doc">
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="eyebrow">Mahsulot spetsifikatsiyasi · Tekshirilgan maʼlumotlar</p>
+    <h1>AI Ustoz
+      <span class="sub">Uyga vazifani tekshirish va davomat: nima ishlaydi, nima taqiqlangan, nimadan boshlash kerak</span>
+    </h1>
+    <div class="masthead-meta">
+      <span><b>Loyiha</b> · Oscar Taʼlim</span>
+      <span><b>Sana</b> · 2026-09-09</span>
+      <span><b>Holat</b> · v1 qoralama</span>
+      <span><b>Manbalar</b> · 16 ta tashqi tekshiruv</span>
+    </div>
+  </div>
+</header>
+
+<p class="lede">Quyida ikkala funksiya — uyga vazifani tekshirish va davomat nazorati — bosqichma-bosqich ochilgan: qanday maʼlumot toʻplanadi, qaysi daʼvolar tadqiqot bilan tasdiqlanadi, qaysilari tasdiqlanmaydi, va qayerda huquqiy chegara bor. Har bir raqamning yonida manba havolasi turibdi.</p>
+
+<h2><span class="num">Qisqacha xulosa</span>Toʻrtta asosiy natija</h2>
+
+<div class="findings">
+  <div class="finding">
+    <span class="verdict v-ok">Tasdiqlandi</span>
+    <h4>Vazifa tekshirish — real bozor</h4>
+    <p>Oʻqituvchilar haftasiga 5–9,9 soatni tekshirishga sarflaydi<a class="cite" href="#m1">1</a><a class="cite" href="#m2">2</a>. Gradescope foydalanuvchilarining uchdan ikkisi 30%+ vaqt tejaydi; 150 ta ish 8 soatdan 2 soatgacha tushgan<a class="cite" href="#m3">3</a>.</p>
+  </div>
+  <div class="finding">
+    <span class="verdict v-warn">Qisman</span>
+    <h4>«5 soat → 10 daqiqa» — juda optimistik</h4>
+    <p>Eng yaxshi modellar qoʻlyozma ishlarni 89% koʻrish / 95% baholash aniqligida oʻqiydi<a class="cite" href="#m4">4</a>. 300 ta javobda bu ~15 ta xato demak — ularni topish uchun ham vaqt kerak. Realistik nishon: <b>5 soat → 30–50 daqiqa</b>.</p>
+  </div>
+  <div class="finding">
+    <span class="verdict v-risk">Xavfli</span>
+    <h4>«Yomon oʻquvchilar reytingi» — qilmang</h4>
+    <p>Ochiq reyting tashvish va past oʻz-oʻzini baholashni oshiradi, qiziqishni pasaytiradi<a class="cite" href="#m14">14</a>. Oʻrniga: <b>oʻsish reytingi</b> (ommaviy) + <b>zaiflik xaritasi</b> (faqat oʻqituvchi va ota-onaga).</p>
+  </div>
+  <div class="finding">
+    <span class="verdict v-risk">Taqiqlangan</span>
+    <h4>«Fokus balli» — Yevropada qonunga zid</h4>
+    <p>EU AI Act 5(1)(f) 2025-yil fevralidan taʼlim muassasalarida hissiyotni aniqlashni taqiqlaydi; jarima global aylanmaning 7% gacha<a class="cite" href="#m8">8</a>. Uyquchanlik — jismoniy holat, taqiqdan tashqari.</p>
+  </div>
+</div>
+
+<h2><span class="num">Funksiya 01</span>Uyga vazifani tekshirish</h2>
+
+<p>Bu funksiya ikki qismdan iborat: <b>oʻqish</b> (rasmdagi qoʻlyozmani matn va formulaga aylantirish) va <b>baholash</b> (yechimni rubrika boʻyicha tekshirish, xatoni topish va tasniflash). Ikkalasining aniqligi alohida oʻlchanadi va alohida buziladi — shuning uchun quvurda ular alohida bosqich.</p>
+
+<h3><span class="num">1.1</span>Ishlash oqimi</h3>
+<figure class="wide">
+ <div class="figwrap">
+  <svg viewBox="0 0 660 700" role="img" aria-label="Uyga vazifani tekshirish quvuri: rasm olishdan reytinggacha sakkiz bosqich, ishonch darajasi eshigi past ishonchli javoblarni oʻqituvchi koʻrigiga yuboradi, yuqori ishonchlilar avtomatik qabul qilinadi.">
+   <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path class="dg-arrow" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+
+   <rect class="dg-box" x="100" y="14" width="380" height="56" rx="4"/>
+   <text class="dg-t" x="290" y="38" text-anchor="middle">1 · Rasmga olish</text>
+   <text class="dg-s" x="290" y="55" text-anchor="middle">telefon kamerasi · 1–4 sahifa</text>
+   <line class="dg-l" x1="290" y1="70" x2="290" y2="96" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="298" y="88">JPEG</text>
+
+   <rect class="dg-box" x="100" y="100" width="380" height="56" rx="4"/>
+   <text class="dg-t" x="290" y="124" text-anchor="middle">2 · Sifat nazorati (qurilmada)</text>
+   <text class="dg-s" x="290" y="141" text-anchor="middle">xira · qiyshiq · burchagi kesilgan → qayta ol</text>
+   <line class="dg-l" x1="290" y1="156" x2="290" y2="182" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="298" y="174">toʻgʻrilangan sahifa</text>
+
+   <rect class="dg-box" x="100" y="186" width="380" height="56" rx="4"/>
+   <text class="dg-t" x="290" y="210" text-anchor="middle">3 · Segmentatsiya</text>
+   <text class="dg-s" x="290" y="227" text-anchor="middle">sahifa → savol bloklari + koordinata</text>
+   <line class="dg-l" x1="290" y1="242" x2="290" y2="268" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="298" y="260">N ta blok</text>
+
+   <rect class="dg-box" x="100" y="272" width="380" height="56" rx="4"/>
+   <text class="dg-t" x="290" y="296" text-anchor="middle">4 · Vizual model</text>
+   <text class="dg-s" x="290" y="313" text-anchor="middle">qoʻlyozma → matn + LaTeX + yechim qadamlari</text>
+   <line class="dg-l" x1="290" y1="328" x2="290" y2="354" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="298" y="346">tuzilgan javob</text>
+
+   <rect class="dg-box" x="100" y="358" width="380" height="56" rx="4"/>
+   <text class="dg-t" x="290" y="382" text-anchor="middle">5 · Rubrika boʻyicha baholash</text>
+   <text class="dg-s" x="290" y="399" text-anchor="middle">ball + xato turi + xato joyi</text>
+   <line class="dg-l" x1="290" y1="414" x2="290" y2="440" marker-end="url(#ar1)"/>
+
+   <path class="dg-box" d="M290 444 L440 472 L290 500 L140 472 z"/>
+   <text class="dg-t" x="290" y="476" text-anchor="middle">ishonch ≥ 0,85?</text>
+
+   <line class="dg-l" x1="290" y1="500" x2="290" y2="526" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="298" y="518">yoʻq · ~20–30%</text>
+
+   <rect class="dg-box is-warn" x="100" y="530" width="380" height="56" rx="4"/>
+   <text class="dg-t" x="290" y="554" text-anchor="middle">6 · Oʻqituvchi koʻrigi</text>
+   <text class="dg-s" x="290" y="571" text-anchor="middle">faqat shubhali javoblar — yakuniy qaror shu yerda</text>
+   <line class="dg-l" x1="290" y1="586" x2="290" y2="612" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="298" y="604">tasdiqlangan ball</text>
+
+   <path class="dg-l" d="M440 472 L580 472 L580 644 L488 644" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="450" y="464">ha · avto-qabul</text>
+
+   <rect class="dg-box is-ok" x="100" y="616" width="380" height="56" rx="4"/>
+   <text class="dg-t" x="290" y="640" text-anchor="middle">7 · Reyting · xato xaritasi · hisobot</text>
+   <text class="dg-s" x="290" y="657" text-anchor="middle">oʻquvchi · sinf · mavzu kesimida</text>
+
+   <path class="dg-l dash" d="M100 558 L64 558 L64 386 L96 386" marker-end="url(#ar1)"/>
+   <text class="dg-e" x="40" y="472" text-anchor="middle" transform="rotate(-90 40 472)">rubrikani yangilash</text>
+  </svg>
+ </div>
+ <figcaption>Quvurning butun qiymati 6-bosqichda: model 300 ta javobni saralab, oʻqituvchiga faqat ~60 tasini uzatadi. Modelning oʻzi baho qoʻymaydi — u oʻqituvchining vaqtini qayerga sarflashini hal qiladi. Uzuq chiziq — oʻqituvchi tuzatishlari rubrikani yangilab boradi.</figcaption>
+</figure>
+
+<h3><span class="num">1.2</span>Qanday maʼlumot toʻplanadi</h3>
+
+<p>Har bir topshiriq quyidagi yozuvlarni hosil qiladi. Bu sxema mahsulotning haqiqiy yadrosi — chunki reyting ham, xato tahlili ham, ota-ona hisoboti ham shundan hosil boʻladi.</p>
+
+<div class="tw wide">
+ <table>
+  <caption>Uyga vazifa · maʼlumot sxemasi</caption>
+  <thead><tr><th>Maydon</th><th>Turi</th><th>Misol</th><th>Nima uchun kerak</th></tr></thead>
+  <tbody>
+   <tr><td class="field">submission_id</td><td class="mono">uuid</td><td class="mono">a3f1…</td><td>Topshiriqning yagona identifikatori</td></tr>
+   <tr><td class="field">student_token</td><td class="mono">uuid</td><td class="mono">u_8821</td><td>Ism emas, token. Modelga yuborilganda shaxs aniqlanmaydi</td></tr>
+   <tr><td class="field">page_image_ref</td><td class="mono">blob ref</td><td class="mono">s3://uz/…</td><td>Xom rasm — Oʻzbekistondagi saqlashda, 60 kundan keyin oʻchiriladi</td></tr>
+   <tr><td class="field">question_id</td><td class="mono">string</td><td class="mono">alg-7-3b</td><td>Savolni mavzuga bogʻlaydi — zaiflik xaritasi shundan chiqadi</td></tr>
+   <tr><td class="field">bbox</td><td class="mono">[x,y,w,h]</td><td class="mono">[112,340,…]</td><td>Javob sahifaning qayerida. Xatoni rasm ustida koʻrsatish uchun</td></tr>
+   <tr><td class="field">extracted_text</td><td class="mono">text/LaTeX</td><td class="mono">x=(-b±√D)/2a</td><td>Modelning oʻqigani. Tekshirish va shikoyat uchun saqlanadi</td></tr>
+   <tr><td class="field">expected_answer</td><td class="mono">text</td><td class="mono">x = 3; x = −5</td><td>Rubrikadagi toʻgʻri javob</td></tr>
+   <tr><td class="field">score</td><td class="mono">0–1 float</td><td class="mono">0.5</td><td>Qisman ball — «toʻgʻri/notoʻgʻri» dan koʻra ancha foydali</td></tr>
+   <tr><td class="field">error_type</td><td class="mono">enum</td><td class="mono">arifmetik</td><td>Tahlilning yadrosi — 1.3-jadvalga qarang</td></tr>
+   <tr><td class="field">error_step</td><td class="mono">int</td><td class="mono">2</td><td>Yechimning nechanchi qadamida adashgan</td></tr>
+   <tr><td class="field">confidence</td><td class="mono">0–1 float</td><td class="mono">0.72</td><td>0,85 dan past → oʻqituvchi koʻrigiga yoʻnaltiriladi</td></tr>
+   <tr><td class="field">teacher_override</td><td class="mono">float | null</td><td class="mono">0.75</td><td>Oʻqituvchi tuzatgan ball. Model sifatini oʻlchash metrikasi</td></tr>
+   <tr><td class="field">model_version</td><td class="mono">string</td><td class="mono">g25f-r14</td><td>Model + rubrika versiyasi. Bahoni qayta tiklash uchun majburiy</td></tr>
+   <tr><td class="field">checked_at</td><td class="mono">timestamp</td><td class="mono">2026-09-09T21:04Z</td><td>Kechiktirilgan/oʻz vaqtida topshirish tahlili</td></tr>
+  </tbody>
+ </table>
+</div>
+
+<div class="note is-tip">
+ <span class="tag">Tavsiya</span>
+ <p><code>teacher_override</code> maydoni — mahsulotning eng qimmatli ustuni. U ikki ish qiladi: model aniqligini har kuni avtomatik oʻlchaydi, va oʻqituvchi tuzatishlaridan rubrikani yaxshilash uchun maʼlumot beradi. Uni birinchi kundan yigʻing.</p>
+</div>
+
+<h3><span class="num">1.3</span>Xato taksonomiyasi — bu yerda haqiqiy qiymat</h3>
+
+<p>Ball qoʻyish oson; <b>qayerda va nima uchun adashganini</b> aytish qiyin. Ota-ona ham, oʻqituvchi ham aynan shu uchun pul toʻlaydi. Har bir xatoni oldindan belgilangan turga joylang — shundagina «sinfning 60% kvadrat tenglamada diskriminant belgisini adashtiryapti» degan xulosa chiqadi.</p>
+
+<div class="tw wide">
+ <table>
+  <caption>Xato turlari · oʻqituvchi javobi bilan</caption>
+  <thead><tr><th>Xato turi</th><th>Nima demak</th><th>Oʻqituvchi nima qiladi</th></tr></thead>
+  <tbody>
+   <tr><td><b>Tushunmovchilik</b></td><td>Tushunchani notoʻgʻri qoʻllagan — formulani boshqa holat uchun ishlatgan</td><td>Qayta tushuntirish. Eng jiddiy tur</td></tr>
+   <tr><td><b>Arifmetik</b></td><td>Usul toʻgʻri, hisobda adashgan</td><td>Mashq. Ballning kichik qismini yoʻqotadi</td></tr>
+   <tr><td><b>Toʻliqsiz yechim</b></td><td>Javob toʻgʻri, lekin qadamlar koʻrsatilmagan</td><td>Format talabini eslatish</td></tr>
+   <tr><td><b>Eʼtiborsizlik</b></td><td>Belgi, oʻlchov birligi, koʻchirishda xato</td><td>Tekshirish odatini shakllantirish</td></tr>
+   <tr><td><b>Boshlanmagan</b></td><td>Savolga umuman urinmagan</td><td>Sabab: bilmadi? ulgurmadi? Alohida savol</td></tr>
+   <tr><td><b>Shubhali koʻchirma</b></td><td>Yechim uslubi oʻquvchining odatiy darajasidan keskin farq qiladi</td><td><span class="pill p-warn">Signal, ayblov emas</span> Faqat oʻqituvchiga koʻrsatiladi</td></tr>
+   <tr><td><b>Oʻqib boʻlmadi</b></td><td>Model qoʻlyozmani ajrata olmadi</td><td>Rasm sifati muammosi — oʻquvchiga qayta olish taklifi</td></tr>
+  </tbody>
+ </table>
+</div>
+
+<h3><span class="num">1.4</span>Reyting — uchta turli narsa, bittasi emas</h3>
+
+<p>Siz aytgan «reyting» aslida uchta alohida mahsulot. Ularni aralashtirsangiz, foydali ikkitasi zararli uchinchisi tufayli yopiladi.</p>
+
+<div class="tw wide">
+ <table>
+  <caption>Reyting turlari · kimga koʻrinadi</caption>
+  <thead><tr><th>Tur</th><th>Nimani oʻlchaydi</th><th>Kim koʻradi</th><th>Baho</th></tr></thead>
+  <tbody>
+   <tr><td><b>Oʻsish reytingi</b></td><td>Oʻtgan 4 haftaga nisbatan yaxshilanish</td><td>Butun sinf</td><td><span class="pill p-ok">Tavsiya etiladi</span></td></tr>
+   <tr><td><b>Mavzu boʻyicha zaiflik xaritasi</b></td><td>Qaysi mavzuda sinfning necha foizi qoqilyapti</td><td>Oʻqituvchi</td><td><span class="pill p-ok">Tavsiya etiladi</span></td></tr>
+   <tr><td><b>Shaxsiy tahlil</b></td><td>Bitta oʻquvchining xato turlari va tendensiyasi</td><td>Oʻquvchi + ota-ona</td><td><span class="pill p-ok">Tavsiya etiladi</span></td></tr>
+   <tr><td><b>Mutlaq oʻzlashtirish reytingi</b></td><td>Ballar boʻyicha 1-dan 30-gacha</td><td>Oʻqituvchi</td><td><span class="pill p-warn">Faqat yopiq</span></td></tr>
+   <tr><td><b>«Yomon oʻquvchilar» roʻyxati</b></td><td>Eng past ballar, ochiq koʻrsatiladi</td><td>—</td><td><span class="pill p-risk">Qilmang</span></td></tr>
+  </tbody>
+ </table>
+</div>
+
+<div class="note">
+ <span class="tag">Diqqat · pedagogik risk</span>
+ <p>Ochiq baho va reyting boʻyicha tadqiqotlar bir yoʻnalishda: ular tashvish va bosimni oshiradi, oʻz-oʻzini baholashni pasaytiradi, fanga qiziqishni kamaytiradi va past ball olgan oʻquvchilarni qiyinroq kurslardan qochishga undaydi<a class="cite" href="#m14">14</a>. Gallup tahlili reyting bir qism oʻquvchini motivatsiya qilib, boshqasini begonalashtirishini koʻrsatadi<a class="cite" href="#m15">15</a>.</p>
+ <p>Amaliy yechim: <b>zaif oʻquvchilarni ochiq reytingga emas, oʻqituvchining «bugun eʼtibor bering» roʻyxatiga</b> chiqaring — 3–5 ta ism, har biri yonida aniq mavzu va xato turi bilan. Bu ayni maʼlumot, lekin sharmandalik oʻrniga harakatga aylanadi.</p>
+</div>
+
+<h3><span class="num">1.5</span>Aniqlik — tekshirilgan raqamlar</h3>
+
+<div class="tw wide">
+ <table>
+  <caption>Qoʻlyozma ishlarni baholash · tashqi oʻlchovlar</caption>
+  <thead><tr><th>Manba</th><th>Nima oʻlchangan</th><th class="mono">Natija</th></tr></thead>
+  <tbody>
+   <tr><td>Koʻp modalli LLM baholash tadqiqoti<a class="cite" href="#m4">4</a></td><td>Gemini 2.5 Pro — qoʻlyozma oʻquvchi ishlari</td><td class="mono">89% koʻrish / 95% baholash</td></tr>
+   <tr><td>Aynan shu tadqiqot<a class="cite" href="#m4">4</a></td><td>Claude 3.5 / 3.7 — aynan shu vazifa</td><td class="mono">79%/77% · 76%/84%</td></tr>
+   <tr><td>EDM 2025 · algebra yechimlari<a class="cite" href="#m5">5</a></td><td>Odam bahosi bilan mos kelishi</td><td class="mono">94,5% gacha</td></tr>
+   <tr><td>Gradescope foydalanuvchilari<a class="cite" href="#m3">3</a></td><td>Vaqt tejash</td><td class="mono">uchdan ikkisi 30%+</td></tr>
+   <tr><td>Gradescope · 150 ta ish<a class="cite" href="#m3">3</a></td><td>Bitta oʻqituvchining real holati</td><td class="mono">8 soat → &lt;2 soat</td></tr>
+   <tr><td>Springer 2025 · baholash jarayoni<a class="cite" href="#m6">6</a></td><td>Aniq moslik va kappa koeffitsienti</td><td class="mono">55% aniq moslik · κ=0,52</td></tr>
+   <tr><td>ESL baholash tadqiqoti<a class="cite" href="#m7">7</a></td><td>Ona tili boʻlmaganlarga nisbatan xolislik</td><td class="mono">−10,3% past ball</td></tr>
+  </tbody>
+ </table>
+</div>
+
+<h3><span class="num">1.6</span>«5 soat → 10 daqiqa» daʼvosini qayta hisoblash</h3>
+
+<p>Sizning 5 soatli raqamingiz mustaqil soʻrov bilan mos keladi — oʻqituvchilar haftasiga oʻrtacha 5 soatni tekshirish va fikr-mulohazaga sarflashadi<a class="cite" href="#m2">2</a>; boshqa, yangiroq soʻrovda bu 9,9 soat, va ularning 95% ishni uyga olib ketadi<a class="cite" href="#m1">1</a>. Yaʼni muammo real va kattaligi tasdiqlangan.</p>
+
+<p>Ammo 10 daqiqa boshqa masala. Arifmetikasi shunday: 30 oʻquvchi × 10 savol = <b>300 ta baho</b>. 95% aniqlikda ~15 tasi notoʻgʻri boʻladi. Oʻqituvchi ularni topishi uchun modelning past ishonchli javoblarini — odatda 20–30% ni — koʻzdan kechirishi kerak. 60 ta javobni koʻrib chiqish, hattoki bittasiga 20 soniyadan boʻlsa ham, 20 daqiqa. Bunga rasm sifati muammolari va shikoyatlar qoʻshiladi.</p>
+
+<div class="note is-warn">
+ <span class="tag">Tavsiya · daʼvoni oʻzgartiring</span>
+ <p>Pilotga «5 soat → 10 daqiqa» bilan kirmang. Agar oʻqituvchi 40 daqiqa sarflasa, siz vaʼdani bajarmagan boʻlasiz — garchi 5 soatni 40 daqiqaga tushirish <b>ajoyib natija</b> boʻlsa ham. Eng ishonchli tijoriy benchmark — Gradescope — 4 barobar tejashni koʻrsatadi<a class="cite" href="#m3">3</a>.</p>
+ <p>Toʻgʻri daʼvo: <b>«Haftasiga 5 soat oʻrniga 45 daqiqa — va har bir oʻquvchi qayerda adashganini bilib»</b>. 10 daqiqa esa 2-yilgi maqsad sifatida, rubrika va xato taksonomiyasi yetilgandan keyin.</p>
+</div>
+
+<h2><span class="num">Funksiya 02</span>Davomat va sinfdagi holat</h2>
+
+<p>Bu funksiya texnik jihatdan osonroq, huquqiy jihatdan esa butun loyihaning eng xavfli qismi. Farqi shundaki: birinchi funksiya <em>ishni</em> tahlil qiladi, ikkinchisi <em>bolaning tanasini</em>. Qonun bu ikkisiga butunlay boshqacha munosabatda.</p>
+
+<h3><span class="num">2.1</span>Uchta zona — qaysi maʼlumotni yigʻish mumkin</h3>
+<figure class="wide">
+ <div class="figwrap">
+  <svg viewBox="0 0 900 430" role="img" aria-label="Davomat maʼlumotlarining uchta zonasi: kelish vaqti ruxsat etilgan, uyquchanlik ehtiyot talab qiladi, hissiyot va fokus balli taʼlim muassasalarida taqiqlangan.">
+   <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path class="dg-arrow" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+
+   <rect class="dg-box" x="16" y="182" width="150" height="64" rx="4"/>
+   <text class="dg-t" x="91" y="209" text-anchor="middle">Sinf kamerasi</text>
+   <text class="dg-s" x="91" y="226" text-anchor="middle">telefon / statsionar</text>
+   <line class="dg-l" x1="166" y1="214" x2="196" y2="214" marker-end="url(#ar2)"/>
+
+   <rect class="dg-box" x="200" y="182" width="212" height="64" rx="4"/>
+   <text class="dg-t" x="306" y="205" text-anchor="middle">Qurilmada qayta ishlash</text>
+   <text class="dg-s" x="306" y="222" text-anchor="middle">xom video saqlanmaydi ·</text>
+   <text class="dg-s" x="306" y="236" text-anchor="middle">faqat natija serverga chiqadi</text>
+
+   <path class="dg-l" d="M412 214 L436 214"/>
+   <path class="dg-l" d="M436 72 L436 356"/>
+   <line class="dg-l" x1="436" y1="72" x2="476" y2="72" marker-end="url(#ar2)"/>
+   <line class="dg-l" x1="436" y1="214" x2="476" y2="214" marker-end="url(#ar2)"/>
+   <line class="dg-l" x1="436" y1="356" x2="476" y2="356" marker-end="url(#ar2)"/>
+
+   <rect class="dg-box is-ok" x="480" y="34" width="404" height="76" rx="4"/>
+   <text class="dg-t" x="496" y="58">Kelish vaqti · kim yoʻq</text>
+   <text class="dg-s" x="496" y="77">oʻquvchi ID + vaqt tamgʻasi. Bugungi elektron</text>
+   <text class="dg-s" x="496" y="93">jurnal allaqachon shu maʼlumotni yigʻadi.</text>
+   <rect class="dg-box is-ok" x="762" y="44" width="112" height="22" rx="3"/>
+   <text class="dg-badge t-ok" x="818" y="59" text-anchor="middle">RUXSAT ETILGAN</text>
+
+   <rect class="dg-box is-warn" x="480" y="176" width="404" height="76" rx="4"/>
+   <text class="dg-t" x="496" y="200">Uyquchanlik · jismoniy holat</text>
+   <text class="dg-s" x="496" y="219">Charchoq «hissiyot» emas — EU AI Act taqiqidan</text>
+   <text class="dg-s" x="496" y="235">tashqarida. Ammo rozilik va DPIA baribir shart.</text>
+   <rect class="dg-box is-warn" x="762" y="186" width="112" height="22" rx="3"/>
+   <text class="dg-badge t-warn" x="818" y="201" text-anchor="middle">EHTIYOT</text>
+
+   <rect class="dg-box is-risk" x="480" y="318" width="404" height="76" rx="4"/>
+   <text class="dg-t" x="496" y="342">Hissiyot · «fokus balli»</text>
+   <text class="dg-s" x="496" y="361">EU AI Act 5(1)(f): taʼlim muassasalarida hissiyot</text>
+   <text class="dg-s" x="496" y="377">chiqarish taqiqlangan. Jarima — aylanmaning 7% gacha.</text>
+   <rect class="dg-box is-risk" x="762" y="328" width="112" height="22" rx="3"/>
+   <text class="dg-badge t-risk" x="818" y="343" text-anchor="middle">TAQIQ</text>
+  </svg>
+ </div>
+ <figcaption>Chegara «kamera ishlatilyaptimi» da emas, <b>kameradan qanday xulosa chiqarilayotganida</b>. Yuzni koʻrish — ruxsat etilgan; yuzdan «zerikkan» degan xulosa chiqarish — taqiqlangan. Uyquchanlik ikkalasining orasida: jismoniy holat sifatida taqiqdan tashqari, lekin himoyalanadigan chegara emas.</figcaption>
+</figure>
+
+<div class="note">
+ <span class="tag">Huquqiy risk · birinchi darajali</span>
+ <p>Shvetsiyada bir maktab davomatni yuz tanish orqali sinovdan oʻtkazgani uchun jarima olgan — atigi <b>22 oʻquvchi, 3 hafta</b> sinov boʻlgan<a class="cite" href="#m9">9</a>. Nazoratchi organ uchta buzilish topgan: maqsadga nomutanosib usul, biometrik maʼlumotni asossiz qayta ishlash, va taʼsir baholashning yoʻqligi. Eng muhimi — <b>oʻquvchilarning roziligi yaroqsiz deb topilgan</b>, chunki maktab va oʻquvchi oʻrtasida kuch nomutanosibligi bor.</p>
+ <p>Bu Oʻzbekistonga toʻgʻridan-toʻgʻri taalluqli emas, lekin xalqaro bozorga chiqish yoki xalqaro maktablar bilan ishlash rejasi boʻlsa — bu aynan sizni toʻxtatadigan holat.</p>
+</div>
+
+<h3><span class="num">2.2</span>Davomat texnologiyalari — nima tanlash kerak</h3>
+
+<div class="tw wide">
+ <table>
+  <caption>Davomat usullari · taqqoslash</caption>
+  <thead><tr><th>Usul</th><th>Qurilma narxi</th><th>Kuchli tomoni</th><th>Zaif tomoni</th><th>Huquqiy risk</th></tr></thead>
+  <tbody>
+   <tr><td><b>QR kod</b></td><td class="mono">≈0</td><td>Hech qanday qurilma kerak emas, arzon<a class="cite" href="#m16">16</a></td><td>Boshqa bola skanerlashi mumkin</td><td><span class="pill p-ok">Past</span></td></tr>
+   <tr><td><b>NFC karta</b></td><td class="mono">$1–3/bola</td><td>Tez, ishonchli, telefon shart emas</td><td>Karta almashtirilishi mumkin</td><td><span class="pill p-ok">Past</span></td></tr>
+   <tr><td><b>BLE mayoq</b></td><td class="mono">$15–40/sinf</td><td>Kontaktsiz, 30–100 m, avtomatik<a class="cite" href="#m16">16</a></td><td>Telefon talab qiladi, aniqligi oʻzgaruvchan</td><td><span class="pill p-ok">Past</span></td></tr>
+   <tr><td><b>Yuzni tanish</b></td><td class="mono">$60–200/sinf</td><td>Hech narsa olib yurish shart emas, aldash qiyin</td><td>Yorugʻlik, niqob, yosh oʻzgarishi</td><td><span class="pill p-risk">Juda yuqori</span></td></tr>
+  </tbody>
+ </table>
+</div>
+
+<div class="note is-tip">
+ <span class="tag">Tavsiya · bosqichma-bosqich</span>
+ <p>Davomatni <b>QR yoki NFC bilan boshlang</b>. U qiymatning ~90% ini beradi (kim keldi, soat nechada, kim yoʻq) va huquqiy riskning ~5% ini. Yuz tanishni faqat quyidagilar tayyor boʻlgandan keyin qoʻshing: yozma ota-ona roziligi, rad etganlar uchun muqobil usul, taʼsir baholash hujjati, va Oʻzbekiston hududidagi saqlash<a class="cite" href="#m11">11</a>.</p>
+</div>
+
+<h3><span class="num">2.3</span>Davomat maʼlumot sxemasi</h3>
+
+<div class="tw wide">
+ <table>
+  <caption>Davomat · maʼlumot sxemasi</caption>
+  <thead><tr><th>Maydon</th><th>Turi</th><th>Kimga koʻrinadi</th><th>Saqlash muddati</th></tr></thead>
+  <tbody>
+   <tr><td class="field">student_token</td><td class="mono">uuid</td><td>Oʻqituvchi, maʼmuriyat</td><td class="mono">oʻquv yili</td></tr>
+   <tr><td class="field">arrived_at</td><td class="mono">timestamp</td><td>Oʻqituvchi, ota-ona</td><td class="mono">oʻquv yili</td></tr>
+   <tr><td class="field">status</td><td class="mono">enum</td><td>Oʻqituvchi, ota-ona</td><td class="mono">oʻquv yili</td></tr>
+   <tr><td class="field">method</td><td class="mono">enum</td><td>Maʼmuriyat</td><td class="mono">oʻquv yili</td></tr>
+   <tr><td class="field">drowsiness_flag</td><td class="mono">bool</td><td><span class="pill p-warn">Faqat oʻqituvchi</span></td><td class="mono">7 kun</td></tr>
+   <tr><td class="field">class_attention_pct</td><td class="mono">0–100</td><td>Oʻqituvchi — <b>sinf darajasida, shaxssiz</b></td><td class="mono">30 kun</td></tr>
+   <tr><td class="field">face_embedding</td><td class="mono">vector</td><td><span class="pill p-risk">Faqat rozilik bilan</span></td><td class="mono">rozilik bekor qilinsa darhol oʻchadi</td></tr>
+   <tr><td class="field">raw_video</td><td class="mono">—</td><td><span class="pill p-risk">Umuman saqlanmaydi</span></td><td class="mono">0</td></tr>
+  </tbody>
+ </table>
+</div>
+
+<div class="note is-warn">
+ <span class="tag">Muhim farq</span>
+ <p>Diqqat maʼlumotini <b>shaxs darajasida emas, sinf darajasida</b> chiqaring. «Sardor 3-darsda 4 marta chalgʻidi» — bu bolaga qarshi ishlatiladigan qurol va huquqiy jihatdan eng zaif nuqta. «Sinfning 40% 25-daqiqadan keyin pasaydi» — bu oʻqituvchiga darsni qayta qurishga yordam beradigan foydali signal, va hech kimning shaxsiy profili emas.</p>
+ <p>Bu farq shunchaki axloqiy emas — u mahsulotni <em>sotiladigan</em> qiladi. Ota-onalar bolasini kuzatadigan tizimga qarshi chiqadi; oʻqituvchiga darsni yaxshilashga yordam beradigan tizimni esa maktab oʻzi soʻraydi.</p>
+</div>
+
+<h2><span class="num">Arxitektura</span>Maʼlumot qayerda turadi</h2>
+
+<p>Oʻzbekiston qonuni (ZRU-547, 2019) fuqarolarning shaxsiy maʼlumotlari <b>Oʻzbekiston hududidagi</b> texnik vositalarda toʻplanishi, tizimlashtirilishi va saqlanishini, hamda baza davlat reyestrida roʻyxatdan oʻtishini talab qiladi<a class="cite" href="#m10">10</a>. Bu Gemini yoki Claude API sidan foydalanishni taqiqlamaydi — lekin nima yuborilishini belgilaydi.</p>
+
+<figure class="wide">
+ <div class="figwrap">
+  <svg viewBox="0 0 900 400" role="img" aria-label="Arxitektura: shaxsiy maʼlumotlar Oʻzbekiston hududidagi bazada qoladi, model provayderiga faqat ismsiz rasm va savol matni yuboriladi.">
+   <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path class="dg-arrow" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+
+   <text class="dg-t t-risk" x="16" y="30">Oʻzbekiston hududi · ZRU-547</text>
+   <rect class="dg-frame" x="16" y="40" width="454" height="330" rx="6"/>
+
+   <rect class="dg-box" x="40" y="80" width="190" height="56" rx="4"/>
+   <text class="dg-t" x="135" y="104" text-anchor="middle">Mobil ilova</text>
+   <text class="dg-s" x="135" y="121" text-anchor="middle">rasm + sifat nazorati</text>
+
+   <rect class="dg-box" x="260" y="80" width="190" height="56" rx="4"/>
+   <text class="dg-t" x="355" y="104" text-anchor="middle">Panel</text>
+   <text class="dg-s" x="355" y="121" text-anchor="middle">oʻqituvchi · ota-ona</text>
+
+   <line class="dg-l" x1="135" y1="136" x2="135" y2="166" marker-end="url(#ar3)"/>
+   <line class="dg-l" x1="355" y1="170" x2="355" y2="140" marker-end="url(#ar3)"/>
+
+   <rect class="dg-box" x="40" y="170" width="410" height="56" rx="4"/>
+   <text class="dg-t" x="245" y="194" text-anchor="middle">API + navbat (kechasi paket rejimida)</text>
+   <text class="dg-s" x="245" y="211" text-anchor="middle">tokenlashtirish · anonimlashtirish shu yerda</text>
+
+   <line class="dg-l" x1="245" y1="226" x2="245" y2="256" marker-end="url(#ar3)"/>
+
+   <rect class="dg-box is-ok" x="40" y="260" width="410" height="64" rx="4"/>
+   <text class="dg-t" x="245" y="284" text-anchor="middle">PostgreSQL · shaxsiy maʼlumotlar</text>
+   <text class="dg-s" x="245" y="301" text-anchor="middle">ism · sinf · ball · davomat · rasm — hududdan chiqmaydi</text>
+
+   <text class="dg-e t-risk" x="243" y="358" text-anchor="middle">maʼlumot chegarasi</text>
+
+   <rect class="dg-box" x="640" y="140" width="250" height="110" rx="4"/>
+   <text class="dg-t" x="765" y="180" text-anchor="middle">Model provayderi</text>
+   <text class="dg-s" x="765" y="199" text-anchor="middle">Gemini · Claude</text>
+   <text class="dg-s" x="765" y="215" text-anchor="middle">xorijiy bulut</text>
+
+   <line class="dg-l" x1="450" y1="190" x2="636" y2="190" marker-end="url(#ar3)"/>
+   <text class="dg-e" x="543" y="164" text-anchor="middle">rasm + savol matni,</text>
+   <text class="dg-e" x="543" y="177" text-anchor="middle">ism yoʻq — faqat token</text>
+
+   <line class="dg-l" x1="640" y1="222" x2="454" y2="222" marker-end="url(#ar3)"/>
+   <text class="dg-e" x="547" y="252" text-anchor="middle">ball + xato tahlili</text>
+  </svg>
+ </div>
+ <figcaption>Chegarani kesib oʻtadigan yagona narsa — ismsiz rasm va savol matni. Kim ekanligi, bahosi va tarixi Oʻzbekistondagi bazada qoladi. Shu bitta qaror ZRU-547 muvofiqligini ancha soddalashtiradi va ota-ona bilan suhbatni ham osonlashtiradi.</figcaption>
+</figure>
+
+<h2><span class="num">Xarajat</span>Model narxi toʻsiq emas</h2>
+
+<p>Hisob bitta sahifa uchun: ~2 500 kirish tokeni (rasm + rubrika) va ~700 chiqish tokeni (ball, xato turi, izoh). 1 000 oʻquvchi × oyiga 20 kun = 20 000 sahifa.</p>
+
+<div class="tw wide">
+ <table>
+  <caption>Oylik API xarajati · 1 000 oʻquvchi</caption>
+  <thead><tr><th>Model</th><th class="mono">Kirish / 1M</th><th class="mono">Chiqish / 1M</th><th class="mono">Sahifa</th><th class="mono">20 000 sahifa</th></tr></thead>
+  <tbody>
+   <tr><td>Gemini 2.5 Flash-Lite<a class="cite" href="#m17">17</a></td><td class="mono">$0.05</td><td class="mono">$0.20</td><td class="mono">$0.0003</td><td class="mono">≈ $6</td></tr>
+   <tr><td>Gemini 2.5 Flash<a class="cite" href="#m17">17</a></td><td class="mono">$0.30</td><td class="mono">$2.50</td><td class="mono">$0.0025</td><td class="mono">≈ $50</td></tr>
+   <tr><td>Claude Haiku 4.5<a class="cite" href="#m18">18</a></td><td class="mono">$1.00</td><td class="mono">$5.00</td><td class="mono">$0.0060</td><td class="mono">≈ $120</td></tr>
+   <tr><td>Claude Sonnet 5<a class="cite" href="#m18">18</a></td><td class="mono">$2.00</td><td class="mono">$10.00</td><td class="mono">$0.0120</td><td class="mono">≈ $240</td></tr>
+   <tr><td>Claude Opus 5<a class="cite" href="#m18">18</a></td><td class="mono">$5.00</td><td class="mono">$25.00</td><td class="mono">$0.0300</td><td class="mono">≈ $600</td></tr>
+  </tbody>
+ </table>
+</div>
+
+<div class="note is-tip">
+ <span class="tag">Tavsiya · ikki bosqichli model</span>
+ <p>Barcha sahifalarni arzon model bilan oʻtkazing; ishonch 0,85 dan past boʻlgan ~20% ni kuchli modelga qayta yuboring. 20 000 sahifa uchun: Flash bilan $50 + 4 000 sahifa Sonnet 5 bilan $48 = <b>~$98/oy</b> — Opus 5 dan olti barobar arzon, aniqligi esa deyarli teng.</p>
+ <p>Yana ikki tejash: rubrika har soʻrovda takrorlanadi — uni <b>prompt keshiga</b> qoʻying; va uyga vazifa tabiatan kechasi tekshiriladigan vazifa — <b>paket (batch) rejimi 50% arzon</b>. Xulosa: model narxi hech qachon toʻsiq boʻlmaydi. Toʻsiq — rasm sifati va oʻqituvchining ishonchi.</p>
+</div>
+
+<h2><span class="num">Yoʻl xaritasi</span>Nimadan boshlash kerak</h2>
+
+<div class="phases">
+ <div class="phase">
+  <div class="ph-head"><span class="ph-n">1-BOSQICH</span><h4>Bitta fan, bitta daraja, oʻqituvchi hamrohligida</h4><span class="ph-time">0–3 oy</span></div>
+  <p>Matematika, 7–9-sinf. Rasm → tahlil → oʻqituvchi tasdigʻi. Reyting yoʻq, ota-ona hisoboti yoʻq, davomat yoʻq.</p>
+  <ul>
+   <li>3 ta oʻquv markazi, 10 ta oʻqituvchi, haqiqiy oʻzbek daftarlari bilan</li>
+   <li>Xato taksonomiyasini 5 ta oʻqituvchi bilan birga tuzing — bu mahsulotning yadrosi</li>
+   <li>Birinchi kun bazaviy oʻlchov: oʻqituvchi hozir necha daqiqa sarflayapti</li>
+  </ul>
+ </div>
+ <div class="phase">
+  <div class="ph-head"><span class="ph-n">2-BOSQICH</span><h4>Tahlil va hisobot qatlami</h4><span class="ph-time">3–6 oy</span></div>
+  <p>Toʻplangan maʼlumot yetarli boʻlgach, uning ustiga qiymat quriladi.</p>
+  <ul>
+   <li>Oʻsish reytingi, mavzu boʻyicha zaiflik xaritasi, ota-ona uchun haftalik hisobot</li>
+   <li>Xatoni rasm ustida koʻrsatish — eng koʻp taassurot qoldiradigan funksiya</li>
+   <li>Kundalik / eMaktab bilan integratsiya imkoniyatini oʻrganing<a class="cite" href="#m13">13</a> — u milliy elektron jurnal, raqib emas, kanal</li>
+  </ul>
+ </div>
+ <div class="phase">
+  <div class="ph-head"><span class="ph-n">3-BOSQICH</span><h4>Davomat — biometrikasiz</h4><span class="ph-time">6–12 oy</span></div>
+  <p>Faqat 1–2-bosqich ishonch qozongandan keyin. Huquqiy baza kod yozishdan oldin tayyor boʻlsin.</p>
+  <ul>
+   <li>QR yoki NFC bilan davomat. Kamera yoʻq, biometrika yoʻq</li>
+   <li>Yozma ota-ona roziligi shakli, rad etganlar uchun muqobil yoʻl, taʼsir baholash hujjati</li>
+   <li>Uyquchanlik/diqqat — faqat sinf darajasidagi agregat sifatida, ixtiyoriy funksiya</li>
+  </ul>
+ </div>
+</div>
+
+<h2><span class="num">Maslahatlar</span>Qoʻshimcha tavsiyalar</h2>
+
+<ol class="advice">
+ <li><h4>Model emas, rubrika — sizning mahsulotingiz</h4><p>Gemini ham, Claude ham hammaga ochiq. Raqobat ustunligi — oʻzbek maktab dasturiga moslashtirilgan rubrika va xato taksonomiyasi. Uni versiyalang, oʻqituvchilar bilan birga tuzing, va har bir <code>teacher_override</code> dan oʻrganib boring.</p></li>
+ <li><h4>Yakuniy bahoni hech qachon AI qoʻymasin</h4><p>Tizimning vazifasi — 300 ta javobni saralab, oʻqituvchiga faqat 60 tasini koʻrsatish. Baho oʻqituvchiniki boʻlib qolsin. Bu ham huquqiy himoya, ham oʻqituvchining qarshiligini yoʻqotadigan yagona yoʻl.</p></li>
+ <li><h4>Eng katta texnik xavf — model emas, rasm sifati</h4><p>Dala sharoitida nosozliklarning katta qismi xira, qiyshiq, soya tushgan yoki yarmi kesilgan suratlardan chiqadi. Ilovaga burchak koʻrsatkichli ramka, avtomatik toʻgʻrilash va «qayta oling» tekshiruvini qurilmaning oʻzida qoʻying — server soʻralguncha emas.</p></li>
+ <li><h4>Oʻzbek qoʻlyozmasida sinang, ingliz benchmarkiga ishonmang</h4><p>Nashr etilgan aniqlik raqamlari asosan ingliz tilidagi ishlar ustida olingan. Lotin va kirill aralashgan, oʻzbekcha matematik yozuv anʼanasidagi daftarlarda aniqlik boshqacha chiqadi. 200 ta haqiqiy daftardan oʻzingizning benchmarkingizni tuzing — bu bir haftalik ish, lekin butun loyihaning poydevori.</p></li>
+ <li><h4>Til sifatini mazmun bilan aralashtirmang</h4><p>Avtomatik baholash tizimlari ona tili boʻlmaganlarni jazolashi tadqiqotda oʻlchangan: odam bahosi teng deb topgan ishlarda AI 10,3% past ball qoʻygan<a class="cite" href="#m7">7</a>. Matematika yechimini baholayotganda modelga <b>«yozuv uslubi va imloni umuman hisobga olma»</b> deb aniq ayting.</p></li>
+ <li><h4>Ishonch darajasini kalibrlang, shunchaki soʻramang</h4><p>Modeldan «ishonching qancha?» deb soʻrash yetarli emas — u odatda haddan tashqari ishonchli. Har bir savol turi uchun 200 ta oʻqituvchi tuzatishidan foydalanib chegarani sozlang. Notoʻgʻri sozlangan chegara mahsulotni yo foydasiz (hamma narsa koʻrikka boradi), yo xavfli (xatolar oʻtib ketadi) qiladi.</p></li>
+ <li><h4>Shikoyat mexanizmi birinchi versiyadanoq boʻlsin</h4><p>Oʻquvchi «bu notoʻgʻri baholandi» tugmasini bosa olsin. Bu uch narsani beradi: adolat hissi, bepul yorliqlangan maʼlumot, va ota-onalar bilan janjaldan himoya. <code>extracted_text</code> ni saqlashingizning sababi ham shu.</p></li>
+ <li><h4>Ochiq reyting oʻrniga — oʻqituvchining kundalik roʻyxati</h4><p>«Bugun bu 4 ta oʻquvchiga eʼtibor bering, sababi: kvadrat tenglamada diskriminant belgisi». Bu bir xil maʼlumot, lekin sharmandalik emas, harakat. Ochiq reytinglar tashvishni oshirib fanga qiziqishni pasaytirishi bir necha tadqiqotda koʻrsatilgan<a class="cite" href="#m14">14</a><a class="cite" href="#m15">15</a>.</p></li>
+ <li><h4>Davomatni yuz tanishsiz boshlang</h4><p>QR/NFC qiymatning 90% ini, huquqiy riskning 5% ini beradi<a class="cite" href="#m16">16</a>. Shvetsiyadagi maktab 22 bola ustida 3 haftalik sinov uchun jarima olgan<a class="cite" href="#m9">9</a> — sizning birinchi yiringizda bunday sarlavha kerak emas.</p></li>
+ <li><h4>«Fokus balli» soʻzini leksikondan olib tashlang</h4><p>Hissiyot chiqarish taʼlim muassasalarida EU AI Act boʻyicha taqiqlangan<a class="cite" href="#m8">8</a>, va ilmiy jihatdan ham bahsli. Uyquchanlik jismoniy holat sifatida taqiqdan tashqarida<a class="cite" href="#m19">19</a> — lekin uni ham shaxs emas, sinf darajasida chiqaring.</p></li>
+ <li><h4>Ota-onani nazoratchi emas, hamkor sifatida joylang</h4><p>Haftalik hisobot «Sardor 12-oʻrinda» emas, «Sardor kvadrat tenglamalarda 3 haftada 40% yaxshilandi; qiyinchiligi — diskriminant belgisi; uyda 15 daqiqalik mashq: …» boʻlsin. Bu obuna toʻlaydigan mahsulot; birinchisi — bekor qilinadigan mahsulot.</p></li>
+ <li><h4>Bozor kattaligi sizning tomoningizda</h4><p>Oʻzbekistonda ~11 000 maktab, 6,8 mln oʻquvchi va 540 000 oʻqituvchi bor; muassasalarning 78% da bazaviy raqamli vositalar mavjud, lekin qishloqda bu 56%<a class="cite" href="#m12">12</a>. Yaʼni ilova <b>oflayn rejimda</b> ishlashi va past tezlikdagi internetda rasm yuborishga chidamli boʻlishi kerak — bu ixtiyoriy funksiya emas, kirish shartlaridan biri.</p></li>
+</ol>
+
+<h2><span class="num">Oʻlchov</span>Pilotda nimani sanash kerak</h2>
+
+<div class="tw wide">
+ <table>
+  <caption>Pilot metrikalari · 1-bosqich uchun</caption>
+  <thead><tr><th>Metrika</th><th>Nima uchun</th><th class="mono">Nishon</th></tr></thead>
+  <tbody>
+   <tr><td>Oʻqituvchining bir topshiriqqa vaqti</td><td>Asosiy vaʼda. Birinchi kun bazaviy oʻlchovsiz maʼnosiz</td><td class="mono">−70% yoki koʻproq</td></tr>
+   <tr><td>Override foizi</td><td>Oʻqituvchi bahoni necha marta oʻzgartiradi — model sifati</td><td class="mono">&lt; 8%</td></tr>
+   <tr><td>Koʻrikka yuborilgan javoblar ulushi</td><td>Juda yuqori = foydasiz; juda past = xavfli</td><td class="mono">15–25%</td></tr>
+   <tr><td>Rasm rad etish darajasi</td><td>Eng koʻp ishdan chiqaradigan omil</td><td class="mono">&lt; 10%</td></tr>
+   <tr><td>Oʻquvchi shikoyatlari va ularning haqligi</td><td>Adolat va model xatolarining haqiqiy oʻlchovi</td><td class="mono">shikoyat &lt; 3%</td></tr>
+   <tr><td>Oʻqituvchining 4-haftadagi qaytishi</td><td>Yagona ishonchli mahsulot signali</td><td class="mono">&gt; 70%</td></tr>
+  </tbody>
+ </table>
+</div>
+
+<hr>
+
+<h2><span class="num">Manbalar</span>Tekshirilgan havolalar</h2>
+
+<ol class="sources">
+ <li id="m1">Learnosity (2025) — oʻqituvchilar haftasiga oʻrtacha 9,9 soat tekshiradi; 95% ishni uyga olib ketadi; 62% tekshirishni ishning eng yomon qismi deb ataydi. <a href="https://www.businesswire.com/news/home/20250326730498/en/A-Third-of-US-Teachers-Considered-Leaving-Education-Due-to-Grading-Workload-Says-New-Research-by-Learnosity">businesswire.com</a></li>
+ <li id="m2">EdWeek / Merrimack College soʻrovi — oʻqituvchilar haftasiga ~5 soatni baholash va fikr-mulohazaga sarflaydi. <a href="https://www.edweek.org/teaching-learning/how-teachers-spend-their-time-a-breakdown/2022/04">edweek.org</a></li>
+ <li id="m3">Gradescope — AI oʻxshash javoblarni guruhlaydi; foydalanuvchilarning uchdan ikkisi 30%+ vaqt tejaydi; 150 ta ish 8 soatdan 2 soatdan kamga tushgan. <a href="https://www.apporto.com/gradescopes-ai-assisted-grading-explained">apporto.com</a></li>
+ <li id="m4">«Seeing the Big Picture: Evaluating Multimodal LLMs' Ability to Interpret and Grade Handwritten Student Work» (2025) — Gemini 2.5 Pro 89% koʻrish / 95% baholash; Claude 3.5 79%/77%; Claude 3.7 76%/84%. <a href="https://arxiv.org/abs/2510.05538">arxiv.org/abs/2510.05538</a></li>
+ <li id="m5">EDM 2025 — «Can Language Models Grade Algebra Worked Solutions?»: odam bahosi bilan 94,47% gacha moslik. <a href="https://educationaldatamining.org/EDM2025/proceedings/2025.EDM.poster-demo-papers.290/index.html">educationaldatamining.org</a></li>
+ <li id="m6">«Unveiling Scoring Processes: Dissecting the Differences Between LLMs and Human Graders» (Springer, 2025) — aniq moslik 55%, Cohen kappa 0,515 (oʻrtacha), 38,8% holatda past baholash. <a href="https://link.springer.com/article/10.1007/s10758-025-09836-8">link.springer.com</a></li>
+ <li id="m7">«Mitigating Bias in Automated Grading Systems for ESL Learners» — odam bahosi teng deb topgan ishlarda ona tili boʻlmaganlar 10,3% past ball olgan. <a href="https://arxiv.org/html/2601.16724">arxiv.org/html/2601.16724</a></li>
+ <li id="m8">EU AI Act 5-modda (1)(f) — hissiyotni aniqlash ish joyi va taʼlim muassasalarida taqiqlangan; 2025-yil fevralidan amalda; jarima global aylanmaning 7% gacha. <a href="https://www.regulation-ai.eu/en/articles/article-5/">regulation-ai.eu</a></li>
+ <li id="m9">Shvetsiya maʼlumotlarni himoya qilish organi (IMY) — Skelleftea maktabida yuz tanish orqali davomat sinovi uchun birinchi GDPR jarimasi; 22 oʻquvchi, 3 hafta; rozilik kuch nomutanosibligi tufayli yaroqsiz deb topilgan. <a href="https://www.imy.se/en/about-us/arkiv/nyhetsarkiv/facial-recognition-in-school-renders-swedens-first-gdpr-fine/">imy.se</a></li>
+ <li id="m10">Oʻzbekiston Respublikasi Qonuni ZRU-547 «Shaxsga doir maʼlumotlar toʻgʻrisida» (02.07.2019, kuchga kirgan 01.10.2019) — maʼlumotlarni Oʻzbekiston hududidagi texnik vositalarda saqlash va davlat reyestrida roʻyxatdan oʻtkazish talabi. <a href="https://www.dlapiperdataprotection.com/index.html?t=law&amp;c=UZ">dlapiperdataprotection.com</a></li>
+ <li id="m11">Maktablarda bolalar biometrikasi boʻyicha amaliyot — kamida bitta ota-onaning yozma roziligi; bola istalgan vaqtda yozmasdan rad eta oladi; rad etganlar uchun muqobil usul majburiy. <a href="https://arkonline.org/wp-content/uploads/Ark-Data-Protection-Biometrics-Policy.pdf">arkonline.org</a></li>
+ <li id="m12">Oʻzbekiston taʼlim statistikasi — ~11 000 maktab, 6,8 mln oʻquvchi, 540 000 oʻqituvchi; muassasalarning 78% da bazaviy raqamli vositalar (shahar 85%, qishloq 56%). <a href="https://timesca.com/uzbekistan-bets-on-digital-schools-to-turn-demographic-growth-into-human-capital/">timesca.com</a></li>
+ <li id="m13">Kundalik / eMaktab — davlat-xususiy sheriklik asosidagi milliy elektron jurnal; 2020–21 oʻquv yilida 2 500+ maktabda joriy etilgan. <a href="https://about.kundalik.com/">about.kundalik.com</a></li>
+ <li id="m14">Chamberlin, Yasue &amp; Chiang — «The impact of grades on student motivation»: baholar motivatsiyani oshirmaydi, tashvish va qiyin kurslardan qochishni kuchaytiradi; tavsiflovchi fikr-mulohaza samaraliroq. <a href="https://journals.sagepub.com/doi/abs/10.1177/1469787418819728">journals.sagepub.com</a></li>
+ <li id="m15">Gallup — «Academic Ranking May Motivate Some Students, Alienate Others». <a href="https://www.gallup.com/education/239168/academic-ranking-may-motivate-students-alienate-others.aspx">gallup.com</a></li>
+ <li id="m16">Davomat texnologiyalari taqqoslashi — QR arzon lekin oʻrniga skanerlashga ochiq; BLE 30–100 m, kontaktsiz, ommaviy joriy etishga mos; biometrik yechimlar GDPR boʻyicha huquqiy va axloqiy risk tugʻdiradi. <a href="https://www.ijert.org/a-ble-based-smart-attendance-system-for-scalable-and-contactless-classroom-automation">ijert.org</a></li>
+ <li id="m17">Gemini API narxlari — 2.5 Flash $0,30/$2,50 per 1M token; 2.5 Flash-Lite $0,05/$0,20. <a href="https://pricepertoken.com/pricing-page/model/google-gemini-2.5-flash">pricepertoken.com</a></li>
+ <li id="m18">Claude API narxlari — Haiku 4.5 $1/$5; Sonnet 5 $2/$10; Opus 5 $5/$25 per 1M token. <a href="https://docs.claude.com/en/docs/about-claude/pricing">docs.claude.com</a></li>
+ <li id="m19">EU AI Act — jismoniy holatlar (ogʻriq, charchoq) hissiyot taʼrifiga kirmaydi; charchoqni aniqlash taqiqdan tashqarida. Chegara «kuzatish» va «hissiyot chiqarish» oʻrtasida. <a href="https://fpf.org/blog/red-lines-under-eu-ai-act-unpacking-the-prohibition-of-emotion-recognition-in-the-workplace-and-education-institutions/">fpf.org</a></li>
+</ol>
+
+<footer class="end">
+  AI Ustoz · funksiya spetsifikatsiyasi v1 · 2026-09-09<br>
+  Barcha raqamlar yuqoridagi manbalarga havola qilingan. Huquqiy qismlar maʼlumot uchun — joriy etishdan oldin yurist bilan tasdiqlang.
+</footer>
+
+</div>
