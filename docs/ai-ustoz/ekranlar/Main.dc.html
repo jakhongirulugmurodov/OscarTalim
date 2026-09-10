@@ -57,6 +57,23 @@
   .paper .rule{position:absolute;left:0;right:0;height:1px;background:var(--paper-line)}
   .hand{font-family:var(--hand);color:var(--paper-ink);font-weight:600}
 
+
+  .view{flex:1;margin:0 var(--pad);border-radius:var(--r-l);position:relative;
+        background:#0C161F;border:1px solid var(--line-soft);overflow:hidden;min-height:0}
+  .corner{position:absolute;width:34px;height:34px;border:3px solid var(--tile)}
+  .checks{display:flex;flex-direction:column;gap:7px;position:absolute;left:14px;bottom:14px}
+  .chk{display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:600;
+       background:rgba(6,12,18,.78);padding:5px 10px;border-radius:999px;backdrop-filter:blur(6px)}
+  .shutter{width:74px;height:74px;border-radius:50%;border:3px solid var(--tile);
+        background:linear-gradient(180deg,var(--tile),var(--tile-deep));
+        box-shadow:0 8px 26px -10px rgba(43,196,206,.9);display:flex;
+        align-items:center;justify-content:center;cursor:pointer}
+  .thumb{width:44px;height:58px;border-radius:7px;border:1px solid var(--line);
+         background:var(--paper);position:relative;overflow:hidden}
+  .thumb.add{background:var(--surface-2);border-style:dashed;display:flex;
+             align-items:center;justify-content:center}
+
+
   .marker{position:absolute;width:22px;height:22px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;font-family:var(--disp);
     font-size:.8rem;font-weight:600;color:#0A1119}
@@ -67,26 +84,248 @@
     font-size:.8rem;font-weight:600;color:#0A1119;margin-top:1px}
   .back{width:34px;height:34px;border-radius:var(--r-s);border:1px solid var(--line);
     background:var(--surface);display:flex;align-items:center;justify-content:center;flex:none}
+
+
+  .bar{height:5px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--tile-deep),var(--tile))}
+  .kv{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+
+
+  .wk{display:flex;align-items:flex-end;gap:9px;height:104px}
+  .wk .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+  .wk .stk{width:100%;border-radius:6px 6px 3px 3px}
+  .task{display:flex;gap:11px;align-items:flex-start}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--tile);flex:none;margin-top:7px}
+
+
+
+  .row{display:flex;align-items:center;gap:11px;padding:10px 0}
+  .row + .row{border-top:1px solid var(--line-soft)}
+  .av{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;
+      justify-content:center;font-family:var(--disp);font-size:.85rem;font-weight:500;
+      background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+  .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft);
+       border:1px solid var(--line-soft);border-radius:var(--r-m);overflow:hidden}
+  .sum > div{background:var(--surface);padding:13px 10px;text-align:center}
+
+  .screen{width:390px;height:844px}
+  .proto{flex:none;display:flex;align-items:center;gap:6px;padding:7px 10px;
+         background:var(--bg-deep);border-bottom:1px solid var(--line-soft)}
+  .proto-l{font-family:var(--disp);font-size:.54rem;letter-spacing:.15em;color:var(--ink-3);
+           flex:none}
+  .rchips{flex:1;display:flex;gap:5px;justify-content:flex-end}
+  .rchip{font-family:var(--sans);font-size:.63rem;font-weight:700;letter-spacing:.03em;
+         padding:5px 8px;border-radius:999px;cursor:pointer;flex:none;white-space:nowrap;
+         border:1px dashed var(--line);background:transparent;color:var(--ink-3)}
+  .body{flex:1;padding:0 var(--pad) 12px;display:flex;flex-direction:column;min-height:0;
+        overflow:hidden}
+  .body > *{flex:1;min-height:0;display:flex;flex-direction:column;gap:11px}
+  .tabbar{flex:none;display:grid;gap:2px;padding:7px 8px 12px;background:var(--bg-deep);
+          border-top:1px solid var(--line-soft)}
+  .tab{position:relative;background:none;border:0;cursor:pointer;padding:6px 2px 4px;
+       display:flex;flex-direction:column;align-items:center;gap:4px;min-height:52px;
+       font-family:var(--sans);font-size:.63rem;font-weight:600;letter-spacing:.02em}
+  .tab .bdg{position:absolute;top:2px;left:calc(50% + 7px);background:var(--clay);color:#0A1119;
+       font-family:var(--disp);font-size:.6rem;font-weight:600;line-height:1;
+       padding:2px 5px;border-radius:999px;font-style:normal}
+  .lg-btn{width:100%;text-align:left;padding:15px 16px;border-radius:var(--r-m);cursor:pointer;
+       background:var(--surface);border:1px solid var(--line-soft);display:flex;
+       align-items:center;gap:13px;font-family:var(--sans);color:var(--ink)}
+  .lg-btn b{font-size:1rem;font-weight:700;display:block}
+  .lg-btn span{font-size:.82rem;color:var(--ink-3)}
+  .rolemark{width:38px;height:38px;border-radius:11px;flex:none;display:flex;
+       align-items:center;justify-content:center;background:var(--surface-2);
+       border:1px solid var(--line)}
+  .task{display:flex;align-items:center;gap:12px;padding:12px 0;cursor:pointer}
+  .task + .task{border-top:1px solid var(--line-soft)}
+  .tdot{width:9px;height:9px;border-radius:50%;flex:none}
+  .streak{display:flex;align-items:center;gap:14px}
+  .flame{width:46px;height:46px;border-radius:14px;flex:none;display:flex;align-items:center;
+       justify-content:center;background:rgba(227,178,60,.11);border:1px solid rgba(227,178,60,.35)}
+  .mini{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .topicbar{display:flex;align-items:center;gap:10px;padding:9px 0}
+  .topicbar + .topicbar{border-top:1px solid var(--line-soft)}
+  .tb-track{flex:1;height:7px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+  .tb-track i{display:block;height:100%;border-radius:999px}
+  .feed{display:flex;gap:11px;padding:12px 0}
+  .feed + .feed{border-top:1px solid var(--line-soft)}
+  .fico{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;
+        justify-content:center}
+  .scroll{overflow-y:auto;min-height:0}
+
+  .scr{display:flex;flex-direction:column;gap:11px;flex:1;min-height:0}
+  .scr.cam{gap:0;margin:0 calc(-1 * var(--pad))}
+  .login{flex:1;display:flex;flex-direction:column;padding:34px var(--pad) 26px;min-height:0}
 </style>
 </helmet>
-<div class="screen" style="width:390px;height:844px">
-
-  <div class="topbar">
-    <div style="display:flex;align-items:center;gap:11px">
-      <div class="back">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A7BECC"
-             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10 2.5 L4.5 8 L10 13.5"/></svg>
-      </div>
-      <div>
-        <div style="font-family:var(--disp);font-size:1.02rem;font-weight:500">Algebra · 12-dars</div>
-        <div class="l" style="margin-top:1px">9-sentabr · tekshirildi</div>
-      </div>
+<div class="screen">
+  <div class="proto">
+    <span class="proto-l">PROTOTIP</span>
+    <div class="rchips">
+      <sc-for list="{{roles}}" as="r" hint-placeholder-count="4">
+        <button class="rchip" style="{{r.style}}" onClick="{{r.tap}}">{{r.label}}</button>
+      </sc-for>
     </div>
-    <span class="pill tile">7-B</span>
   </div>
 
+  <sc-if value="{{vApp}}" hint-placeholder-val="{{true}}">
+    <div class="topbar">
+      <div>
+        <div style="font-family:var(--disp);font-size:1.06rem;font-weight:500">{{title}}</div>
+        <div class="l" style="margin-top:2px">{{sub}}</div>
+      </div>
+    </div>
+  </sc-if>
+
   <div class="body">
+  <sc-if value="{{vLogin}}" hint-placeholder-val="{{false}}">
+
+<div class="login">
+  <div style="text-align:center;margin-bottom:6px">
+    <svg width="46" height="46" viewBox="0 0 26 26" fill="none" stroke="#2BC4CE"
+         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 20.5 L9.5 5.5 L15 20.5"/><path d="M6.2 15.6 H12.8"/><path d="M18.5 5.5 V20.5"/>
+      <circle cx="18.5" cy="2.6" r="1.6" fill="#2BC4CE" stroke="none"/></svg>
+    <h1 style="font-family:var(--disp);font-size:1.9rem;font-weight:600;letter-spacing:.09em;
+        text-transform:uppercase;margin:12px 0 0">AI Ustoz</h1>
+    <p style="margin:8px 0 0;font-size:.9rem;color:var(--ink-3);line-height:1.45">
+      Uyga vazifa · davomat · tahlil<br>Oscar Taʼlim</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:24px">
+    <button class="lg-btn" onClick="{{asStudent}}">
+      <div class="rolemark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2BC4CE" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M4 21c1.3-4.3 4.5-6.5 8-6.5s6.7 2.2 8 6.5"/></svg></div>
+      <div style="flex:1"><b>Oʻquvchiman</b><span>vazifa topshirish va natija</span></div>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6C8798" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5 L15.5 12 L9 18.5"/></svg>
+    </button>
+    <button class="lg-btn" onClick="{{asTeacher}}">
+      <div class="rolemark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E3B23C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z"/></svg></div>
+      <div style="flex:1"><b>Oʻqituvchiman</b><span>koʻrik, sinf, davomat</span></div>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6C8798" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5 L15.5 12 L9 18.5"/></svg>
+    </button>
+    <button class="lg-btn" onClick="{{asParent}}">
+      <div class="rolemark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4CC38A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h7l4 4v14h-11z M13.5 3v4h4 M9 12h6 M9 16h4"/></svg></div>
+      <div style="flex:1"><b>Ota-onaman</b><span>farzandim hisoboti</span></div>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6C8798" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5 L15.5 12 L9 18.5"/></svg>
+    </button>
+  </div>
+
+  <p style="margin:auto 0 0;font-size:.76rem;color:var(--ink-3);line-height:1.5;text-align:center">
+    Maktab kodi bilan kirasiz. Yuz tanish ishlatilmaydi;<br>
+    maʼlumotlar Oʻzbekiston hududida saqlanadi.</p>
+</div>
+  </sc-if>
+  <sc-if value="{{sHome}}" hint-placeholder-val="{{true}}">
+
+<div class="scr">
+  <div class="card streak">
+    <div class="flame"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E3B23C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5s4.5 4 4.5 8a4.5 4.5 0 0 1-9 0c0-1.6.8-3 1.6-4 .2 1.2.9 2 1.8 2 1.3 0 1.6-2.3 1.1-6z"/></svg></div>
+    <div>
+      <div class="num" style="font-size:1.7rem;color:var(--gold)">7 kun</div>
+      <div class="l" style="margin-top:4px">ketma-ket topshirdingiz</div>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div class="num" style="font-size:1.35rem">7,2</div>
+      <div class="l" style="margin-top:4px">oʻrtacha</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div class="l">Bugungi vazifalar</div>
+      <span class="pill clay">1 ta qoldi</span>
+    </div>
+    <div style="margin-top:2px">
+      <div class="task" onClick="{{goCam}}">
+        <div class="tdot" style="background:var(--clay)"></div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.95rem">Algebra · 12-dars</div>
+          <div style="font-size:.8rem;color:var(--ink-3);margin-top:2px">5 ta savol · bugun 21:00 gacha</div>
+        </div>
+        <span class="pill tile">Suratga ol</span>
+      </div>
+      <div class="task">
+        <div class="tdot" style="background:var(--good)"></div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.95rem">Geometriya · 8-dars</div>
+          <div style="font-size:.8rem;color:var(--ink-3);margin-top:2px">topshirildi · 19:40</div>
+        </div>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4CC38A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 L9.2 17.7 L20 6.6"/></svg>
+      </div>
+      <div class="task">
+        <div class="tdot" style="background:var(--line)"></div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.95rem">Ona tili · insho</div>
+          <div style="font-size:.8rem;color:var(--ink-3);margin-top:2px">ertaga 21:00 gacha</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="cursor:pointer" onClick="{{goRes}}">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="num" style="font-size:2rem;color:var(--tile)">7,5<span
+        style="font-size:.85rem;color:var(--ink-3)">&thinsp;/&thinsp;10</span></div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.93rem">Algebra · 11-dars tekshirildi</div>
+        <div style="font-size:.82rem;color:var(--ink-2);margin-top:3px">
+          1 ta arifmetik xato — qayerda ekanini koʻring</div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C8798" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5 L15.5 12 L9 18.5"/></svg>
+    </div>
+  </div>
+</div>
+  </sc-if>
+  <sc-if value="{{sCam}}" hint-placeholder-val="{{false}}">
+<div class="scr cam"><div class="view">
+    <div class="paper" style="position:absolute;left:26px;top:34px;right:26px;bottom:96px">
+      <div class="rule" style="top:30px;left:18px;right:18px"></div><div class="rule" style="top:56px;left:18px;right:18px"></div><div class="rule" style="top:82px;left:18px;right:18px"></div><div class="rule" style="top:108px;left:18px;right:18px"></div><div class="rule" style="top:134px;left:18px;right:18px"></div><div class="rule" style="top:160px;left:18px;right:18px"></div><div class="rule" style="top:186px;left:18px;right:18px"></div><div class="rule" style="top:212px;left:18px;right:18px"></div><div class="rule" style="top:238px;left:18px;right:18px"></div><div class="rule" style="top:264px;left:18px;right:18px"></div><div class="rule" style="top:290px;left:18px;right:18px"></div><div class="rule" style="top:316px;left:18px;right:18px"></div><div class="rule" style="top:342px;left:18px;right:18px"></div><div class="rule" style="top:368px;left:18px;right:18px"></div>
+      <div class="hand" style="position:absolute;left:22px;top:8px;font-size:19px">1) x² − 2x − 15 = 0</div>
+      <div class="hand" style="position:absolute;left:34px;top:60px;font-size:19px">D = 4 + 60 = 64</div>
+      <div class="hand" style="position:absolute;left:34px;top:112px;font-size:19px">x = (−2 ± 8) / 2</div>
+      <div class="hand" style="position:absolute;left:34px;top:164px;font-size:19px">x₁ = 3,&nbsp; x₂ = −5</div>
+      <div class="hand" style="position:absolute;left:22px;top:216px;font-size:19px">2) 3x + 7 = 22</div>
+      <div class="hand" style="position:absolute;left:34px;top:268px;font-size:19px">3x = 15 → x = 5</div>
+    </div>
+    <div class="corner" style="left:14px;top:14px;border-right:0;border-bottom:0;border-radius:14px 0 0 0"></div>
+    <div class="corner" style="right:14px;top:14px;border-left:0;border-bottom:0;border-radius:0 14px 0 0"></div>
+    <div class="corner" style="left:14px;bottom:14px;border-right:0;border-top:0;border-radius:0 0 0 14px"></div>
+    <div class="corner" style="right:14px;bottom:14px;border-left:0;border-top:0;border-radius:0 0 14px 0"></div>
+    <div class="checks">
+      <div class="chk" style="color:var(--good)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#4CC38A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.4 L5.6 10.5 L11.5 3.8"/></svg> Toʻrt burchak koʻrinyapti</div>
+      <div class="chk" style="color:var(--good)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#4CC38A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.4 L5.6 10.5 L11.5 3.8"/></svg> Yorugʻlik yetarli</div>
+      <div class="chk" style="color:var(--good)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#4CC38A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.4 L5.6 10.5 L11.5 3.8"/></svg> Xira emas</div>
+    </div>
+  </div>
+
+  <div style="flex:none;padding:16px var(--pad) 22px;display:flex;flex-direction:column;gap:14px">
+    <div style="text-align:center">
+      <div class="l">3 sahifadan 2-si</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div style="display:flex;gap:8px">
+        <div class="thumb"><div class="rule" style="top:8px;left:6px;right:6px"></div><div class="rule" style="top:19px;left:6px;right:6px"></div><div class="rule" style="top:30px;left:6px;right:6px"></div><div class="rule" style="top:41px;left:6px;right:6px"></div><div class="rule" style="top:52px;left:6px;right:6px"></div></div>
+        <div class="thumb add">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#6C8798"
+               stroke-width="1.8" stroke-linecap="round"><path d="M9 3.5v11M3.5 9h11"/></svg>
+        </div>
+      </div>
+      <div class="shutter">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="#04181B"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9.5h4.6l2-3h8.8l2 3H26v14H4z"/><circle cx="15" cy="16" r="4.8"/></svg>
+      </div>
+      <button class="btn" style="min-width:86px;padding:13px 14px">Tayyor</button>
+    </div>
+    <p style="margin:0;text-align:center;font-size:.82rem;color:var(--ink-3);line-height:1.4">
+      Daftarni tekis qoʻying — toʻrt burchagi ham ramka ichida boʻlsin
+    </p>
+  </div></div>
+  </sc-if>
+  <sc-if value="{{sRes}}" hint-placeholder-val="{{false}}">
+<div class="scr scroll"><div class="body">
     <div class="card" style="display:flex;align-items:center;gap:16px;padding:14px 16px">
       <div class="num" style="font-size:2.5rem;color:var(--tile)">7,5<span
         style="font-size:1.1rem;color:var(--ink-3)">&thinsp;/&thinsp;10</span></div>
@@ -142,9 +381,464 @@
         <path d="M8 1.8 L14.5 13.5 H1.5 Z"/><path d="M8 6.4v3.2"/><path d="M8 11.6v.1"/></svg>
       Notoʻgʻri baholandi
     </button>
+  </div></div>
+  </sc-if>
+  <sc-if value="{{sMe}}" hint-placeholder-val="{{false}}">
+
+<div class="scr">
+  <div class="card">
+    <div class="l">Oxirgi 4 hafta</div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-top:7px">
+      <div class="num" style="font-size:2.4rem;color:var(--good)">+40<span style="font-size:1.1rem">%</span></div>
+      <div style="font-size:.88rem;color:var(--ink-2);line-height:1.35">
+        kvadrat tenglamalarda<br>oʻsish</div>
+    </div>
+    <div class="wk" style="margin-top:14px">
+      <div class="col"><div class="num" style="font-size:.85rem;color:var(--ink-2)">46%</div>
+        <div class="stk" style="height:40px;background:var(--line)"></div><div class="l" style="font-size:.58rem">1-h</div></div>
+      <div class="col"><div class="num" style="font-size:.85rem;color:var(--ink-2)">58%</div>
+        <div class="stk" style="height:52px;background:var(--line)"></div><div class="l" style="font-size:.58rem">2-h</div></div>
+      <div class="col"><div class="num" style="font-size:.85rem;color:var(--ink-2)">72%</div>
+        <div class="stk" style="height:66px;background:var(--tile-deep)"></div><div class="l" style="font-size:.58rem">3-h</div></div>
+      <div class="col"><div class="num" style="font-size:.85rem;color:var(--ink-2)">86%</div>
+        <div class="stk" style="height:80px;background:var(--tile)"></div><div class="l" style="font-size:.58rem">4-h</div></div>
+    </div>
   </div>
 
+  <div class="card">
+    <div class="l" style="margin-bottom:4px">Ustida ishlash kerak</div>
+    <div class="topicbar">
+      <span style="font-size:.88rem;font-weight:600;width:112px">Diskriminant</span>
+      <div class="tb-track"><i style="width:38%;background:var(--clay)"></i></div>
+      <span class="pill clay">5 xato</span>
+    </div>
+    <div class="topicbar">
+      <span style="font-size:.88rem;font-weight:600;width:112px">Koʻphad yoyish</span>
+      <div class="tb-track"><i style="width:62%;background:var(--warn)"></i></div>
+      <span class="pill warn">2 xato</span>
+    </div>
+    <div class="topicbar">
+      <span style="font-size:.88rem;font-weight:600;width:112px">Chiziqli teng.</span>
+      <div class="tb-track"><i style="width:94%;background:var(--good)"></i></div>
+      <span class="pill good">yaxshi</span>
+    </div>
+  </div>
+
+  <div class="mini">
+    <div class="card" style="padding:14px">
+      <div class="num" style="font-size:1.7rem;color:var(--tile)">26<span
+        style="font-size:.8rem;color:var(--ink-3)">/30</span></div>
+      <div class="l" style="margin-top:6px">darsda boʻldingiz</div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="num" style="font-size:1.7rem">18</div>
+      <div class="l" style="margin-top:6px">topshiriq · sentabr</div>
+    </div>
+  </div>
+</div>
+  </sc-if>
+  <sc-if value="{{tToday}}" hint-placeholder-val="{{false}}">
+
+<div class="scr">
+  <div class="mini">
+    <div class="card" style="padding:14px">
+      <div class="num" style="font-size:1.75rem;color:var(--good)">242</div>
+      <div class="l" style="margin-top:6px">avto-qabul</div>
+    </div>
+    <div class="card" style="padding:14px;border-color:rgba(224,138,60,.35)">
+      <div class="num" style="font-size:1.75rem;color:var(--warn)">60</div>
+      <div class="l" style="margin-top:6px">koʻrik kutmoqda</div>
+    </div>
+  </div>
+
+  <button class="btn primary" style="width:100%" onClick="{{goRev}}">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#04181B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16 M4 12h16 M4 17.5h10"/></svg> Koʻrikni boshlash · ~9 daqiqa
+  </button>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div class="l">Bugun eʼtibor bering</div>
+      <span class="pill">7-B · Algebra</span>
+    </div>
+    <div style="margin-top:2px">
+      <div class="task" style="cursor:default">
+        <div class="av" style="width:30px;height:30px;border-radius:50%;display:flex;
+             align-items:center;justify-content:center;background:var(--surface-2);
+             border:1px solid var(--line);font-family:var(--disp);font-size:.8rem;color:var(--ink-2)">SA</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.93rem">Sardor A.</div>
+          <div style="font-size:.8rem;color:var(--ink-3);margin-top:2px">Diskriminant belgisi · 5 marta</div>
+        </div>
+        <span class="pill clay">shoshilinch</span>
+      </div>
+      <div class="task" style="cursor:default">
+        <div class="av" style="width:30px;height:30px;border-radius:50%;display:flex;
+             align-items:center;justify-content:center;background:var(--surface-2);
+             border:1px solid var(--line);font-family:var(--disp);font-size:.8rem;color:var(--ink-2)">JT</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.93rem">Jasur T.</div>
+          <div style="font-size:.8rem;color:var(--ink-3);margin-top:2px">Kvadrat tenglama · usul</div>
+        </div>
+        <span class="pill clay">shoshilinch</span>
+      </div>
+      <div class="task" style="cursor:default">
+        <div class="av" style="width:30px;height:30px;border-radius:50%;display:flex;
+             align-items:center;justify-content:center;background:var(--surface-2);
+             border:1px solid var(--line);font-family:var(--disp);font-size:.8rem;color:var(--ink-2)">MR</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.93rem">Malika R.</div>
+          <div style="font-size:.8rem;color:var(--ink-3);margin-top:2px">2 ta topshiriq topshirmadi</div>
+        </div>
+        <span class="pill warn">kuzating</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:13px 15px;display:flex;align-items:center;gap:12px;cursor:pointer"
+       onClick="{{goAtt}}">
+    <div>
+      <div class="l">Davomat · 1-dars</div>
+      <div style="font-size:.88rem;color:var(--ink-2);margin-top:4px">
+        <b class="num" style="color:var(--good);font-size:1.05rem">26</b> keldi ·
+        <b class="num" style="color:var(--warn);font-size:1.05rem">3</b> kechikdi ·
+        <b class="num" style="color:var(--clay);font-size:1.05rem">1</b> yoʻq</div>
+    </div>
+    <div style="margin-left:auto"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C8798" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5 L15.5 12 L9 18.5"/></svg></div>
+  </div>
+</div>
+  </sc-if>
+  <sc-if value="{{tRev}}" hint-placeholder-val="{{false}}">
+<div class="scr"><div class="body">
+    <div class="bar"><i style="width:30%"></i></div>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:13px">
+      <div class="kv">
+        <div style="font-weight:700;font-size:1rem">Sardor A.</div>
+        <span class="pill warn">ishonch 0,62</span>
+      </div>
+
+      <div class="paper" style="height:132px">
+        <div class="rule" style="top:22px;left:14px;right:14px"></div><div class="rule" style="top:52px;left:14px;right:14px"></div><div class="rule" style="top:82px;left:14px;right:14px"></div><div class="rule" style="top:112px;left:14px;right:14px"></div>
+        <div class="hand" style="position:absolute;left:18px;top:8px;font-size:19px">5) 2(x − 3) = x + 4</div>
+        <div class="hand" style="position:absolute;left:30px;top:52px;font-size:19px">2x − 6 = x + 4</div>
+        <div class="hand" style="position:absolute;left:30px;top:94px;font-size:19px">x = 10</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div class="kv">
+          <span class="l">Model oʻqidi</span>
+          <span style="font-family:var(--hand);font-size:1.15rem;color:var(--ink)">x = 10</span>
+        </div>
+        <div class="kv">
+          <span class="l">Taklif</span>
+          <span style="font-weight:700">1,0 ball · toʻgʻri</span>
+        </div>
+        <div class="kv">
+          <span class="l">Nega koʻrikda</span>
+          <span style="font-size:.85rem;color:var(--ink-2);text-align:right">
+            «10» yoki «1 0» — qoʻlyozma noaniq</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" style="grid-column:1 / -1">
+        <svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="#04181B"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8.8 L6.8 12.6 L14 4.8"/></svg>
+        Tasdiqlash
+      </button>
+      <button class="btn">Ballni tuzatish</button>
+      <button class="btn">Keyinroq</button>
+    </div>
+
+    <div class="card" style="margin-top:auto;padding:13px 15px;display:flex;
+         align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div class="l">Bugun</div>
+        <div style="font-size:.88rem;color:var(--ink-2);margin-top:3px">
+          <b class="num" style="color:var(--good);font-size:1.05rem">242</b> avto-qabul ·
+          <b class="num" style="color:var(--warn);font-size:1.05rem">60</b> koʻrik</div>
+      </div>
+      <div style="text-align:right">
+        <div class="l">Sarflangan</div>
+        <div class="num" style="font-size:1.5rem;color:var(--tile);margin-top:3px">9<span
+          style="font-size:.8rem;color:var(--ink-3)">&thinsp;daq</span></div>
+      </div>
+    </div>
+  </div></div>
+  </sc-if>
+  <sc-if value="{{tCls}}" hint-placeholder-val="{{false}}">
+
+<div class="scr">
+  <div class="mini">
+    <div class="card" style="padding:14px">
+      <div class="num" style="font-size:1.7rem;color:var(--tile)">7,2</div>
+      <div class="l" style="margin-top:6px">oʻrtacha ball</div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="num" style="font-size:1.7rem">26<span style="font-size:.8rem;color:var(--ink-3)">/30</span></div>
+      <div class="l" style="margin-top:6px">topshirdi</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="l" style="margin-bottom:4px">Mavzu boʻyicha zaiflik</div>
+    <div class="topicbar">
+      <span style="font-size:.87rem;font-weight:600;width:118px">Diskriminant</span>
+      <div class="tb-track"><i style="width:60%;background:var(--clay)"></i></div>
+      <span class="pill clay">9/15</span>
+    </div>
+    <div class="topicbar">
+      <span style="font-size:.87rem;font-weight:600;width:118px">Koʻphad yoyish</span>
+      <div class="tb-track"><i style="width:40%;background:var(--warn)"></i></div>
+      <span class="pill warn">6/15</span>
+    </div>
+    <div class="topicbar">
+      <span style="font-size:.87rem;font-weight:600;width:118px">Kvadrat teng.</span>
+      <div class="tb-track"><i style="width:27%;background:var(--warn)"></i></div>
+      <span class="pill warn">4/15</span>
+    </div>
+    <div class="topicbar">
+      <span style="font-size:.87rem;font-weight:600;width:118px">Nisbat</span>
+      <div class="tb-track"><i style="width:13%;background:var(--good)"></i></div>
+      <span class="pill good">2/15</span>
+    </div>
+    <div class="topicbar">
+      <span style="font-size:.87rem;font-weight:600;width:118px">Chiziqli teng.</span>
+      <div class="tb-track"><i style="width:7%;background:var(--good)"></i></div>
+      <span class="pill good">1/15</span>
+    </div>
+  </div>
+
+  <div class="card" style="border:1px dashed var(--line);background:transparent">
+    <div class="l">Sinf uchun taklif</div>
+    <p style="margin:7px 0 0;font-size:.87rem;color:var(--ink-2);line-height:1.45">
+      Diskriminant belgisida 9 ta oʻquvchi qoqilyapti — bu alohida ish emas,
+      <b style="color:var(--ink)">10 daqiqalik umumiy takror</b> masalasi.</p>
+  </div>
+</div>
+  </sc-if>
+  <sc-if value="{{tAtt}}" hint-placeholder-val="{{false}}">
+<div class="scr scroll"><div class="body">
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:13px;
+         padding:20px 16px">
+      <div style="background:#F3F6F4;padding:11px;border-radius:12px;line-height:0"><svg width="168" height="168" viewBox="0 0 168 168" shape-rendering="crispEdges"><rect width="168" height="168" fill="#F3F6F4"/><g fill="#0A1119"><rect x="0" y="0" width="8" height="8"/><rect x="8" y="0" width="8" height="8"/><rect x="16" y="0" width="8" height="8"/><rect x="24" y="0" width="8" height="8"/><rect x="32" y="0" width="8" height="8"/><rect x="40" y="0" width="8" height="8"/><rect x="48" y="0" width="8" height="8"/><rect x="88" y="0" width="8" height="8"/><rect x="112" y="0" width="8" height="8"/><rect x="120" y="0" width="8" height="8"/><rect x="128" y="0" width="8" height="8"/><rect x="136" y="0" width="8" height="8"/><rect x="144" y="0" width="8" height="8"/><rect x="152" y="0" width="8" height="8"/><rect x="160" y="0" width="8" height="8"/><rect x="0" y="8" width="8" height="8"/><rect x="48" y="8" width="8" height="8"/><rect x="64" y="8" width="8" height="8"/><rect x="80" y="8" width="8" height="8"/><rect x="112" y="8" width="8" height="8"/><rect x="160" y="8" width="8" height="8"/><rect x="0" y="16" width="8" height="8"/><rect x="16" y="16" width="8" height="8"/><rect x="24" y="16" width="8" height="8"/><rect x="32" y="16" width="8" height="8"/><rect x="48" y="16" width="8" height="8"/><rect x="80" y="16" width="8" height="8"/><rect x="88" y="16" width="8" height="8"/><rect x="96" y="16" width="8" height="8"/><rect x="112" y="16" width="8" height="8"/><rect x="128" y="16" width="8" height="8"/><rect x="136" y="16" width="8" height="8"/><rect x="144" y="16" width="8" height="8"/><rect x="160" y="16" width="8" height="8"/><rect x="0" y="24" width="8" height="8"/><rect x="16" y="24" width="8" height="8"/><rect x="24" y="24" width="8" height="8"/><rect x="32" y="24" width="8" height="8"/><rect x="48" y="24" width="8" height="8"/><rect x="72" y="24" width="8" height="8"/><rect x="96" y="24" width="8" height="8"/><rect x="112" y="24" width="8" height="8"/><rect x="128" y="24" width="8" height="8"/><rect x="136" y="24" width="8" height="8"/><rect x="144" y="24" width="8" height="8"/><rect x="160" y="24" width="8" height="8"/><rect x="0" y="32" width="8" height="8"/><rect x="16" y="32" width="8" height="8"/><rect x="24" y="32" width="8" height="8"/><rect x="32" y="32" width="8" height="8"/><rect x="48" y="32" width="8" height="8"/><rect x="72" y="32" width="8" height="8"/><rect x="80" y="32" width="8" height="8"/><rect x="88" y="32" width="8" height="8"/><rect x="96" y="32" width="8" height="8"/><rect x="112" y="32" width="8" height="8"/><rect x="128" y="32" width="8" height="8"/><rect x="136" y="32" width="8" height="8"/><rect x="144" y="32" width="8" height="8"/><rect x="160" y="32" width="8" height="8"/><rect x="0" y="40" width="8" height="8"/><rect x="48" y="40" width="8" height="8"/><rect x="72" y="40" width="8" height="8"/><rect x="80" y="40" width="8" height="8"/><rect x="112" y="40" width="8" height="8"/><rect x="160" y="40" width="8" height="8"/><rect x="0" y="48" width="8" height="8"/><rect x="8" y="48" width="8" height="8"/><rect x="16" y="48" width="8" height="8"/><rect x="24" y="48" width="8" height="8"/><rect x="32" y="48" width="8" height="8"/><rect x="40" y="48" width="8" height="8"/><rect x="48" y="48" width="8" height="8"/><rect x="64" y="48" width="8" height="8"/><rect x="88" y="48" width="8" height="8"/><rect x="112" y="48" width="8" height="8"/><rect x="120" y="48" width="8" height="8"/><rect x="128" y="48" width="8" height="8"/><rect x="136" y="48" width="8" height="8"/><rect x="144" y="48" width="8" height="8"/><rect x="152" y="48" width="8" height="8"/><rect x="160" y="48" width="8" height="8"/><rect x="80" y="56" width="8" height="8"/><rect x="88" y="56" width="8" height="8"/><rect x="96" y="56" width="8" height="8"/><rect x="0" y="64" width="8" height="8"/><rect x="8" y="64" width="8" height="8"/><rect x="48" y="64" width="8" height="8"/><rect x="56" y="64" width="8" height="8"/><rect x="80" y="64" width="8" height="8"/><rect x="96" y="64" width="8" height="8"/><rect x="104" y="64" width="8" height="8"/><rect x="120" y="64" width="8" height="8"/><rect x="144" y="64" width="8" height="8"/><rect x="152" y="64" width="8" height="8"/><rect x="160" y="64" width="8" height="8"/><rect x="0" y="72" width="8" height="8"/><rect x="24" y="72" width="8" height="8"/><rect x="32" y="72" width="8" height="8"/><rect x="48" y="72" width="8" height="8"/><rect x="56" y="72" width="8" height="8"/><rect x="72" y="72" width="8" height="8"/><rect x="96" y="72" width="8" height="8"/><rect x="152" y="72" width="8" height="8"/><rect x="160" y="72" width="8" height="8"/><rect x="0" y="80" width="8" height="8"/><rect x="16" y="80" width="8" height="8"/><rect x="32" y="80" width="8" height="8"/><rect x="40" y="80" width="8" height="8"/><rect x="56" y="80" width="8" height="8"/><rect x="72" y="80" width="8" height="8"/><rect x="80" y="80" width="8" height="8"/><rect x="112" y="80" width="8" height="8"/><rect x="120" y="80" width="8" height="8"/><rect x="152" y="80" width="8" height="8"/><rect x="160" y="80" width="8" height="8"/><rect x="0" y="88" width="8" height="8"/><rect x="8" y="88" width="8" height="8"/><rect x="16" y="88" width="8" height="8"/><rect x="24" y="88" width="8" height="8"/><rect x="64" y="88" width="8" height="8"/><rect x="72" y="88" width="8" height="8"/><rect x="80" y="88" width="8" height="8"/><rect x="88" y="88" width="8" height="8"/><rect x="120" y="88" width="8" height="8"/><rect x="128" y="88" width="8" height="8"/><rect x="136" y="88" width="8" height="8"/><rect x="144" y="88" width="8" height="8"/><rect x="152" y="88" width="8" height="8"/><rect x="160" y="88" width="8" height="8"/><rect x="0" y="96" width="8" height="8"/><rect x="96" y="96" width="8" height="8"/><rect x="112" y="96" width="8" height="8"/><rect x="128" y="96" width="8" height="8"/><rect x="136" y="96" width="8" height="8"/><rect x="144" y="96" width="8" height="8"/><rect x="152" y="96" width="8" height="8"/><rect x="160" y="96" width="8" height="8"/><rect x="80" y="104" width="8" height="8"/><rect x="96" y="104" width="8" height="8"/><rect x="120" y="104" width="8" height="8"/><rect x="136" y="104" width="8" height="8"/><rect x="160" y="104" width="8" height="8"/><rect x="0" y="112" width="8" height="8"/><rect x="8" y="112" width="8" height="8"/><rect x="16" y="112" width="8" height="8"/><rect x="24" y="112" width="8" height="8"/><rect x="32" y="112" width="8" height="8"/><rect x="40" y="112" width="8" height="8"/><rect x="48" y="112" width="8" height="8"/><rect x="80" y="112" width="8" height="8"/><rect x="96" y="112" width="8" height="8"/><rect x="104" y="112" width="8" height="8"/><rect x="120" y="112" width="8" height="8"/><rect x="136" y="112" width="8" height="8"/><rect x="160" y="112" width="8" height="8"/><rect x="0" y="120" width="8" height="8"/><rect x="48" y="120" width="8" height="8"/><rect x="88" y="120" width="8" height="8"/><rect x="104" y="120" width="8" height="8"/><rect x="112" y="120" width="8" height="8"/><rect x="144" y="120" width="8" height="8"/><rect x="160" y="120" width="8" height="8"/><rect x="0" y="128" width="8" height="8"/><rect x="16" y="128" width="8" height="8"/><rect x="24" y="128" width="8" height="8"/><rect x="32" y="128" width="8" height="8"/><rect x="48" y="128" width="8" height="8"/><rect x="64" y="128" width="8" height="8"/><rect x="80" y="128" width="8" height="8"/><rect x="104" y="128" width="8" height="8"/><rect x="120" y="128" width="8" height="8"/><rect x="128" y="128" width="8" height="8"/><rect x="144" y="128" width="8" height="8"/><rect x="160" y="128" width="8" height="8"/><rect x="0" y="136" width="8" height="8"/><rect x="16" y="136" width="8" height="8"/><rect x="24" y="136" width="8" height="8"/><rect x="32" y="136" width="8" height="8"/><rect x="48" y="136" width="8" height="8"/><rect x="80" y="136" width="8" height="8"/><rect x="88" y="136" width="8" height="8"/><rect x="96" y="136" width="8" height="8"/><rect x="112" y="136" width="8" height="8"/><rect x="120" y="136" width="8" height="8"/><rect x="128" y="136" width="8" height="8"/><rect x="144" y="136" width="8" height="8"/><rect x="160" y="136" width="8" height="8"/><rect x="0" y="144" width="8" height="8"/><rect x="16" y="144" width="8" height="8"/><rect x="24" y="144" width="8" height="8"/><rect x="32" y="144" width="8" height="8"/><rect x="48" y="144" width="8" height="8"/><rect x="72" y="144" width="8" height="8"/><rect x="96" y="144" width="8" height="8"/><rect x="104" y="144" width="8" height="8"/><rect x="112" y="144" width="8" height="8"/><rect x="160" y="144" width="8" height="8"/><rect x="0" y="152" width="8" height="8"/><rect x="48" y="152" width="8" height="8"/><rect x="72" y="152" width="8" height="8"/><rect x="80" y="152" width="8" height="8"/><rect x="88" y="152" width="8" height="8"/><rect x="96" y="152" width="8" height="8"/><rect x="112" y="152" width="8" height="8"/><rect x="120" y="152" width="8" height="8"/><rect x="136" y="152" width="8" height="8"/><rect x="152" y="152" width="8" height="8"/><rect x="160" y="152" width="8" height="8"/><rect x="0" y="160" width="8" height="8"/><rect x="8" y="160" width="8" height="8"/><rect x="16" y="160" width="8" height="8"/><rect x="24" y="160" width="8" height="8"/><rect x="32" y="160" width="8" height="8"/><rect x="40" y="160" width="8" height="8"/><rect x="48" y="160" width="8" height="8"/><rect x="72" y="160" width="8" height="8"/><rect x="80" y="160" width="8" height="8"/><rect x="120" y="160" width="8" height="8"/><rect x="136" y="160" width="8" height="8"/><rect x="160" y="160" width="8" height="8"/></g></svg></div>
+      <div style="text-align:center">
+        <div class="num" style="font-size:1.35rem;color:var(--tile)">4:58</div>
+        <div class="l" style="margin-top:5px">soʻng kod yangilanadi</div>
+      </div>
+      <p style="margin:0;text-align:center;font-size:.83rem;color:var(--ink-3);line-height:1.45">
+        Oʻquvchilar kirishda skanerlaydi. Yuz tanish ham, rasm ham saqlanmaydi.</p>
+    </div>
+
+    <div class="sum">
+      <div><div class="num" style="font-size:1.6rem;color:var(--good)">26</div>
+           <div class="l" style="margin-top:5px">keldi</div></div>
+      <div><div class="num" style="font-size:1.6rem;color:var(--warn)">3</div>
+           <div class="l" style="margin-top:5px">kechikdi</div></div>
+      <div><div class="num" style="font-size:1.6rem;color:var(--clay)">1</div>
+           <div class="l" style="margin-top:5px">yoʻq</div></div>
+    </div>
+
+    <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div class="l">Jonli roʻyxat</div>
+        <span class="pill tile">30 dan 29</span>
+      </div>
+      <div style="margin-top:4px"><div class="row"><div class="av">SA</div><div style="flex:1;font-weight:600;font-size:.92rem">Sardor A.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:02</div><span class="pill good">keldi</span></div><div class="row"><div class="av">MR</div><div style="flex:1;font-weight:600;font-size:.92rem">Malika R.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:04</div><span class="pill good">keldi</span></div><div class="row"><div class="av">JT</div><div style="flex:1;font-weight:600;font-size:.92rem">Jasur T.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:11</div><span class="pill warn">kechikdi</span></div><div class="row"><div class="av">NS</div><div style="flex:1;font-weight:600;font-size:.92rem">Nilufar S.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:12</div><span class="pill good">keldi</span></div><div class="row"><div class="av">BX</div><div style="flex:1;font-weight:600;font-size:.92rem">Bekzod X.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">—</div><span class="pill clay">yoʻq</span></div></div>
+    </div>
+  </div></div>
+  </sc-if>
+  <sc-if value="{{pRep}}" hint-placeholder-val="{{false}}">
+<div class="scr scroll"><div class="body">
+    <div>
+      <h1 style="font-size:1.5rem">Sardorning haftasi</h1>
+      <div class="l" style="margin-top:4px">7-B · Algebra · 5 ta topshiriq</div>
+    </div>
+
+    <div class="card" style="display:flex;align-items:center;gap:18px">
+      <div>
+        <div class="num" style="font-size:2.9rem;color:var(--good)">+40<span
+          style="font-size:1.2rem">%</span></div>
+        <div class="l" style="margin-top:6px">4 haftada</div>
+      </div>
+      <p style="margin:0;font-size:.92rem;color:var(--ink-2);line-height:1.45">
+        Kvadrat tenglamalarni yechishda sezilarli oʻsish. Toʻrt hafta oldin
+        ikkitadan bittasi toʻgʻri edi, bu hafta beshtadan toʻrttasi.</p>
+    </div>
+
+    <div class="card">
+      <div class="l" style="margin-bottom:12px">Toʻgʻri yechilgan topshiriqlar</div>
+      <div class="wk"><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">46%</div><div class="stk" style="height:46px;background:var(--line)"></div><div class="l" style="font-size:.6rem">1-hafta</div></div><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">58%</div><div class="stk" style="height:58px;background:var(--line)"></div><div class="l" style="font-size:.6rem">2-hafta</div></div><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">72%</div><div class="stk" style="height:72px;background:var(--tile-deep)"></div><div class="l" style="font-size:.6rem">3-hafta</div></div><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">86%</div><div class="stk" style="height:86px;background:var(--tile)"></div><div class="l" style="font-size:.6rem">4-hafta</div></div></div>
+    </div>
+
+    <div class="card" style="border-color:rgba(224,138,60,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-weight:700">Qiyinchilik</div>
+        <span class="pill warn">3 haftada 5 marta</span>
+      </div>
+      <p style="margin:8px 0 0;font-size:.9rem;color:var(--ink-2);line-height:1.45">
+        Diskriminant formulasida <b style="color:var(--ink)">−b</b> belgisini adashtiryapti.
+        Usulni biladi — belgida qoqilyapti.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;
+                  margin-bottom:11px">
+        <div style="font-weight:700">Uyda 15 daqiqa</div>
+        <span class="pill tile">2 ta mashq</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="task"><div class="dot"></div>
+          <div style="font-size:.9rem;color:var(--ink-2)">
+            <b style="color:var(--ink)">x² + 4x − 12 = 0</b> — faqat D va belgini yozing,
+            oxirigacha yechish shart emas</div></div>
+        <div class="task"><div class="dot"></div>
+          <div style="font-size:.9rem;color:var(--ink-2)">
+            <b style="color:var(--ink)">x² − 6x + 5 = 0</b> — yechib, javobni tenglamaga
+            qoʻyib tekshiring</div></div>
+      </div>
+    </div>
+
+    <p style="margin:auto 0 0;font-size:.78rem;color:var(--ink-3);line-height:1.45;
+              text-align:center">
+      Sinfdagi oʻrni koʻrsatilmaydi — bolaning oʻz oʻsishi muhimroq.</p>
+  </div></div>
+  </sc-if>
+  <sc-if value="{{pFeed}}" hint-placeholder-val="{{false}}">
+
+<div class="scr">
+  <div class="card">
+    <div class="l" style="margin-bottom:2px">Bugun</div>
+    <div class="feed">
+      <div class="fico" style="background:rgba(76,195,138,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4CC38A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 L9.2 17.7 L20 6.6"/></svg></div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.92rem">Algebra tekshirildi — 7,5 / 10</div>
+        <div style="font-size:.82rem;color:var(--ink-2);margin-top:3px">
+          1 ta arifmetik xato: diskriminant belgisi</div>
+        <div class="l" style="margin-top:4px;font-size:.62rem">21:04</div>
+      </div>
+    </div>
+    <div class="feed">
+      <div class="fico" style="background:rgba(43,196,206,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2BC4CE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5h4l2-3h5l2 3h4v12h-17zM15.5 14.6a3.5 3.5 0 1 1-7 0 3.5 3.5 0 1 1 7 0"/></svg></div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.92rem">Vazifani topshirdi</div>
+        <div style="font-size:.82rem;color:var(--ink-2);margin-top:3px">Algebra · 12-dars · 3 sahifa</div>
+        <div class="l" style="margin-top:4px;font-size:.62rem">20:41</div>
+      </div>
+    </div>
+    <div class="feed">
+      <div class="fico" style="background:rgba(224,138,60,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E08A3C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v5.4l3.4 2"/></svg></div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.92rem">Darsga 11 daqiqa kechikdi</div>
+        <div style="font-size:.82rem;color:var(--ink-2);margin-top:3px">1-dars · Algebra</div>
+        <div class="l" style="margin-top:4px;font-size:.62rem">08:11</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="l" style="margin-bottom:2px">Kecha</div>
+    <div class="feed">
+      <div class="fico" style="background:rgba(227,178,60,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E3B23C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5s4.5 4 4.5 8a4.5 4.5 0 0 1-9 0c0-1.6.8-3 1.6-4 .2 1.2.9 2 1.8 2 1.3 0 1.6-2.3 1.1-6z"/></svg></div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.92rem">7 kun ketma-ket topshirdi</div>
+        <div style="font-size:.82rem;color:var(--ink-2);margin-top:3px">
+          Sentabr oyidagi eng uzun ketma-ketlik</div>
+        <div class="l" style="margin-top:4px;font-size:.62rem">19:52</div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin:6px 0 0;font-size:.78rem;color:var(--ink-3);line-height:1.45;text-align:center">
+    Bildirishnomalarni sozlamalardan boshqarasiz. Sinfdagi oʻrni hech qachon koʻrsatilmaydi.</p>
+</div>
+  </sc-if>
+  </div>
+
+  <sc-if value="{{vApp}}" hint-placeholder-val="{{true}}">
+    <div class="tabbar" style="{{cols}}">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+        <button class="tab" style="{{t.style}}" onClick="{{t.tap}}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="{{t.icon}}"></path></svg>
+          <span>{{t.label}}</span>
+          <sc-if value="{{t.badge}}" hint-placeholder-val="{{false}}">
+            <i class="bdg">{{t.badgeText}}</i>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
 </div>
 </x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { role: 'student', view: 'home' };
+  }
+  renderVals() {
+    var self = this, S = this.state;
+    var TABS = {"student": [["home", "Bosh", "M3 11 L12 3.5 L21 11 M5.7 9.6 V20.3 H18.3 V9.6"], ["cam", "Vazifa", "M3.5 8.5h4l2-3h5l2 3h4v12h-17zM15.5 14.6a3.5 3.5 0 1 1-7 0 3.5 3.5 0 1 1 7 0"], ["res", "Natija", "M3 20.5h18 M6.5 20.5v-6 M12 20.5V5.5 M17.5 20.5v-9"], ["me", "Men", "M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M4 21c1.3-4.3 4.5-6.5 8-6.5s6.7 2.2 8 6.5"]], "teacher": [["today", "Bugun", "M3 11 L12 3.5 L21 11 M5.7 9.6 V20.3 H18.3 V9.6"], ["rev", "Koʻrik", "M4 6.5h16 M4 12h16 M4 17.5h10"], ["cls", "Sinf", "M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z"], ["att", "Davomat", "M4 12.5 L9.2 17.7 L20 6.6"]], "parent": [["rep", "Hisobot", "M6.5 3h7l4 4v14h-11z M13.5 3v4h4 M9 12h6 M9 16h4"], ["feed", "Farzandim", "M12 3.2a6 6 0 0 0-6 6c0 5-2 6-2 6h16s-2-1-2-6a6 6 0 0 0-6-6 M10 21a2.2 2.2 0 0 0 4 0"]]};
+    var TITLES = {"login": ["AI Ustoz", ""], "home": ["Salom, Sardor", "7-B · bugun 3 ta vazifa"], "cam": ["Algebra · 12-dars", "5 ta savol · 21:00 gacha"], "res": ["Algebra · 11-dars", "9-sentabr · tekshirildi"], "me": ["Mening oʻsishim", "7-B · Sardor Aliyev"], "today": ["Bugun", "9-sentabr · 7-B, 8-A, 9-B"], "rev": ["Koʻrik navbati", "7-B · Algebra · 12-dars"], "cls": ["7-B · Algebra", "12-dars · 5 ta topshiriq"], "att": ["Davomat · 7-B", "1-dars · 08:00"], "rep": ["Sardorning haftasi", "1–7 sentabr · 5 ta topshiriq"], "feed": ["Farzandim", "Sardor · 7-B"]};
+    var FIRST = { student: 'home', teacher: 'today', parent: 'rep' };
+    var go = function (v) { return function () { self.setState({ view: v }); }; };
+    var setRole = function (r) {
+      return function () { self.setState({ role: r, view: FIRST[r] }); };
+    };
+    var roles = [
+      { id: 'login', label: 'Kirish' },
+      { id: 'student', label: 'Oʻquvchi' },
+      { id: 'teacher', label: 'Oʻqituvchi' },
+      { id: 'parent', label: 'Ota-ona' }
+    ].map(function (r) {
+      var on = r.id === 'login' ? S.view === 'login' : (S.role === r.id && S.view !== 'login');
+      return {
+        label: r.label,
+        style: on
+          ? 'border-style:solid;border-color:rgba(43,196,206,.55);background:rgba(43,196,206,.12);color:#2BC4CE'
+          : '',
+        tap: r.id === 'login' ? go('login') : setRole(r.id)
+      };
+    });
+    var tabs = (TABS[S.role] || []).map(function (t) {
+      var on = t[0] === S.view;
+      return {
+        label: t[1], icon: t[2],
+        tap: go(t[0]),
+        style: 'color:' + (on ? '#2BC4CE' : '#6C8798'),
+        badge: t[0] === 'rev' && !on,
+        badgeText: '60'
+      };
+    });
+    var title = TITLES[S.view] || ['', ''];
+    var vals = {
+      roles: roles, tabs: tabs,
+      cols: 'grid-template-columns:repeat(' + (tabs.length || 1) + ',minmax(0,1fr))',
+      title: title[0], sub: title[1],
+      vApp: S.view !== 'login',
+      goCam: go('cam'), goRes: go('res'), goRev: go('rev'), goAtt: go('att'),
+      asStudent: setRole('student'), asTeacher: setRole('teacher'), asParent: setRole('parent')
+    };
+    vals.vLogin = S.view === 'login';
+    vals.sHome = S.view === 'home';
+    vals.sCam = S.view === 'cam';
+    vals.sRes = S.view === 'res';
+    vals.sMe = S.view === 'me';
+    vals.tToday = S.view === 'today';
+    vals.tRev = S.view === 'rev';
+    vals.tCls = S.view === 'cls';
+    vals.tAtt = S.view === 'att';
+    vals.pRep = S.view === 'rep';
+    vals.pFeed = S.view === 'feed';
+    return vals;
+  }
+}
+
+</script>
 </body>
 </html>

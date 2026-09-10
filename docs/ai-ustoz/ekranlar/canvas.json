@@ -2,85 +2,105 @@
   "pages": [
     {
       "id": "page-1",
-      "name": "Oʻquvchi va ota-ona"
+      "name": "Dastur · bosiladigan"
     },
     {
       "id": "page-2",
-      "name": "Oʻqituvchi"
+      "name": "Ekranlar · alohida"
     }
   ],
   "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "Mobil ilova — bosib koʻring",
+      "is_interactive": true
+    },
+    {
+      "file": "Panel.dc.html",
+      "x": 520,
+      "y": 0,
+      "w": 1280,
+      "h": 840,
+      "page": "page-1",
+      "title": "Panel — oʻqituvchi va maktab",
+      "is_interactive": true
+    },
     {
       "file": "Capture.dc.html",
       "x": 0,
       "y": 0,
       "w": 390,
       "h": 844,
-      "page": "page-1",
-      "title": "1 · Suratga olish"
+      "page": "page-2",
+      "title": "Suratga olish"
     },
     {
-      "file": "Main.dc.html",
+      "file": "Result.dc.html",
       "x": 490,
       "y": 0,
       "w": 390,
       "h": 844,
-      "page": "page-1",
-      "title": "2 · Natija va xato tahlili"
+      "page": "page-2",
+      "title": "Natija va xato tahlili"
     },
     {
-      "file": "Parent.dc.html",
+      "file": "Review.dc.html",
       "x": 980,
       "y": 0,
       "w": 390,
       "h": 844,
-      "page": "page-1",
-      "title": "3 · Ota-ona haftalik hisoboti"
+      "page": "page-2",
+      "title": "Koʻrik navbati"
     },
     {
-      "file": "Attendance.dc.html",
+      "file": "Parent.dc.html",
       "x": 1470,
       "y": 0,
       "w": 390,
       "h": 844,
-      "page": "page-1",
-      "title": "4 · QR davomat"
+      "page": "page-2",
+      "title": "Ota-ona hisoboti"
     },
     {
-      "file": "Review.dc.html",
-      "x": 0,
+      "file": "Attendance.dc.html",
+      "x": 1960,
       "y": 0,
       "w": 390,
       "h": 844,
       "page": "page-2",
-      "title": "5 · Koʻrik navbati (telefon)"
+      "title": "QR davomat"
     },
     {
       "file": "ClassMap.dc.html",
-      "x": 500,
-      "y": 0,
+      "x": 0,
+      "y": 1010,
       "w": 1280,
       "h": 840,
       "page": "page-2",
-      "title": "6 · Sinf zaiflik xaritasi (panel)"
+      "title": "Sinf zaiflik xaritasi"
     }
   ],
   "annotations": [
     {
-      "id": "note-flow",
+      "id": "how-to",
       "x": 0,
-      "y": -150,
-      "w": 880,
+      "y": -175,
+      "w": 900,
       "page": "page-1",
-      "text": "Oʻquvchi oqimi: daftarni suratga oladi → tahlil qaytadi → ota-onaga haftalik hisobot.\nDavomat QR bilan — biometrikasiz, ZRU-547 boʻyicha eng past risk."
+      "text": "Ikkala maket ham ishlaydi — bosib koʻring.\n\nTelefonda: yuqoridagi PROTOTIP qatoridan rolni almashtiring (Kirish · Oʻquvchi · Oʻqituvchi · Ota-ona), pastdagi menyudan ekranlar orasida yuring. Kartochkalar ham bosiladi.\nPanelda: chapdagi menyudan Sinf xaritasi · Umumiy koʻrinish · Oʻqituvchilar."
     },
     {
-      "id": "note-teacher",
+      "id": "note-two",
       "x": 0,
-      "y": -150,
+      "y": -120,
       "w": 900,
       "page": "page-2",
-      "text": "Koʻrik navbati telefonda — oʻqituvchi kechqurun 60 ta shubhali javobni koʻzdan kechiradi.\nZaiflik xaritasi panelda — «yomon oʻquvchilar reytingi» emas, «bugun eʼtibor bering» roʻyxati."
+      "text": "Har bir ekran alohida — bir qarashda hammasini koʻrish va PNG/PDF ga chiqarish uchun. Mazmuni bosiladigan maket bilan bir xil."
     }
   ],
   "launch": {
