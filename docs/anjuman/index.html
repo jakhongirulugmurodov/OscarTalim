@@ -327,6 +327,11 @@ p{margin:0}
 .bcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative;cursor:pointer}
 .bcol i{display:block;background:var(--tile);border-radius:4px 4px 0 0;transition:filter .15s ease}
 .bcol.zero i{background:transparent;border-top:1px dashed var(--line);height:0}
+.bcol .bval{
+  font-family:var(--disp);font-size:.78rem;color:var(--ink-2);
+  text-align:center;line-height:1;padding-bottom:4px;font-variant-numeric:tabular-nums;
+}
+.bcol.last .bval{color:var(--gold)}
 .bcol.last i{background:var(--gold)}
 .bcol:hover i{filter:brightness(1.25)}
 .blabels{display:flex;gap:6px;margin-top:7px}
@@ -567,10 +572,15 @@ const DAY_NAMES = ["Du","Se","Ch","Pa","Ju","Sh","Ya"];
    2. HOLAT (localStorage)
    ============================================================ */
 const KEY = "oscar_anjuman_v1";
+const SCHEMA = 2;
 const DEF = {
-  v:1, maxTest:null, phase:1,
+  v:SCHEMA,
+  maxTest:null,      // oxirgi test (moslik uchun saqlanadi)
+  maxTests:[],       // {reps, d, ts} — butun tarix, ustiga yozilmaydi
+  phase:1,
   k:{standard:1, wide:1, diamond:1, incline:1},
   sessions:[],
+  weights:[],        // {d, kg} — ixtiyoriy tana vazni
   settings:{ mode:"tap", tempo:3, rest:75, sound:true, voice:true, warmup:true, camSens:.5 }
 };
 let S = load();
@@ -580,10 +590,24 @@ function load(){
     const raw = localStorage.getItem(KEY);
     if(!raw) return structuredClone(DEF);
     const p = JSON.parse(raw);
-    return { ...structuredClone(DEF), ...p,
+    return migrate({ ...structuredClone(DEF), ...p,
       k:{...DEF.k, ...(p.k||{})},
-      settings:{...DEF.settings, ...(p.settings||{})} };
+      settings:{...DEF.settings, ...(p.settings||{})} });
   }catch(e){ return structuredClone(DEF); }
+}
+
+/* Eski ma'lumotni yangi sxemaga o'tkazish — hech narsa yo'qolmaydi */
+function migrate(s){
+  if(!Array.isArray(s.maxTests)) s.maxTests=[];
+  if(!Array.isArray(s.weights))  s.weights=[];
+  if(!Array.isArray(s.sessions)) s.sessions=[];
+  // v1 da faqat oxirgi test saqlangan edi — uni tarixning boshiga qo'yamiz
+  if((s.v||1) < 2){
+    if(s.maxTest && s.maxTest.reps!=null && !s.maxTests.length)
+      s.maxTests.push({reps:s.maxTest.reps, d:s.maxTest.date, ts:null});
+    s.v = SCHEMA;
+  }
+  return s;
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }
@@ -630,6 +654,43 @@ function sessionVolume(){
     const t = targetFor(it);
     return a + (t ? t*it.sets : 0);
   },0);
+}
+
+/* --- Yig'ilgan ma'lumotdan chiqadigan xulosalar --- */
+function currentWeight(){
+  const w=S.weights;
+  return (w && w.length) ? w[w.length-1].kg : null;
+}
+// Oxirgi n mashg'ulotdagi javoblar: {easy, norm, hard, jami}
+function rpeTally(n){
+  const out={easy:0, norm:0, hard:0, total:0};
+  S.sessions.slice(-(n||8)).forEach(s=>{
+    Object.values(s.rpe||{}).forEach(v=>{ if(out[v]!=null){ out[v]++; out.total++; } });
+  });
+  return out;
+}
+// Ketma-ket nechta mashg'ulotda javoblarning yarmidan ko'pi "qiyin" bo'ldi
+function hardStreak(){
+  let n=0;
+  for(let i=S.sessions.length-1;i>=0;i--){
+    const v=Object.values(S.sessions[i].rpe||{});
+    if(!v.length) break;
+    if(v.filter(x=>x==="hard").length > v.length/2) n++; else break;
+  }
+  return n;
+}
+// Kun qaysi qismida mashq qilinganini guruhlash
+function timeOfDayStats(){
+  const slot=h => h<11 ? "Ertalab" : h<17 ? "Kunduzi" : "Kechqurun";
+  const g={};
+  S.sessions.forEach(s=>{
+    if(!s.ts) return;
+    const key=slot(new Date(s.ts).getHours());
+    (g[key]=g[key]||{n:0,total:0}).n++;
+    g[key].total+=s.total;
+  });
+  return Object.entries(g).map(([k,v])=>({slot:k, n:v.n, avg:Math.round(v.total/v.n)}))
+    .sort((a,b)=>b.avg-a.avg);
 }
 
 /* ============================================================
@@ -881,7 +942,7 @@ function renderStats(){
   const streak=weekStreak();
 
   // --- Tarix ---
-  const hist=S.sessions.slice(-12).reverse().map(s=>{
+  const hist=S.sessions.slice().sort((a,b)=>(a.d<b.d?-1:a.d>b.d?1:0)).slice(-12).reverse().map(s=>{
     const d=new Date(s.d+"T00:00:00");
     return '<div class="hrow"><span class="dt">'+d.getDate()+"."+String(d.getMonth()+1).padStart(2,"0")+
       ' · '+PLANS[s.phase].title+'</span>'+
@@ -894,6 +955,8 @@ function renderStats(){
       tileHTML(bestBurn||"—","Burnout rekord","clay")+
       tileHTML(streak,"Hafta seriyasi","tile-t")+
     '</div>'+
+    maxTestCard()+
+    rpeCard()+
     '<div class="card"><span class="eyebrow">Haftalik hajm — jami takrorlar</span>'+
       '<div class="chart"><div class="bars" id="bars">'+
         '<div class="gl" style="bottom:33%"></div><div class="gl" style="bottom:66%"></div><div class="gl" style="bottom:99%"></div>'+
@@ -917,6 +980,93 @@ function renderStats(){
     c.addEventListener("click",e=>{ showTip(e); setTimeout(()=>tip.classList.remove("on"),1600); });
     c.addEventListener("mouseleave",()=>tip.classList.remove("on"));
   });
+
+  const rt=$("#btn-retest");
+  if(rt) rt.addEventListener("click",()=>startSession("calib"));
+}
+
+/* --- Maksimal test tarixi: mustaqil o'sish o'lchovi ---
+   Haftalik hajm dastur maqsadlarni oshirgani uchun o'sadi — bu aylanma o'lchov.
+   Bir xil sharoitdagi takrorlanuvchi test esa haqiqiy dalil. */
+function maxTestCard(){
+  const t=S.maxTests||[];
+  const last=t.length? t[t.length-1] : null;
+  const daysSince = last && last.d
+    ? Math.floor((new Date(todayKey()+"T00:00:00") - new Date(last.d+"T00:00:00"))/86400000)
+    : null;
+  const due = daysSince!=null && daysSince>=28;
+
+  if(t.length<2){
+    return '<div class="card"><span class="eyebrow">Haqiqiy o\'sish — maksimal test</span>'+
+      '<p class="muted" style="font-size:.87rem;margin-top:8px">'+
+      (last
+        ? 'Birinchi test: <b>'+last.reps+' takror</b> ('+daysSince+' kun oldin). '+
+          'O\'sish chizig\'i ikkinchi testdan keyin paydo bo\'ladi — 4 haftada bir marta takrorlang.'
+        : 'Hali test topshirilmagan.')+'</p>'+
+      (due||!last ? '<button class="btn gold block" style="margin-top:12px" id="btn-retest">Testni topshirish</button>' : '')+
+      '</div>';
+  }
+
+  const mx=Math.max(...t.map(x=>x.reps),1);
+  const first=t[0].reps, growth=last.reps-first;
+  const pct=first>0 ? Math.round(growth/first*100) : null;
+  const cols=t.slice(-8).map((x,i,arr)=>{
+    const isLast=i===arr.length-1;
+    const dd=x.d? x.d.slice(8)+"/"+x.d.slice(5,7) : "—";
+    return '<div class="bcol'+(isLast?" last":"")+'" data-v="'+x.reps+'" data-l="'+dd+'">'+
+      '<span class="bval">'+x.reps+'</span>'+
+      '<i style="height:'+Math.max(6,x.reps/mx*100)+'%"></i></div>';
+  }).join("");
+  const labs=t.slice(-8).map(x=>'<span>'+(x.d? x.d.slice(8)+"/"+x.d.slice(5,7) : "—")+'</span>').join("");
+
+  return '<div class="card"><span class="eyebrow">Haqiqiy o\'sish — maksimal test</span>'+
+    '<div class="row between" style="margin-top:8px;align-items:flex-end">'+
+      '<div><span class="num" style="font-size:2.1rem;color:var(--gold)">'+last.reps+'</span>'+
+      '<span class="dim" style="font-size:.8rem"> takror</span></div>'+
+      '<span class="pill '+(growth>0?"tile":growth<0?"clay":"")+'">'+
+        (growth>0?"+":"")+growth+' takror'+(pct!=null?" · "+(pct>0?"+":"")+pct+"%":"")+'</span></div>'+
+    '<div class="chart"><div class="bars" style="height:104px">'+cols+'</div>'+
+    '<div class="blabels">'+labs+'</div></div>'+
+    '<div class="dim" style="font-size:.74rem;margin-top:8px">'+
+      'Birinchi test '+first+' → hozir '+last.reps+'. Oxirgi test '+daysSince+' kun oldin.</div>'+
+    (due? '<button class="btn gold block" style="margin-top:12px" id="btn-retest">Yangi test vaqti keldi</button>':'')+
+    '</div>';
+}
+
+/* --- RPE: mashg'ulotlar qanchalik og'ir kechayotgani --- */
+function rpeCard(){
+  const r=rpeTally(8);
+  if(!r.total) return "";
+  const hs=hardStreak();
+  const seg=(v,c)=> v? '<i style="flex:'+v+';background:'+c+'"></i>' : '';
+  const pc=v=>Math.round(v/r.total*100);
+  const tod=timeOfDayStats();
+
+  const warn = t => '<div class="note" style="margin-top:12px;border-color:rgba(210,96,58,.4);'+
+    'background:rgba(210,96,58,.08)">'+t+'</div>';
+  let note="";
+  if(hs>=3) note=warn('<b style="color:var(--clay)">'+hs+' ta mashg\'ulot ketma-ket og\'ir keldi.</b> '+
+    'Bu charchoq to\'planayotganining belgisi — bir hafta yengilroq bajaring yoki bir kun ko\'proq dam oling.');
+  else if(pc(r.hard)>=60) note=warn('<b style="color:var(--clay)">Javoblarning '+pc(r.hard)+
+    '% i "qiyin".</b> Yuklama sizdan oldinda ketayapti — dam olishni uzaytiring yoki '+
+    'bir necha mashg\'ulot yengilroq bajaring.');
+  else if(pc(r.easy)>=50) note='<div class="note" style="margin-top:12px">'+
+    'Mashg\'ulotlarning yarmidan ko\'pi <b>oson</b> kelayapti — raqamlarni tezroq oshirsa bo\'ladi.</div>';
+
+  return '<div class="card"><span class="eyebrow">Qanday kechdi — oxirgi '+
+    Math.min(8,S.sessions.length)+' mashg\'ulot</span>'+
+    '<div class="split" style="margin-top:12px">'+
+      seg(r.easy,"var(--good)")+seg(r.norm,"var(--tile)")+seg(r.hard,"var(--warn)")+'</div>'+
+    '<div class="legend">'+
+      '<span><b style="background:var(--good)"></b>Oson '+pc(r.easy)+'%</span>'+
+      '<span><b style="background:var(--tile)"></b>Normal '+pc(r.norm)+'%</span>'+
+      '<span><b style="background:var(--warn)"></b>Qiyin '+pc(r.hard)+'%</span></div>'+
+    note+
+    (tod.length>1 ? '<div class="dim" style="font-size:.74rem;margin-top:10px">'+
+      'Kun qismi bo\'yicha o\'rtacha hajm: '+
+      tod.map(x=>x.slot+" "+x.avg+" ("+x.n+" marta)").join(" · ")+
+      '</div>' : '')+
+    '</div>';
 }
 function weekStreak(){
   if(!S.sessions.length) return 0;
@@ -968,8 +1118,13 @@ function renderSettings(){
 
     '<div class="card"><span class="eyebrow">Daraja</span>'+
       '<div class="set-row"><div class="lbl"><b>Maksimal test</b><span>'+
-        (S.maxTest? S.maxTest.reps+" marta · "+S.maxTest.date : "hali topshirilmagan")+'</span></div>'+
+        (S.maxTest? S.maxTest.reps+" marta · "+S.maxTest.date+" · jami "+(S.maxTests||[]).length+" ta test"
+                  : "hali topshirilmagan")+'</span></div>'+
         '<button class="btn" id="btn-recalib">Qayta</button></div>'+
+      '<div class="set-row"><div class="lbl"><b>Tana vazni</b><span>'+
+        (currentWeight()!=null ? currentWeight()+" kg · takror × vazn = haqiqiy ish"
+                               : "ixtiyoriy — progressni aniqroq o'lchash uchun")+'</span></div>'+
+        '<button class="btn" id="btn-bw">'+(currentWeight()!=null?"O'zgartirish":"Kiritish")+'</button></div>'+
       '<div class="set-row"><div class="lbl"><b>Reja</b><span>'+PLANS[S.phase].title+' · '+PLANS[S.phase].sub+'</span></div>'+
         '<div class="choice" id="phase-choice">'+
         '<button data-ph="1" class="'+(S.phase===1?"on":"")+'">1-oy</button>'+
@@ -1012,6 +1167,28 @@ function renderSettings(){
     if(k==="sound" && S.settings[k]) SFX.rep();
   }));
   $("#btn-recalib").addEventListener("click",()=>startSession("calib"));
+  $("#btn-bw").addEventListener("click",()=>{
+    const hist=(S.weights||[]).slice(-5).reverse()
+      .map(w=>'<div class="sum-line"><span>'+w.d+'</span><b>'+w.kg+' kg</b></div>').join("");
+    modal('<h2>Tana vazni</h2>'+
+      '<p class="muted" style="font-size:.85rem;margin:8px 0 12px">Ixtiyoriy. Vaznni bilsak, '+
+      '"takror × vazn" orqali haqiqiy bajarilgan ishni hisoblaymiz — vaznigiz o\'zgarsa progress '+
+      'aniqroq ko\'rinadi. Oyda bir marta kiritish yetarli.</p>'+
+      '<input type="number" id="bw-in" inputmode="decimal" step="0.1" min="20" max="300" '+
+        'placeholder="masalan 72.5" value="'+(currentWeight()!=null?currentWeight():"")+'" '+
+        'style="width:100%;padding:13px;border-radius:10px;background:var(--bg-deep);'+
+        'color:var(--ink);border:1px solid var(--line);font-size:1.1rem;font-family:var(--disp)">'+
+      (hist?'<div style="margin-top:14px"><span class="eyebrow">Oxirgi yozuvlar</span>'+hist+'</div>':'')+
+      '<div class="grid-2" style="margin-top:14px"><button class="btn" onclick="closeModal()">Bekor qilish</button>'+
+      '<button class="btn primary" id="bw-save">Saqlash</button></div>');
+    $("#bw-save").addEventListener("click",()=>{
+      const v=parseFloat($("#bw-in").value);
+      if(!(v>=20 && v<=300)) return toast("20 dan 300 gacha kg kiriting");
+      S.weights=(S.weights||[]).filter(w=>w.d!==todayKey());
+      S.weights.push({d:todayKey(), kg:Math.round(v*10)/10});
+      save(); closeModal(); renderSettings(); toast("Vazn saqlandi");
+    });
+  });
   $("#btn-resetk").addEventListener("click",()=>{
     S.k=structuredClone(DEF.k); save(); renderSettings(); toast("Koeffitsientlar tiklandi");
   });
@@ -1161,7 +1338,15 @@ function startSession(kind){
   audio();
   run={
     kind, steps:buildSteps(kind), i:-1, t0:Date.now(),
-    results:{}, count:0, burnout:null, newPR:false
+    results:{}, count:0, burnout:null, newPR:false,
+    // 1-etap: mashg'ulot davomida yig'iladigan ma'lumot
+    rpe:{},                          // har mashq uchun oson/normal/qiyin
+    kBefore:structuredClone(S.k),    // boshlanishidagi koeffitsientlar
+    mode:S.settings.mode,            // qaysi sanash usuli ishlatildi
+    restSet:S.settings.rest,         // sozlamadagi dam vaqti
+    restReal:[],                     // haqiqatda qancha dam olindi
+    warmup:!!S.settings.warmup,
+    _restStart:null
   };
   keepAwake(true);
   show("run");
@@ -1324,7 +1509,9 @@ function endSet(st){
   stopEngines();
   const reps=run.count;
   if(st.calib){
-    S.maxTest={reps:Math.max(0,reps), date:todayKey()};
+    const r=Math.max(0,reps);
+    S.maxTest={reps:r, date:todayKey()};
+    S.maxTests.push({reps:r, d:todayKey(), ts:Date.now()});   // tarix — ustiga yozilmaydi
     S.k=structuredClone(DEF.k);
     save();
     return renderCalibResult(reps);
@@ -1353,16 +1540,23 @@ function renderRest(st){
       '<div class="side"><button class="btn" id="rest-add">+20 soniya</button>'+
       '<button class="btn primary" id="rest-skip">Tayyorman</button></div></div>';
   speak("Dam. "+st.sec+" soniya.");
+  run._restStart=Date.now();
+  const logRest=()=>{
+    if(run._restStart){
+      run.restReal.push(Math.round((Date.now()-run._restStart)/1000));
+      run._restStart=null;
+    }
+  };
   const tick=()=>{
     left--;
     const el=$("#rest"); if(el) el.textContent=mmss(left);
     if(left===10) speak("O'n soniya");
     if(left<=3&&left>0) SFX.tick();
-    if(left<=0){ clearInterval(run.timer); SFX.restEnd(); next(); }
+    if(left<=0){ clearInterval(run.timer); logRest(); SFX.restEnd(); next(); }
   };
   run.timer=setInterval(tick,1000);
   $("#rest-add").addEventListener("click",()=>{ left+=20; $("#rest").textContent=mmss(left); });
-  $("#rest-skip").addEventListener("click",()=>{ clearInterval(run.timer); next(); });
+  $("#rest-skip").addEventListener("click",()=>{ clearInterval(run.timer); logRest(); next(); });
 }
 function nextSetInfo(){
   for(let j=run.i+1;j<run.steps.length;j++){
@@ -1393,6 +1587,7 @@ function renderFeedback(st){
   }));
 }
 function applyFeedback(ex, f, got, want){
+  run.rpe[ex]=f;                       // javobni saqlaymiz — avval tashlab yuborilardi
   let k=S.k[ex]||1;
   if(f==="easy") k*=1.06;
   else if(f==="norm") k*=1.025;
@@ -1430,7 +1625,18 @@ function finish(){
   const dur=Math.round((Date.now()-run.t0)/1000);
 
   if(run.kind==="workout" && total>0){
-    S.sessions.push({d:todayKey(), phase:S.phase, total, items, burnout:run.burnout, dur});
+    S.sessions.push({
+      d:todayKey(), phase:S.phase, total, items, burnout:run.burnout, dur,
+      ts:run.t0,                        // aniq vaqt — kun qaysi payti mashq qilinganini bilish uchun
+      rpe:run.rpe,                      // oson/normal/qiyin javoblari
+      kBefore:run.kBefore,              // mashg'ulot boshidagi koeffitsientlar
+      kAfter:structuredClone(S.k),      // oxiridagi
+      mode:run.mode,                    // sanash usuli
+      restSet:run.restSet,              // sozlamadagi dam
+      restReal:run.restReal,            // haqiqiy dam
+      warmup:run.warmup,
+      bw:currentWeight()                // o'sha kundagi tana vazni (bo'lsa)
+    });
     save();
   }
   const rows=items.map(i=>'<div class="sum-line"><span>'+EX[i.ex].name+' <span class="dim">'+i.sets.join(" · ")+'</span></span>'+

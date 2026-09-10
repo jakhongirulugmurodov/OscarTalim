@@ -83,6 +83,30 @@ python3 -m http.server 8000
 # keyin: http://localhost:8000/docs/anjuman/
 ```
 
+## Saqlanadigan ma'lumot (sxema v2)
+
+Har mashg'ulot uchun:
+
+| Maydon | Nima |
+|---|---|
+| `d`, `ts` | sana va aniq vaqt (kun qaysi payti mashq qilingani) |
+| `total`, `items` | jami takror va har set alohida |
+| `rpe` | har mashq uchun oson/normal/qiyin javobi |
+| `kBefore`, `kAfter` | koeffitsientlar mashg'ulotdan oldin va keyin |
+| `mode` | sanash usuli (teginish/metronom/kamera) |
+| `restSet`, `restReal` | rejalashtirilgan va haqiqiy dam olish vaqti |
+| `warmup`, `bw`, `burnout`, `dur` | isinish, tana vazni, burnout seti, davomiylik |
+
+Alohida:
+
+- `maxTests[]` — barcha maksimal testlar tarixi (ustiga yozilmaydi). Bu **mustaqil
+  o'sish o'lchovi**: haftalik hajm dastur maqsadlarni oshirgani uchun o'sadi, test esa
+  bir xil sharoitda takrorlanadi.
+- `weights[]` — ixtiyoriy tana vazni tarixi.
+
+v1 ma'lumot ochilganda avtomatik v2 ga o'tkaziladi — eski `maxTest` tarixning
+birinchi yozuviga aylanadi, hech narsa yo'qolmaydi.
+
 ## Ma'lumot
 
 Hamma narsa `localStorage` da, faqat shu qurilmada saqlanadi. Hech qayerga
