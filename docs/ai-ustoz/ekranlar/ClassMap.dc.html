@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Commissioner:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#0A1119; --bg-deep:#060C12; --surface:#101C28; --surface-2:#172734;
+    --line:#223849; --line-soft:#1a2c3a;
+    --ink:#E9F2F6; --ink-2:#A7BECC; --ink-3:#6C8798;
+    --tile:#2BC4CE; --tile-deep:#16929B;
+    --gold:#E3B23C; --clay:#D2603A; --good:#4CC38A; --warn:#E08A3C;
+    --r-s:10px; --r-m:16px; --r-l:24px;
+    --sans:"Commissioner","Segoe UI",system-ui,-apple-system,sans-serif;
+    --disp:"Oswald","Segoe UI Semibold",system-ui,sans-serif;
+    --hand:"Caveat","Segoe Script",cursive;
+    --pad:18px;
+    --paper:#F3F6F4; --paper-line:#C7D7E2; --paper-ink:#1E3A5C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--tile);text-decoration:none} a:hover{color:var(--tile-deep)}
+  h1,h2,h3{margin:0;font-family:var(--disp);font-weight:500;letter-spacing:.01em}
+  .num{font-family:var(--disp);font-variant-numeric:tabular-nums;font-weight:500;line-height:1}
+  .l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+          padding:20px var(--pad) 10px;gap:10px;flex:none}
+  .wordmark{display:flex;align-items:center;gap:9px}
+  .wordmark b{font-family:var(--disp);font-weight:600;font-size:1.12rem;
+              letter-spacing:.09em;text-transform:uppercase}
+  .pill{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+        padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+        color:var(--ink-2);background:var(--surface);white-space:nowrap}
+  .pill.tile{color:var(--tile);border-color:rgba(43,196,206,.4);background:rgba(43,196,206,.09)}
+  .pill.gold{color:var(--gold);border-color:rgba(227,178,60,.4);background:rgba(227,178,60,.09)}
+  .pill.clay{color:var(--clay);border-color:rgba(210,96,58,.45);background:rgba(210,96,58,.1)}
+  .pill.warn{color:var(--warn);border-color:rgba(224,138,60,.42);background:rgba(224,138,60,.1)}
+  .pill.good{color:var(--good);border-color:rgba(76,195,138,.4);background:rgba(76,195,138,.09)}
+  .card{background:var(--surface);border:1px solid var(--line-soft);
+        border-radius:var(--r-m);padding:16px}
+  .btn{font-family:var(--sans);font-size:.95rem;font-weight:600;color:var(--ink);
+       background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);
+       padding:13px 18px;display:inline-flex;align-items:center;justify-content:center;
+       gap:8px;min-height:48px;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,var(--tile),var(--tile-deep));
+       color:#04181B;border-color:transparent;font-weight:700;letter-spacing:.02em;
+       box-shadow:0 6px 22px -10px rgba(43,196,206,.9)}
+  .screen{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+  .body{flex:1;padding:0 var(--pad) 18px;display:flex;flex-direction:column;gap:12px;min-height:0}
+  .paper{background:var(--paper);border-radius:12px;position:relative;overflow:hidden}
+  .paper .rule{position:absolute;left:0;right:0;height:1px;background:var(--paper-line)}
+  .hand{font-family:var(--hand);color:var(--paper-ink);font-weight:600}
+
+
+  .app{display:flex;width:100%;height:100%}
+  .side{width:212px;flex:none;background:var(--bg-deep);border-right:1px solid var(--line-soft);
+        display:flex;flex-direction:column;padding:22px 14px}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:26px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r-s);
+         color:var(--ink-3);font-size:.92rem;font-weight:600}
+  .nav a.on{background:rgba(43,196,206,.1);color:var(--tile)}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;padding:22px 24px;gap:16px;
+        overflow:hidden}
+  .rail{width:308px;flex:none;border-left:1px solid var(--line-soft);background:var(--bg-deep);
+        padding:22px 18px;display:flex;flex-direction:column;gap:14px}
+  .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .tile{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-m);
+        padding:14px 14px 13px}
+  .tile .v{font-family:var(--disp);font-size:1.85rem;line-height:1;font-variant-numeric:tabular-nums}
+  .grid{display:grid;grid-template-columns:196px 1fr;gap:10px 14px;align-items:center}
+  .cells{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:5px}
+  .c{aspect-ratio:1;border-radius:5px}
+  .c.g{background:rgba(76,195,138,.85)} .c.w{background:rgba(224,138,60,.85)}
+  .c.k{background:rgba(210,96,58,.85)}  .c.n{background:var(--surface-2);
+        border:1px solid var(--line-soft)}
+  .lg{display:flex;align-items:center;gap:7px;font-size:.74rem;color:var(--ink-3)}
+  .lg i{width:11px;height:11px;border-radius:3px;display:block}
+  .barrow{display:grid;grid-template-columns:150px 1fr 42px;gap:12px;align-items:center}
+  .track{height:9px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+  .track i{display:block;height:100%;border-radius:999px}
+  .att{border:1px solid var(--line-soft);border-radius:var(--r-m);padding:13px 14px;
+       background:var(--surface);display:flex;gap:11px;align-items:flex-start}
+  .att .n{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;
+       justify-content:center;font-family:var(--disp);font-size:.82rem;font-weight:500;
+       background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+</style>
+</helmet>
+<div class="screen" style="width:1280px;height:840px">
+
+<div class="app">
+  <div class="side">
+    <div class="wordmark"><svg class="mark" width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#2BC4CE" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5 L9.5 5.5 L15 20.5"/><path d="M6.2 15.6 H12.8"/><path d="M18.5 5.5 V20.5"/><circle cx="18.5" cy="2.6" r="1.6" fill="#2BC4CE" stroke="none"/></svg><b>AI Ustoz</b></div>
+    <div class="nav"><a class=""><svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 8.5 2.5 14.5 8.5"/><path d="M4.2 8v6.5h8.6V8"/></svg>Bugun</a><a class=""><svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h12"/><path d="M2.5 8.5h12"/><path d="M2.5 12.5h7"/></svg>Koʻrik navbati</a><a class="on"><svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.6"/><circle cx="12" cy="10.5" r="2.2"/><path d="M1.5 14c.6-2.4 2.4-3.6 4.5-3.6"/></svg>Sinflar</a><a class=""><svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14V7.5"/><path d="M8.5 14V3.5"/><path d="M13 14v-4"/></svg>Hisobotlar</a><a class=""><svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.5 12 14 4.2"/></svg>Davomat</a></div>
+    <div style="margin-top:auto;border-top:1px solid var(--line-soft);padding-top:14px">
+      <div style="font-weight:600;font-size:.9rem">Dilnoza Karimova</div>
+      <div class="l" style="margin-top:3px">Matematika · 4 sinf</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+      <div>
+        <h1 style="font-size:1.65rem">7-B · Algebra</h1>
+        <div class="l" style="margin-top:5px">12-dars · 9-sentabr · 5 ta topshiriq</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="pill">Oxirgi 4 hafta</span>
+        <span class="pill tile">Koʻrik tugadi</span>
+      </div>
+    </div>
+
+    <div class="tiles"><div class="tile"><div class="v" style="color:var(--tile)">7,2</div><div class="l" style="margin-top:6px">Oʻrtacha ball</div></div><div class="tile"><div class="v" style="color:var(--ink)">26/30</div><div class="l" style="margin-top:6px">Topshirdi</div></div><div class="tile"><div class="v" style="color:var(--warn)">19%</div><div class="l" style="margin-top:6px">Koʻrikka chiqdi</div></div><div class="tile"><div class="v" style="color:var(--good)">41 daq</div><div class="l" style="margin-top:6px">Sizning vaqtingiz</div></div></div>
+
+    <div class="card" style="flex:1;display:flex;flex-direction:column;gap:14px;min-height:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="flex:none">
+          <div style="font-family:var(--disp);font-size:1.1rem;font-weight:500">Zaiflik xaritasi</div>
+          <div class="l" style="margin-top:3px;white-space:nowrap">mavzu × oʻquvchi · 15 tasi</div>
+        </div>
+        <div style="display:flex;gap:14px">
+          <span class="lg"><i style="background:rgba(76,195,138,.85)"></i>oʻzlashtirgan</span>
+          <span class="lg"><i style="background:rgba(224,138,60,.85)"></i>qoqilyapti</span>
+          <span class="lg"><i style="background:rgba(210,96,58,.85)"></i>oʻzlashtirmagan</span>
+          <span class="lg"><i style="background:#172734;border:1px solid #1a2c3a"></i>topshirmagan</span>
+        </div>
+      </div>
+      <div class="grid"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:.88rem;font-weight:600">Kvadrat tenglama</span><span class="pill warn">4/15</span></div><div class="cells"><div class="c g"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c g"></div><div class="c k"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c g"></div><div class="c n"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c w"></div></div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:.88rem;font-weight:600">Diskriminant</span><span class="pill clay">9/15</span></div><div class="cells"><div class="c g"></div><div class="c w"></div><div class="c k"></div><div class="c g"></div><div class="c w"></div><div class="c k"></div><div class="c g"></div><div class="c k"></div><div class="c w"></div><div class="c g"></div><div class="c n"></div><div class="c w"></div><div class="c g"></div><div class="c k"></div><div class="c w"></div></div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:.88rem;font-weight:600">Chiziqli tenglama</span><span class="pill good">1/15</span></div><div class="cells"><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c g"></div><div class="c n"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div></div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:.88rem;font-weight:600">Koʻphadlarni yoyish</span><span class="pill warn">6/15</span></div><div class="cells"><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c w"></div><div class="c k"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c n"></div><div class="c g"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div></div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:.88rem;font-weight:600">Nisbat, proporsiya</span><span class="pill good">2/15</span></div><div class="cells"><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c w"></div><div class="c g"></div><div class="c n"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div><div class="c g"></div></div></div>
+      <div style="height:1px;background:var(--line-soft);margin-top:2px"></div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div class="l">Xato turlari · butun sinf</div>
+        <div class="barrow"><span style="font-size:.86rem;color:var(--ink-2)">Tushunmovchilik</span><div class="track"><i style="width:88.4%;background:var(--clay)"></i></div><span class="num" style="font-size:.95rem;text-align:right">34%</span></div><div class="barrow"><span style="font-size:.86rem;color:var(--ink-2)">Arifmetik</span><div class="track"><i style="width:72.8%;background:var(--warn)"></i></div><span class="num" style="font-size:.95rem;text-align:right">28%</span></div><div class="barrow"><span style="font-size:.86rem;color:var(--ink-2)">Toʻliqsiz yechim</span><div class="track"><i style="width:46.800000000000004%;background:var(--gold)"></i></div><span class="num" style="font-size:.95rem;text-align:right">18%</span></div><div class="barrow"><span style="font-size:.86rem;color:var(--ink-2)">Eʼtiborsizlik</span><div class="track"><i style="width:36.4%;background:var(--tile-deep)"></i></div><span class="num" style="font-size:.95rem;text-align:right">14%</span></div><div class="barrow"><span style="font-size:.86rem;color:var(--ink-2)">Boshlanmagan</span><div class="track"><i style="width:15.600000000000001%;background:var(--line)"></i></div><span class="num" style="font-size:.95rem;text-align:right">6%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div>
+      <div style="font-family:var(--disp);font-size:1.1rem;font-weight:500">Bugun eʼtibor bering</div>
+      <p style="margin:6px 0 0;font-size:.82rem;color:var(--ink-3);line-height:1.45">
+        Reyting emas — dars davomida 5 daqiqa vaqt ajratsangiz yetadi.</p>
+    </div>
+    <div class="att"><div class="n">SA</div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;justify-content:space-between"><b style="font-size:.92rem;white-space:nowrap">Sardor A.</b><span style="flex:none" class="pill clay">shoshilinch</span></div><div style="font-size:.85rem;color:var(--ink-2);margin-top:3px">Diskriminant belgisi</div><div style="font-size:.78rem;color:var(--ink-3);margin-top:2px">3 haftada 5 marta</div></div></div><div class="att"><div class="n">JT</div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;justify-content:space-between"><b style="font-size:.92rem;white-space:nowrap">Jasur T.</b><span style="flex:none" class="pill clay">shoshilinch</span></div><div style="font-size:.85rem;color:var(--ink-2);margin-top:3px">Kvadrat tenglama</div><div style="font-size:.78rem;color:var(--ink-3);margin-top:2px">usulni qoʻllay olmayapti</div></div></div><div class="att"><div class="n">MR</div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;justify-content:space-between"><b style="font-size:.92rem;white-space:nowrap">Malika R.</b><span style="flex:none" class="pill warn">kuzating</span></div><div style="font-size:.85rem;color:var(--ink-2);margin-top:3px">Koʻphadlarni yoyish</div><div style="font-size:.78rem;color:var(--ink-3);margin-top:2px">2 ta topshiriq topshirmadi</div></div></div><div class="att"><div class="n">NS</div><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;justify-content:space-between"><b style="font-size:.92rem;white-space:nowrap">Nilufar S.</b><span style="flex:none" class="pill warn">kuzating</span></div><div style="font-size:.85rem;color:var(--ink-2);margin-top:3px">Arifmetik xato</div><div style="font-size:.78rem;color:var(--ink-3);margin-top:2px">4 marta ketma-ket</div></div></div>
+    <div style="margin-top:auto;border:1px dashed var(--line);border-radius:var(--r-m);
+                padding:13px 14px">
+      <div class="l">Sinf uchun taklif</div>
+      <p style="margin:7px 0 0;font-size:.86rem;color:var(--ink-2);line-height:1.45">
+        Diskriminant belgisi boʻyicha 7 ta oʻquvchi qoqilyapti — bu alohida ish emas,
+        <b style="color:var(--ink)">10 daqiqalik umumiy takror</b> masalasi.</p>
+    </div>
+  </div>
+</div>
+
+</div>
+</x-dc>
+</body>
+</html>

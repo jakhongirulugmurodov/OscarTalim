@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Commissioner:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#0A1119; --bg-deep:#060C12; --surface:#101C28; --surface-2:#172734;
+    --line:#223849; --line-soft:#1a2c3a;
+    --ink:#E9F2F6; --ink-2:#A7BECC; --ink-3:#6C8798;
+    --tile:#2BC4CE; --tile-deep:#16929B;
+    --gold:#E3B23C; --clay:#D2603A; --good:#4CC38A; --warn:#E08A3C;
+    --r-s:10px; --r-m:16px; --r-l:24px;
+    --sans:"Commissioner","Segoe UI",system-ui,-apple-system,sans-serif;
+    --disp:"Oswald","Segoe UI Semibold",system-ui,sans-serif;
+    --hand:"Caveat","Segoe Script",cursive;
+    --pad:18px;
+    --paper:#F3F6F4; --paper-line:#C7D7E2; --paper-ink:#1E3A5C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--tile);text-decoration:none} a:hover{color:var(--tile-deep)}
+  h1,h2,h3{margin:0;font-family:var(--disp);font-weight:500;letter-spacing:.01em}
+  .num{font-family:var(--disp);font-variant-numeric:tabular-nums;font-weight:500;line-height:1}
+  .l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+          padding:20px var(--pad) 10px;gap:10px;flex:none}
+  .wordmark{display:flex;align-items:center;gap:9px}
+  .wordmark b{font-family:var(--disp);font-weight:600;font-size:1.12rem;
+              letter-spacing:.09em;text-transform:uppercase}
+  .pill{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+        padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+        color:var(--ink-2);background:var(--surface);white-space:nowrap}
+  .pill.tile{color:var(--tile);border-color:rgba(43,196,206,.4);background:rgba(43,196,206,.09)}
+  .pill.gold{color:var(--gold);border-color:rgba(227,178,60,.4);background:rgba(227,178,60,.09)}
+  .pill.clay{color:var(--clay);border-color:rgba(210,96,58,.45);background:rgba(210,96,58,.1)}
+  .pill.warn{color:var(--warn);border-color:rgba(224,138,60,.42);background:rgba(224,138,60,.1)}
+  .pill.good{color:var(--good);border-color:rgba(76,195,138,.4);background:rgba(76,195,138,.09)}
+  .card{background:var(--surface);border:1px solid var(--line-soft);
+        border-radius:var(--r-m);padding:16px}
+  .btn{font-family:var(--sans);font-size:.95rem;font-weight:600;color:var(--ink);
+       background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);
+       padding:13px 18px;display:inline-flex;align-items:center;justify-content:center;
+       gap:8px;min-height:48px;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,var(--tile),var(--tile-deep));
+       color:#04181B;border-color:transparent;font-weight:700;letter-spacing:.02em;
+       box-shadow:0 6px 22px -10px rgba(43,196,206,.9)}
+  .screen{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+  .body{flex:1;padding:0 var(--pad) 18px;display:flex;flex-direction:column;gap:12px;min-height:0}
+  .paper{background:var(--paper);border-radius:12px;position:relative;overflow:hidden}
+  .paper .rule{position:absolute;left:0;right:0;height:1px;background:var(--paper-line)}
+  .hand{font-family:var(--hand);color:var(--paper-ink);font-weight:600}
+
+
+  .wk{display:flex;align-items:flex-end;gap:9px;height:104px}
+  .wk .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+  .wk .stk{width:100%;border-radius:6px 6px 3px 3px}
+  .task{display:flex;gap:11px;align-items:flex-start}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--tile);flex:none;margin-top:7px}
+</style>
+</helmet>
+<div class="screen" style="width:390px;height:844px">
+
+  <div class="topbar">
+    <div class="wordmark"><svg class="mark" width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#2BC4CE" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20.5 L9.5 5.5 L15 20.5"/><path d="M6.2 15.6 H12.8"/><path d="M18.5 5.5 V20.5"/><circle cx="18.5" cy="2.6" r="1.6" fill="#2BC4CE" stroke="none"/></svg><b>AI Ustoz</b></div>
+    <span class="pill">1–7 sentabr</span>
+  </div>
+
+  <div class="body">
+    <div>
+      <h1 style="font-size:1.5rem">Sardorning haftasi</h1>
+      <div class="l" style="margin-top:4px">7-B · Algebra · 5 ta topshiriq</div>
+    </div>
+
+    <div class="card" style="display:flex;align-items:center;gap:18px">
+      <div>
+        <div class="num" style="font-size:2.9rem;color:var(--good)">+40<span
+          style="font-size:1.2rem">%</span></div>
+        <div class="l" style="margin-top:6px">4 haftada</div>
+      </div>
+      <p style="margin:0;font-size:.92rem;color:var(--ink-2);line-height:1.45">
+        Kvadrat tenglamalarni yechishda sezilarli oʻsish. Toʻrt hafta oldin
+        ikkitadan bittasi toʻgʻri edi, bu hafta beshtadan toʻrttasi.</p>
+    </div>
+
+    <div class="card">
+      <div class="l" style="margin-bottom:12px">Toʻgʻri yechilgan topshiriqlar</div>
+      <div class="wk"><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">46%</div><div class="stk" style="height:46px;background:var(--line)"></div><div class="l" style="font-size:.6rem">1-hafta</div></div><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">58%</div><div class="stk" style="height:58px;background:var(--line)"></div><div class="l" style="font-size:.6rem">2-hafta</div></div><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">72%</div><div class="stk" style="height:72px;background:var(--tile-deep)"></div><div class="l" style="font-size:.6rem">3-hafta</div></div><div class="col"><div class="num" style="font-size:.9rem;color:var(--ink-2)">86%</div><div class="stk" style="height:86px;background:var(--tile)"></div><div class="l" style="font-size:.6rem">4-hafta</div></div></div>
+    </div>
+
+    <div class="card" style="border-color:rgba(224,138,60,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-weight:700">Qiyinchilik</div>
+        <span class="pill warn">3 haftada 5 marta</span>
+      </div>
+      <p style="margin:8px 0 0;font-size:.9rem;color:var(--ink-2);line-height:1.45">
+        Diskriminant formulasida <b style="color:var(--ink)">−b</b> belgisini adashtiryapti.
+        Usulni biladi — belgida qoqilyapti.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;
+                  margin-bottom:11px">
+        <div style="font-weight:700">Uyda 15 daqiqa</div>
+        <span class="pill tile">2 ta mashq</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="task"><div class="dot"></div>
+          <div style="font-size:.9rem;color:var(--ink-2)">
+            <b style="color:var(--ink)">x² + 4x − 12 = 0</b> — faqat D va belgini yozing,
+            oxirigacha yechish shart emas</div></div>
+        <div class="task"><div class="dot"></div>
+          <div style="font-size:.9rem;color:var(--ink-2)">
+            <b style="color:var(--ink)">x² − 6x + 5 = 0</b> — yechib, javobni tenglamaga
+            qoʻyib tekshiring</div></div>
+      </div>
+    </div>
+
+    <p style="margin:auto 0 0;font-size:.78rem;color:var(--ink-3);line-height:1.45;
+              text-align:center">
+      Sinfdagi oʻrni koʻrsatilmaydi — bolaning oʻz oʻsishi muhimroq.</p>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

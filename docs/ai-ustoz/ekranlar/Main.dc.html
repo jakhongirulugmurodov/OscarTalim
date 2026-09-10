@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Commissioner:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#0A1119; --bg-deep:#060C12; --surface:#101C28; --surface-2:#172734;
+    --line:#223849; --line-soft:#1a2c3a;
+    --ink:#E9F2F6; --ink-2:#A7BECC; --ink-3:#6C8798;
+    --tile:#2BC4CE; --tile-deep:#16929B;
+    --gold:#E3B23C; --clay:#D2603A; --good:#4CC38A; --warn:#E08A3C;
+    --r-s:10px; --r-m:16px; --r-l:24px;
+    --sans:"Commissioner","Segoe UI",system-ui,-apple-system,sans-serif;
+    --disp:"Oswald","Segoe UI Semibold",system-ui,sans-serif;
+    --hand:"Caveat","Segoe Script",cursive;
+    --pad:18px;
+    --paper:#F3F6F4; --paper-line:#C7D7E2; --paper-ink:#1E3A5C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--tile);text-decoration:none} a:hover{color:var(--tile-deep)}
+  h1,h2,h3{margin:0;font-family:var(--disp);font-weight:500;letter-spacing:.01em}
+  .num{font-family:var(--disp);font-variant-numeric:tabular-nums;font-weight:500;line-height:1}
+  .l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+          padding:20px var(--pad) 10px;gap:10px;flex:none}
+  .wordmark{display:flex;align-items:center;gap:9px}
+  .wordmark b{font-family:var(--disp);font-weight:600;font-size:1.12rem;
+              letter-spacing:.09em;text-transform:uppercase}
+  .pill{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+        padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+        color:var(--ink-2);background:var(--surface);white-space:nowrap}
+  .pill.tile{color:var(--tile);border-color:rgba(43,196,206,.4);background:rgba(43,196,206,.09)}
+  .pill.gold{color:var(--gold);border-color:rgba(227,178,60,.4);background:rgba(227,178,60,.09)}
+  .pill.clay{color:var(--clay);border-color:rgba(210,96,58,.45);background:rgba(210,96,58,.1)}
+  .pill.warn{color:var(--warn);border-color:rgba(224,138,60,.42);background:rgba(224,138,60,.1)}
+  .pill.good{color:var(--good);border-color:rgba(76,195,138,.4);background:rgba(76,195,138,.09)}
+  .card{background:var(--surface);border:1px solid var(--line-soft);
+        border-radius:var(--r-m);padding:16px}
+  .btn{font-family:var(--sans);font-size:.95rem;font-weight:600;color:var(--ink);
+       background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);
+       padding:13px 18px;display:inline-flex;align-items:center;justify-content:center;
+       gap:8px;min-height:48px;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,var(--tile),var(--tile-deep));
+       color:#04181B;border-color:transparent;font-weight:700;letter-spacing:.02em;
+       box-shadow:0 6px 22px -10px rgba(43,196,206,.9)}
+  .screen{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+  .body{flex:1;padding:0 var(--pad) 18px;display:flex;flex-direction:column;gap:12px;min-height:0}
+  .paper{background:var(--paper);border-radius:12px;position:relative;overflow:hidden}
+  .paper .rule{position:absolute;left:0;right:0;height:1px;background:var(--paper-line)}
+  .hand{font-family:var(--hand);color:var(--paper-ink);font-weight:600}
+
+  .marker{position:absolute;width:22px;height:22px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-family:var(--disp);
+    font-size:.8rem;font-weight:600;color:#0A1119}
+  .zone{position:absolute;border-radius:7px;border:2px solid}
+  .err{display:flex;gap:11px;align-items:flex-start}
+  .errno{width:22px;height:22px;border-radius:50%;flex:none;display:flex;
+    align-items:center;justify-content:center;font-family:var(--disp);
+    font-size:.8rem;font-weight:600;color:#0A1119;margin-top:1px}
+  .back{width:34px;height:34px;border-radius:var(--r-s);border:1px solid var(--line);
+    background:var(--surface);display:flex;align-items:center;justify-content:center;flex:none}
+</style>
+</helmet>
+<div class="screen" style="width:390px;height:844px">
+
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div class="back">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A7BECC"
+             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 2.5 L4.5 8 L10 13.5"/></svg>
+      </div>
+      <div>
+        <div style="font-family:var(--disp);font-size:1.02rem;font-weight:500">Algebra · 12-dars</div>
+        <div class="l" style="margin-top:1px">9-sentabr · tekshirildi</div>
+      </div>
+    </div>
+    <span class="pill tile">7-B</span>
+  </div>
+
+  <div class="body">
+    <div class="card" style="display:flex;align-items:center;gap:16px;padding:14px 16px">
+      <div class="num" style="font-size:2.5rem;color:var(--tile)">7,5<span
+        style="font-size:1.1rem;color:var(--ink-3)">&thinsp;/&thinsp;10</span></div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span class="pill good" style="align-self:flex-start">4 toʻgʻri</span>
+        <span class="pill warn" style="align-self:flex-start">1 qisman</span>
+        <span class="pill clay" style="align-self:flex-start">1 xato</span>
+      </div>
+    </div>
+
+    <div class="paper" style="height:250px;flex:none">
+      <div class="rule" style="top:24px;left:16px;right:16px"></div><div class="rule" style="top:50px;left:16px;right:16px"></div><div class="rule" style="top:76px;left:16px;right:16px"></div><div class="rule" style="top:102px;left:16px;right:16px"></div><div class="rule" style="top:128px;left:16px;right:16px"></div><div class="rule" style="top:154px;left:16px;right:16px"></div><div class="rule" style="top:180px;left:16px;right:16px"></div><div class="rule" style="top:206px;left:16px;right:16px"></div><div class="rule" style="top:232px;left:16px;right:16px"></div>
+      <div class="hand" style="position:absolute;left:20px;top:6px;font-size:18px">1) x² − 2x − 15 = 0</div>
+      <div class="hand" style="position:absolute;left:32px;top:56px;font-size:18px">D = 4 + 60 = 64</div>
+      <div class="hand" style="position:absolute;left:32px;top:108px;font-size:18px">x = (−2 ± 8) / 2</div>
+      <div class="hand" style="position:absolute;left:32px;top:160px;font-size:18px">x₁ = 3,&nbsp; x₂ = −5</div>
+      <div class="hand" style="position:absolute;left:20px;top:206px;font-size:18px">2) 3x + 7 = 22 → x = 5</div>
+
+      <div class="zone" style="left:26px;top:100px;width:180px;height:34px;
+           border-color:var(--clay);background:rgba(210,96,58,.13)"></div>
+      <div class="marker" style="left:214px;top:104px;background:var(--clay)">1</div>
+
+      <div class="zone" style="left:14px;top:200px;width:232px;height:32px;
+           border-color:var(--warn);background:rgba(224,138,60,.12)"></div>
+      <div class="marker" style="left:254px;top:203px;background:var(--warn)">2</div>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:14px;padding:15px 16px">
+      <div class="err">
+        <div class="errno" style="background:var(--clay)">1</div>
+        <div>
+          <div style="font-weight:700;font-size:.94rem">1-savol · Arifmetik xato
+            <span class="pill clay" style="margin-left:6px">2-qadam</span></div>
+          <p style="margin:5px 0 0;font-size:.88rem;color:var(--ink-2);line-height:1.45">
+            Diskriminant toʻgʻri (D = 64), ammo formulada <b style="color:var(--ink)">−b</b>
+            oʻrniga <b style="color:var(--ink)">+b</b> qoʻygansiz. Toʻgʻrisi: x = (2 ± 8) / 2.</p>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--line-soft)"></div>
+      <div class="err">
+        <div class="errno" style="background:var(--warn)">2</div>
+        <div>
+          <div style="font-weight:700;font-size:.94rem">2-savol · Toʻliqsiz yechim</div>
+          <p style="margin:5px 0 0;font-size:.88rem;color:var(--ink-2);line-height:1.45">
+            Javob toʻgʻri, lekin oraliq qadam koʻrsatilmagan. Yarim ball.</p>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" style="width:100%;margin-top:auto">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A7BECC"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 1.8 L14.5 13.5 H1.5 Z"/><path d="M8 6.4v3.2"/><path d="M8 11.6v.1"/></svg>
+      Notoʻgʻri baholandi
+    </button>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Commissioner:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#0A1119; --bg-deep:#060C12; --surface:#101C28; --surface-2:#172734;
+    --line:#223849; --line-soft:#1a2c3a;
+    --ink:#E9F2F6; --ink-2:#A7BECC; --ink-3:#6C8798;
+    --tile:#2BC4CE; --tile-deep:#16929B;
+    --gold:#E3B23C; --clay:#D2603A; --good:#4CC38A; --warn:#E08A3C;
+    --r-s:10px; --r-m:16px; --r-l:24px;
+    --sans:"Commissioner","Segoe UI",system-ui,-apple-system,sans-serif;
+    --disp:"Oswald","Segoe UI Semibold",system-ui,sans-serif;
+    --hand:"Caveat","Segoe Script",cursive;
+    --pad:18px;
+    --paper:#F3F6F4; --paper-line:#C7D7E2; --paper-ink:#1E3A5C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--tile);text-decoration:none} a:hover{color:var(--tile-deep)}
+  h1,h2,h3{margin:0;font-family:var(--disp);font-weight:500;letter-spacing:.01em}
+  .num{font-family:var(--disp);font-variant-numeric:tabular-nums;font-weight:500;line-height:1}
+  .l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+          padding:20px var(--pad) 10px;gap:10px;flex:none}
+  .wordmark{display:flex;align-items:center;gap:9px}
+  .wordmark b{font-family:var(--disp);font-weight:600;font-size:1.12rem;
+              letter-spacing:.09em;text-transform:uppercase}
+  .pill{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+        padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+        color:var(--ink-2);background:var(--surface);white-space:nowrap}
+  .pill.tile{color:var(--tile);border-color:rgba(43,196,206,.4);background:rgba(43,196,206,.09)}
+  .pill.gold{color:var(--gold);border-color:rgba(227,178,60,.4);background:rgba(227,178,60,.09)}
+  .pill.clay{color:var(--clay);border-color:rgba(210,96,58,.45);background:rgba(210,96,58,.1)}
+  .pill.warn{color:var(--warn);border-color:rgba(224,138,60,.42);background:rgba(224,138,60,.1)}
+  .pill.good{color:var(--good);border-color:rgba(76,195,138,.4);background:rgba(76,195,138,.09)}
+  .card{background:var(--surface);border:1px solid var(--line-soft);
+        border-radius:var(--r-m);padding:16px}
+  .btn{font-family:var(--sans);font-size:.95rem;font-weight:600;color:var(--ink);
+       background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);
+       padding:13px 18px;display:inline-flex;align-items:center;justify-content:center;
+       gap:8px;min-height:48px;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,var(--tile),var(--tile-deep));
+       color:#04181B;border-color:transparent;font-weight:700;letter-spacing:.02em;
+       box-shadow:0 6px 22px -10px rgba(43,196,206,.9)}
+  .screen{background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+  .body{flex:1;padding:0 var(--pad) 18px;display:flex;flex-direction:column;gap:12px;min-height:0}
+  .paper{background:var(--paper);border-radius:12px;position:relative;overflow:hidden}
+  .paper .rule{position:absolute;left:0;right:0;height:1px;background:var(--paper-line)}
+  .hand{font-family:var(--hand);color:var(--paper-ink);font-weight:600}
+
+
+  .row{display:flex;align-items:center;gap:11px;padding:10px 0}
+  .row + .row{border-top:1px solid var(--line-soft)}
+  .av{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;
+      justify-content:center;font-family:var(--disp);font-size:.85rem;font-weight:500;
+      background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+  .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft);
+       border:1px solid var(--line-soft);border-radius:var(--r-m);overflow:hidden}
+  .sum > div{background:var(--surface);padding:13px 10px;text-align:center}
+</style>
+</helmet>
+<div class="screen" style="width:390px;height:844px">
+
+  <div class="topbar">
+    <div>
+      <div style="font-family:var(--disp);font-size:1.08rem;font-weight:500">Davomat · 7-B</div>
+      <div class="l" style="margin-top:1px">1-dars · 08:00</div>
+    </div>
+    <span class="pill good">Biometrikasiz</span>
+  </div>
+
+  <div class="body">
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;gap:13px;
+         padding:20px 16px">
+      <div style="background:#F3F6F4;padding:11px;border-radius:12px;line-height:0"><svg width="168" height="168" viewBox="0 0 168 168" shape-rendering="crispEdges"><rect width="168" height="168" fill="#F3F6F4"/><g fill="#0A1119"><rect x="0" y="0" width="8" height="8"/><rect x="8" y="0" width="8" height="8"/><rect x="16" y="0" width="8" height="8"/><rect x="24" y="0" width="8" height="8"/><rect x="32" y="0" width="8" height="8"/><rect x="40" y="0" width="8" height="8"/><rect x="48" y="0" width="8" height="8"/><rect x="88" y="0" width="8" height="8"/><rect x="112" y="0" width="8" height="8"/><rect x="120" y="0" width="8" height="8"/><rect x="128" y="0" width="8" height="8"/><rect x="136" y="0" width="8" height="8"/><rect x="144" y="0" width="8" height="8"/><rect x="152" y="0" width="8" height="8"/><rect x="160" y="0" width="8" height="8"/><rect x="0" y="8" width="8" height="8"/><rect x="48" y="8" width="8" height="8"/><rect x="64" y="8" width="8" height="8"/><rect x="80" y="8" width="8" height="8"/><rect x="112" y="8" width="8" height="8"/><rect x="160" y="8" width="8" height="8"/><rect x="0" y="16" width="8" height="8"/><rect x="16" y="16" width="8" height="8"/><rect x="24" y="16" width="8" height="8"/><rect x="32" y="16" width="8" height="8"/><rect x="48" y="16" width="8" height="8"/><rect x="80" y="16" width="8" height="8"/><rect x="88" y="16" width="8" height="8"/><rect x="96" y="16" width="8" height="8"/><rect x="112" y="16" width="8" height="8"/><rect x="128" y="16" width="8" height="8"/><rect x="136" y="16" width="8" height="8"/><rect x="144" y="16" width="8" height="8"/><rect x="160" y="16" width="8" height="8"/><rect x="0" y="24" width="8" height="8"/><rect x="16" y="24" width="8" height="8"/><rect x="24" y="24" width="8" height="8"/><rect x="32" y="24" width="8" height="8"/><rect x="48" y="24" width="8" height="8"/><rect x="72" y="24" width="8" height="8"/><rect x="96" y="24" width="8" height="8"/><rect x="112" y="24" width="8" height="8"/><rect x="128" y="24" width="8" height="8"/><rect x="136" y="24" width="8" height="8"/><rect x="144" y="24" width="8" height="8"/><rect x="160" y="24" width="8" height="8"/><rect x="0" y="32" width="8" height="8"/><rect x="16" y="32" width="8" height="8"/><rect x="24" y="32" width="8" height="8"/><rect x="32" y="32" width="8" height="8"/><rect x="48" y="32" width="8" height="8"/><rect x="72" y="32" width="8" height="8"/><rect x="80" y="32" width="8" height="8"/><rect x="88" y="32" width="8" height="8"/><rect x="96" y="32" width="8" height="8"/><rect x="112" y="32" width="8" height="8"/><rect x="128" y="32" width="8" height="8"/><rect x="136" y="32" width="8" height="8"/><rect x="144" y="32" width="8" height="8"/><rect x="160" y="32" width="8" height="8"/><rect x="0" y="40" width="8" height="8"/><rect x="48" y="40" width="8" height="8"/><rect x="72" y="40" width="8" height="8"/><rect x="80" y="40" width="8" height="8"/><rect x="112" y="40" width="8" height="8"/><rect x="160" y="40" width="8" height="8"/><rect x="0" y="48" width="8" height="8"/><rect x="8" y="48" width="8" height="8"/><rect x="16" y="48" width="8" height="8"/><rect x="24" y="48" width="8" height="8"/><rect x="32" y="48" width="8" height="8"/><rect x="40" y="48" width="8" height="8"/><rect x="48" y="48" width="8" height="8"/><rect x="64" y="48" width="8" height="8"/><rect x="88" y="48" width="8" height="8"/><rect x="112" y="48" width="8" height="8"/><rect x="120" y="48" width="8" height="8"/><rect x="128" y="48" width="8" height="8"/><rect x="136" y="48" width="8" height="8"/><rect x="144" y="48" width="8" height="8"/><rect x="152" y="48" width="8" height="8"/><rect x="160" y="48" width="8" height="8"/><rect x="80" y="56" width="8" height="8"/><rect x="88" y="56" width="8" height="8"/><rect x="96" y="56" width="8" height="8"/><rect x="0" y="64" width="8" height="8"/><rect x="8" y="64" width="8" height="8"/><rect x="48" y="64" width="8" height="8"/><rect x="56" y="64" width="8" height="8"/><rect x="80" y="64" width="8" height="8"/><rect x="96" y="64" width="8" height="8"/><rect x="104" y="64" width="8" height="8"/><rect x="120" y="64" width="8" height="8"/><rect x="144" y="64" width="8" height="8"/><rect x="152" y="64" width="8" height="8"/><rect x="160" y="64" width="8" height="8"/><rect x="0" y="72" width="8" height="8"/><rect x="24" y="72" width="8" height="8"/><rect x="32" y="72" width="8" height="8"/><rect x="48" y="72" width="8" height="8"/><rect x="56" y="72" width="8" height="8"/><rect x="72" y="72" width="8" height="8"/><rect x="96" y="72" width="8" height="8"/><rect x="152" y="72" width="8" height="8"/><rect x="160" y="72" width="8" height="8"/><rect x="0" y="80" width="8" height="8"/><rect x="16" y="80" width="8" height="8"/><rect x="32" y="80" width="8" height="8"/><rect x="40" y="80" width="8" height="8"/><rect x="56" y="80" width="8" height="8"/><rect x="72" y="80" width="8" height="8"/><rect x="80" y="80" width="8" height="8"/><rect x="112" y="80" width="8" height="8"/><rect x="120" y="80" width="8" height="8"/><rect x="152" y="80" width="8" height="8"/><rect x="160" y="80" width="8" height="8"/><rect x="0" y="88" width="8" height="8"/><rect x="8" y="88" width="8" height="8"/><rect x="16" y="88" width="8" height="8"/><rect x="24" y="88" width="8" height="8"/><rect x="64" y="88" width="8" height="8"/><rect x="72" y="88" width="8" height="8"/><rect x="80" y="88" width="8" height="8"/><rect x="88" y="88" width="8" height="8"/><rect x="120" y="88" width="8" height="8"/><rect x="128" y="88" width="8" height="8"/><rect x="136" y="88" width="8" height="8"/><rect x="144" y="88" width="8" height="8"/><rect x="152" y="88" width="8" height="8"/><rect x="160" y="88" width="8" height="8"/><rect x="0" y="96" width="8" height="8"/><rect x="96" y="96" width="8" height="8"/><rect x="112" y="96" width="8" height="8"/><rect x="128" y="96" width="8" height="8"/><rect x="136" y="96" width="8" height="8"/><rect x="144" y="96" width="8" height="8"/><rect x="152" y="96" width="8" height="8"/><rect x="160" y="96" width="8" height="8"/><rect x="80" y="104" width="8" height="8"/><rect x="96" y="104" width="8" height="8"/><rect x="120" y="104" width="8" height="8"/><rect x="136" y="104" width="8" height="8"/><rect x="160" y="104" width="8" height="8"/><rect x="0" y="112" width="8" height="8"/><rect x="8" y="112" width="8" height="8"/><rect x="16" y="112" width="8" height="8"/><rect x="24" y="112" width="8" height="8"/><rect x="32" y="112" width="8" height="8"/><rect x="40" y="112" width="8" height="8"/><rect x="48" y="112" width="8" height="8"/><rect x="80" y="112" width="8" height="8"/><rect x="96" y="112" width="8" height="8"/><rect x="104" y="112" width="8" height="8"/><rect x="120" y="112" width="8" height="8"/><rect x="136" y="112" width="8" height="8"/><rect x="160" y="112" width="8" height="8"/><rect x="0" y="120" width="8" height="8"/><rect x="48" y="120" width="8" height="8"/><rect x="88" y="120" width="8" height="8"/><rect x="104" y="120" width="8" height="8"/><rect x="112" y="120" width="8" height="8"/><rect x="144" y="120" width="8" height="8"/><rect x="160" y="120" width="8" height="8"/><rect x="0" y="128" width="8" height="8"/><rect x="16" y="128" width="8" height="8"/><rect x="24" y="128" width="8" height="8"/><rect x="32" y="128" width="8" height="8"/><rect x="48" y="128" width="8" height="8"/><rect x="64" y="128" width="8" height="8"/><rect x="80" y="128" width="8" height="8"/><rect x="104" y="128" width="8" height="8"/><rect x="120" y="128" width="8" height="8"/><rect x="128" y="128" width="8" height="8"/><rect x="144" y="128" width="8" height="8"/><rect x="160" y="128" width="8" height="8"/><rect x="0" y="136" width="8" height="8"/><rect x="16" y="136" width="8" height="8"/><rect x="24" y="136" width="8" height="8"/><rect x="32" y="136" width="8" height="8"/><rect x="48" y="136" width="8" height="8"/><rect x="80" y="136" width="8" height="8"/><rect x="88" y="136" width="8" height="8"/><rect x="96" y="136" width="8" height="8"/><rect x="112" y="136" width="8" height="8"/><rect x="120" y="136" width="8" height="8"/><rect x="128" y="136" width="8" height="8"/><rect x="144" y="136" width="8" height="8"/><rect x="160" y="136" width="8" height="8"/><rect x="0" y="144" width="8" height="8"/><rect x="16" y="144" width="8" height="8"/><rect x="24" y="144" width="8" height="8"/><rect x="32" y="144" width="8" height="8"/><rect x="48" y="144" width="8" height="8"/><rect x="72" y="144" width="8" height="8"/><rect x="96" y="144" width="8" height="8"/><rect x="104" y="144" width="8" height="8"/><rect x="112" y="144" width="8" height="8"/><rect x="160" y="144" width="8" height="8"/><rect x="0" y="152" width="8" height="8"/><rect x="48" y="152" width="8" height="8"/><rect x="72" y="152" width="8" height="8"/><rect x="80" y="152" width="8" height="8"/><rect x="88" y="152" width="8" height="8"/><rect x="96" y="152" width="8" height="8"/><rect x="112" y="152" width="8" height="8"/><rect x="120" y="152" width="8" height="8"/><rect x="136" y="152" width="8" height="8"/><rect x="152" y="152" width="8" height="8"/><rect x="160" y="152" width="8" height="8"/><rect x="0" y="160" width="8" height="8"/><rect x="8" y="160" width="8" height="8"/><rect x="16" y="160" width="8" height="8"/><rect x="24" y="160" width="8" height="8"/><rect x="32" y="160" width="8" height="8"/><rect x="40" y="160" width="8" height="8"/><rect x="48" y="160" width="8" height="8"/><rect x="72" y="160" width="8" height="8"/><rect x="80" y="160" width="8" height="8"/><rect x="120" y="160" width="8" height="8"/><rect x="136" y="160" width="8" height="8"/><rect x="160" y="160" width="8" height="8"/></g></svg></div>
+      <div style="text-align:center">
+        <div class="num" style="font-size:1.35rem;color:var(--tile)">4:58</div>
+        <div class="l" style="margin-top:5px">soʻng kod yangilanadi</div>
+      </div>
+      <p style="margin:0;text-align:center;font-size:.83rem;color:var(--ink-3);line-height:1.45">
+        Oʻquvchilar kirishda skanerlaydi. Yuz tanish ham, rasm ham saqlanmaydi.</p>
+    </div>
+
+    <div class="sum">
+      <div><div class="num" style="font-size:1.6rem;color:var(--good)">26</div>
+           <div class="l" style="margin-top:5px">keldi</div></div>
+      <div><div class="num" style="font-size:1.6rem;color:var(--warn)">3</div>
+           <div class="l" style="margin-top:5px">kechikdi</div></div>
+      <div><div class="num" style="font-size:1.6rem;color:var(--clay)">1</div>
+           <div class="l" style="margin-top:5px">yoʻq</div></div>
+    </div>
+
+    <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div class="l">Jonli roʻyxat</div>
+        <span class="pill tile">30 dan 29</span>
+      </div>
+      <div style="margin-top:4px"><div class="row"><div class="av">SA</div><div style="flex:1;font-weight:600;font-size:.92rem">Sardor A.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:02</div><span class="pill good">keldi</span></div><div class="row"><div class="av">MR</div><div style="flex:1;font-weight:600;font-size:.92rem">Malika R.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:04</div><span class="pill good">keldi</span></div><div class="row"><div class="av">JT</div><div style="flex:1;font-weight:600;font-size:.92rem">Jasur T.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:11</div><span class="pill warn">kechikdi</span></div><div class="row"><div class="av">NS</div><div style="flex:1;font-weight:600;font-size:.92rem">Nilufar S.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">08:12</div><span class="pill good">keldi</span></div><div class="row"><div class="av">BX</div><div style="flex:1;font-weight:600;font-size:.92rem">Bekzod X.</div><div class="num" style="font-size:1rem;color:var(--ink-2);min-width:46px;text-align:right">—</div><span class="pill clay">yoʻq</span></div></div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

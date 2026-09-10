@@ -1,0 +1,90 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Oʻquvchi va ota-ona"
+    },
+    {
+      "id": "page-2",
+      "name": "Oʻqituvchi"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Capture.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "1 · Suratga olish"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "2 · Natija va xato tahlili"
+    },
+    {
+      "file": "Parent.dc.html",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "3 · Ota-ona haftalik hisoboti"
+    },
+    {
+      "file": "Attendance.dc.html",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1",
+      "title": "4 · QR davomat"
+    },
+    {
+      "file": "Review.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2",
+      "title": "5 · Koʻrik navbati (telefon)"
+    },
+    {
+      "file": "ClassMap.dc.html",
+      "x": 500,
+      "y": 0,
+      "w": 1280,
+      "h": 840,
+      "page": "page-2",
+      "title": "6 · Sinf zaiflik xaritasi (panel)"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-flow",
+      "x": 0,
+      "y": -150,
+      "w": 880,
+      "page": "page-1",
+      "text": "Oʻquvchi oqimi: daftarni suratga oladi → tahlil qaytadi → ota-onaga haftalik hisobot.\nDavomat QR bilan — biometrikasiz, ZRU-547 boʻyicha eng past risk."
+    },
+    {
+      "id": "note-teacher",
+      "x": 0,
+      "y": -150,
+      "w": 900,
+      "page": "page-2",
+      "text": "Koʻrik navbati telefonda — oʻqituvchi kechqurun 60 ta shubhali javobni koʻzdan kechiradi.\nZaiflik xaritasi panelda — «yomon oʻquvchilar reytingi» emas, «bugun eʼtibor bering» roʻyxati."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}
