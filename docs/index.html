@@ -215,6 +215,11 @@
     margin: 2px 0; letter-spacing: .02em;
   }
   .seg .spk { font-size: .78rem; font-weight: 700; margin: 2px 0 1px; }
+  .seg .til {
+    display: inline-block; font-size: .7rem; font-weight: 600; color: #475569;
+    background: #eef2f7; border-radius: 999px; padding: 1px 8px; margin-left: 6px;
+    vertical-align: 1px;
+  }
   #natijaNom {
     font-size: .82rem; color: var(--muted); margin: 0 0 10px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -313,13 +318,22 @@
             </select>
           </div>
           <div>
-            <label>Yozuv</label>
+            <label>O'zbekcha yozuvi</label>
             <select id="yozuv">
               <option value="lotin">Lotin</option>
               <option value="kirill">Kirill</option>
             </select>
           </div>
         </div>
+        <p class="hint">Bu faqat o'zbekcha matnga tegishli — ruscha doim kirill,
+          inglizcha doim lotin yoziladi.</p>
+        <label>Til</label>
+        <select id="til">
+          <option value="aralash">🌐 Avtomatik — aralash tillar (o'zbek, rus, ingliz...)</option>
+          <option value="uz">Faqat o'zbekcha</option>
+        </select>
+        <p class="hint">Aralash rejimda AI har segmentda qaysi til ekanini o'zi aniqlaydi
+          va o'sha tilda yozadi. Tarjima qilmaydi.</p>
         <label>Segmentlash</label>
         <select id="segment">
           <option value="nozik">Nozik — har nuqta va vergulda timecode</option>
@@ -453,7 +467,7 @@ $("fileInput").addEventListener("change", () => {
 });
 
 /* ===== Sxema va promptlar ===== */
-function schemaTuz(sozlovchiBilan) {
+function schemaTuz(sozlovchiBilan, tilBilan) {
   const props = {
     start: { type: "STRING", description: "Boshlanishi, MM:SS formatida (masalan 01:23)" },
     end: { type: "STRING", description: "Tugashi, MM:SS formatida" },
@@ -464,19 +478,26 @@ function schemaTuz(sozlovchiBilan) {
     props.speaker = { type: "STRING", description: "So'zlovchi belgisi: 1-so'zlovchi, 2-so'zlovchi, ..." };
     required.push("speaker");
   }
+  if (tilBilan) {
+    props.lang = { type: "STRING", description: "Segment tili, ISO 639-1 kodi: uz, ru, en, ..." };
+    required.push("lang");
+  }
   return { type: "ARRAY", items: { type: "OBJECT", properties: props, required } };
 }
 
 /* Kafolat: Gemini 1-2 so'zlik "siniq" segment qaytarsa ham,
    uni oldingi segmentga qo'shib yuboramiz — timecode'lar toza qoladi.
-   So'zlovchi almashgan joyda esa birlashtirmaymiz — javob almashinuvi saqlanadi. */
+   So'zlovchi yoki til almashgan joyda esa birlashtirmaymiz —
+   javob almashinuvi va til chegarasi saqlanadi. */
 function segmentTozala(seglar) {
   const out = [];
   for (const s of seglar) {
     const sozSoni = s.text.trim().split(/\s+/).filter(Boolean).length;
     const qisqa = sozSoni < 3 || (s.end - s.start) < 0.8;
     const oldingi = out[out.length - 1];
-    const birXil = !oldingi || !s.speaker || oldingi.speaker === s.speaker;
+    const birXil = !oldingi
+      || (!s.speaker || oldingi.speaker === s.speaker)
+      && (!s.lang || oldingi.lang === s.lang);
     if (qisqa && oldingi && birXil) {
       oldingi.text = (oldingi.text.trim() + " " + s.text.trim()).trim();
       oldingi.end = Math.max(oldingi.end, s.end);
@@ -485,6 +506,17 @@ function segmentTozala(seglar) {
     }
   }
   return out;
+}
+
+/* Til kodlarining o'zbekcha nomi va bayrog'i */
+const TIL_NOM = {
+  uz: "🇺🇿 O'zbek", ru: "🇷🇺 Rus", en: "🇬🇧 Ingliz", tr: "🇹🇷 Turk",
+  kk: "🇰🇿 Qozoq", ky: "🇰🇬 Qirg'iz", tg: "🇹🇯 Tojik", tk: "🇹🇲 Turkman",
+  ar: "🇸🇦 Arab", fa: "🇮🇷 Fors", ko: "🇰🇷 Koreys", zh: "🇨🇳 Xitoy",
+  de: "🇩🇪 Nemis", fr: "🇫🇷 Fransuz", es: "🇪🇸 Ispan", tt: "Tatar",
+};
+function tilNomi(kod) {
+  return TIL_NOM[String(kod).toLowerCase()] || String(kod).toUpperCase();
 }
 
 /* So'zlovchi belgisiga barqaror rang beradi (ro'yxatdagi tartibiga qarab) */
@@ -502,7 +534,7 @@ function soniyaga(t) {
   return p.reduce((acc, x) => acc * 60 + x, 0);
 }
 
-function prompt1(yozuv, rejim, sozlovchi) {
+function prompt1(yozuv, rejim, sozlovchi, aralashTil) {
   const y = yozuv === "lotin" ? "lotin (oʻzbek alifbosi)" : "kirill (ўзбек алифбоси)";
   const sozlovchiQoida = sozlovchi ? `
 9. Audioda nechta har xil odam gapirayotganini ovoz tembri, ohangi va
@@ -513,7 +545,27 @@ function prompt1(yozuv, rejim, sozlovchi) {
    butun audio davomida bir xil belgi bilan yurishi shart.
    Agar audioda faqat bitta odam gapirsa, hammasiga "1-so'zlovchi" yoz.
    Agar kimdir ismini aytsa yoki unga ism bilan murojaat qilinsa,
-   raqam o'rniga o'sha ismni ishlat (masalan "Aziz").` : "";
+   raqam o'rniga o'sha ismni ishlat (masalan "Aziz").${aralashTil ? `
+   ENG MUHIMI: so'zlovchini FAQAT OVOZIGA qarab aniqla, tiliga qarab EMAS.
+   Bitta odam o'zbekcha gapirib, keyin ruschaga yoki inglizchaga o'tishi
+   mumkin — u baribir O'SHA BITTA so'zlovchi. Til o'zgargani hech qachon
+   yangi so'zlovchi degani emas. Aksincha ham: ikki xil odam bir xil tilda
+   gapirsa ham, ular alohida so'zlovchi.` : ""}` : "";
+  const tilQoida = aralashTil ? `
+10. Audioda bir necha til aralash bo'lishi mumkin (o'zbek, rus, ingliz va b.).
+   Har bir segmentga "lang" maydonini qo'sh — o'sha segmentda gapirilgan
+   tilning ISO 639-1 kodi: "uz", "ru", "en" va hokazo.
+11. HAR BIR TILNI O'Z YOZUVIDA yoz: ruscha — kirill (masalan "Привет, как
+   дела"), inglizcha — lotin (masalan "Hello everyone"), o'zbekcha — ${y}.
+   HECH QACHON TARJIMA QILMA va boshqa alifboga o'girma — aynan qaysi tilda
+   aytilgan bo'lsa, o'sha tilda va o'sha alifboda yoz.
+12. Til almashgan joyda yangi segment boshla.
+   MUHIM ISTISNO: o'zbek nutqiga singib ketgan alohida so'zlar uchun segment
+   ajratma va tilni o'zgartirma. Masalan "Men bugun meeting'ga bordim",
+   "konsultatsiya oldim", "okay, davom etamiz" — bular BUTUNLAY o'zbekcha
+   segment ("lang": "uz"), garchi ichida inglizcha yoki ruscha so'z bo'lsa
+   ham. Til faqat butun gap yoki gapning katta bo'lagi boshqa tilda
+   aytilgandagina almashgan hisoblanadi.` : "";
   const segmentQoida = rejim === "nozik"
     ? `3. Segmentlash NOZIK bo'lsin: har bir tinish belgisida (nuqta, vergul,
    so'roq, undov, ikki nuqta) yangi segment boshla — uzun gap o'rtasidagi
@@ -525,11 +577,12 @@ function prompt1(yozuv, rejim, sozlovchi) {
    oldingi yoki keyingi bo'lakka qo'shib yoz.`
     : `3. Har bir segment 3-8 soniya bo'lsin — caption uchun qulay uzunlikda.
    Segmentning "end" vaqti so'z tugagan paytda bo'lsin — pauzani qo'shma.`;
-  return `Sen o'zbek tili bo'yicha professional transkripsiya mutaxassisisan.
+  return `Sen ko'p tilli professional transkripsiya mutaxassisisan (o'zbek, rus,
+ingliz tillarini mukammal bilasan).
 Berilgan video/audiodagi barcha nutqni to'liq va so'zma-so'z matnga o'tkaz.
 
 Qoidalar:
-1. Matnni ${y} yozuvida yoz.
+1. O'zbekcha matnni ${y} yozuvida yoz.
 2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz.
 ${segmentQoida}
 4. "start" va "end" — video boshidan hisoblangan vaqt, "MM:SS.mmm"
@@ -539,7 +592,7 @@ ${segmentQoida}
 5. Punktuatsiyani to'g'ri qo'y.
 6. Ruscha yoki inglizcha aytilgan so'zlarni aynan aytilganidek yoz.
 7. Musiqa, pauza va shovqinlarni yozma — faqat nutqni yoz.
-8. Hech bir gapni tashlab ketma va o'zingdan hech narsa qo'shma.${sozlovchiQoida}`;
+8. Hech bir gapni tashlab ketma va o'zingdan hech narsa qo'shma.${sozlovchiQoida}${tilQoida}`;
 }
 
 /* ===== Holat va jarayon ko'rsatkichi ===== */
@@ -838,9 +891,10 @@ async function boshla() {
     holat("Gemini transkripsiya qilmoqda... (1-2 daqiqa)", false, true);
     const rejim = $("segment").value;
     const sozlovchi = $("sozlovchi").checked;
-    const schema = schemaTuz(sozlovchi);
+    const aralashTil = $("til").value === "aralash";
+    const schema = schemaTuz(sozlovchi, aralashTil);
     const soragich = () => generate(key, model,
-      [mediaPart, { text: prompt1(yozuv, rejim, sozlovchi) }], schema);
+      [mediaPart, { text: prompt1(yozuv, rejim, sozlovchi, aralashTil) }], schema);
     let seglar;
     try {
       seglar = await soragich();
@@ -863,8 +917,11 @@ async function boshla() {
     korsat(seglar, nom);
     jarayon(null);
     const sozlovchilar = [...new Set(seglar.map(s => s.speaker).filter(Boolean))];
+    const tillar = [...new Set(seglar.map(s => s.lang).filter(Boolean))];
     holat(`Tayyor: ${seglar.length} segment` +
-          (sozlovchilar.length ? `, ${sozlovchilar.length} so'zlovchi` : "") + ". ✅");
+          (sozlovchilar.length ? `, ${sozlovchilar.length} so'zlovchi` : "") +
+          (tillar.length > 1 ? `, ${tillar.length} til (${tillar.map(tilNomi).join(", ")})` : "") +
+          ". ✅");
     toast("Tayyor! Tarixga saqlandi 📚");
   } catch (e) {
     if (bekorQilindi) {
@@ -944,12 +1001,16 @@ function korsat(seglar, nom) {
   $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
   const pauzalar = pauzaTop(seglar);
   const nomlar = [...new Set(seglar.map(s => s.speaker).filter(Boolean))];
+  // Til belgisi faqat haqiqatan aralash bo'lganda ko'rsatiladi — toza qolsin
+  const tillar = [...new Set(seglar.map(s => s.lang).filter(Boolean))];
+  const tilKorsat = tillar.length > 1;
   $("segments").innerHTML = seglar.map((s, i) => {
     const rang = s.speaker ? sozlovchiRang(nomlar, s.speaker) : null;
     return (pauzalar[i] ? `<div class="pauza">⏸ ${pauzalar[i]} s pauza</div>` : "") +
       `<div class="seg" style="animation-delay:${Math.min(i * 30, 400)}ms` +
       (rang ? `;border-left:3px solid ${rang}` : "") + `">` +
       `<div class="time">${vaqtQisqa(s.start, true)} → ${vaqtQisqa(s.end, true)}</div>` +
+      (tilKorsat && s.lang ? `<span class="til">${tilNomi(s.lang)}</span>` : "") +
       (s.speaker ? `<div class="spk" style="color:${rang}">${String(s.speaker).replace(/</g, "&lt;")}</div>` : "") +
       `<div class="text">${s.text.replace(/</g, "&lt;")}</div>` +
       `</div>`;
@@ -972,6 +1033,7 @@ function yuklab(fmt) {
         start: Math.round(s.start * 1000) / 1000,
         end: Math.round(s.end * 1000) / 1000,
         ...(s.speaker ? { speaker: s.speaker } : {}),
+        ...(s.lang ? { lang: s.lang } : {}),
         text: s.text.trim(),
       })),
       pauzalar: Object.entries(pauzalar).map(([i, d]) => ({
@@ -981,9 +1043,11 @@ function yuklab(fmt) {
       })),
     }, null, 2);
   } else {
-    // TXT: so'zlovchilar bo'lsa suhbat ko'rinishida, aks holda bir tekst
-    content = natija.some(s => s.speaker)
-      ? natija.map(s => `${s.speaker}: ${s.text.trim()}`).join("\n") + "\n"
+    // TXT: so'zlovchi/til bo'lsa qatorma-qator, aks holda bir tekst
+    const kopTil = new Set(natija.map(s => s.lang).filter(Boolean)).size > 1;
+    content = (natija.some(s => s.speaker) || kopTil)
+      ? natija.map(s => (kopTil && s.lang ? `[${String(s.lang).toUpperCase()}] ` : "") +
+          (s.speaker ? `${s.speaker}: ` : "") + s.text.trim()).join("\n") + "\n"
       : natija.map(s => s.text.trim()).join(" ") + "\n";
   }
   const a = document.createElement("a");
@@ -998,16 +1062,19 @@ function yuklab(fmt) {
 
 function nusxala(timecode) {
   let content;
+  const kopTil = new Set(natija.map(s => s.lang).filter(Boolean)).size > 1;
   if (timecode) {
     const pauzalar = pauzaTop(natija);
     content = natija.map((s, i) =>
       (pauzalar[i] ? `⏸ ${pauzalar[i]} s pauza\n` : "") +
       `[${vaqtQisqa(s.start, true)} → ${vaqtQisqa(s.end, true)}] ` +
+      (kopTil && s.lang ? `[${String(s.lang).toUpperCase()}] ` : "") +
       (s.speaker ? `${s.speaker}: ` : "") + s.text.trim()
     ).join("\n");
   } else {
-    content = natija.some(s => s.speaker)
-      ? natija.map(s => `${s.speaker}: ${s.text.trim()}`).join("\n")
+    content = (natija.some(s => s.speaker) || kopTil)
+      ? natija.map(s => (kopTil && s.lang ? `[${String(s.lang).toUpperCase()}] ` : "") +
+          (s.speaker ? `${s.speaker}: ` : "") + s.text.trim()).join("\n")
       : natija.map(s => s.text.trim()).join(" ");
   }
   navigator.clipboard.writeText(content)
