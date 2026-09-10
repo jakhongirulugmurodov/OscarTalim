@@ -50,6 +50,46 @@ Ko'rsatilgan raqamlar 20 marta anjuman qila oladigan odam uchun. Kalibrovka test
 keyin ular sizning natijangizga proporsional ravishda qayta hisoblanadi
 (minimum 3 takror).
 
+## Qiyinlik zinapoyasi
+
+Takror ko'paygani sari mashq kuch mashqidan chidamlilik mashqiga aylanib ketadi.
+Shuning uchun takror **25** ga yetganda dastur takrorni oshirmaydi — mashqning
+o'zini qiyinlashtiradi va takror **12** dan qayta boshlanadi:
+
+```
+Devorga → Stolga → Stulga → Oddiy → Oyoq balandda → Arxer → Bir qo'lda (salbiy)
+```
+
+Har mashqning o'z zinapoyasi bor (6-7 daraja). Uddalay olmasangiz bir pog'ona
+pastga tushiriladi. Kalibrovka testi 10 dan kam bo'lsa, zinapoyaning
+yengilroq qismidan boshlanadi — boshlang'ich odam ham to'g'ri texnika bilan
+mashq qiladi.
+
+16 haftalik simulyatsiya (max = 20, har safar "Normal"):
+
+| | Eski algoritm | Yangi algoritm |
+|---|---|---|
+| 11-hafta keng ushlab | 54 takror/set | 12 takror/set (yangi daraja) |
+| 16-hafta bir mashg'ulot | 33 daqiqa | 17 daqiqa |
+| 14-16-haftalar | bir xil (qotib qolgan) | o'sishda davom etadi |
+
+## Yengil hafta (deload)
+
+Har 4-haftada raqamlar 40% ga tushiriladi va koeffitsientlar o'zgarmaydi.
+Mushak dam olganda kuchayadi. Sozlamalardan o'chirish mumkin.
+
+## Tanaffusdan keyin qaytish
+
+11 kundan ko'p tanaffusdan keyin koeffitsientlar har hafta uchun 6% ga
+(ko'pi bilan 30%) yengillashtiriladi — birinchi kun muvaffaqiyatsizlik bilan
+boshlanmasligi uchun.
+
+## Fazani silliq almashtirish
+
+1-oydan 3-oyga o'tganda rejadagi bazaviy raqam sakraydi (keng ushlab: 9 → 18).
+Koeffitsient teskari nisbatda qayta hisoblanadi, shuning uchun **maqsad
+uzluksiz qoladi**. Avval 13 takror bir kechada 27 ga chiqib ketardi.
+
 ## Moslashuv formulasi
 
 Har mashq uchun alohida koeffitsient `k` saqlanadi:
