@@ -73,6 +73,33 @@ mashq qiladi.
 | 16-hafta bir mashg'ulot | 33 daqiqa | 17 daqiqa |
 | 14-16-haftalar | bir xil (qotib qolgan) | o'sishda davom etadi |
 
+## Tortish mashqlari (dam olish vaqtida)
+
+Anjuman faqat tananing **oldini** ishlatadi: ko'krak, old yelka, tricep. Orqa
+mushaklar bo'sh qolsa, yelka oldinga tortiladi — bukchaygan qomat va yelka og'rig'i.
+
+Shuning uchun tortish setlari **alohida bo'lim emas** — mashg'ulot ichida, dam
+olish vaqtiga qo'yiladi. Ko'krak dam olayotganda orqa ishlaydi, shuning uchun
+mashg'ulot deyarli cho'zilmaydi:
+
+```
+anjuman → 25s dam → TORTISH seti → 45s dam → anjuman → ...
+```
+
+Sinov: 3 ta tortish seti qo'shilganda mashg'ulot **16 → 17 daqiqa** bo'ldi.
+
+Zinapoya ofis sharoitiga qurilgan — stol va turnik yetadi:
+
+```
+Stolga tik turib → qiya → stol ostida (tizza bukilgan) → oyoq to'g'ri
+→ oyoq stulda → bir qo'l bilan → turnik (oyoq yerda) → turnik → turnik sekin
+```
+
+Har mashg'ulotda "Bugun imkonim yo'q" tugmasi bor — stol topilmasa bir bosishda
+o'sha kunlik tortish setlari o'tkazib yuboriladi.
+
+Statistikada **itarish/tortish muvozanati** ko'rsatkichi bor: sog'lom nisbat ~100%.
+
 ## Yengil hafta (deload)
 
 Har 4-haftada raqamlar 40% ga tushiriladi va koeffitsientlar o'zgarmaydi.
