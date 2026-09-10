@@ -396,6 +396,26 @@ input[type=range]{width:150px;accent-color:var(--tile)}
 }
 .ta:focus{outline:2px solid var(--tile);outline-offset:1px}
 
+/* Qiyinlik zinapoyasi */
+.ladder{margin-top:4px;border-top:1px solid var(--line-soft);padding-top:10px}
+.ladder summary{
+  cursor:pointer;font-size:.8rem;font-weight:600;color:var(--ink-3);
+  letter-spacing:.04em;list-style:none;
+}
+.ladder summary::-webkit-details-marker{display:none}
+.ladder summary::before{content:"▸ ";color:var(--tile)}
+.ladder[open] summary::before{content:"▾ "}
+.rung{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:.85rem;color:var(--ink-3)}
+.rung .rn{
+  width:20px;height:20px;flex:none;border-radius:5px;border:1px solid var(--line);
+  display:grid;place-items:center;font-family:var(--disp);font-size:.72rem;
+}
+.rung.past{color:var(--ink-2)}
+.rung.past .rn{background:rgba(43,196,206,.12);border-color:rgba(43,196,206,.3);color:var(--tile)}
+.rung.now{color:var(--ink);font-weight:600}
+.rung.now .rn{background:var(--tile);border-color:transparent;color:#04181B}
+.rung .rl{flex:1}
+
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001ms !important;transition-duration:.001ms !important}
   .breath{transform:none !important}
@@ -565,6 +585,102 @@ const PLANS = {
       ]}
 };
 
+/* ------------------------------------------------------------
+   QIYINLIK ZINAPOYASI
+   Takror 25 ga yetgach dastur takrorni oshirmaydi — mashqning
+   o'zini qiyinlashtiradi va takrorni 12 ga tushiradi. Shu tufayli
+   progress "54 takror × 3 set" chidamlilik mashqiga aylanib
+   ketmaydi va koeffitsient shifti muammosi yo'qoladi.
+   base — rejada yozilgan variant (shundan boshlanadi).
+   ------------------------------------------------------------ */
+const LADDER = {
+  standard:{ base:3, rungs:[
+    {n:"Devorga suyanib", dia:"wall", cue:[
+      "Qo'llar devorda, yelka balandligida.","Oyoq devordan 60-80 sm orqada.",
+      "Tana boshdan tovongacha tik chiziq."]},
+    {n:"Stolga suyanib", dia:"elev", cue:[
+      "Qo'llar stol chetida, yelkadan biroz keng.","Ko'krak stolga tegib qaytsin.",
+      "Dumba osilmasin — qorin taranglashgan."]},
+    {n:"Stulga suyanib", dia:"elev", cue:[
+      "Qo'llar stul o'rindig'ida — stoldan og'irroq.","Ko'krak stulga tegguncha tushing.",
+      "Stul qimirlamasligiga ishonch hosil qiling."]},
+    {n:"Oddiy anjuman", dia:"standard", cue:[
+      "Qo'llar yelkadan biroz kengroq, kaft to'liq yerda.",
+      "Tirsak tanadan 45 daraja burchakda ochilsin — yonga emas.",
+      "Bosh, dumba, tovon bitta tekis chiziqda.",
+      "Ko'krak yerga 2-3 sm qolguncha tushing."]},
+    {n:"Oyoq balandda", dia:"incline", cue:[
+      "Oyoqlar stul yoki krovatda (30-50 sm).","Qanchalik baland — shunchalik og'ir.",
+      "Bel egilmasin, qorin taranglashgan."]},
+    {n:"Arxer anjuman", dia:"archer", cue:[
+      "Qo'llar keng. Bir qo'lga tushing, ikkinchisi yonga tik cho'zilgan.",
+      "Har takrorda tomonni almashtiring.","Cho'zilgan qo'l faqat muvozanat uchun."]},
+    {n:"Bir qo'lda (salbiy)", dia:"onearm", cue:[
+      "Bir qo'lda 4-5 soniyada sekin tushing.","Turishda ikkinchi qo'l yordam beradi.",
+      "Oyoqlarni kengroq qo'ying — muvozanat oson bo'ladi."]}
+  ]},
+  wide:{ base:2, rungs:[
+    {n:"Stolga keng ushlab", dia:"elev", cue:[
+      "Qo'llar stol chetida, yelkadan ancha keng.","Ko'krakni kerib tushing."]},
+    {n:"Stulga keng ushlab", dia:"elev", cue:[
+      "Qo'llar stulda, keng.","Kurak suyaklarini birlashtiring."]},
+    {n:"Keng ushlab", dia:"wide", cue:[
+      "Qo'llar yelkadan ancha keng — taxminan 1.5 barobar.",
+      "Barmoqlar biroz tashqariga qaragan bo'lsin.",
+      "Ko'krakni kerib, kurak suyaklarini birlashtiring.",
+      "Pastga to'liq tushing, ammo yelkani og'ritmang."]},
+    {n:"Keng, oyoq balandda", dia:"incline", cue:[
+      "Keng qo'l + oyoqlar stulda.","Yuqori ko'krakka kuchli urg'u."]},
+    {n:"Arxer (keng)", dia:"archer", cue:[
+      "Keng holatdan bir tomonga tushing.","Ikkinchi qo'l tik cho'zilgan."]},
+    {n:"Arxer, oyoq balandda", dia:"archer", cue:[
+      "Arxer + oyoqlar stulda.","Har tomonga alohida sanang."]},
+    {n:"Bir qo'lda keng (salbiy)", dia:"onearm", cue:[
+      "Oyoqlar keng, bir qo'lda 5 soniyada tushing.","Turishda ikkinchi qo'l yordam beradi."]}
+  ]},
+  diamond:{ base:2, rungs:[
+    {n:"Stolga olmos", dia:"elev", cue:[
+      "Qo'llar stol chetida uchburchak shaklida.","Tirsaklar tanaga yaqin."]},
+    {n:"Tizzada olmos", dia:"knee", cue:[
+      "Tizzalar yerda, boldirlar ko'tarilgan.","Tana tizzadan boshgacha tik chiziq."]},
+    {n:"Olmos (diamond)", dia:"diamond", cue:[
+      "Bosh va ko'rsatkich barmoqlaridan uchburchak (olmos) yasang.",
+      "Qo'llar ko'krak o'rtasi ostida.",
+      "Tirsaklar tanaga yaqin — yonga ochilmasin.",
+      "Bu eng og'iri: 5 marta ham natija."]},
+    {n:"Olmos, oyoq balandda", dia:"incline", cue:[
+      "Olmos qo'l + oyoqlar stulda.","Tricepga juda kuchli yuklama."]},
+    {n:"Pseudo-planche olmos", dia:"pike", cue:[
+      "Qo'llar bel tomonga suriladi, barmoq oyoqqa qaraydi.",
+      "Tana oldinga egiladi — yelka kaftdan oldinda."]},
+    {n:"Pseudo-planche, oyoq balandda", dia:"pike", cue:[
+      "Pseudo-planche + oyoqlar stulda.","Tricep va yelkaga eng og'ir yuklama."]}
+  ]},
+  incline:{ base:2, rungs:[
+    {n:"Stulga suyanib", dia:"elev", cue:[
+      "Qo'llar stulda — eng yengil variant.","Tana boshdan tovongacha tik chiziq."]},
+    {n:"Oddiy anjuman", dia:"standard", cue:[
+      "Oyoq yerda — bu yengilroq variant.","Tana tik chiziq."]},
+    {n:"Oyoq balandda", dia:"incline", cue:[
+      "Oyoqlarni stul yoki krovatga qo'ying (30-50 sm).",
+      "Qanchalik baland bo'lsa, shunchalik og'ir.",
+      "Tana yana tik chiziq — bel egilmasin.",
+      "Bo'yin bo'sh, ko'z oldingi yerga qarasin."]},
+    {n:"Oyoq yuqoriroq", dia:"incline", cue:[
+      "Oyoqlar 60-80 sm balandlikda (stol, deraza tokchasi).",
+      "Yuklama yelkaga ko'proq o'tadi."]},
+    {n:"Pike anjuman", dia:"pike", cue:[
+      "Dumbani yuqoriga ko'taring — tana ∧ shaklida.",
+      "Bosh tepasi yerga qarab tushadi.","Bu deyarli yelka mashqi."]},
+    {n:"Devorga tik pike", dia:"pike", cue:[
+      "Oyoq devorda, tana deyarli tik.","Faqat yelka bardosh bersa bajaring."]}
+  ]}
+};
+
+const REP_CAP   = 25;  // shu takrordan oshsa — qiyinroq variantga
+const REP_AFTER = 12;  // yangi variantda shuncha takrordan boshlanadi
+const REP_BACK  = 10;  // yengilroq variantga tushganda
+
 const BASE_MAX = 20;           // reja qaysi daraja uchun yozilgan
 const DAY_NAMES = ["Du","Se","Ch","Pa","Ju","Sh","Ya"];
 
@@ -572,16 +688,19 @@ const DAY_NAMES = ["Du","Se","Ch","Pa","Ju","Sh","Ya"];
    2. HOLAT (localStorage)
    ============================================================ */
 const KEY = "oscar_anjuman_v1";
-const SCHEMA = 2;
+const SCHEMA = 3;
+const baseRungs = ()=> Object.fromEntries(Object.entries(LADDER).map(([k,v])=>[k, v.base]));
 const DEF = {
   v:SCHEMA,
   maxTest:null,      // oxirgi test (moslik uchun saqlanadi)
   maxTests:[],       // {reps, d, ts} — butun tarix, ustiga yozilmaydi
   phase:1,
   k:{standard:1, wide:1, diamond:1, incline:1},
+  rung:baseRungs(),  // qiyinlik zinapoyasidagi joriy pog'ona
   sessions:[],
   weights:[],        // {d, kg} — ixtiyoriy tana vazni
-  settings:{ mode:"tap", tempo:3, rest:75, sound:true, voice:true, warmup:true, camSens:.5 }
+  lastDecayFor:null, // tanaffusdan keyingi yengillashtirish qaysi sana uchun qo'llangan
+  settings:{ mode:"tap", tempo:3, rest:75, sound:true, voice:true, warmup:true, camSens:.5, deload:true }
 };
 let S = load();
 
@@ -592,6 +711,7 @@ function load(){
     const p = JSON.parse(raw);
     return migrate({ ...structuredClone(DEF), ...p,
       k:{...DEF.k, ...(p.k||{})},
+      rung:{...baseRungs(), ...(p.rung||{})},
       settings:{...DEF.settings, ...(p.settings||{})} });
   }catch(e){ return structuredClone(DEF); }
 }
@@ -605,8 +725,13 @@ function migrate(s){
   if((s.v||1) < 2){
     if(s.maxTest && s.maxTest.reps!=null && !s.maxTests.length)
       s.maxTests.push({reps:s.maxTest.reps, d:s.maxTest.date, ts:null});
-    s.v = SCHEMA;
   }
+  // v3: qiyinlik zinapoyasi. Eski foydalanuvchilar rejadagi variantda turadi.
+  if((s.v||1) < 3){
+    s.rung = {...baseRungs(), ...(s.rung||{})};
+    if(s.lastDecayFor===undefined) s.lastDecayFor=null;
+  }
+  s.v = SCHEMA;
   return s;
 }
 function save(){
@@ -638,6 +763,65 @@ function modal(html){
 function closeModal(){ $("#modal").classList.remove("on"); }
 $("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
 
+/* --- Qiyinlik zinapoyasi --- */
+function rungIdx(slot){
+  return clamp(S.rung[slot] ?? LADDER[slot].base, 0, LADDER[slot].rungs.length-1);
+}
+function variant(slot){ return LADDER[slot].rungs[rungIdx(slot)]; }
+function exName(slot){ return variant(slot).n; }
+function rungLabel(slot){
+  return (rungIdx(slot)+1)+"/"+LADDER[slot].rungs.length+"-daraja";
+}
+// Pog'ona almashganda k shunday qayta hisoblanadi-ki, maqsad kerakli takrorga tushsin
+function setRung(slot, idx, wantReps){
+  S.rung[slot]=clamp(idx,0,LADDER[slot].rungs.length-1);
+  // Bazaviy raqam JORIY fazadan olinishi shart: keng ushlab 1-fazada 9,
+  // 2-fazada 18 — noto'g'ri fazani olsak maqsad ikki barobar chiqib ketadi.
+  const it = planItems().find(x=>x.ex===slot && x.reps)
+          || allItems().find(x=>x.ex===slot && x.reps);
+  const base = it ? it.reps : 12;
+  S.k[slot]=clamp(wantReps/(base*scale()), .3, 3);
+}
+// Eng yuqori pog'onada takror cheksiz o'smasin (zinapoya tugagan holat)
+function capAtTopRung(slot, k){
+  if(rungIdx(slot) < LADDER[slot].rungs.length-1) return k;
+  const it=planItems().find(x=>x.ex===slot && x.reps);
+  if(!it) return k;
+  return Math.min(k, 35/(it.reps*scale()));
+}
+function allItems(){ return [...PLANS[1].items, ...PLANS[2].items]; }
+
+/* --- Fazani silliq almashtirish ---
+   Rejadagi bazaviy raqam sakraydi (keng ushlab: 9 -> 18). Koeffitsientni
+   teskari nisbatda qayta hisoblab, MAQSADNI uzluksiz qoldiramiz.
+   Aks holda 13 takror bir kechada 27 ga chiqib ketardi. */
+function switchPhase(to){
+  const from=S.phase;
+  if(from===to) return;
+  const oldT={};
+  PLANS[from].items.forEach(it=>{ oldT[it.ex]=targetRawFor(it.ex); });
+  // AMRAP mashqlar uchun maqsad yo'q — oxirgi haqiqiy natijadan olamiz
+  const lastAmrap={};
+  S.sessions.slice(-4).forEach(s=>(s.items||[]).forEach(it=>{
+    if(it.target==null && it.sets && it.sets.length)
+      lastAmrap[it.ex]=Math.round(it.sets.reduce((a,b)=>a+b,0)/it.sets.length);
+  }));
+
+  S.phase=to;
+  PLANS[to].items.forEach(it=>{
+    if(!it.reps) return;                       // burnout — maqsadsiz
+    let want = oldT[it.ex] ?? lastAmrap[it.ex] ?? null;
+    if(want==null){
+      // Bu mashq avval umuman bo'lmagan (masalan "oyoq balandda").
+      // Oddiy anjuman maqsadidan kelib chiqib taxminlaymiz: ~1.3 barobar og'irroq.
+      const ref=oldT.standard ?? oldT.wide ?? null;
+      want = ref ? Math.max(5, Math.round(ref/1.3)) : Math.round(it.reps*scale());
+    }
+    S.k[it.ex]=clamp(want/(it.reps*scale()), .3, 3);
+  });
+  save();
+}
+
 /* --- Maqsadli takrorlar: kalibrovka + avto-moslashuv --- */
 function scale(){
   const m = S.maxTest ? S.maxTest.reps : BASE_MAX;
@@ -646,7 +830,35 @@ function scale(){
 function targetFor(item){
   if(item.amrap || item.burnout) return null;
   const k = S.k[item.ex] || 1;
-  return Math.max(3, Math.round(item.reps * scale() * k));
+  const t = Math.round(item.reps * scale() * k * (isDeload() ? 0.6 : 1));
+  return Math.max(3, t);
+}
+
+/* --- Yengil hafta (deload): har 4-haftada tiklanish --- */
+function programWeek(){
+  if(!S.sessions.length) return 1;
+  const first=S.sessions.reduce((a,s)=> s.d<a ? s.d : a, S.sessions[0].d);
+  const days=Math.floor((new Date(todayKey()+"T00:00:00") - new Date(first+"T00:00:00"))/86400000);
+  return Math.floor(days/7)+1;
+}
+function isDeload(){
+  if(!S.settings.deload) return false;
+  if(S.sessions.length < 8) return false;      // birinchi 2 haftada kerak emas
+  return programWeek() % 4 === 0;
+}
+
+/* --- Tanaffusdan keyin yumshoq qaytish --- */
+function layoffCheck(){
+  if(!S.sessions.length) return null;
+  const last=S.sessions.reduce((a,s)=> s.d>a ? s.d : a, S.sessions[0].d);
+  const days=Math.floor((new Date(todayKey()+"T00:00:00") - new Date(last+"T00:00:00"))/86400000);
+  if(days < 11) return null;
+  if(S.lastDecayFor===last) return {days, applied:false};   // allaqachon qo'llangan
+  const weeks=Math.floor(days/7);
+  const f=clamp(1 - 0.06*weeks, .7, 1);
+  Object.keys(S.k).forEach(x=> S.k[x]=clamp(S.k[x]*f, .3, 3));
+  S.lastDecayFor=last; save();
+  return {days, applied:true, pct:Math.round((1-f)*100)};
 }
 function planItems(){ return PLANS[S.phase].items; }
 function sessionVolume(){
@@ -771,6 +983,55 @@ function diagram(type, size){
   else if(type==="diamond") inner = head+body+legs+
       hand(43,40,28)+hand(57,40,-28)+
       '<path d="M50 29 L61 40 L50 51 L39 40 Z" fill="none" stroke="#E3B23C" stroke-width="2" stroke-linejoin="round"/>';
+  else if(type==="archer") inner = head+body+legs+
+      '<path d="M50 40 L86 34" stroke="#1B2C3B" stroke-width="7" stroke-linecap="round"/>'+
+      hand(30,38)+hand(88,34,14)+
+      '<path d="M22 46 L38 46" stroke="#E3B23C" stroke-width="2" stroke-linecap="round"/>'+
+      '<path d="M80 42 L96 42" stroke="#E3B23C" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round"/>';
+  else if(type==="onearm") inner = head+body+legs+
+      hand(50,38)+
+      '<path d="M74 30 L74 52" stroke="#E3B23C" stroke-width="2" stroke-dasharray="3 3"/>'+
+      '<rect x="40" y="86" width="6" height="10" rx="3" fill="#1B2C3B"/>'+
+      '<rect x="55" y="86" width="6" height="10" rx="3" fill="#1B2C3B"/>';
+  else if(type==="knee"){
+    // yon ko'rinish: tizzalar yerda
+    inner =
+      '<rect x="6" y="76" width="88" height="3" rx="1.5" fill="#22384A"/>'+
+      '<path d="M22 52 L62 64" stroke="#1B2C3B" stroke-width="13" stroke-linecap="round"/>'+
+      '<circle cx="17" cy="51" r="7.5" fill="#22384A"/>'+
+      '<path d="M24 56 L24 76" stroke="#2BC4CE" stroke-width="6" stroke-linecap="round"/>'+
+      '<circle cx="66" cy="72" r="6" fill="#22384A"/>'+
+      '<path d="M70 70 L86 66" stroke="#1B2C3B" stroke-width="8" stroke-linecap="round"/>';
+  }
+  else if(type==="wall"){
+    // yon ko'rinish: devorga suyanib
+    inner =
+      '<rect x="76" y="8" width="4" height="84" rx="2" fill="#22384A"/>'+
+      '<rect x="10" y="88" width="70" height="3" rx="1.5" fill="#22384A"/>'+
+      '<path d="M26 66 L70 40" stroke="#1B2C3B" stroke-width="13" stroke-linecap="round"/>'+
+      '<circle cx="72" cy="34" r="7.5" fill="#22384A"/>'+
+      '<path d="M70 40 L76 34" stroke="#2BC4CE" stroke-width="6" stroke-linecap="round"/>'+
+      '<path d="M24 70 L20 88" stroke="#1B2C3B" stroke-width="8" stroke-linecap="round"/>';
+  }
+  else if(type==="elev"){
+    // yon ko'rinish: qo'llar balandda (stol/stul)
+    inner =
+      '<rect x="6" y="86" width="88" height="3" rx="1.5" fill="#22384A"/>'+
+      '<rect x="62" y="52" width="32" height="34" rx="3" fill="#16232F" stroke="#22384A" stroke-width="1.4"/>'+
+      '<path d="M26 76 L70 56" stroke="#1B2C3B" stroke-width="13" stroke-linecap="round"/>'+
+      '<circle cx="76" cy="50" r="7.5" fill="#22384A"/>'+
+      '<path d="M70 56 L70 52" stroke="#2BC4CE" stroke-width="7" stroke-linecap="round"/>'+
+      '<path d="M24 80 L20 86" stroke="#1B2C3B" stroke-width="8" stroke-linecap="round"/>';
+  }
+  else if(type==="pike"){
+    // yon ko'rinish: dumba yuqorida, tana ∧ shaklida
+    inner =
+      '<rect x="6" y="86" width="88" height="3" rx="1.5" fill="#22384A"/>'+
+      '<path d="M28 78 L52 26 L76 78" fill="none" stroke="#1B2C3B" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>'+
+      '<circle cx="26" cy="72" r="7.5" fill="#22384A"/>'+
+      '<path d="M24 80 L24 86" stroke="#2BC4CE" stroke-width="6" stroke-linecap="round"/>'+
+      '<path d="M78 80 L78 86" stroke="#1B2C3B" stroke-width="7" stroke-linecap="round"/>';
+  }
   else if(type==="incline"){
     // yon ko'rinish: oyoq balandda
     inner =
@@ -822,14 +1083,28 @@ function renderHome(){
       const e=EX[it.ex], t=targetFor(it);
       return '<div class="plan-line">'+
         '<span class="idx">'+(i+1)+'</span>'+
-        '<span><span class="nm">'+e.name+'</span><span class="sub">'+e.focus+' · '+it.txt+'</span></span>'+
+        '<span><span class="nm">'+exName(it.ex)+'</span><span class="sub">'+e.focus+' · '+rungLabel(it.ex)+'</span></span>'+
         '<span class="tgt">'+(t? it.sets+"×"+t : '<span style="color:var(--clay)">MAKS</span>')+
           '<small>'+(t? "set × takror" : it.sets+" set")+'</small></span>'+
       '</div>';
     }).join("");
+    const lay=layoffCheck();
+    const banner =
+      (isDeload()
+        ? '<div class="note" style="margin-bottom:14px">'+
+          '<b>Yengil hafta ('+programWeek()+'-hafta).</b> Raqamlar 40% ga tushirildi — bu tiklanish uchun. '+
+          'Mushak dam olganda kuchayadi, mashq paytida emas. Koeffitsientlar bu hafta o\'zgarmaydi.</div>'
+        : '')+
+      (lay && lay.applied
+        ? '<div class="note" style="margin-bottom:14px;border-color:rgba(43,196,206,.35);background:rgba(43,196,206,.07)">'+
+          '<b style="color:var(--tile)">'+lay.days+' kun tanaffus bo\'ldi.</b> Raqamlar '+lay.pct+
+          '% ga yengillashtirildi — birinchi kun yaxshi o\'tsin. Bir-ikki mashg\'ulotda o\'z darajangizga qaytasiz.</div>'
+        : '');
     hero.innerHTML =
-      '<div class="row between"><span class="eyebrow">'+(done?"Bugun bajarildi":"Bugungi mashg'ulot")+'</span>'+
-        (done?'<span class="pill tile">✓</span>':'<span class="pill">'+sessionVolume()+' takror</span>')+'</div>'+
+      banner+
+      '<div class="row between"><span class="eyebrow">'+
+        (done?"Bugun bajarildi":isDeload()?"Yengil hafta":"Bugungi mashg'ulot")+'</span>'+
+        (done?'<span class="pill tile">✓</span>':'<span class="pill'+(isDeload()?' gold':'')+'">'+sessionVolume()+' takror</span>')+'</div>'+
       '<h2>'+P.sub+'</h2>'+
       '<div class="plan-list">'+rows+'</div>'+
       '<button class="btn '+(done?"":"primary")+' block lg" id="btn-start">'+(done?"Yana bir marta bajarish":"Mashg'ulotni boshlash")+'</button>';
@@ -868,7 +1143,7 @@ function renderHome(){
       '<h3 style="margin-top:6px">16 ta mashg\'ulot tugadi</h3>'+
       '<p class="muted" style="font-size:.87rem;margin-top:6px">Baza tayyor. 3-oylik rejaga o\'tish vaqti: oyoq balandda anjuman va yakuniy burnout set qo\'shiladi.</p>'+
       '<button class="btn gold block" style="margin-top:12px" id="btn-phase2">3-oylik rejaga o\'tish</button></div>';
-    $("#btn-phase2").addEventListener("click", ()=>{ S.phase=2; save(); renderHome(); toast("3-oylik reja yoqildi"); });
+    $("#btn-phase2").addEventListener("click", ()=>{ switchPhase(2); renderHome(); toast("3-oylik reja yoqildi — raqamlar silliq davom etadi"); });
   } else nud.innerHTML="";
 }
 function tileHTML(v,l,cls){
@@ -879,18 +1154,28 @@ function tileHTML(v,l,cls){
    8. MASHQLAR QO'LLANMASI
    ============================================================ */
 function renderGuide(){
-  $("#guide-list").innerHTML = Object.keys(EX).map(id=>{
-    const e=EX[id];
-    const cues = e.cues.map(c=>'<div class="cue"><i></i><span>'+c+'</span></div>').join("");
+  $("#guide-list").innerHTML = Object.keys(EX).map(slot=>{
+    const e=EX[slot], L=LADDER[slot], cur=rungIdx(slot), vr=L.rungs[cur];
+    const cues = vr.cue.map(c=>'<div class="cue"><i></i><span>'+c+'</span></div>').join("");
     const dont = e.dont.map(c=>'<div class="cue no"><i></i><span>'+c+'</span></div>').join("");
+    // Zinapoya: qayerdasiz va oldinda nima bor
+    const steps = L.rungs.map((r,i)=>
+      '<div class="rung'+(i===cur?" now":i<cur?" past":"")+'">'+
+        '<span class="rn">'+(i+1)+'</span><span class="rl">'+r.n+'</span>'+
+        (i===cur?'<span class="pill tile">hozir</span>':'')+
+      '</div>').join("");
     return '<div class="ex-card">'+
-      '<div class="ex-head"><div class="dia">'+diagram(e.dia,74)+'</div>'+
-      '<div><h3>'+e.name+'</h3><div class="dim" style="font-size:.76rem">'+e.en+'</div>'+
+      '<div class="ex-head"><div class="dia">'+diagram(vr.dia,74)+'</div>'+
+      '<div><h3>'+vr.n+'</h3><div class="dim" style="font-size:.76rem">'+e.en+' · '+rungLabel(slot)+'</div>'+
       '<div style="margin-top:6px;font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tile)">'+e.focus+'</div></div></div>'+
-      '<div class="ex-body">'+cues+dont+'</div></div>';
+      '<div class="ex-body">'+cues+dont+
+        '<details class="ladder"><summary>Qiyinlik zinapoyasi ('+L.rungs.length+' daraja)</summary>'+
+        steps+'</details>'+
+      '</div></div>';
   }).join("") +
-  '<div class="note" style="margin-top:14px">Sxemada <b>feruza shakl</b> — kaftlar qayerda turishi. '+
-  '"Oyoq balandda" mashqi yon ko\'rinishda ko\'rsatilgan.</div>';
+  '<div class="note" style="margin-top:14px">Takrorlar <b>'+REP_CAP+'</b> ga yetganda dastur takrorni '+
+  'oshirmaydi — mashqning o\'zini qiyinlashtiradi va takror '+REP_AFTER+' dan qayta boshlanadi. '+
+  'Shu tufayli progress "50 takror" chidamlilik mashqiga aylanib ketmaydi.</div>';
 }
 
 /* ============================================================
@@ -1114,6 +1399,11 @@ function renderSettings(){
         '<div class="sw '+(st.voice?"on":"")+'" data-sw="voice"><i></i></div></div>'+
       '<div class="set-row"><div class="lbl"><b>Isinish</b><span>Mashg\'ulot oldidan 40 soniya</span></div>'+
         '<div class="sw '+(st.warmup?"on":"")+'" data-sw="warmup"><i></i></div></div>'+
+      '<div class="set-row"><div class="lbl"><b>Yengil hafta</b><span>'+
+        (S.sessions.length<8 ? "2 haftadan keyin ishga tushadi"
+          : isDeload() ? "Hozir yengil hafta ("+programWeek()+"-hafta)"
+          : "Har 4-haftada raqamlar 40% ga tushadi · hozir "+programWeek()+"-hafta")+'</span></div>'+
+        '<div class="sw '+(st.deload?"on":"")+'" data-sw="deload"><i></i></div></div>'+
     '</div>'+
 
     '<div class="card"><span class="eyebrow">Daraja</span>'+
@@ -1130,7 +1420,7 @@ function renderSettings(){
         '<button data-ph="1" class="'+(S.phase===1?"on":"")+'">1-oy</button>'+
         '<button data-ph="2" class="'+(S.phase===2?"on":"")+'">3-oy</button></div></div>'+
       '<div class="set-row"><div class="lbl"><b>Moslashuv koeffitsienti</b><span>'+
-        Object.keys(S.k).map(k=>EX[k].name.split(" ")[0]+" "+Math.round(S.k[k]*100)+"%").join(" · ")+
+        Object.keys(S.k).map(k=>exName(k)+" "+Math.round(S.k[k]*100)+"%").join(" · ")+
         '</span></div><button class="btn" id="btn-resetk">Tiklash</button></div>'+
     '</div>'+
 
@@ -1155,7 +1445,7 @@ function renderSettings(){
     S.settings.rest=+b.dataset.rest; save(); renderSettings();
   }));
   $$("#phase-choice button").forEach(b=>b.addEventListener("click",()=>{
-    S.phase=+b.dataset.ph; save(); renderSettings(); toast(PLANS[S.phase].title+" yoqildi");
+    switchPhase(+b.dataset.ph); renderSettings(); toast(PLANS[S.phase].title+" yoqildi");
   }));
   $("#tempo").addEventListener("input",e=>{
     S.settings.tempo=+e.target.value; $("#tempo-v").textContent=S.settings.tempo.toFixed(1)+"s"; save();
@@ -1319,7 +1609,7 @@ function buildSteps(kind){
   if(S.settings.warmup) steps.push({t:"warmup", sec:40});
   P.items.forEach((it,ii)=>{
     const tgt=targetFor(it);
-    steps.push({t:"prep", ex:it.ex, itemIdx:ii, title:EX[it.ex].name,
+    steps.push({t:"prep", ex:it.ex, itemIdx:ii, title:exName(it.ex),
       sub:(tgt? it.sets+" set × "+tgt+" takror" : it.sets+" set × maksimal"), amrap:!tgt});
     for(let s=1;s<=it.sets;s++){
       steps.push({t:"set", ex:it.ex, itemIdx:ii, setNo:s, setTotal:it.sets,
@@ -1409,11 +1699,11 @@ function renderWarmup(st){
 
 /* --- Mashqqa tayyorgarlik --- */
 function renderPrep(st){
-  const e=EX[st.ex];
-  const cues=e.cues.slice(0,3).map(c=>'<div class="cue"><i></i><span>'+c+'</span></div>').join("");
+  const e=EX[st.ex], vr=variant(st.ex);
+  const cues=vr.cue.slice(0,3).map(c=>'<div class="cue"><i></i><span>'+c+'</span></div>').join("");
   $("#stage").innerHTML=
     '<span class="eyebrow">'+(run.kind==="calib"?"Kalibrovka":"Keyingi mashq")+'</span>'+
-    '<div style="margin:10px 0 4px">'+diagram(e.dia,120)+'</div>'+
+    '<div style="margin:10px 0 4px">'+diagram(vr.dia,120)+'</div>'+
     '<h2 class="ex-name">'+st.title+'</h2>'+
     '<div class="ex-focus">'+e.focus+' · '+st.sub+'</div>'+
     '<div class="next-card" style="font-size:.85rem;color:var(--ink-2);display:flex;flex-direction:column;gap:8px">'+cues+'</div>'+
@@ -1449,7 +1739,7 @@ function renderSet(st){
   $("#stage").innerHTML=
     '<button id="tapzone" aria-label="Takrorni sanash"></button>'+
     '<span class="eyebrow">'+label+'</span>'+
-    '<h2 class="ex-name" style="font-size:1.35rem;margin-top:4px">'+e.name+'</h2>'+
+    '<h2 class="ex-name" style="font-size:1.35rem;margin-top:4px">'+exName(st.ex)+'</h2>'+
     '<div class="dial'+(st.amrap?" amrap":"")+'">'+
       '<div class="breath"></div>'+
       '<svg viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="45"/>'+
@@ -1464,7 +1754,7 @@ function renderSet(st){
       '<div class="side"><button class="btn ghost" id="set-minus">− 1 ta</button>'+
       '<button class="btn ghost" id="set-plus">+ 1 ta</button></div></div>';
 
-  speak(st.amrap ? (e.name+". Charchaguncha.") : (e.name+". "+st.target+" marta."));
+  speak(st.amrap ? (exName(st.ex)+". Charchaguncha.") : (exName(st.ex)+". "+st.target+" marta."));
 
   $("#tapzone").addEventListener("click", ()=>{ if(S.settings.mode==="tap") addRep(st); });
   $("#set-plus").addEventListener("click", e2=>{ e2.stopPropagation(); addRep(st); });
@@ -1513,6 +1803,7 @@ function endSet(st){
     S.maxTest={reps:r, date:todayKey()};
     S.maxTests.push({reps:r, d:todayKey(), ts:Date.now()});   // tarix — ustiga yozilmaydi
     S.k=structuredClone(DEF.k);
+    startingRungs(r);                                          // darajaga mos variantdan boshlaymiz
     save();
     return renderCalibResult(reps);
   }
@@ -1561,8 +1852,8 @@ function renderRest(st){
 function nextSetInfo(){
   for(let j=run.i+1;j<run.steps.length;j++){
     const s=run.steps[j];
-    if(s.t==="set") return {name:EX[s.ex].name, info: s.amrap?"maksimal":(s.setNo+"/"+s.setTotal+" · "+s.target+" ta")};
-    if(s.t==="prep") return {name:EX[s.ex].name, info:s.sub};
+    if(s.t==="set") return {name:exName(s.ex), info: s.amrap?"maksimal":(s.setNo+"/"+s.setTotal+" · "+s.target+" ta")};
+    if(s.t==="prep") return {name:exName(s.ex), info:s.sub};
   }
   return null;
 }
@@ -1573,7 +1864,7 @@ function renderFeedback(st){
   const got=r?r.sets.reduce((a,b)=>a+b,0):0;
   const want=r&&r.target?r.target*r.sets.length:got;
   $("#stage").innerHTML=
-    '<span class="eyebrow">'+e.name+' tugadi</span>'+
+    '<span class="eyebrow">'+exName(st.ex)+' tugadi</span>'+
     '<div class="rest-num num" style="color:var(--tile);font-size:min(24vw,6rem)">'+got+'</div>'+
     '<p class="hint">'+(r&&r.target? "Maqsad "+want+" ta edi. Qanday o\'tdi?" : "Qanday o\'tdi?")+'</p>'+
     '<div class="fb-grid">'+
@@ -1586,14 +1877,57 @@ function renderFeedback(st){
     SFX.tick(); next();
   }));
 }
+/* Mashg'ulot oxirida: kimdir zinapoyada yuqoriga yoki pastga o'tadimi? */
+function targetRawFor(slot){
+  const it=planItems().find(x=>x.ex===slot);
+  if(!it || !it.reps) return null;
+  return Math.max(3, Math.round(it.reps*scale()*(S.k[slot]||1)));
+}
+/* Kalibrovka natijasiga qarab boshlang'ich pog'ona.
+   Avval 3 marta anjuman qila oladigan odam ham to'liq anjumanga majbur edi —
+   endi u stolga suyanib boshlaydi va to'g'ri texnika bilan o'sadi. */
+function startingRungs(max){
+  const shift = max<5 ? -2 : max<10 ? -1 : 0;
+  if(!shift){ S.rung=baseRungs(); return; }
+  Object.keys(LADDER).forEach(slot=>{
+    S.rung[slot]=clamp(LADDER[slot].base+shift, 0, LADDER[slot].rungs.length-1);
+  });
+}
+
+function checkLadder(){
+  if(isDeload()) return [];            // yengil haftada pog'ona o'zgarmaydi
+  const moves=[];
+  Object.values(run.results).forEach(r=>{
+    const slot=r.ex, L=LADDER[slot]; if(!L) return;
+    const idx=rungIdx(slot), f=run.rpe[slot];
+    const got=r.sets.reduce((a,b)=>a+b,0);
+    const best=Math.max(0,...r.sets);
+    const want=r.target ? r.target*r.sets.length : got;
+    const reached = r.target ? (targetRawFor(slot)>=REP_CAP) : (best>=REP_CAP);
+
+    if(reached && (f==="easy"||f==="norm") && idx < L.rungs.length-1){
+      const from=exName(slot);
+      setRung(slot, idx+1, REP_AFTER);
+      moves.push({slot, dir:"up", from, to:exName(slot)});
+    } else if(f==="hard" && want>0 && got < want*0.7 && idx > 0){
+      const from=exName(slot);
+      setRung(slot, idx-1, REP_BACK);
+      moves.push({slot, dir:"down", from, to:exName(slot)});
+    }
+  });
+  if(moves.length) save();
+  return moves;
+}
+
 function applyFeedback(ex, f, got, want){
   run.rpe[ex]=f;                       // javobni saqlaymiz — avval tashlab yuborilardi
+  if(isDeload()) return;               // yengil haftada koeffitsient o'zgarmaydi
   let k=S.k[ex]||1;
   if(f==="easy") k*=1.06;
   else if(f==="norm") k*=1.025;
   else k*=0.98;
   if(want>0 && got < want*0.85) k*=0.92;   // maqsadning 85% dan kam bajarildi
-  S.k[ex]=clamp(k,.5,3);
+  S.k[ex]=clamp(capAtTopRung(ex,k),.5,3);
   save();
 }
 
@@ -1602,7 +1936,7 @@ function renderCalibResult(reps){
   const lvl = reps<8?"Boshlang'ich":reps<20?"O'rta":reps<35?"Kuchli":"Ilg'or";
   const rows=PLANS[1].items.map(it=>{
     const t=targetFor(it);
-    return '<div class="sum-line"><span>'+EX[it.ex].name+'</span><b>'+(t? it.sets+"×"+t : it.sets+"× maks")+'</b></div>';
+    return '<div class="sum-line"><span>'+exName(it.ex)+'</span><b>'+(t? it.sets+"×"+t : it.sets+"× maks")+'</b></div>';
   }).join("");
   $("#stage").innerHTML=
     '<span class="eyebrow">Natija</span>'+
@@ -1639,19 +1973,35 @@ function finish(){
     });
     save();
   }
-  const rows=items.map(i=>'<div class="sum-line"><span>'+EX[i.ex].name+' <span class="dim">'+i.sets.join(" · ")+'</span></span>'+
+  const rows=items.map(i=>'<div class="sum-line"><span>'+exName(i.ex)+' <span class="dim">'+i.sets.join(" · ")+'</span></span>'+
     '<b>'+i.sets.reduce((a,b)=>a+b,0)+'</b></div>').join("");
+
+  // Zinapoya: kimdir qiyinroq yoki yengilroq variantga o'tdimi?
+  const moves = (run.kind==="workout" && total>0) ? checkLadder() : [];
+  const moveHTML = moves.map(m=>
+    '<div class="next-card" style="border-color:'+(m.dir==="up"?"rgba(227,178,60,.45)":"rgba(43,196,206,.4)")+'">'+
+      '<span class="eyebrow" style="color:'+(m.dir==="up"?"var(--gold)":"var(--tile)")+'">'+
+        (m.dir==="up"?"★ Yangi daraja":"Yengilroq variantga")+'</span>'+
+      '<div style="margin-top:6px;font-size:.95rem">'+m.from+' <span class="dim">→</span> <b>'+m.to+'</b></div>'+
+      '<div class="dim" style="font-size:.78rem;margin-top:4px">'+
+        (m.dir==="up"
+          ? "Takrorlar "+REP_CAP+" ga yetdi. Endi mashqning o'zi qiyinlashadi, takror "+REP_AFTER+" dan boshlanadi."
+          : "Bu variant hozircha og'irlik qildi. Bir pog'ona pastda mustahkamlanib olamiz.")+
+      '</div></div>').join("");
 
   $("#stage").innerHTML=
     '<span class="eyebrow">Mashg\'ulot tugadi</span>'+
     '<div class="rest-num num" style="color:var(--tile)">'+total+'</div>'+
-    '<div class="ex-focus">takror · '+mmss(dur)+'</div>'+
+    '<div class="ex-focus">takror · '+mmss(dur)+(isDeload()?' · yengil hafta':'')+'</div>'+
     (run.newPR?'<div class="pill gold" style="margin-top:14px">★ Yangi burnout rekordi: '+run.burnout+'</div>':'')+
+    moveHTML+
     '<div class="next-card"><span class="eyebrow">Setlar</span><div style="margin-top:6px">'+(rows||'<span class="dim">—</span>')+'</div></div>'+
     '<p class="hint">'+finishNote(total)+'</p>'+
     '<div class="run-actions" style="width:min(92vw,420px)">'+
       '<button class="btn primary lg block" id="fin-ok">Tugatish</button></div>';
-  SFX.done(); speak("Tugadi. Jami "+total+" takror. Barakalla!");
+  const up=moves.find(m=>m.dir==="up");
+  if(up){ SFX.pr(); speak("Tugadi. Yangi daraja: "+up.to); }
+  else { SFX.done(); speak("Tugadi. Jami "+total+" takror. Barakalla!"); }
   $("#fin-ok").addEventListener("click",exitRun);
 }
 function finishNote(total){
