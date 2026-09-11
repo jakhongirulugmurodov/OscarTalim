@@ -1146,6 +1146,15 @@ ACT.pickLive = async (n)=>{
   await DB.setAnswer(S.code, L.key, S.uid, {c:i, ms:S.answered.ms, name:(S.me&&S.me.name)||""});
   render();
 };
+/* Bir darsda jonli o'yindan olinadigan ballning shifti.
+   Sababi: ball ishdan chiqishi kerak, o'yindan emas. Bitta darsdagi ish
+   ~45-100 ball beradi, o'yin esa ko'pi bilan shuncha: */
+const LIVE_CAP = 30;
+
+function liveEarned(lesson){
+  return S.entries.filter(e => e.lesson===lesson && String(e.task).startsWith("live:"))
+                  .reduce((a,e)=>a+(e.pts||0),0);
+}
 async function maybeAwardLive(){
   const L = S.live; if (!L || !L.reveal || !L.key) return;
   const flag = "sinf:aw:"+S.code+":"+L.key;
@@ -1160,11 +1169,16 @@ async function maybeAwardLive(){
     pts = (L.mode==="hunt" ? 25 : 10) + (L.mode==="hunt" ? 0 : bonus);
     label = "To'g'ri javob";
   }
-  if (pts>0){
-    await DB.addEntry(S.code,S.uid,{lesson:L.lesson||0, task:"live:"+L.mode, pts,
+  const lesson = L.lesson || openCount() || 0;
+  const left = Math.max(0, LIVE_CAP - liveEarned(lesson));
+  const capped = Math.min(pts, left);
+  if (capped>0){
+    await DB.addEntry(S.code,S.uid,{lesson, task:"live:"+L.mode, pts:capped,
       text:`${label} — ${L.mode==="hunt"?L.topic:L.q}`, ts:Date.now()});
-    await DB.bumpPoints(S.code,S.uid,pts,weekNo());
-    toast("+"+pts+" ball");
+    await DB.bumpPoints(S.code,S.uid,capped,weekNo());
+    toast("+"+capped+" ball");
+  } else if (pts>0){
+    toast("To'g'ri! Bu darsning o'yin balli to'ldi — qolgani ishdan");
   }
 }
 
@@ -1293,7 +1307,7 @@ ACT.startDuel = async n=>{
 };
 ACT.startHunt = async n=>{
   const x=+n.dataset.i, hn=HUNTS[x];
-  await DB.setLive(S.code,{mode:"hunt",lesson:5,hi:x,topic:hn.topic,s:hn.s,c:null,w:null,
+  await DB.setLive(S.code,{mode:"hunt",lesson:openCount()||5,hi:x,topic:hn.topic,s:hn.s,c:null,w:null,
     t0:Date.now(),dur:60,reveal:false,key:`h${x}_${Date.now()}`});
 };
 ACT.startPoll = async ()=>{

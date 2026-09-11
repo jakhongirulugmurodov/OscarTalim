@@ -41,6 +41,10 @@ bu dasturda:
 | Jonli duel — to'g'ri javob | +10 va tezlik uchun +20 gacha | har dars |
 | Ovoz berish / bahsda qatnashdi | +5 | har dars |
 
+**Jonli o'yindan bir darsda ko'pi bilan 30 ball olinadi** (`LIVE_CAP`).
+Shiftga yetgach o'yin qiziq bo'lib qolaveradi, lekin reytingni faqat ish
+ko'taradi. Raqamni `index.html` dagi bitta qatordan o'zgartirsangiz bo'ladi.
+
 Daraja: Yangi → Kuzatuvchi → Savol beruvchi → Tekshiruvchi → Ovchi →
 Vazifa qo'yuvchi → Usta → Muallif → Himoyachi → **Oskar**.
 
