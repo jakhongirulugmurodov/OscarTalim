@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AI Ustoz">
+  <rect width="512" height="512" rx="112" fill="#0A1119"/>
+  <g fill="none" stroke="#2BC4CE" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M118 372 L196 148 L274 372"/>
+    <path d="M150 302 H242"/>
+    <path d="M368 148 V372"/>
+  </g>
+  <circle cx="368" cy="98" r="24" fill="#2BC4CE"/>
+</svg>

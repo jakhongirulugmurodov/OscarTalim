@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A1119">
+<meta name="description" content="AI Ustoz — uyga vazifani rasmdan tekshiradi, xatoni topib tushuntiradi va sinf bo'yicha zaiflik xaritasini chizadi.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>AI Ustoz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Commissioner:wght@400;500;600;700&display=swap">
+<style>
+/* ============================================================
+   AI USTOZ — Oscar Ta'lim. Anjuman Murabbiy bilan bir vizual til.
+   ============================================================ */
+:root{
+  --bg:#0A1119; --bg-deep:#060C12; --surface:#101C28; --surface-2:#172734;
+  --line:#223849; --line-soft:#1a2c3a;
+  --ink:#E9F2F6; --ink-2:#A7BECC; --ink-3:#6C8798;
+  --tile:#2BC4CE; --tile-deep:#16929B;
+  --gold:#E3B23C; --clay:#D2603A; --good:#4CC38A; --warn:#E08A3C;
+  --r-s:10px; --r-m:16px; --r-l:24px;
+  --sans:"Commissioner","Segoe UI",system-ui,-apple-system,sans-serif;
+  --disp:"Oswald","Segoe UI Semibold",system-ui,sans-serif;
+  --hand:"Caveat","Segoe Script",cursive;
+  --pad:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+h1,h2,h3{margin:0;font-family:var(--disp);font-weight:500;letter-spacing:.01em;text-wrap:balance}
+button{font-family:var(--sans);color:inherit}
+a{color:var(--tile)} a:hover{color:var(--tile-deep)}
+.num{font-family:var(--disp);font-variant-numeric:tabular-nums;font-weight:500;line-height:1}
+.l{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.muted{color:var(--ink-3)}
+
+/* ---------- karkas ---------- */
+#app{display:flex;flex-direction:column;height:100%;max-width:620px;margin:0 auto;
+     background:var(--bg);position:relative}
+.topbar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+        padding:calc(var(--safe-t) + 14px) var(--pad) 10px}
+.wordmark{display:flex;align-items:center;gap:9px}
+.wordmark b{font-family:var(--disp);font-weight:600;font-size:1.1rem;letter-spacing:.09em;
+            text-transform:uppercase}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 var(--pad) 18px;
+     display:flex;flex-direction:column;gap:12px;min-height:0}
+.screen{display:none;flex-direction:column;gap:12px}
+.screen.on{display:flex}
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;
+        padding:6px 6px calc(var(--safe-b) + 10px);background:var(--bg-deep);
+        border-top:1px solid var(--line-soft)}
+.tab{position:relative;background:none;border:0;cursor:pointer;padding:7px 2px 5px;
+     display:flex;flex-direction:column;align-items:center;gap:4px;min-height:50px;
+     font-size:.62rem;font-weight:600;color:var(--ink-3)}
+.tab.on{color:var(--tile)}
+.tab .bdg{position:absolute;top:1px;left:calc(50% + 8px);background:var(--clay);color:#0A1119;
+     font-family:var(--disp);font-size:.58rem;font-weight:600;line-height:1;
+     padding:2px 5px;border-radius:999px}
+
+/* ---------- bo'laklar ---------- */
+.card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-m);padding:15px}
+.card.tight{padding:13px 15px}
+.pill{font-size:.66rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+      padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);
+      background:var(--surface);white-space:nowrap;display:inline-block}
+.pill.tile{color:var(--tile);border-color:rgba(43,196,206,.4);background:rgba(43,196,206,.09)}
+.pill.gold{color:var(--gold);border-color:rgba(227,178,60,.4);background:rgba(227,178,60,.09)}
+.pill.clay{color:var(--clay);border-color:rgba(210,96,58,.45);background:rgba(210,96,58,.1)}
+.pill.warn{color:var(--warn);border-color:rgba(224,138,60,.42);background:rgba(224,138,60,.1)}
+.pill.good{color:var(--good);border-color:rgba(76,195,138,.4);background:rgba(76,195,138,.09)}
+.btn{font-size:.95rem;font-weight:600;background:var(--surface-2);border:1px solid var(--line);
+     border-radius:var(--r-s);padding:13px 18px;cursor:pointer;display:inline-flex;
+     align-items:center;justify-content:center;gap:8px;min-height:48px;width:100%}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.primary{background:linear-gradient(180deg,var(--tile),var(--tile-deep));color:#04181B;
+     border-color:transparent;font-weight:700;letter-spacing:.02em;
+     box-shadow:0 6px 22px -10px rgba(43,196,206,.9)}
+.btn.ghost{background:transparent}
+.btn.sm{min-height:40px;padding:9px 13px;font-size:.86rem;width:auto}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{
+     outline:2px solid var(--tile);outline-offset:2px}
+.row{display:flex;gap:9px;align-items:center}
+.row.wrap{flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.fld{display:block;margin-bottom:11px}
+label.fld > span{display:block;margin-bottom:5px}
+input,select{width:100%;background:var(--bg-deep);color:var(--ink);border:1px solid var(--line);
+     border-radius:var(--r-s);padding:12px 13px;font-size:.95rem;font-family:var(--sans)}
+input::placeholder{color:var(--ink-3)}
+
+/* ---------- rasm va natija ---------- */
+.drop{border:1.5px dashed var(--line);border-radius:var(--r-m);padding:26px 18px;text-align:center;
+      background:var(--bg-deep);cursor:pointer}
+.shots{display:flex;gap:9px;flex-wrap:wrap}
+.shot{position:relative;width:76px;height:100px;border-radius:9px;overflow:hidden;
+      border:1px solid var(--line);background:var(--surface-2)}
+.shot img{width:100%;height:100%;object-fit:cover;display:block}
+.shot button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;
+      border:0;background:rgba(6,12,18,.82);color:var(--ink);cursor:pointer;font-size:14px;
+      line-height:1;padding:0}
+.pagewrap{position:relative;border-radius:12px;overflow:hidden;background:#F3F6F4}
+.pagewrap img{width:100%;display:block}
+.zone{position:absolute;border:2px solid;border-radius:6px;pointer-events:none}
+.zone i{position:absolute;top:-11px;left:-11px;width:21px;height:21px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;font-family:var(--disp);
+        font-size:.75rem;font-weight:600;color:#0A1119;font-style:normal}
+.q{display:flex;gap:11px;align-items:flex-start;padding:12px 0}
+.q + .q{border-top:1px solid var(--line-soft)}
+.qno{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
+     justify-content:center;font-family:var(--disp);font-size:.78rem;font-weight:600;
+     color:#0A1119;margin-top:2px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86rem;color:var(--ink-2);
+      word-break:break-word}
+
+/* ---------- ro'yxatlar ---------- */
+.item{display:flex;gap:11px;align-items:center;padding:12px 0;cursor:pointer;width:100%;
+      background:none;border:0;text-align:left}
+.item + .item{border-top:1px solid var(--line-soft)}
+.av{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;
+    justify-content:center;background:var(--surface-2);border:1px solid var(--line);
+    font-family:var(--disp);font-size:.82rem;color:var(--ink-2)}
+.topicbar{display:flex;align-items:center;gap:10px;padding:9px 0}
+.topicbar + .topicbar{border-top:1px solid var(--line-soft)}
+.track{flex:1;height:7px;border-radius:999px;background:var(--surface-2);overflow:hidden;min-width:50px}
+.track i{display:block;height:100%;border-radius:999px}
+.wk{display:flex;align-items:flex-end;gap:9px;height:98px}
+.wk .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.wk .stk{width:100%;border-radius:5px 5px 2px 2px;min-height:3px}
+
+/* ---------- holat / toast ---------- */
+.note{border-left:3px solid var(--warn);background:rgba(224,138,60,.08);padding:12px 14px;
+      border-radius:0 var(--r-s) var(--r-s) 0;font-size:.88rem;line-height:1.5;color:var(--ink-2)}
+.note.err{border-left-color:var(--clay);background:rgba(210,96,58,.1)}
+.note.ok{border-left-color:var(--good);background:rgba(76,195,138,.08)}
+.empty{text-align:center;padding:34px 18px;color:var(--ink-3);font-size:.9rem;line-height:1.55}
+#toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 78px);transform:translateX(-50%);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:999px;
+  padding:10px 18px;font-size:.87rem;max-width:88vw;text-align:center;z-index:60;
+  opacity:0;pointer-events:none;transition:opacity .2s ease}
+#toast.on{opacity:1}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(4,24,27,.35);
+      border-top-color:#04181B;animation:sp .8s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="wordmark">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#2BC4CE"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 20.5 L9.5 5.5 L15 20.5"/><path d="M6.2 15.6 H12.8"/><path d="M18.5 5.5 V20.5"/>
+        <circle cx="18.5" cy="2.6" r="1.6" fill="#2BC4CE" stroke="none"/></svg>
+      <b>AI Ustoz</b>
+    </div>
+    <span class="pill tile" id="ctxPill">7-B · Algebra</span>
+  </div>
+
+  <main>
+    <!-- ============ TEKSHIRISH ============ -->
+    <section class="screen on" id="s-olish">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="l">Yangi topshiriq</div>
+          <span class="pill" id="olishMeta">—</span>
+        </div>
+        <label class="fld" style="margin-top:12px">
+          <span class="l">Oʻquvchi</span>
+          <input id="inOquvchi" placeholder="Ism familiya" autocomplete="name">
+        </label>
+        <label class="fld" style="margin-bottom:0">
+          <span class="l">Dars / mavzu</span>
+          <input id="inDars" placeholder="12-dars · kvadrat tenglama">
+        </label>
+      </div>
+
+      <div class="drop" id="drop">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2BC4CE"
+             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3.5 8.5h4l2-3h5l2 3h4v12h-17z"/>
+          <path d="M15.5 14.6a3.5 3.5 0 1 1-7 0 3.5 3.5 0 1 1 7 0"/></svg>
+        <div style="font-weight:700;margin-top:9px">Daftarni suratga oling</div>
+        <div class="muted" style="font-size:.85rem;margin-top:4px">
+          yoki galereyadan tanlang · bir nechta sahifa boʻlishi mumkin</div>
+        <input type="file" id="fileIn" accept="image/*" capture="environment" multiple hidden>
+      </div>
+      <div class="shots" id="shots"></div>
+
+      <div id="olishNote"></div>
+      <button class="btn primary" id="btnCheck" disabled>Tekshirish</button>
+      <div class="muted" style="font-size:.78rem;text-align:center;line-height:1.5" id="limitInfo"></div>
+    </section>
+
+    <!-- ============ NATIJA ============ -->
+    <section class="screen" id="s-natija"></section>
+
+    <!-- ============ TARIX ============ -->
+    <section class="screen" id="s-tarix">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="l">Tekshirilganlar</div>
+          <span class="pill" id="tarixSoni">0</span>
+        </div>
+        <div id="tarixList"></div>
+      </div>
+    </section>
+
+    <!-- ============ KO'RIK ============ -->
+    <section class="screen" id="s-korik"></section>
+
+    <!-- ============ SINF ============ -->
+    <section class="screen" id="s-sinf"></section>
+
+    <!-- ============ SOZLAMA ============ -->
+    <section class="screen" id="s-sozlama">
+      <div class="card">
+        <div class="l">Gemini API kalit</div>
+        <p class="muted" style="font-size:.86rem;margin:8px 0 12px;line-height:1.5">
+          Kalit faqat shu qurilmada saqlanadi va toʻgʻridan-toʻgʻri Google'ga yuboriladi.
+          Bepul kalit olish:
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>
+        </p>
+        <input id="inKey" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm" id="btnKeyShow">Koʻrsatish</button>
+          <button class="btn sm" id="btnKeySave">Saqlash</button>
+          <span id="keyState" class="pill">—</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="l">Model</div>
+        <select id="inModel" style="margin-top:9px">
+          <option value="gemini-2.5-flash">gemini-2.5-flash — tez va arzon (tavsiya)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro — aniqroq, sekinroq</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite — eng arzon</option>
+        </select>
+        <p class="muted" style="font-size:.82rem;margin:10px 0 0;line-height:1.5">
+          Past ishonchli javoblar koʻrik navbatiga tushadi — chegara 0,85.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="l">Sinf va fan</div>
+        <div class="grid2" style="margin-top:10px">
+          <label class="fld" style="margin:0"><span class="l">Sinf</span>
+            <input id="inSinf" placeholder="7-B"></label>
+          <label class="fld" style="margin:0"><span class="l">Fan</span>
+            <input id="inFan" placeholder="Algebra"></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="l">Maʼlumotlar</div>
+        <p class="muted" style="font-size:.86rem;margin:8px 0 12px;line-height:1.5">
+          Hamma natija shu brauzerda saqlanadi. Boshqa qurilmaga oʻtmaydi.
+        </p>
+        <div class="row wrap">
+          <button class="btn sm" id="btnExport">JSON yuklab olish</button>
+          <button class="btn sm" id="btnWipe">Hammasini oʻchirish</button>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>Bu pilot versiya.</b> API kalit brauzerda turadi — shuning uchun har kim
+        oʻz kalitini kiritadi, maktabning umumiy kaliti bu yerga qoʻyilmaydi.
+        Haqiqiy joriy etishda kalit serverda boʻlishi va maʼlumotlar
+        Oʻzbekiston hududida saqlanishi kerak (ZRU-547).
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" id="tabs"></nav>
+</div>
+<div id="toast"></div>
+<script>
+/* ============================================================
+   1. HOLAT
+   ============================================================ */
+const KEY = "oscar_ustoz_v1";
+const DEF = { sinf:"7-B", fan:"Algebra", model:"gemini-2.5-flash", items:[] };
+let S = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return { ...DEF };
+    return Object.assign({ ...DEF }, JSON.parse(raw));
+  }catch{ return { ...DEF }; }
+}
+function save(){
+  // Xotira to'lsa eng eski topshiriqlarning rasmini tashlaymiz — ballar qoladi
+  for(let urinish = 0; urinish < 6; urinish++){
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); return true; }
+    catch(e){
+      const eski = S.items.filter(t => t.sahifalar && t.sahifalar.length)
+                          .sort((a,b) => a.ts - b.ts)[0];
+      if(!eski) { toast("Xotira toʻldi — eski natijalarni oʻchiring"); return false; }
+      eski.sahifalar = [];
+    }
+  }
+  return false;
+}
+
+/* ============================================================
+   2. YORDAMCHILAR
+   ============================================================ */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const bugun = () => new Date().toISOString().slice(0,10);
+const raqam = n => (Math.round(n*10)/10).toString().replace(".", ",");
+const bosh = s => String(s||"?").trim().split(/\s+/).slice(0,2)
+                    .map(w => w[0]).join("").toUpperCase();
+
+let toastT = null;
+function toast(msg){
+  const el = $("#toast");
+  el.textContent = msg; el.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 3200);
+}
+
+const XATO = {
+  togri:           { nom:"Toʻgʻri",          pill:"good", rang:"var(--good)" },
+  tushunmovchilik: { nom:"Tushunmovchilik",  pill:"clay", rang:"var(--clay)" },
+  arifmetik:       { nom:"Arifmetik xato",   pill:"warn", rang:"var(--warn)" },
+  toliqsiz:        { nom:"Toʻliqsiz yechim", pill:"warn", rang:"var(--warn)" },
+  etiborsizlik:    { nom:"Eʼtiborsizlik",    pill:"warn", rang:"var(--warn)" },
+  boshlanmagan:    { nom:"Boshlanmagan",     pill:"clay", rang:"var(--clay)" },
+  oqilmadi:        { nom:"Oʻqib boʻlmadi",   pill:"",     rang:"var(--ink-3)" }
+};
+const xatoNomi = k => (XATO[k] || XATO.oqilmadi).nom;
+const xatoRang = k => (XATO[k] || XATO.oqilmadi).rang;
+
+const ISHONCH_CHEGARA = 0.85;   // shundan past — o'qituvchi ko'rigiga
+const ball = t => t.savollar.reduce((a,q) => a + (q.tuzatilgan ?? q.ball), 0);
+const maks = t => t.savollar.reduce((a,q) => a + q.maks, 0);
+const shubhali = t => t.savollar.filter(q => q.tuzatilgan == null && q.ishonch < ISHONCH_CHEGARA);
+const koriklar = () => S.items.flatMap(t => shubhali(t).map(q => ({ t, q })));
+
+/* ============================================================
+   3. RASMNI TAYYORLASH — kichraytirib, JPEG ga o'tkazamiz
+   ============================================================ */
+function rasmTayyorla(file, maxQirra, sifat){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error("Faylni oʻqib boʻlmadi"));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => rej(new Error("Bu fayl rasm emas"));
+      im.onload = () => {
+        const k = Math.min(1, maxQirra / Math.max(im.width, im.height));
+        const c = document.createElement("canvas");
+        c.width  = Math.round(im.width  * k);
+        c.height = Math.round(im.height * k);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        res(c.toDataURL("image/jpeg", sifat));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+const b64 = dataUrl => dataUrl.slice(dataUrl.indexOf(",") + 1);
+
+/* ============================================================
+   4. GEMINI
+   ============================================================ */
+const API = "https://generativelanguage.googleapis.com";
+const KUNLIK_LIMIT = 20;   // bepul tarifdagi taxminiy chek
+
+function sorovOl(){
+  try{
+    const d = JSON.parse(localStorage.getItem("ustoz_sorov")) || {};
+    return d.kun === bugun() ? d.soni : 0;
+  }catch{ return 0; }
+}
+function sorovQosh(){
+  try{ localStorage.setItem("ustoz_sorov",
+        JSON.stringify({ kun:bugun(), soni:sorovOl()+1 })); }catch(e){}
+  limitKorsat();
+}
+function limitKorsat(){
+  const qolgan = Math.max(KUNLIK_LIMIT - sorovOl(), 0);
+  $("#limitInfo").innerHTML =
+    `Bugun taxminan <b>${qolgan}/${KUNLIK_LIMIT}</b> bepul soʻrov qoldi · ` +
+    `har topshiriq — 1 ta soʻrov`;
+}
+
+const SXEMA = {
+  type:"OBJECT",
+  properties:{
+    mavzu:{ type:"STRING" },
+    savollar:{ type:"ARRAY", items:{
+      type:"OBJECT",
+      properties:{
+        raqam:      { type:"STRING"  },
+        oqilgan:    { type:"STRING"  },
+        togri_javob:{ type:"STRING"  },
+        ball:       { type:"NUMBER"  },
+        maks:       { type:"NUMBER"  },
+        xato:       { type:"STRING", enum:Object.keys(XATO) },
+        qadam:      { type:"INTEGER" },
+        izoh:       { type:"STRING"  },
+        ishonch:    { type:"NUMBER"  },
+        sahifa:     { type:"INTEGER" },
+        joy:{ type:"OBJECT", properties:{
+          x:{type:"NUMBER"}, y:{type:"NUMBER"}, w:{type:"NUMBER"}, h:{type:"NUMBER"} } }
+      },
+      required:["raqam","oqilgan","ball","maks","xato","izoh","ishonch"]
+    }}
+  },
+  required:["savollar"]
+};
+
+const PROMPT = `Sen tajribali matematika oʻqituvchisisan. Oʻquvchining uyga vazifasi
+suratga olingan. Har bir savolni alohida tekshir.
+
+Qoidalar:
+1. Avval qoʻlyozmani diqqat bilan oʻqi. Oʻzbek maktab daftari — lotin va kirill
+   aralash boʻlishi mumkin. Oʻqiganingni "oqilgan" maydoniga aynan koʻchir.
+2. Yechimni matematik jihatdan tekshir. Javob toʻgʻri boʻlsa ham, qadamlarda
+   xato boʻlsa — koʻrsat.
+3. Qoʻlyozma chiroyliligi, imlo va tinish belgilariga BALL QOʻYMA. Faqat
+   matematik mazmun baholanadi.
+4. Qisman ball qoʻy: usul toʻgʻri, hisobda xato boʻlsa — "maks" ning yarmi.
+5. "xato" maydoni faqat shu qiymatlardan biri:
+   togri — hammasi toʻgʻri
+   tushunmovchilik — tushunchani/formulani notoʻgʻri qoʻllagan (eng jiddiy)
+   arifmetik — usul toʻgʻri, hisobda adashgan
+   toliqsiz — javob toʻgʻri, lekin qadamlar koʻrsatilmagan
+   etiborsizlik — belgi, oʻlchov birligi yoki koʻchirishda xato
+   boshlanmagan — savolga umuman urinmagan
+   oqilmadi — qoʻlyozmani ajrata olmadim
+6. "qadam" — yechimning nechanchi qadamida adashgan (1 dan boshlab). Bilmasang 0.
+7. "izoh" — oʻquvchiga qarata, oʻzbek tilida, 1-2 gap. Xato QAYERDA va NEGA
+   ekanini ayt, toʻgʻri yoʻlni koʻrsat. Javobni tayyor berma.
+8. "ishonch" — 0 dan 1 gacha. Qoʻlyozma noaniq boʻlsa yoki ikkilansang,
+   0.85 dan past qoʻy. Bu javob oʻqituvchi koʻrigiga tushadi.
+9. "sahifa" — javob nechanchi rasmda (1 dan boshlab).
+10. "joy" — javobning shu rasmdagi oʻrni, foizda (x,y — chap yuqori burchak,
+    w,h — kengligi va balandligi, 0 dan 100 gacha). Aniq bilmasang tashlab ket.
+
+Faqat JSON qaytar.`;
+
+async function gemini(kalit, model, qismlar){
+  const URINISH = 4;
+  let oxirgi;
+  for(let urinish = 1; urinish <= URINISH; urinish++){
+    try{
+      sorovQosh();
+      const r = await fetch(`${API}/v1beta/models/${model}:generateContent?key=${kalit}`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          contents:[{ parts:qismlar }],
+          generationConfig:{
+            responseMimeType:"application/json",
+            responseSchema:SXEMA,
+            temperature:0.1
+          }
+        })
+      });
+      const j = await r.json();
+      if(!r.ok) throw new Error(j.error?.message || `HTTP ${r.status}`);
+      const matn = j.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+      const natija = JSON.parse(matn.replace(/^```(json)?\s*|\s*```$/g, ""));
+      if(!natija || !Array.isArray(natija.savollar)) throw new Error("Javob kutilgan shaklda emas");
+      return natija;
+    }catch(e){
+      oxirgi = e;
+      // Kvota tugaganda qayta urinish foydasiz
+      const kvota = /quota|RESOURCE_EXHAUSTED|429/i.test(e.message);
+      if(kvota || urinish === URINISH) break;
+      const band = /overloaded|UNAVAILABLE|503|high demand/i.test(e.message);
+      const kutish = band ? Math.min(8000 * urinish, 30000) : 2000 * urinish;
+      holat(band
+        ? `Google serverlari band. ${Math.round(kutish/1000)} soniyadan keyin qayta urinamiz…`
+        : `Xato: ${e.message}. Qayta urinilmoqda (${urinish}/${URINISH-1})…`);
+      await new Promise(r => setTimeout(r, kutish));
+    }
+  }
+  throw oxirgi;
+}
+
+function xatoMatni(e){
+  const m = e?.message || String(e);
+  if(/API key not valid|API_KEY_INVALID/i.test(m))
+    return "API kalit notoʻgʻri. Sozlama boʻlimida kalitni qayta kiriting.";
+  if(/quota|RESOURCE_EXHAUSTED|429/i.test(m))
+    return "Bugungi bepul limit tugadi. Ertaga qayta urinib koʻring yoki boshqa kalit kiriting.";
+  if(/overloaded|UNAVAILABLE|503/i.test(m))
+    return "Google serverlari band. Bir necha daqiqadan keyin qayta urining.";
+  if(/Failed to fetch|NetworkError/i.test(m))
+    return "Internet aloqasi yoʻq yoki soʻrov bloklandi.";
+  return "Xato: " + m;
+}
+
+/* ============================================================
+   5. NAVIGATSIYA
+   ============================================================ */
+const IC = {
+  cam:'M3.5 8.5h4l2-3h5l2 3h4v12h-17zM15.5 14.6a3.5 3.5 0 1 1-7 0 3.5 3.5 0 1 1 7 0',
+  list:'M4 6.5h16 M4 12h16 M4 17.5h10',
+  chk:'M4 12.5 L9.2 17.7 L20 6.6',
+  grid:'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z',
+  gear:'M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4 M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-3-1.2l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0-1.2-2.9h-.2a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-3l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5v-.2a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+  back:'M14.5 5 L8 12 L14.5 19'
+};
+const svg = (d,s) => `<svg width="${s||20}" height="${s||20}" viewBox="0 0 24 24" fill="none"
+  stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <path d="${d}"></path></svg>`;
+
+const TABS = [
+  { id:"olish",   nom:"Tekshirish", ic:IC.cam  },
+  { id:"tarix",   nom:"Tarix",      ic:IC.list },
+  { id:"korik",   nom:"Koʻrik",     ic:IC.chk, badge:() => koriklar().length },
+  { id:"sinf",    nom:"Sinf",       ic:IC.grid },
+  { id:"sozlama", nom:"Sozlama",    ic:IC.gear }
+];
+let joriy = "olish";
+
+function tablar(){
+  $("#tabs").innerHTML = TABS.map(t => {
+    const n = t.badge ? t.badge() : 0;
+    return `<button class="tab${t.id===joriy?" on":""}" data-go="${t.id}">
+      ${svg(t.ic,21)}<span>${t.nom}</span>
+      ${n ? `<i class="bdg">${n>99?"99+":n}</i>` : ""}</button>`;
+  }).join("");
+}
+function goto(id, arg){
+  joriy = TABS.some(t => t.id===id) ? id : joriy;
+  $$(".screen").forEach(s => s.classList.remove("on"));
+  $("#s-"+id).classList.add("on");
+  if(id==="tarix")   renderTarix();
+  if(id==="korik")   renderKorik();
+  if(id==="sinf")    renderSinf(arg);
+  if(id==="natija")  renderNatija(arg);
+  if(id==="olish")   limitKorsat();
+  tablar();
+  document.querySelector("main").scrollTop = 0;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-go]");
+  if(b) goto(b.dataset.go, b.dataset.arg);
+});
+
+/* ============================================================
+   6. TEKSHIRISH OQIMI
+   ============================================================ */
+let sahifalar = [];   // {toliq, kichik} — to'liq API uchun, kichik saqlash uchun
+
+function holat(msg, tur){
+  $("#olishNote").innerHTML = msg
+    ? `<div class="note${tur?" "+tur:""}">${esc(msg)}</div>` : "";
+}
+function shotsChiz(){
+  $("#shots").innerHTML = sahifalar.map((s,i) =>
+    `<div class="shot"><img src="${s.kichik}" alt="${i+1}-sahifa">
+      <button data-del="${i}" aria-label="Oʻchirish">×</button></div>`).join("");
+  $("#btnCheck").disabled = !sahifalar.length;
+  $("#olishMeta").textContent = sahifalar.length
+    ? `${sahifalar.length} sahifa` : "rasm yoʻq";
+}
+$("#shots").addEventListener("click", e => {
+  const b = e.target.closest("[data-del]");
+  if(!b) return;
+  sahifalar.splice(+b.dataset.del, 1);
+  shotsChiz();
+});
+$("#drop").addEventListener("click", () => $("#fileIn").click());
+$("#fileIn").addEventListener("change", async e => {
+  const fayllar = Array.from(e.target.files || []);
+  e.target.value = "";
+  if(!fayllar.length) return;
+  holat("Rasmlar tayyorlanmoqda…");
+  try{
+    for(const f of fayllar){
+      if(sahifalar.length >= 6){ toast("Koʻpi bilan 6 sahifa"); break; }
+      sahifalar.push({
+        toliq:  await rasmTayyorla(f, 1600, 0.85),
+        kichik: await rasmTayyorla(f, 420,  0.6)
+      });
+    }
+    holat("");
+  }catch(err){ holat(xatoMatni(err), "err"); }
+  shotsChiz();
+});
+
+$("#btnCheck").addEventListener("click", async () => {
+  const kalit = (localStorage.getItem("gemini_key") || "").trim();
+  if(!kalit){ toast("Avval API kalitni kiriting"); goto("sozlama"); return; }
+  if(!sahifalar.length) return;
+
+  const btn = $("#btnCheck");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spin"></span> Tekshirilmoqda…`;
+  holat("Rasm Google'ga yuborildi. Odatda 10–30 soniya oladi.");
+
+  const oquvchi = ($("#inOquvchi").value || "").trim() || "Nomaʼlum";
+  const dars    = ($("#inDars").value || "").trim() || "Nomsiz dars";
+
+  const qismlar = [
+    { text: `${PROMPT}\n\nFan: ${S.fan}. Sinf: ${S.sinf}. Dars: ${dars}.` },
+    ...sahifalar.map(s => ({ inline_data:{ mime_type:"image/jpeg", data:b64(s.toliq) } }))
+  ];
+
+  try{
+    const javob = await gemini(kalit, S.model, qismlar);
+    const topshiriq = {
+      id: Date.now().toString(36),
+      ts: Date.now(),
+      oquvchi, dars, sinf:S.sinf, fan:S.fan,
+      mavzu: javob.mavzu || dars,
+      model: S.model,
+      sahifalar: sahifalar.map(s => s.kichik),
+      savollar: javob.savollar.map((q,i) => ({
+        raqam: String(q.raqam ?? i+1),
+        oqilgan: q.oqilgan || "",
+        togri_javob: q.togri_javob || "",
+        ball: Number(q.ball) || 0,
+        maks: Number(q.maks) || 1,
+        xato: XATO[q.xato] ? q.xato : "oqilmadi",
+        qadam: Number(q.qadam) || 0,
+        izoh: q.izoh || "",
+        ishonch: Math.max(0, Math.min(1, Number(q.ishonch) || 0)),
+        sahifa: Number(q.sahifa) || 1,
+        joy: q.joy && [q.joy.x,q.joy.y,q.joy.w,q.joy.h].every(v => typeof v === "number")
+             ? q.joy : null,
+        tuzatilgan: null
+      }))
+    };
+    S.items.unshift(topshiriq);
+    save();
+    sahifalar = []; shotsChiz(); holat("");
+    btn.disabled = false; btn.textContent = "Tekshirish";
+    goto("natija", topshiriq.id);
+    const shub = shubhali(topshiriq).length;
+    toast(shub ? `Tayyor — ${shub} ta javob koʻrik kutmoqda` : "Tayyor");
+  }catch(err){
+    holat(xatoMatni(err), "err");
+    btn.disabled = false; btn.textContent = "Qayta urinish";
+  }
+});
+
+/* ============================================================
+   7. NATIJA
+   ============================================================ */
+function topshiriqTop(id){ return S.items.find(t => t.id === id) || S.items[0]; }
+
+function renderNatija(id){
+  const t = topshiriqTop(id);
+  const el = $("#s-natija");
+  if(!t){ el.innerHTML = `<div class="empty">Hali topshiriq yoʻq.</div>`; return; }
+  const b = ball(t), m = maks(t), foiz = m ? Math.round(b/m*100) : 0;
+  const sanoq = k => t.savollar.filter(q => q.xato === k).length;
+
+  el.innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <button class="btn sm ghost" data-go="tarix">${svg(IC.back,16)} Tarix</button>
+      <span class="pill">${new Date(t.ts).toLocaleDateString("uz-UZ")}</span>
+    </div>
+
+    <div class="card tight">
+      <div class="row" style="gap:15px">
+        <div class="num" style="font-size:2.4rem;color:var(--tile);white-space:nowrap">${raqam(b)}<span
+          style="font-size:.85rem;color:var(--ink-3)"> / ${raqam(m)}</span></div>
+        <div class="row wrap" style="gap:6px">
+          ${sanoq("togri") ? `<span class="pill good">${sanoq("togri")} toʻgʻri</span>` : ""}
+          ${t.savollar.filter(q => q.xato!=="togri" && q.ball>0).length
+            ? `<span class="pill warn">${t.savollar.filter(q=>q.xato!=="togri"&&q.ball>0).length} qisman</span>` : ""}
+          ${t.savollar.filter(q => q.ball===0).length
+            ? `<span class="pill clay">${t.savollar.filter(q=>q.ball===0).length} xato</span>` : ""}
+        </div>
+      </div>
+      <div class="track" style="margin-top:12px">
+        <i style="width:${foiz}%;background:${foiz>=80?"var(--good)":foiz>=50?"var(--warn)":"var(--clay)"}"></i>
+      </div>
+      <div class="l" style="margin-top:9px">${esc(t.oquvchi)} · ${esc(t.dars)}</div>
+    </div>
+
+    ${t.sahifalar.map((src,pi) => {
+      const zonalar = t.savollar
+        .map((q,qi) => ({ q, qi }))
+        .filter(({q}) => q.joy && (q.sahifa||1) === pi+1 && q.xato !== "togri");
+      return `<div class="pagewrap">
+        <img src="${src}" alt="${pi+1}-sahifa">
+        ${zonalar.map(({q,qi}) => `<div class="zone" style="
+            left:${q.joy.x}%;top:${q.joy.y}%;width:${q.joy.w}%;height:${q.joy.h}%;
+            border-color:${xatoRang(q.xato)};background:${xatoRang(q.xato)}1f">
+            <i style="background:${xatoRang(q.xato)}">${qi+1}</i></div>`).join("")}
+      </div>`;
+    }).join("")}
+
+    <div class="card">
+      ${t.savollar.map((q,i) => {
+        const past = q.tuzatilgan == null && q.ishonch < ISHONCH_CHEGARA;
+        return `<div class="q">
+          <div class="qno" style="background:${xatoRang(q.xato)}">${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div class="row wrap" style="gap:7px">
+              <b style="font-size:.94rem">${esc(q.raqam)}-savol</b>
+              <span class="pill ${(XATO[q.xato]||{}).pill||""}">${esc(xatoNomi(q.xato))}</span>
+              ${q.qadam ? `<span class="pill">${q.qadam}-qadam</span>` : ""}
+              ${past ? `<span class="pill warn">koʻrik kutmoqda</span>` : ""}
+              ${q.tuzatilgan != null ? `<span class="pill tile">oʻqituvchi tasdiqladi</span>` : ""}
+            </div>
+            ${q.oqilgan ? `<div class="mono" style="margin-top:6px">${esc(q.oqilgan)}</div>` : ""}
+            ${q.izoh ? `<p style="margin:6px 0 0;font-size:.88rem;color:var(--ink-2);
+                 line-height:1.45">${esc(q.izoh)}</p>` : ""}
+            <div class="l" style="margin-top:6px">
+              ${raqam(q.tuzatilgan ?? q.ball)} / ${raqam(q.maks)} ball ·
+              ishonch ${Math.round(q.ishonch*100)}%</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+
+    <button class="btn ghost" data-shikoyat="${t.id}">Notoʻgʻri baholandi</button>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-shikoyat]");
+  if(!b) return;
+  const t = topshiriqTop(b.dataset.shikoyat);
+  t.savollar.forEach(q => { if(q.ishonch >= ISHONCH_CHEGARA) q.ishonch = 0.5; });
+  save(); tablar();
+  toast("Topshiriq oʻqituvchi koʻrigiga yuborildi");
+});
+
+/* ============================================================
+   8. TARIX
+   ============================================================ */
+function renderTarix(){
+  $("#tarixSoni").textContent = S.items.length;
+  const el = $("#tarixList");
+  if(!S.items.length){
+    el.innerHTML = `<div class="empty">Hali hech narsa tekshirilmagan.<br>
+      «Tekshirish» boʻlimidan daftarni suratga oling.</div>`;
+    return;
+  }
+  el.innerHTML = S.items.map(t => {
+    const b = ball(t), m = maks(t), foiz = m ? Math.round(b/m*100) : 0;
+    const shub = shubhali(t).length;
+    return `<button class="item" data-go="natija" data-arg="${t.id}">
+      <div class="av">${esc(bosh(t.oquvchi))}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.93rem">${esc(t.oquvchi)}</div>
+        <div class="muted" style="font-size:.8rem;margin-top:2px">
+          ${esc(t.dars)} · ${new Date(t.ts).toLocaleDateString("uz-UZ")}</div>
+      </div>
+      ${shub ? `<span class="pill warn">${shub}</span>` : ""}
+      <div class="num" style="font-size:1.15rem;color:${
+        foiz>=80?"var(--good)":foiz>=50?"var(--warn)":"var(--clay)"}">${foiz}%</div>
+    </button>`;
+  }).join("");
+}
+
+/* ============================================================
+   9. KO'RIK NAVBATI
+   ============================================================ */
+function renderKorik(){
+  const navbat = koriklar();
+  const el = $("#s-korik");
+  if(!navbat.length){
+    el.innerHTML = `<div class="card"><div class="l">Koʻrik navbati</div>
+      <div class="empty">Navbat boʻsh — hamma javob avtomatik qabul qilindi.</div></div>`;
+    return;
+  }
+  const { t, q } = navbat[0];
+  const qi = t.savollar.indexOf(q);
+  const sahifa = t.sahifalar[(q.sahifa||1)-1] || t.sahifalar[0];
+  el.innerHTML = `
+    <div class="card tight">
+      <div class="row" style="justify-content:space-between">
+        <div><b>${esc(t.oquvchi)}</b>
+          <div class="l" style="margin-top:2px">${esc(t.sinf)} · ${esc(t.dars)}</div></div>
+        <span class="pill tile">${navbat.length} ta qoldi</span>
+      </div>
+    </div>
+
+    ${sahifa ? `<div class="pagewrap"><img src="${sahifa}" alt="javob">
+      ${q.joy ? `<div class="zone" style="left:${q.joy.x}%;top:${q.joy.y}%;
+        width:${q.joy.w}%;height:${q.joy.h}%;border-color:var(--tile);
+        background:rgba(43,196,206,.12)"></div>` : ""}</div>` : ""}
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>${esc(q.raqam)}-savol</b>
+        <span class="pill warn">ishonch ${Math.round(q.ishonch*100)}%</span>
+      </div>
+      ${q.oqilgan ? `<div style="margin-top:10px">
+        <div class="l">Model oʻqidi</div>
+        <div class="mono" style="margin-top:4px">${esc(q.oqilgan)}</div></div>` : ""}
+      ${q.togri_javob ? `<div style="margin-top:10px">
+        <div class="l">Toʻgʻri javob</div>
+        <div class="mono" style="margin-top:4px">${esc(q.togri_javob)}</div></div>` : ""}
+      <div style="margin-top:10px">
+        <div class="l">Taklif</div>
+        <div style="margin-top:4px">${raqam(q.ball)} / ${raqam(q.maks)} ball ·
+          ${esc(xatoNomi(q.xato))}</div>
+      </div>
+      ${q.izoh ? `<p style="margin:10px 0 0;font-size:.88rem;color:var(--ink-2);
+        line-height:1.45">${esc(q.izoh)}</p>` : ""}
+    </div>
+
+    <div class="card tight">
+      <div class="l">Yakuniy ball — qaror sizniki</div>
+      <div class="row" style="margin-top:10px">
+        <input id="korikBall" type="number" step="0.5" min="0" max="${q.maks}"
+               value="${q.ball}" style="max-width:110px">
+        <span class="muted">/ ${raqam(q.maks)}</span>
+      </div>
+      <div class="row" style="margin-top:12px;gap:9px">
+        <button class="btn primary" data-korik="tasdiq"
+          data-t="${t.id}" data-q="${qi}">Tasdiqlash</button>
+        <button class="btn" data-korik="keyin" style="max-width:130px">Keyinroq</button>
+      </div>
+    </div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-korik]");
+  if(!b) return;
+  if(b.dataset.korik === "keyin"){
+    const navbat = koriklar();
+    if(navbat.length > 1){
+      // shu javobni navbat oxiriga suramiz
+      const { t } = navbat[0];
+      S.items = S.items.filter(x => x !== t).concat(t);
+      save();
+    }
+    renderKorik(); return;
+  }
+  const t = topshiriqTop(b.dataset.t);
+  const q = t.savollar[+b.dataset.q];
+  const v = parseFloat($("#korikBall").value);
+  q.tuzatilgan = isNaN(v) ? q.ball : Math.max(0, Math.min(q.maks, v));
+  save(); renderKorik(); tablar();
+  toast("Tasdiqlandi");
+});
+
+/* ============================================================
+   10. SINF — zaiflik xaritasi va o'quvchilar
+   ============================================================ */
+function renderSinf(oquvchi){
+  const el = $("#s-sinf");
+  if(oquvchi){ el.innerHTML = otaOnaHisobot(oquvchi); return; }
+  if(!S.items.length){
+    el.innerHTML = `<div class="card"><div class="l">Sinf</div>
+      <div class="empty">Maʼlumot yigʻilgach, mavzu boʻyicha zaiflik xaritasi
+      va har bir oʻquvchining hisoboti shu yerda chiqadi.</div></div>`;
+    return;
+  }
+  const hamma = S.items.flatMap(t => t.savollar);
+  const xatolar = {};
+  hamma.forEach(q => { xatolar[q.xato] = (xatolar[q.xato]||0) + 1; });
+
+  const mavzular = {};
+  S.items.forEach(t => {
+    const k = t.dars || "Nomsiz";
+    mavzular[k] = mavzular[k] || { jami:0, xato:0 };
+    t.savollar.forEach(q => {
+      mavzular[k].jami++;
+      if(q.xato !== "togri") mavzular[k].xato++;
+    });
+  });
+
+  const oquvchilar = {};
+  S.items.forEach(t => {
+    const o = oquvchilar[t.oquvchi] = oquvchilar[t.oquvchi] || { b:0, m:0, n:0, xato:{} };
+    o.b += ball(t); o.m += maks(t); o.n++;
+    t.savollar.forEach(q => { if(q.xato!=="togri") o.xato[q.xato] = (o.xato[q.xato]||0)+1; });
+  });
+
+  const orta = Object.values(oquvchilar).reduce((a,o)=>a+(o.m?o.b/o.m:0),0)
+               / (Object.keys(oquvchilar).length || 1);
+
+  const zaif = Object.entries(mavzular)
+    .map(([nom,v]) => ({ nom, foiz: v.jami ? Math.round(v.xato/v.jami*100) : 0, ...v }))
+    .sort((a,b) => b.foiz - a.foiz);
+
+  const etibor = Object.entries(oquvchilar)
+    .map(([nom,o]) => ({ nom, foiz: o.m ? Math.round(o.b/o.m*100) : 0,
+      asosiy: Object.entries(o.xato).sort((a,b)=>b[1]-a[1])[0] }))
+    .filter(o => o.foiz < 70).sort((a,b) => a.foiz - b.foiz).slice(0,5);
+
+  el.innerHTML = `
+    <div class="grid2">
+      <div class="card tight"><div class="num" style="font-size:1.7rem;color:var(--tile)">
+        ${Math.round(orta*100)}%</div><div class="l" style="margin-top:6px">oʻrtacha</div></div>
+      <div class="card tight"><div class="num" style="font-size:1.7rem">${S.items.length}</div>
+        <div class="l" style="margin-top:6px">topshiriq</div></div>
+    </div>
+
+    <div class="card">
+      <div class="l" style="margin-bottom:4px">Mavzu boʻyicha zaiflik</div>
+      ${zaif.map(z => `<div class="topicbar">
+        <span style="font-size:.87rem;font-weight:600;flex:1;min-width:0;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(z.nom)}</span>
+        <div class="track"><i style="width:${z.foiz}%;background:${
+          z.foiz>=50?"var(--clay)":z.foiz>=25?"var(--warn)":"var(--good)"}"></i></div>
+        <span class="pill ${z.foiz>=50?"clay":z.foiz>=25?"warn":"good"}"
+          >${z.xato}/${z.jami}</span></div>`).join("")}
+    </div>
+
+    <div class="card">
+      <div class="l" style="margin-bottom:4px">Xato turlari</div>
+      ${Object.entries(xatolar).sort((a,b)=>b[1]-a[1]).map(([k,n]) => `
+        <div class="topicbar">
+          <span style="font-size:.87rem;flex:1">${esc(xatoNomi(k))}</span>
+          <div class="track"><i style="width:${Math.round(n/hamma.length*100)}%;
+            background:${xatoRang(k)}"></i></div>
+          <span class="num" style="font-size:.9rem;width:34px;text-align:right"
+            >${Math.round(n/hamma.length*100)}%</span></div>`).join("")}
+    </div>
+
+    ${etibor.length ? `<div class="card">
+      <div class="l" style="margin-bottom:2px">Bugun eʼtibor bering</div>
+      ${etibor.map(o => `<button class="item" data-go="sinf" data-arg="${esc(o.nom)}">
+        <div class="av">${esc(bosh(o.nom))}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.92rem">${esc(o.nom)}</div>
+          <div class="muted" style="font-size:.8rem;margin-top:2px">${
+            o.asosiy ? esc(xatoNomi(o.asosiy[0])) + " · " + o.asosiy[1] + " marta" : "—"}</div>
+        </div>
+        <span class="pill ${o.foiz<50?"clay":"warn"}">${o.foiz}%</span>
+      </button>`).join("")}
+    </div>` : ""}
+
+    <div class="card">
+      <div class="l" style="margin-bottom:2px">Barcha oʻquvchilar</div>
+      ${Object.entries(oquvchilar).sort((a,b)=>
+        (b[1].m?b[1].b/b[1].m:0)-(a[1].m?a[1].b/a[1].m:0)).map(([nom,o]) => {
+        const f = o.m ? Math.round(o.b/o.m*100) : 0;
+        return `<button class="item" data-go="sinf" data-arg="${esc(nom)}">
+          <div class="av">${esc(bosh(nom))}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.92rem">${esc(nom)}</div>
+            <div class="muted" style="font-size:.8rem;margin-top:2px">${o.n} ta topshiriq</div>
+          </div>
+          <div class="num" style="font-size:1.1rem;color:${
+            f>=80?"var(--good)":f>=50?"var(--warn)":"var(--clay)"}">${f}%</div>
+        </button>`; }).join("")}
+    </div>`;
+}
+
+/* ---------- ota-ona hisoboti ---------- */
+function otaOnaHisobot(nom){
+  const uniki = S.items.filter(t => t.oquvchi === nom).sort((a,b) => a.ts - b.ts);
+  if(!uniki.length) return `<div class="empty">${esc(nom)} boʻyicha maʼlumot yoʻq.</div>`;
+  const foizlar = uniki.map(t => { const m = maks(t); return m ? Math.round(ball(t)/m*100) : 0; });
+  const oxirgi4 = foizlar.slice(-4);
+  const osish = oxirgi4.length > 1 ? oxirgi4[oxirgi4.length-1] - oxirgi4[0] : 0;
+
+  const xatolar = {};
+  uniki.forEach(t => t.savollar.forEach(q => {
+    if(q.xato !== "togri") xatolar[q.xato] = (xatolar[q.xato]||0)+1; }));
+  const asosiy = Object.entries(xatolar).sort((a,b)=>b[1]-a[1])[0];
+  const izohlar = uniki.slice(-2).flatMap(t => t.savollar)
+    .filter(q => q.xato !== "togri" && q.izoh).slice(-2);
+
+  return `
+    <div class="row" style="justify-content:space-between">
+      <button class="btn sm ghost" data-go="sinf">${svg(IC.back,16)} Sinf</button>
+      <span class="pill">${uniki.length} ta topshiriq</span>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1.35rem">${esc(nom)}</h2>
+      <div class="row" style="gap:16px;margin-top:12px">
+        <div>
+          <div class="num" style="font-size:2.2rem;color:${
+            osish>=0?"var(--good)":"var(--clay)"}">${osish>=0?"+":""}${osish}<span
+            style="font-size:1rem">%</span></div>
+          <div class="l" style="margin-top:5px">oxirgi ${oxirgi4.length} topshiriqda</div>
+        </div>
+        <p class="muted" style="margin:0;font-size:.88rem;line-height:1.45;flex:1">
+          Oʻrtacha ball — <b style="color:var(--ink)">${
+            Math.round(foizlar.reduce((a,b)=>a+b,0)/foizlar.length)}%</b>.
+          Sinfdagi oʻrni koʻrsatilmaydi.</p>
+      </div>
+      <div class="wk" style="margin-top:14px">
+        ${oxirgi4.map((f,i) => `<div class="col">
+          <div class="num" style="font-size:.85rem;color:var(--ink-2)">${f}%</div>
+          <div class="stk" style="height:${Math.max(3, f*0.72)}px;background:${
+            i===oxirgi4.length-1?"var(--tile)":"var(--line)"}"></div>
+          <div class="l" style="font-size:.58rem">${i+1}</div></div>`).join("")}
+      </div>
+    </div>
+
+    ${asosiy ? `<div class="card" style="border-color:rgba(224,138,60,.3)">
+      <div class="row" style="justify-content:space-between">
+        <b>Qiyinchilik</b><span class="pill warn">${asosiy[1]} marta</span></div>
+      <p style="margin:8px 0 0;font-size:.9rem;color:var(--ink-2);line-height:1.45">
+        Eng koʻp takrorlanadigan xato — <b style="color:var(--ink)"
+        >${esc(xatoNomi(asosiy[0]))}</b>.</p>
+    </div>` : ""}
+
+    ${izohlar.length ? `<div class="card">
+      <div class="l" style="margin-bottom:8px">Uyda ishlash uchun</div>
+      ${izohlar.map(q => `<p style="margin:0 0 9px;font-size:.89rem;color:var(--ink-2);
+        line-height:1.45">• ${esc(q.izoh)}</p>`).join("")}
+    </div>` : ""}`;
+}
+
+/* ============================================================
+   11. SOZLAMA
+   ============================================================ */
+function sozlamaChiz(){
+  $("#inKey").value   = localStorage.getItem("gemini_key") || "";
+  $("#inModel").value = S.model;
+  $("#inSinf").value  = S.sinf;
+  $("#inFan").value   = S.fan;
+  kalitHolat();
+  ctxChiz();
+}
+function kalitHolat(){
+  const bor = !!(localStorage.getItem("gemini_key") || "").trim();
+  const el = $("#keyState");
+  el.textContent = bor ? "saqlangan" : "yoʻq";
+  el.className = "pill " + (bor ? "good" : "clay");
+}
+function ctxChiz(){ $("#ctxPill").textContent = `${S.sinf} · ${S.fan}`; }
+
+$("#btnKeySave").addEventListener("click", () => {
+  const v = $("#inKey").value.trim();
+  if(v) localStorage.setItem("gemini_key", v); else localStorage.removeItem("gemini_key");
+  kalitHolat(); toast(v ? "Kalit saqlandi" : "Kalit oʻchirildi");
+});
+$("#btnKeyShow").addEventListener("click", () => {
+  const i = $("#inKey");
+  i.type = i.type === "password" ? "text" : "password";
+  $("#btnKeyShow").textContent = i.type === "password" ? "Koʻrsatish" : "Yashirish";
+});
+$("#inModel").addEventListener("change", e => { S.model = e.target.value; save(); });
+$("#inSinf").addEventListener("input", e => { S.sinf = e.target.value.trim() || "—"; save(); ctxChiz(); });
+$("#inFan").addEventListener("input",  e => { S.fan  = e.target.value.trim() || "—"; save(); ctxChiz(); });
+
+$("#btnExport").addEventListener("click", () => {
+  const chiqim = { ...S, items: S.items.map(t => ({ ...t, sahifalar: undefined })) };
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(chiqim, null, 2)],
+           { type:"application/json" }));
+  a.download = `ai-ustoz-${bugun()}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$("#btnWipe").addEventListener("click", () => {
+  if(!confirm("Hamma natijalar oʻchiriladi. Davom etamizmi?")) return;
+  S = { ...DEF }; save(); sozlamaChiz(); goto("olish"); toast("Oʻchirildi");
+});
+
+/* ============================================================
+   12. ISHGA TUSHISH
+   ============================================================ */
+sozlamaChiz();
+shotsChiz();
+limitKorsat();
+goto("olish");
+
+if("serviceWorker" in navigator){
+  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
