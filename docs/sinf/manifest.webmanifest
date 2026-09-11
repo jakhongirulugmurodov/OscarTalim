@@ -1,0 +1,15 @@
+{
+  "name": "AI Kursi — Sinf",
+  "short_name": "AI Sinf",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f2a43",
+  "theme_color": "#0f2a43",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
