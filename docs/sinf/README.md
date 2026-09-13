@@ -145,18 +145,35 @@ uchun yaramaydi (bir qurilmadagi ikki brauzer varag'i bir-birini ko'radi, xolos)
 
 ## Telegram bot
 
-```bash
-export BOT_TOKEN="BotFather bergan token"
-export APP_URL="https://<foydalanuvchi>.github.io/OscarTalim/sinf/"
-export ADMIN_IDS="<sizning Telegram ID ingiz>"
-python3 bot/bot.py
-```
+Bot **GitHub Actions'da** ishlaydi — alohida server kerak emas. Har 5
+daqiqada kelgan xabarlarni tekshiradi va javob beradi (ya'ni `/start` ga javob
+0–5 daqiqa ichida keladi; menyu tugmasi esa darhol ishlaydi).
 
-BotFather'da: `/newbot` → token; keyin `/setmenubutton` (yoki bot o'zi qo'yadi).
+Bir marta sozlash:
+
+1. **@BotFather** → `/newbot` → token.
+2. Repo → **Settings → Secrets and variables → Actions → New repository secret**:
+   nomi `TELEGRAM_BOT_TOKEN`, qiymati — token.
+3. (Ixtiyoriy) o'sha yerda **Variables** → `TELEGRAM_ADMIN_IDS` = sizning
+   Telegram ID ingiz (botga `/men` deb yozsangiz aytadi). Shunda `/eslatma`
+   va `/kim` buyruqlari sizga ochiladi.
+4. **Actions → Telegram bot → Run workflow → rejim: `sozlash`** — menyu
+   tugmasi, buyruqlar va tavsif o'rnatiladi.
+
+Eslatma yuborish: **Run workflow → rejim: `eslatma`**, matnni yozing — botga
+yozilgan hamma o'quvchiga boradi. Yoki Telegram'da `/eslatma matn`.
+
 Sinf kodi bilan havola: `t.me/<bot>?start=AI13` — kod dastur ichiga o'zi tushadi.
 
-Bot buyruqlari: `/start`, `/kod AI13`, `/eslatma <matn>` (muallim),
+Bot buyruqlari: `/start`, `/kod AI13`, `/men`, `/eslatma <matn>` (muallim),
 `/kim` (muallim).
+
+O'z serveringiz bo'lsa, doimiy rejim ham bor:
+
+```bash
+export BOT_TOKEN="..." APP_URL="https://<foydalanuvchi>.github.io/OscarTalim/sinf/"
+python3 bot/bot.py
+```
 
 ## Sinash
 
@@ -194,4 +211,6 @@ docs/sinf/
 bot/
 ├── bot.py                # Telegram bot (faqat standart kutubxona)
 └── requirements.txt
+.github/workflows/
+└── telegram-bot.yml      # bot GitHub Actions'da: har 5 daqiqada + qo'lda
 ```

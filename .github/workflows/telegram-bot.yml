@@ -1,0 +1,72 @@
+# AI kursi — Telegram bot GitHub Actions'da ishlaydi (server kerak emas).
+#
+# Har 5 daqiqada botga kelgan xabarlarni oladi va javob beradi.
+# "Run workflow" tugmasi orqali: bir martalik sozlash yoki eslatma yuborish.
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   TELEGRAM_BOT_TOKEN   — BotFather bergan token
+#   variable TELEGRAM_ADMIN_IDS   — muallim Telegram ID si (ixtiyoriy, /eslatma uchun)
+#
+# Eslatma: GitHub jadval bo'yicha ishga tushirishni faqat asosiy (main)
+# shoxchadagi workflow uchun qiladi va 60 kun harakat bo'lmasa o'chiradi.
+
+name: Telegram bot
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      rejim:
+        description: "Nima qilsin"
+        type: choice
+        options: [xabarlar, sozlash, eslatma]
+        default: xabarlar
+      matn:
+        description: "Eslatma matni (faqat 'eslatma' rejimi uchun)"
+        required: false
+        default: ""
+
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      APP_URL: https://jakhongirulugmurodov.github.io/OscarTalim/sinf/
+      ADMIN_IDS: ${{ vars.TELEGRAM_ADMIN_IDS }}
+      STATE_FILE: ${{ github.workspace }}/state/users.json
+      REJIM: ${{ github.event.inputs.rejim || 'xabarlar' }}
+      MATN: ${{ github.event.inputs.matn }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Foydalanuvchilar ro'yxatini tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: tg-state-${{ github.run_id }}
+          restore-keys: tg-state-
+
+      - name: Bot
+        run: |
+          mkdir -p state
+          case "$REJIM" in
+            sozlash) python3 bot/bot.py --setup ;;
+            eslatma) python3 bot/bot.py --broadcast "$MATN" ;;
+            *)       python3 bot/bot.py --once ;;
+          esac
+
+      - name: Foydalanuvchilar ro'yxatini saqlash
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: tg-state-${{ github.run_id }}
