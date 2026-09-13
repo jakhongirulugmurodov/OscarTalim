@@ -183,6 +183,10 @@ Bir marta sozlash:
 Eslatma yuborish: **Run workflow → rejim: `eslatma`**, matnni yozing — botga
 yozilgan hamma o'quvchiga boradi. Yoki Telegram'da `/eslatma matn`.
 
+Agar GitHub jadvalli ishga tushirishni kechiktirsa (bu bo'lib turadi),
+**Run workflow → rejim: `xabarlar`** kutib turgan xabarlarga darhol javob beradi —
+dars oldidan bir marta bosib qo'yish kifoya.
+
 Sinf kodi bilan havola: `t.me/<bot>?start=AI13` — kod dastur ichiga o'zi tushadi.
 
 Bot buyruqlari: `/start`, `/kod AI13`, `/men`, `/eslatma <matn>` (muallim),
