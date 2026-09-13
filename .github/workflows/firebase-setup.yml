@@ -57,3 +57,6 @@ jobs:
           git diff --cached --quiet && { echo "o'zgarish yo'q"; exit 0; }
           git commit -m "Firebase config ulandi (GitHub Actions)"
           git push
+          # GITHUB_TOKEN bilan push boshqa workflow'larni uyg'otmaydi,
+          # shuning uchun Pages shoxchasi shu yerning o'zida yangilanadi:
+          git push origin HEAD:refs/heads/claude/yangi-papka-ochish-zroxni || true

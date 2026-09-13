@@ -1,0 +1,24 @@
+# GitHub Pages hozircha `claude/yangi-papka-ochish-zroxni` shoxchasidan nashr
+# qilinadi (Settings → Pages). Sozlamani API orqali o'zgartirib bo'lmagani uchun
+# `main` ga tushgan har bir o'zgarish shu shoxchaga avtomatik ko'chiriladi —
+# sayt doim `main` ni aks ettiradi. Pages manbasi `main` ga o'tkazilsa,
+# bu fayl kerak bo'lmay qoladi.
+
+name: Pages shoxchasini yangilash
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: main → Pages shoxchasi (fast-forward)
+        run: git push origin HEAD:refs/heads/claude/yangi-papka-ochish-zroxni
