@@ -96,7 +96,27 @@ baribir talab qilinadi.
 Proyektor rejimi — "Jonli" yoki "Reyting" bo'limidagi tugma: shrift kattalashadi
 va to'liq ekranga o'tadi.
 
-## Firebase sozlash (10 daqiqa)
+## Firebase'ni ulash
+
+### Eng oson yo'l — GitHub o'zi qiladi (2 daqiqa)
+
+1. Shu havolani oching, Google akkauntingizga kiring, **Allow** bosing:
+
+   ```
+   https://accounts.google.com/o/oauth2/auth?client_id=563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com&scope=email+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloudplatformprojects.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Ffirebase+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&response_type=code&state=oscartalim&redirect_uri=http%3A%2F%2Flocalhost%3A9005&access_type=offline&prompt=consent
+   ```
+
+   Brauzer `http://localhost:9005/?...&code=...` ga o'tadi va "ochilmadi" deydi —
+   bu normal. Manzil qatoridagi **butun URL** ni nusxalang.
+2. Repo → **Actions → Firebase sozlash → Run workflow** → `google_auth` ga o'sha
+   URL ni qo'ying → Run. 2-3 daqiqada loyiha, Firestore, anonim kirish, qoidalar
+   tayyor bo'ladi va config `index.html` ga o'zi yoziladi.
+
+Kod bir martalik va bir necha daqiqa yashaydi — nusxalab darhol ishga tushiring.
+Bu Firebase CLI ishlatadigan rasmiy kirish usuli; kalitlar faqat GitHub
+serverining xotirasida bo'ladi, hech qayerda saqlanmaydi.
+
+### Qo'lda (konsol orqali, 10 daqiqa)
 
 1. [console.firebase.google.com](https://console.firebase.google.com) → yangi loyiha.
 2. **Build → Firestore Database** → Create database.

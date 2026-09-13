@@ -1,0 +1,59 @@
+# Firebase loyihasini bir marta, GitHub serverida tayyorlaydi.
+#
+# Ishlatish: Actions → "Firebase sozlash" → Run workflow →
+#   google_auth: Google'dan qaytgan http://localhost:9005/?...&code=... manzil
+#   (havola docs/sinf/README.md da). Kod bir martalik, bir necha daqiqa yashaydi.
+#
+# Natija: config docs/sinf/index.html ga yoziladi va shu shoxchaga commit qilinadi.
+
+name: Firebase sozlash
+
+on:
+  workflow_dispatch:
+    inputs:
+      google_auth:
+        description: "Google'dan qaytgan localhost:9005/... manzil (to'liq)"
+        required: true
+      project_id:
+        description: "Loyiha identifikatori"
+        default: oscartalim-sinf
+      location:
+        description: "Firestore joylashuvi"
+        default: asia-south1
+
+permissions:
+  contents: write
+
+concurrency:
+  group: firebase-setup
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Firebase CLI
+        run: npm install -g firebase-tools@13.29.1 --no-fund --no-audit 2>&1 | tail -1
+
+      - name: Loyihani tayyorlash
+        env:
+          GOOGLE_AUTH: ${{ inputs.google_auth }}
+          PROJECT_ID: ${{ inputs.project_id }}
+          LOCATION: ${{ inputs.location }}
+        run: python3 .github/scripts/firebase_setup.py
+
+      - name: Config'ni commit qilish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/sinf/index.html firestore.rules firebase.json .firebaserc
+          git diff --cached --quiet && { echo "o'zgarish yo'q"; exit 0; }
+          git commit -m "Firebase config ulandi (GitHub Actions)"
+          git push
