@@ -1,0 +1,15 @@
+{
+  "name": "Kompas — Oscar Ta'lim",
+  "short_name": "Kompas",
+  "description": "Qiziqishdan universitetgacha: mos yo'nalish, imtihon fanlari va tayyorgarlik muddati.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF2F0",
+  "theme_color": "#0C6B5A",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -4,8 +4,26 @@
 > ta'lim yo'nalishlarini topadi → o'sha yo'nalishga qaysi fanlardan imtihon topshirilishini
 > aniqlaydi → o'sha fanlardan **qancha muddat tayyorlansa kira olishini** hisoblab beradi.
 
-Ushbu papkada mahsulotning **tahlili, algoritmi va ishlar ketma-ketligi** hujjatlashtirilgan.
-Kod hali yozilmagan — bu bosqich loyihaning texnik poydevori (spetsifikatsiya).
+Ushbu papkada mahsulotning **ishlaydigan veb-ilovasi** (Faza 1 — MVP) va uning
+**tahlili, algoritmi, ishlar ketma-ketligi** joylashgan.
+
+## Ilova
+
+GitHub Pages: `https://<foydalanuvchi>.github.io/OscarTalim/kompas/` · Lokal: `index.html` ni
+brauzerda oching (build kerak emas, `file://` da ham ishlaydi) yoki `npx http-server docs/kompas`.
+
+| Qism | Fayl | Nima qiladi |
+|---|---|---|
+| Sozlamalar | `js/config.js` | Ball koeffitsientlari, kalendar, minimal ball, model parametrlari — **kod emas, konfiguratsiya** |
+| Yadro | `js/engine.js` | Sof funksiyalar: RIASEC, moslik, blok optimizatsiyasi, ball modeli, ehtimollik, Monte-Carlo, tayyorgarlik rejasi |
+| Ilova | `js/app.js` | 7 ekran: Bosh → Profil → Test → Natija → Fanlar → Daraja → Reja (+ Manba) |
+| Dizayn | `css/kompas.css` | Token tizimi, yorug'/qorong'i mavzu, mobil |
+| Ma'lumot | `data/` | Yo'nalishlar (4 fayl), mavzu daraxtlari (12 fan), RIASEC savollari, OTM va fanlar lug'ati — sxema: `data/SCHEMA.md` |
+| Tekshiruv | `scripts/validate.js`, `scripts/test_engine.js` | `node docs/kompas/scripts/validate.js` — ma'lumot; `node docs/kompas/scripts/test_engine.js` — yadro |
+| PWA | `manifest.webmanifest`, `sw.js`, `icon.svg` | Telefonga o'rnatiladi, offline ishlaydi |
+
+Foydalanuvchi holati faqat brauzerning `localStorage` ida saqlanadi — server, hisob, shaxsiy
+ma'lumot yig'ish yo'q.
 
 ## Hujjatlar
 

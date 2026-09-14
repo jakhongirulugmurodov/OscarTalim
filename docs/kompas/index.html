@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0C6B5A">
+<meta name="description" content="Kompas — qiziqishdan universitetgacha: sizga mos yo'nalish, imtihon fanlari va tayyorgarlik muddatini hisoblab beradi.">
+<title>Kompas — Oscar Ta'lim</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/kompas.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#/" aria-label="Kompas bosh sahifa">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.8 8.2l-2.3 6.1-6.1 2.3 2.3-6.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="var(--paper)"/></svg>
+      Kompas
+    </a>
+    <nav class="steps" id="steps" aria-label="Qadamlar"></nav>
+  </div>
+</header>
+<main id="app" aria-live="polite"></main>
+
+<script src="js/config.js"></script>
+<script src="data/fanlar.js"></script>
+<script src="data/otmlar.js"></script>
+<script src="data/riasec_savollar.js"></script>
+<script src="data/yonalishlar/texnika.js"></script>
+<script src="data/yonalishlar/tibbiyot_tabiiy.js"></script>
+<script src="data/yonalishlar/iqtisod_ijtimoiy.js"></script>
+<script src="data/yonalishlar/pedagogika_gumanitar.js"></script>
+<script src="data/mavzular/matematika.js"></script>
+<script src="data/mavzular/fizika.js"></script>
+<script src="data/mavzular/kimyo.js"></script>
+<script src="data/mavzular/biologiya.js"></script>
+<script src="data/mavzular/tarix.js"></script>
+<script src="data/mavzular/tarix_ix.js"></script>
+<script src="data/mavzular/ona_tili.js"></script>
+<script src="data/mavzular/ona_tili_adabiyot.js"></script>
+<script src="data/mavzular/ingliz_tili.js"></script>
+<script src="data/mavzular/geografiya.js"></script>
+<script src="data/mavzular/huquq.js"></script>
+<script src="data/mavzular/rus_tili.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+</script>
+</body>
+</html>
