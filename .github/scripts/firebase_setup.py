@@ -28,34 +28,46 @@ def mask(s):
 def die(msg):
     print("\n::error::" + msg, flush=True); sys.exit(1)
 
-# ------------------------------------------------------------------ 0. kod → kalit
-raw = os.environ.get("GOOGLE_AUTH", "").strip()
-m = re.search(r"[?&]code=([^&\s]+)", raw)
-code = urllib.parse.unquote(m.group(1)) if m else raw
-mask(code)
-if not code or len(code) < 20:
-    die("GOOGLE_AUTH bo'sh yoki noto'g'ri. Google'dan qaytgan localhost:9005/... manzilni to'liq bering.")
+# ------------------------------------------------------------------ 0. rejim
+MODE = sys.argv[1] if len(sys.argv) > 1 else "provision"
 
 def post_form(url, data):
     req = urllib.request.Request(url, urllib.parse.urlencode(data).encode())
     with urllib.request.urlopen(req) as r:
         return json.load(r)
 
-try:
-    tok = post_form("https://oauth2.googleapis.com/token", {
-        "code": code, "client_id": CID, "client_secret": CSEC,
-        "redirect_uri": REDIRECT, "grant_type": "authorization_code"})
-except urllib.error.HTTPError as e:
-    body = e.read().decode()
-    if "invalid_grant" in body:
-        die("Kod eskirgan yoki ishlatilgan. Google havolasini qaytadan ochib, yangi manzil bilan qayta ishga tushiring.")
-    die("Token almashinuvi xatosi: " + body[:300])
+if MODE == "exchange":
+    # Birinchi qadam, npm o'rnatishdan ham oldin: bir martalik kod bir necha
+    # soniyada kalitga aylanadi, kalit faqat shu ishning xotirasida (GITHUB_ENV,
+    # niqoblangan) qoladi.
+    raw = os.environ.get("GOOGLE_AUTH", "").strip()
+    m = re.search(r"[?&]code=([^&\s]+)", raw)
+    code = urllib.parse.unquote(m.group(1)) if m else raw
+    mask(code)
+    if not code or len(code) < 20:
+        die("GOOGLE_AUTH bo'sh yoki noto'g'ri. Google'dan qaytgan localhost:9005/... manzilni to'liq bering.")
+    try:
+        tok = post_form("https://oauth2.googleapis.com/token", {
+            "code": code, "client_id": CID, "client_secret": CSEC,
+            "redirect_uri": REDIRECT, "grant_type": "authorization_code"})
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        if "invalid_grant" in body:
+            die("Kod eskirgan yoki allaqachon ishlatilgan. Google havolasini qaytadan ochib, yangi manzil bilan qayta ishga tushiring.")
+        die("Token almashinuvi xatosi: " + body[:300])
+    refresh = tok.get("refresh_token", "")
+    mask(refresh); mask(tok.get("access_token", ""))
+    if not refresh:
+        die("refresh_token kelmadi — havolani 'prompt=consent' bilan qaytadan oching.")
+    with open(os.environ["GITHUB_ENV"], "a") as f:
+        f.write("FB_REFRESH=" + refresh + "\n")
+    print("Google kirish: ok")
+    sys.exit(0)
 
-REFRESH = tok.get("refresh_token", ""); ACCESS = tok.get("access_token", "")
-mask(REFRESH); mask(ACCESS)
+REFRESH = os.environ.get("FB_REFRESH", "")
+mask(REFRESH)
 if not REFRESH:
-    die("refresh_token kelmadi — havolani 'prompt=consent' bilan qaytadan oching.")
-print("Google kirish: ok")
+    die("FB_REFRESH yo'q — avval 'exchange' qadami bajarilishi kerak.")
 
 def access_token():
     return post_form("https://oauth2.googleapis.com/token", {
@@ -91,32 +103,57 @@ def fb_json(*args):
 def step(n): print(f"\n=== {n}", flush=True)
 
 # ------------------------------------------------------------------ 1. loyiha
-step("1. Loyiha")
-def create(pid):
-    c, out, err = fb("projects:create", pid, "--display-name", "OscarTalim Sinf", project=False)
-    return c, out + err
-c, out = create(PROJECT)
-if c != 0:
-    low = out.lower()
-    if "terms of service" in low or "tos" in low and "accept" in low:
-        die("Google/Firebase foydalanish shartlari qabul qilinmagan. Shu akkaunt bilan "
-            "console.firebase.google.com ni bir marta ochib, shartlarni qabul qiling va qayta ishga tushiring.")
-    if "already exists" in low or "already_exists" in low or "in use" in low:
-        # global band bo'lsa — qo'shimcha bilan
-        suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
-        alt = f"{PROJECT}-{suffix}"
-        c2, out2 = create(alt)
-        if c2 != 0:
-            # balki bizniki — mavjud loyihani ishlataveramiz
-            s, r = api("GET", f"https://firebase.googleapis.com/v1beta1/projects/{PROJECT}")
-            if s != 200:
-                die("Loyiha yaratilmadi:\n" + out[-800:] + "\n" + out2[-800:])
-            print("mavjud loyiha ishlatiladi:", PROJECT)
-        else:
-            PROJECT = alt
-    else:
-        die("Loyiha yaratilmadi:\n" + out[-1200:])
-print("loyiha:", PROJECT)
+def wait_op(url, tries=40):
+    """Uzoq davom etadigan operatsiya tugashini kutadi."""
+    for _ in range(tries):
+        s_, r = api("GET", url)
+        if r.get("done"):
+            return r
+        time.sleep(3)
+    return {"error": {"message": "operatsiya vaqtida tugamadi"}}
+
+def err_text(r):
+    e = r.get("error", {})
+    return (e.get("message") or json.dumps(e)[:400]) if isinstance(e, dict) else str(e)[:400]
+
+step("1. Google Cloud loyihasi")
+s_, r = api("GET", f"https://cloudresourcemanager.googleapis.com/v1/projects/{PROJECT}")
+if s_ == 200 and r.get("lifecycleState") == "ACTIVE":
+    print("mavjud, davom etamiz:", PROJECT)
+else:
+    s_, r = api("POST", "https://cloudresourcemanager.googleapis.com/v1/projects",
+                {"projectId": PROJECT, "name": "OscarTalim Sinf"})
+    if s_ == 409:
+        # kod dunyo bo'yicha band (boshqa odamniki) — qo'shimcha bilan
+        PROJECT = f"{PROJECT}-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+        s_, r = api("POST", "https://cloudresourcemanager.googleapis.com/v1/projects",
+                    {"projectId": PROJECT, "name": "OscarTalim Sinf"})
+    if s_ not in (200, 201):
+        die("Google Cloud loyihasi yaratilmadi: " + err_text(r))
+    op = wait_op("https://cloudresourcemanager.googleapis.com/v1/" + r["name"])
+    if "error" in op:
+        die("Loyiha yaratish operatsiyasi xato: " + err_text(op))
+    print("yaratildi:", PROJECT)
+    time.sleep(5)
+
+step("1b. Loyihaga Firebase qo'shish")
+s_, r = api("GET", f"https://firebase.googleapis.com/v1beta1/projects/{PROJECT}")
+if s_ == 200:
+    print("Firebase allaqachon ulangan")
+else:
+    s_, r = api("POST", f"https://firebase.googleapis.com/v1beta1/projects/{PROJECT}:addFirebase", {})
+    if s_ not in (200, 201):
+        msg = err_text(r)
+        if "erms of" in msg or "ToS" in msg or "TOS" in msg or s_ == 403:
+            die("Firebase qo'shilmadi: " + msg + "\n\n"
+                "Ko'p hollarda sabab — Firebase foydalanish shartlari hali qabul qilinmagan. "
+                "Shu Google akkaunt bilan https://console.firebase.google.com ni bir marta oching, "
+                "shartlarni qabul qiling (loyiha yaratish shart emas), keyin yangi Google kodi bilan qayta ishga tushiring.")
+        die("Firebase qo'shilmadi: " + msg)
+    op = wait_op("https://firebase.googleapis.com/v1beta1/" + r["name"])
+    if "error" in op:
+        die("Firebase qo'shish operatsiyasi xato: " + err_text(op))
+    print("Firebase ulandi")
 
 # ------------------------------------------------------------------ 2. API lar
 step("2. API larni yoqish")

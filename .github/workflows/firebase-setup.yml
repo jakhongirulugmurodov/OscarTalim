@@ -35,6 +35,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Bir martalik kod darhol kalitga aylantiriladi (npm o'rnatishdan oldin),
+      # kalit faqat shu ishning niqoblangan muhitida qoladi.
+      - name: Google kirish
+        env:
+          GOOGLE_AUTH: ${{ inputs.google_auth }}
+        run: python3 .github/scripts/firebase_setup.py exchange
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -44,10 +51,9 @@ jobs:
 
       - name: Loyihani tayyorlash
         env:
-          GOOGLE_AUTH: ${{ inputs.google_auth }}
           PROJECT_ID: ${{ inputs.project_id }}
           LOCATION: ${{ inputs.location }}
-        run: python3 .github/scripts/firebase_setup.py
+        run: python3 .github/scripts/firebase_setup.py provision
 
       - name: Config'ni commit qilish
         run: |
