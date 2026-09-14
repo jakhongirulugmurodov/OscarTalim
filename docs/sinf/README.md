@@ -131,29 +131,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn()  { return request.auth != null; }
+    function me()        { return request.auth.uid; }
+    // Muallim = shu sinfning teachers/{uid} hujjati bor odam
     function isTeacher(c){ return signedIn() &&
-      request.auth.uid in get(/databases/$(db)/documents/classes/$(c)).data.teachers; }
+      exists(/databases/$(db)/documents/classes/$(c)/teachers/$(me())); }
+    // PIN faqat private/auth da; muallim bo'lish uchun aynan shu PIN kerak
+    function pinOk(c){ return request.resource.data.pin ==
+      get(/databases/$(db)/documents/classes/$(c)/private/auth).data.pin; }
 
     match /classes/{c} {
       allow read:   if signedIn();
-      allow create: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == me();
       allow update: if isTeacher(c);
 
+      match /private/auth {
+        allow read:   if isTeacher(c);
+        allow create: if signedIn() &&
+          get(/databases/$(db)/documents/classes/$(c)).data.createdBy == me();
+        allow update: if isTeacher(c);
+      }
+      match /teachers/{uid} {
+        allow read:  if signedIn() && (me() == uid || isTeacher(c));
+        allow write: if signedIn() && me() == uid && pinOk(c);
+      }
+      // Reyting uchun ochiq maydonlar: ism, guruh, ball, streak
       match /students/{uid} {
         allow read:   if signedIn();
-        allow create: if signedIn() && request.auth.uid == uid;
-        // o'quvchi faqat o'zini yozadi va o'zini tasdiqlay olmaydi
-        allow update: if isTeacher(c) ||
-          (request.auth.uid == uid &&
-           request.resource.data.ok == resource.data.ok);
-
+        allow create: if signedIn() && me() == uid && request.resource.data.ok == false;
+        // o'quvchi o'zini tasdiqlay olmaydi va rad etilganini o'zgartira olmaydi
+        allow update: if isTeacher(c) || (signedIn() && me() == uid &&
+          request.resource.data.ok == resource.data.ok &&
+          request.resource.data.get('rejected', false) == resource.data.get('rejected', false));
         match /entries/{e} {
           allow read:  if signedIn();
-          allow write: if request.auth.uid == uid;
+          allow write: if signedIn() && me() == uid;
         }
       }
-      match /live/{d}    { allow read: if signedIn(); allow write: if isTeacher(c); }
-      match /answers/{a} { allow read: if signedIn(); allow write: if signedIn(); }
+      // Rasm va Telegram ma'lumoti: faqat egasi va muallim o'qiydi
+      match /profiles/{uid} {
+        allow read:  if signedIn() && (me() == uid || isTeacher(c));
+        allow write: if signedIn() && me() == uid;
+      }
+      match /live/{d} { allow read: if signedIn(); allow write: if isTeacher(c); }
+      // Har kim faqat o'z javobini yozadi
+      match /answers/{key}/votes/{uid} {
+        allow read:  if signedIn();
+        allow write: if signedIn() && me() == uid;
+      }
     }
   }
 }
@@ -211,7 +235,22 @@ Ikkinchi varaqda boshqa o'quvchi bo'lish uchun konsolda:
 `localStorage.setItem('sinf:uid','u2'); localStorage.clear` emas —
 faqat `sinf:uid`, `sinf:role`, `sinf:code` kalitlarini o'zgartiring.
 
-## Hozircha bor cheklovlar
+## Xavfsizlik: nima himoyalangan, nima emas
+
+Himoyalangan (Firestore qoidalari bilan, mijoz kodiga ishonmasdan):
+
+- **Muallim PIN i** sinf hujjatida emas — `private/auth` da, uni faqat muallim
+  o'qiydi. Muallim bo'lish = to'g'ri PIN bilan `teachers/{uid}` yaratish; PIN
+  tekshiruvi serverda.
+- **O'quvchi o'zini tasdiqlay olmaydi** (`ok` maydonini faqat muallim o'zgartiradi).
+- **Rasm va Telegram ID** alohida `profiles/{uid}` da — faqat egasi va muallim
+  o'qiydi. Reyting ro'yxatida faqat ism, guruh, ball, streak bor.
+- **Javoblar**: har kim faqat o'z `votes/{uid}` hujjatini yozadi.
+- **Jonli o'yin va darsni ochish** — faqat muallim.
+- Foydalanuvchi kiritgan har qanday matn va rasm ekranga qochirib (escape)
+  chiqariladi.
+
+Hozircha bor cheklovlar:
 
 - **Savollar javobi mijoz faylida.** Duel savollari `index.html` ichida, ya'ni
   devtools ochgan bola javobni ko'ra oladi. Keyingi bosqich: savollar bazasini
@@ -219,6 +258,8 @@ faqat `sinf:uid`, `sinf:role`, `sinf:code` kalitlarini o'zgartiring.
 - **Ballni mijoz yozadi.** Sinf sharoitida yetarli (muallim "Ro'yxat"
   bo'limida ish bor-yo'qligini ko'radi), lekin qat'iy hisob kerak bo'lsa
   Cloud Functions orqali yozish kerak.
+- **PIN ni terib ko'rish** (brute force) qoidalar darajasida cheklanmagan —
+  PIN ni 6+ belgili qiling.
 - **Telegram `initData` server tomonda tekshirilmagan.** Hozir dastur
   `initDataUnsafe` ga ishonadi. Ishonchli qilish uchun bot tokeni bilan HMAC-SHA256
   tekshiruvi (`WebAppData` kaliti) server tomonda bajarilishi kerak.

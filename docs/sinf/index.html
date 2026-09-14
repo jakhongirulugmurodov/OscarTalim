@@ -157,6 +157,32 @@ body.proj .nav{display:none}
 .sep{height:1px;background:var(--line);margin:14px 0}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
 .note{border-left:3px solid var(--accent);padding-left:11px;color:var(--muted);font-size:.86rem}
+/* ---- landing (kirish oynasi) ---- */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 0 2px}
+.brand.compact{padding:0;gap:9px}
+.brand.compact .mark{width:34px;height:34px;font-size:17px;border-radius:11px}
+.tlink{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;
+  padding:6px 12px;font-size:.78rem;cursor:pointer}
+.hero{padding:22px 0 16px}
+.hero .eyebrow{font-size:.68rem;letter-spacing:.18em;color:var(--accent2);margin-bottom:10px;text-transform:uppercase}
+.hero h1{font-size:1.75rem;line-height:1.18;margin-bottom:12px}
+.hero p{color:var(--muted);font-size:.98rem;margin:0 0 18px}
+.btn.big{font-size:1.1rem;padding:17px}
+.hero small{display:block;text-align:center;margin-top:10px}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 14px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px}
+.feat i{font-style:normal;font-size:22px;display:block;margin-bottom:6px}
+.feat b{display:block;margin-bottom:3px}
+.feat span{font-size:.8rem;color:var(--muted);line-height:1.4;display:block}
+.teaser{list-style:none;margin:6px 0 12px;padding:0}
+.teaser li{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+.teaser li:last-child{border-bottom:0}
+.teaser li span{width:26px;height:26px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;
+  justify-content:center;font-size:.75rem;color:var(--accent2);font-weight:800;flex:0 0 auto}
+.lvls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.lvls b{font-size:.74rem;padding:4px 9px;border-radius:999px;background:var(--bg2);color:var(--muted);font-weight:600}
+.lvls b:last-child{background:var(--accent-soft);color:var(--accent2)}
+@media (max-width:380px){.feats{grid-template-columns:1fr}}
 @media print{
   body{background:#fff;color:#111;padding:0}
   .nav,.hud,.noprint{display:none!important}
@@ -635,8 +661,13 @@ const LocalDB = {
   async auth(){ let u=localStorage.getItem("sinf:uid");
     if(!u){ u = IN_TG ? ("tg"+TG.initDataUnsafe.user.id) : ("u"+Math.random().toString(36).slice(2,10));
       localStorage.setItem("sinf:uid",u);} return u; },
-  async getClass(c){ return this.get(`c/${c}`,null); },
+  async getClass(c){ const d=this.get(`c/${c}`,null); if(!d) return null; const {pin,...pub}=d; return pub; },
   async saveClass(c,d){ const cur=this.get(`c/${c}`,{})||{}; this.set(`c/${c}`,{...cur,...d}); },
+  async createClass(c,d,pin){ this.set(`c/${c}`,{...d,pin}); },
+  async teacherLogin(c,pin){ const d=this.get(`c/${c}`,null); return !!d && String(d.pin)===String(pin); },
+  async setProfile(c,uid,d){ const all=this.get(`c/${c}/pr`,{}); all[uid]={...(all[uid]||{}),...d,uid}; this.set(`c/${c}/pr`,all); },
+  watchProfiles(c,cb){ return this.sub(`c/${c}/pr`, ()=>cb(this.get(`c/${c}/pr`,{}))); },
+  watchMyProfile(c,uid,cb){ return this.sub(`c/${c}/pr`, ()=>cb((this.get(`c/${c}/pr`,{})||{})[uid]||null)); },
   watchClass(c,cb){ return this.on(`c/${c}`,cb); },
   watchStudents(c,cb){ return this.onList(`c/${c}/st`,cb); },
   async setStudent(c,uid,d){ const all=this.get(`c/${c}/st`,{}); all[uid]={...(all[uid]||{}),...d,uid}; this.set(`c/${c}/st`,all); },
@@ -650,6 +681,9 @@ const LocalDB = {
   async setAnswer(c,key,uid,d){ const all=this.get(`c/${c}/a/${key}`,{}); all[uid]={...d,uid}; this.set(`c/${c}/a/${key}`,all); },
   watchAnswers(c,key,cb){ return this.onList(`c/${c}/a/${key}`,cb); }
 };
+/* Sinf hujjatida PIN yo'q (hamma o'qiydi). PIN faqat private/auth da, uni
+   faqat muallim o'qiydi; muallim bo'lish = to'g'ri PIN bilan teachers/{uid}
+   hujjatini yaratish — buni Firestore qoidalari tekshiradi. */
 
 async function makeCloudDB(cfg){
   const A = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
@@ -665,6 +699,18 @@ async function makeCloudDB(cfg){
     async auth(){ if(!auth.currentUser) await U.signInAnonymously(auth); return auth.currentUser.uid; },
     async getClass(c){ const s=await getDoc(D("classes",c)); return s.exists()?s.data():null; },
     async saveClass(c,d){ await setDoc(D("classes",c), d, {merge:true}); },
+    async createClass(c,d,pin){
+      await setDoc(D("classes",c), d);
+      await setDoc(D("classes",c,"private","auth"), {pin:String(pin)});
+      await setDoc(D("classes",c,"teachers",auth.currentUser.uid), {pin:String(pin), at:serverTimestamp()});
+    },
+    async teacherLogin(c,pin){
+      try { await setDoc(D("classes",c,"teachers",auth.currentUser.uid), {pin:String(pin), at:serverTimestamp()}); return true; }
+      catch(e){ return false; }          /* qoidalar rad etdi = PIN noto'g'ri */
+    },
+    async setProfile(c,uid,d){ await setDoc(D("classes",c,"profiles",uid), {...d,uid}, {merge:true}); },
+    watchProfiles(c,cb){ return onSnapshot(C("classes",c,"profiles"), q=>{ const m={}; q.docs.forEach(d=>m[d.id]=d.data()); cb(m); }); },
+    watchMyProfile(c,uid,cb){ return onSnapshot(D("classes",c,"profiles",uid), s=>cb(s.exists()?s.data():null)); },
     watchClass(c,cb){ return onSnapshot(D("classes",c), s=>cb(s.exists()?s.data():null)); },
     watchStudents(c,cb){ return onSnapshot(C("classes",c,"students"), q=>cb(q.docs.map(d=>({...d.data(),uid:d.id})))); },
     async setStudent(c,uid,d){ await setDoc(D("classes",c,"students",uid), {...d,uid,seen:serverTimestamp()}, {merge:true}); },
@@ -677,8 +723,8 @@ async function makeCloudDB(cfg){
       {...e, ts:serverTimestamp()}); },
     async setLive(c,l){ await setDoc(D("classes",c,"live","now"), l); },
     watchLive(c,cb){ return onSnapshot(D("classes",c,"live","now"), s=>cb(s.exists()?s.data():null)); },
-    async setAnswer(c,key,uid,d){ await setDoc(D("classes",c,"answers",key+"__"+uid), {...d,uid,key}); },
-    watchAnswers(c,key,cb){ return onSnapshot(C("classes",c,"answers"), q=>cb(q.docs.map(d=>d.data()).filter(x=>x.key===key))); }
+    async setAnswer(c,key,uid,d){ await setDoc(D("classes",c,"answers",key,"votes",uid), {...d,uid,key}); },
+    watchAnswers(c,key,cb){ return onSnapshot(C("classes",c,"answers",key,"votes"), q=>cb(q.docs.map(d=>d.data()))); }
   };
 }
 
@@ -688,7 +734,8 @@ async function makeCloudDB(cfg){
 const S = {
   screen:"boot", tab:"darslar", role:"", code:"", uid:"",
   cls:null, me:null, students:[], entries:[], live:null,
-  lesson:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[]
+  lesson:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[],
+  profiles:{}, myProfile:null
 };
 const app = document.getElementById("app");
 const ACT = {};
@@ -718,6 +765,8 @@ function brand(sub){
     <h1>AI kursi · 13 dars</h1>
     ${sub?`<small>${esc(sub)}</small>`:""}</div></div>`;
 }
+const photoOf = uid => (S.profiles[uid]||{}).photo || "";
+const tgOf    = uid => (S.profiles[uid]||{}).tgUser || "";
 const openCount = () => (S.cls && S.cls.open) ? S.cls.open : 0;
 const isOpen  = n => n <= openCount();
 const lessonOf = n => COURSE.lessons.find(l=>l.n===n);
@@ -730,21 +779,36 @@ function isDone(lesson, task){ return taskCount(lesson,task)>0; }
    --------------------------------------------------------------------- */
 function screenGate(){
   const tgu = IN_TG ? TG.initDataUnsafe.user : null;
+  const L = COURSE.lessons;
+  const teaser = arr => `<ol class="teaser">${arr.map(x=>`<li><span>${x.n}</span>${esc(x.t)}</li>`).join("")}</ol>`;
   h(`<div class="wrap">
-    ${brand(COURSE.promise)}
-    ${IN_TG ? `<div class="card flat"><small>Telegram orqali kirdingiz:</small>
-       <h3>${esc((tgu.first_name||"")+" "+(tgu.last_name||""))}</h3></div>` : ""}
-    <div class="card accent">
-      <h2>Men o'quvchiman</h2>
-      <p class="small">Sinf kodini kiritasan, rasmga tushasan, muallim tasdiqlaydi — keyin darslar ochiladi.</p>
-      <button class="btn" data-a="goReg">Boshlash</button>
+    <div class="topbar">
+      <div class="brand compact"><div class="mark">🎓</div><b>AI kursi</b></div>
+      <button class="tlink" data-a="goTeacher">Muallim →</button>
     </div>
-    <div class="card">
-      <h2>Men muallimman</h2>
-      <p class="small">Sinf yaratish, darslarni ochish, jonli o'yin va reyting.</p>
-      <button class="btn ghost" data-a="goTeacher">Muallim paneli</button>
-    </div>
-    <p class="small" style="text-align:center">Rejim: ${DB&&DB.mode==="cloud"?"bulut (hamma sinf birga)":"mahalliy (faqat shu qurilma)"}</p>
+    <section class="hero">
+      <div class="eyebrow">O'quvchilar uchun · 13 dars</div>
+      <h1>AI'ni ishlatishni o'rganasan.<br>Lekin AI'ga o'ylashni topshirmaysan.</h1>
+      <p>Guruhing bitta loyiha quradi — har kim uning bir bo'lagining egasi bo'ladi. Oxirgi darsda uni ota-onang va mehmonlar oldida himoya qilasan.</p>
+      ${tgu ? `<p class="small">Salom, ${esc(tgu.first_name||"")}! Sen uchun joy tayyor.</p>` : ""}
+      <button class="btn big" data-a="goReg">Boshlash →</button>
+      <small>Sinf kodi · rasm · muallim tasdig'i — 1 daqiqa</small>
+    </section>
+    <section class="feats">
+      <div class="feat"><i>🎯</i><b>Ball ishdan chiqadi</b><span>Muammo topding, vazifa yozding, AI yolg'onini ushlading — ball shu zahoti tushadi.</span></div>
+      <div class="feat"><i>⚡</i><b>Jonli duel</b><span>Har dars boshida 7 daqiqa. To'g'ri va tez javob — bonus.</span></div>
+      <div class="feat"><i>🧩</i><b>Guruh loyihasi</b><span>Har darsda 15 daqiqa. Qarorlar jurnalga yoziladi — himoyada shundan gapirasan.</span></div>
+      <div class="feat"><i>🏆</i><b>Daraja va reyting</b><span>Har dushanba reyting noldan — har hafta yangi imkon.</span></div>
+    </section>
+    <section class="card flat"><h2>Daraja yo'li</h2>
+      <div class="lvls">${LEVELS.map(l=>`<b>${esc(l.n)}</b>`).join("")}</div></section>
+    <section class="card flat"><h2>13 dars</h2>
+      <small>1–6 · Fikrlash va birinchi qadamlar</small>${teaser(L.slice(0,6))}
+      <small>7–13 · Asbob, himoya va chiqish</small>${teaser(L.slice(6))}
+      <p class="small">Darslar muallim ochgan sari birin-ketin ochiladi.</p></section>
+    <section class="card"><h2>Bu kurs nima va'da qilmaydi</h2>
+      <p class="small">Darhol pul topish — buni ochiq aytamiz. Beradigan narsasi: tugallangan loyiha, portfolio va odamlar oldida chiqish tajribasi.</p>
+      <button class="btn" data-a="goReg">Boshlash</button></section>
   </div>`);
 }
 ACT.goReg = ()=>{ S.screen="reg"; render(); };
@@ -770,7 +834,7 @@ function screenReg(){
       <h2>Rasmga tushish</h2>
       <p class="small">Rasm faqat muallim seni tanishi uchun. Boshqa hech qayerga chiqmaydi.</p>
       ${S.reg.photo
-        ? `<img src="${S.reg.photo}" style="width:130px;height:130px;object-fit:cover;border-radius:18px;border:2px solid var(--accent);display:block;margin:10px auto">`
+        ? `<img src="${esc(S.reg.photo)}" style="width:130px;height:130px;object-fit:cover;border-radius:18px;border:2px solid var(--accent);display:block;margin:10px auto">`
         : `<div style="height:130px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:18px;margin:10px 0;font-size:40px">📷</div>`}
       <div class="btn-row">
         <button class="btn ghost" data-a="cam">${S.reg.photo?"Qayta olish":"Kamera"}</button>
@@ -845,10 +909,14 @@ ACT.doReg = async (btn)=>{
   if (!ok){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; return toast("Tasdiqlanmadi", true); }
   const tgu = IN_TG ? TG.initDataUnsafe.user : null;
   await DB.setStudent(code, S.uid, {
-    name:S.reg.name.trim(), group:S.reg.group||"", photo:S.reg.photo,
+    name:S.reg.name.trim(), group:S.reg.group||"",
     ok:false, pts:0, wkPts:0, wk:weekNo(), streak:0, lastLesson:0,
-    tgId: tgu?String(tgu.id):"", tgUser: tgu?(tgu.username||""):"",
     joined: Date.now(), bio: Bio.kind
+  });
+  /* rasm va Telegram ma'lumoti — hamma ko'radigan reyting hujjatida emas,
+     faqat muallim va egasi o'qiy oladigan alohida hujjatda */
+  await DB.setProfile(code, S.uid, {
+    photo:S.reg.photo, tgId: tgu?String(tgu.id):"", tgUser: tgu?(tgu.username||""):""
   });
   localStorage.setItem("sinf:code", code);
   localStorage.setItem("sinf:role", "student");
@@ -861,7 +929,7 @@ function screenPending(){
   h(`<div class="wrap">
     ${brand("Tasdiqlash kutilmoqda")}
     <div class="card accent" style="text-align:center">
-      ${S.me&&S.me.photo?`<img src="${S.me.photo}" style="width:120px;height:120px;border-radius:20px;object-fit:cover;border:2px solid var(--accent)">`:""}
+      ${S.myProfile&&S.myProfile.photo?`<img src="${esc(S.myProfile.photo)}" style="width:120px;height:120px;border-radius:20px;object-fit:cover;border:2px solid var(--accent)">`:""}
       <h2 style="margin-top:10px">${esc(S.me?S.me.name:"")}</h2>
       <p class="small">${esc(S.code)} · ${esc((S.me&&S.me.group)||"guruh tayinlanmagan")}</p>
       <div class="sep"></div>
@@ -1196,6 +1264,7 @@ function screenTeacherGate(){
       <label>Nomi</label><input id="n-name" placeholder="9-A sinf, AI kursi">
       <label>PIN (faqat sizda qoladi)</label><input id="n-pin" inputmode="numeric" placeholder="4 raqam">
       <button class="btn ghost" style="margin-top:10px" data-a="tCreate">Sinf yaratish</button></div>
+    <p class="small" style="text-align:center">Rejim: ${DB&&DB.mode==="cloud"?"bulut (hamma sinf birga)":"mahalliy (faqat shu qurilma)"}</p>
     <button class="btn ghost" data-a="back">Orqaga</button></div>`);
 }
 ACT.tLogin = async ()=>{
@@ -1203,9 +1272,8 @@ ACT.tLogin = async ()=>{
   const p=document.getElementById("t-pin").value.trim();
   const cls=await DB.getClass(c);
   if(!cls) return toast("Sinf topilmadi",true);
-  if(String(cls.pin)!==p) return toast("PIN noto'g'ri",true);
+  if(!(await DB.teacherLogin(c,p))) return toast("PIN noto'g'ri",true);
   localStorage.setItem("sinf:code",c); localStorage.setItem("sinf:role","teacher");
-  localStorage.setItem("sinf:pin:"+c,p);
   S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
   await attach(c); render();
 };
@@ -1215,10 +1283,9 @@ ACT.tCreate = async ()=>{
   const p=document.getElementById("n-pin").value.trim();
   if(c.length<3||p.length<4) return toast("Kod va 4 raqamli PIN kerak",true);
   if(await DB.getClass(c)) return toast("Bu kod band",true);
-  await DB.saveClass(c,{code:c,name:nm||c,pin:p,open:0,teachers:[S.uid],created:Date.now()});
+  await DB.createClass(c,{code:c,name:nm||c,open:0,createdBy:S.uid,created:Date.now()},p);
   await DB.setLive(c,{mode:"off"});
   localStorage.setItem("sinf:code",c); localStorage.setItem("sinf:role","teacher");
-  localStorage.setItem("sinf:pin:"+c,p);
   S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
   await attach(c); toast("Sinf yaratildi"); render();
 };
@@ -1268,9 +1335,9 @@ function tTasdiq(){
   return `<div class="card flat"><h2>Tasdiqlash navbati (${p.length})</h2>
       <p class="small">Rasmga qarang — shu bola sinfingizdami?</p></div>` +
     p.map(s=>`<div class="card"><div style="display:flex;gap:12px;align-items:center">
-      ${s.photo?`<img src="${s.photo}" style="width:72px;height:72px;border-radius:16px;object-fit:cover">`:""}
+      ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:72px;height:72px;border-radius:16px;object-fit:cover">`:""}
       <div style="flex:1"><b>${esc(s.name)}</b>
-        <div class="small">${esc(s.group||"guruhsiz")}${s.tgUser?" · @"+esc(s.tgUser):""}</div></div></div>
+        <div class="small">${esc(s.group||"guruhsiz")}${tgOf(s.uid)?" · @"+esc(tgOf(s.uid)):""}</div></div></div>
       <div class="btn-row" style="margin-top:10px">
         <button class="btn" data-a="appr" data-u="${s.uid}">Tasdiqlash</button>
         <button class="btn danger" data-a="rej" data-u="${s.uid}">Rad etish</button></div></div>`).join("");
@@ -1383,7 +1450,7 @@ function tRuyxat(){
   return `<div class="card flat"><h2>O'quvchilar (${ok.length})</h2>
       <p class="small">Ism ustiga bosing — nima yozganini ko'rasiz. Ball bor, ish yo'q bo'lsa — savol bering.</p></div>` +
     ok.map(s=>`<div class="rank" data-a="openStudent" data-u="${s.uid}" style="cursor:pointer">
-      ${s.photo?`<img src="${s.photo}" style="width:34px;height:34px;border-radius:11px;object-fit:cover">`:`<div class="n">·</div>`}
+      ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:34px;height:34px;border-radius:11px;object-fit:cover">`:`<div class="n">·</div>`}
       <div class="nm">${esc(s.name)}<div class="st">${esc(s.group||"guruhsiz")} · 🔥${s.streak||0}</div></div>
       <div class="sc">${s.pts||0}</div></div>`).join("");
 }
@@ -1427,6 +1494,8 @@ async function attach(code){
     render();
   }));
   S.unsub.push(DB.watchEntries(code, S.uid, e=>{ S.entries=e; render(); }));
+  if (S.role==="teacher") S.unsub.push(DB.watchProfiles(code, m=>{ S.profiles=m||{}; render(); }));
+  else S.unsub.push(DB.watchMyProfile(code, S.uid, pr=>{ S.myProfile=pr; render(); }));
 }
 
 let _raf=null;
