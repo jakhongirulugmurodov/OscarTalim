@@ -1,4 +1,4 @@
-const CACHE = "ai-sinf-v1";
+const CACHE = "ai-sinf-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-maskable.svg"];
 
 self.addEventListener("install", e => {
