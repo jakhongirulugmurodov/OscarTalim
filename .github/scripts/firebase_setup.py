@@ -182,15 +182,25 @@ print("firestore:", LOCATION)
 
 # ------------------------------------------------------------------ 4. anonim kirish
 step("4. Anonim kirish")
-url = f"https://identitytoolkit.googleapis.com/admin/v2/projects/{PROJECT}/config?updateMask=signIn.anonymous.enabled"
+cfg_url = f"https://identitytoolkit.googleapis.com/admin/v2/projects/{PROJECT}/config"
+url = cfg_url + "?updateMask=signIn.anonymous.enabled"
 body = {"signIn": {"anonymous": {"enabled": True}}}
 s, r = api("PATCH", url, body)
 if s == 404:
-    api("POST", f"https://identitytoolkit.googleapis.com/v2/projects/{PROJECT}/identityPlatform:initializeAuth", {})
-    time.sleep(3)
+    # Authentication hali ishga tushirilmagan — ishga tushirib, config paydo bo'lishini kutamiz
+    s0, r0 = api("POST", f"https://identitytoolkit.googleapis.com/v2/projects/{PROJECT}/identityPlatform:initializeAuth", {})
+    print("initializeAuth →", s0, "" if s0 == 200 else str(r0)[:200])
+    for _ in range(20):
+        sg, rg = api("GET", cfg_url)
+        if sg == 200:
+            break
+        time.sleep(4)
     s, r = api("PATCH", url, body)
 if s != 200:
-    die("Anonim kirish yoqilmadi: " + str(r)[:400])
+    die("Anonim kirish yoqilmadi: " + str(r)[:300] + "\n\n"
+        "Konsolda bir marta qo'lda: https://console.firebase.google.com/project/" + PROJECT +
+        "/authentication → Get started → Sign-in method → Anonymous → Enable → Save. "
+        "Keyin yangi Google kodi bilan qayta ishga tushiring.")
 print("anonim kirish: yoqildi")
 
 # ------------------------------------------------------------------ 5. web ilova
@@ -213,7 +223,7 @@ open(f"{REPO}/firestore.rules", "w").write(rules)
 open(f"{REPO}/firebase.json", "w").write(json.dumps({"firestore": {"rules": "firestore.rules"}}, indent=2) + "\n")
 open(f"{REPO}/.firebaserc", "w").write(json.dumps({"projects": {"default": PROJECT}}, indent=2) + "\n")
 c, out, err = fb("deploy", "--only", "firestore:rules")
-if c != 0: die("Qoidalar yuklanmadi: " + (out + err)[-800:])
+if c != 0: die("Qoidalar yuklanmadi:\n" + (out + err)[-2000:])
 print("qoidalar: yuklandi")
 
 # ------------------------------------------------------------------ 7. config → dastur

@@ -134,7 +134,7 @@ service cloud.firestore {
     function me()        { return request.auth.uid; }
     // Muallim = shu sinfning teachers/{uid} hujjati bor odam
     function isTeacher(c){ return signedIn() &&
-      exists(/databases/$(db)/documents/classes/$(c)/teachers/$(me())); }
+      exists(/databases/$(db)/documents/classes/$(c)/teachers/$(request.auth.uid)); }
     // PIN faqat private/auth da; muallim bo'lish uchun aynan shu PIN kerak
     function pinOk(c){ return request.resource.data.pin ==
       get(/databases/$(db)/documents/classes/$(c)/private/auth).data.pin; }
