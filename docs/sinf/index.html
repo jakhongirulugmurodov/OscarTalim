@@ -663,7 +663,11 @@ const LocalDB = {
       localStorage.setItem("sinf:uid",u);} return u; },
   async getClass(c){ const d=this.get(`c/${c}`,null); if(!d) return null; const {pin,...pub}=d; return pub; },
   async saveClass(c,d){ const cur=this.get(`c/${c}`,{})||{}; this.set(`c/${c}`,{...cur,...d}); },
-  async createClass(c,d,pin){ this.set(`c/${c}`,{...d,pin}); },
+  async createClass(c,d,pin,key){
+    const adm=localStorage.getItem("sinf:admin");
+    if(adm==null) localStorage.setItem("sinf:admin",key);     /* birinchi marta — kalit belgilanadi */
+    else if(adm!==key) return false;
+    this.set(`c/${c}`,{...d,pin}); return true; },
   async teacherLogin(c,pin){ const d=this.get(`c/${c}`,null); return !!d && String(d.pin)===String(pin); },
   async setProfile(c,uid,d){ const all=this.get(`c/${c}/pr`,{}); all[uid]={...(all[uid]||{}),...d,uid}; this.set(`c/${c}/pr`,all); },
   watchProfiles(c,cb){ return this.sub(`c/${c}/pr`, ()=>cb(this.get(`c/${c}/pr`,{}))); },
@@ -699,10 +703,20 @@ async function makeCloudDB(cfg){
     async auth(){ if(!auth.currentUser) await U.signInAnonymously(auth); return auth.currentUser.uid; },
     async getClass(c){ const s=await getDoc(D("classes",c)); return s.exists()?s.data():null; },
     async saveClass(c,d){ await setDoc(D("classes",c), d, {merge:true}); },
-    async createClass(c,d,pin){
+    async createClass(c,d,pin,key){
+      const me = auth.currentUser.uid;
+      /* 1) bosh kalit: birinchi marta yaratiladi, keyin faqat mos kelishi tekshiriladi.
+            config/admin ni mijoz o'qiy olmaydi — qoidalar get() bilan solishtiradi. */
+      try { await setDoc(D("config","admin"), {key:String(key), by:me, at:serverTimestamp()}); } catch(e){}
+      /* 2) private/auth — kalit mos kelmasa qoidalar rad etadi */
+      try { await setDoc(D("classes",c,"private","auth"), {pin:String(pin), key:String(key), owner:me}); }
+      catch(e){ return false; }
+      /* 3) sinf hujjati faqat private/auth egasi tomonidan */
       await setDoc(D("classes",c), d);
-      await setDoc(D("classes",c,"private","auth"), {pin:String(pin)});
-      await setDoc(D("classes",c,"teachers",auth.currentUser.uid), {pin:String(pin), at:serverTimestamp()});
+      await setDoc(D("classes",c,"teachers",me), {pin:String(pin), at:serverTimestamp()});
+      /* 4) bosh kalit sinf hujjatlarida qolmasin */
+      try { await F.updateDoc(D("classes",c,"private","auth"), {key: F.deleteField()}); } catch(e){}
+      return true;
     },
     async teacherLogin(c,pin){
       try { await setDoc(D("classes",c,"teachers",auth.currentUser.uid), {pin:String(pin), at:serverTimestamp()}); return true; }
@@ -1257,12 +1271,15 @@ function screenTeacherGate(){
   h(`<div class="wrap">${brand("Muallim")}
     <div class="card"><h2>Mavjud sinfga kirish</h2>
       <label>Sinf kodi</label><input id="t-code" class="field-code" maxlength="8" value="${esc(S.code||"")}">
-      <label>PIN</label><input id="t-pin" type="password" inputmode="numeric" placeholder="4 raqam">
+      <label>PIN</label><input id="t-pin" type="password" placeholder="Sinf PIN i">
       <button class="btn" style="margin-top:10px" data-a="tLogin">Kirish</button></div>
     <div class="card flat"><h2>Yangi sinf yaratish</h2>
       <label>Kod (o'quvchilarga aytasiz)</label><input id="n-code" class="field-code" maxlength="8" placeholder="AI13">
       <label>Nomi</label><input id="n-name" placeholder="9-A sinf, AI kursi">
-      <label>PIN (faqat sizda qoladi)</label><input id="n-pin" inputmode="numeric" placeholder="4 raqam">
+      <label>PIN (faqat sizda qoladi)</label><input id="n-pin" type="password" placeholder="kamida 6 belgi">
+      <label>Bosh kalit</label><input id="n-key" type="password" placeholder="kamida 8 belgi">
+      <p class="small">Bosh kalit sinf yaratishni himoya qiladi: birinchi marta o'zingiz o'ylab topasiz,
+        keyingi har bir sinf uchun aynan shu kalit so'raladi. Usiz hech kim sinf ocha olmaydi.</p>
       <button class="btn ghost" style="margin-top:10px" data-a="tCreate">Sinf yaratish</button></div>
     <p class="small" style="text-align:center">Rejim: ${DB&&DB.mode==="cloud"?"bulut (hamma sinf birga)":"mahalliy (faqat shu qurilma)"}</p>
     <button class="btn ghost" data-a="back">Orqaga</button></div>`);
@@ -1281,9 +1298,13 @@ ACT.tCreate = async ()=>{
   const c=document.getElementById("n-code").value.toUpperCase().trim();
   const nm=document.getElementById("n-name").value.trim();
   const p=document.getElementById("n-pin").value.trim();
-  if(c.length<3||p.length<4) return toast("Kod va 4 raqamli PIN kerak",true);
+  const k=document.getElementById("n-key").value.trim();
+  if(c.length<3) return toast("Sinf kodi kamida 3 belgi",true);
+  if(p.length<6) return toast("PIN kamida 6 belgi bo'lsin",true);
+  if(k.length<8) return toast("Bosh kalit kamida 8 belgi bo'lsin",true);
   if(await DB.getClass(c)) return toast("Bu kod band",true);
-  await DB.createClass(c,{code:c,name:nm||c,open:0,createdBy:S.uid,created:Date.now()},p);
+  const made = await DB.createClass(c,{code:c,name:nm||c,open:0,createdBy:S.uid,created:Date.now()},p,k);
+  if(!made) return toast("Bosh kalit noto'g'ri",true);
   await DB.setLive(c,{mode:"off"});
   localStorage.setItem("sinf:code",c); localStorage.setItem("sinf:role","teacher");
   S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";

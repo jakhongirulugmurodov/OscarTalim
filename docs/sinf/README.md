@@ -139,15 +139,27 @@ service cloud.firestore {
     function pinOk(c){ return request.resource.data.pin ==
       get(/databases/$(db)/documents/classes/$(c)/private/auth).data.pin; }
 
+    // Bosh kalit: sinf yaratish huquqi. Birinchi marta yaratiladi, keyin
+    // o'zgarmaydi; mijoz uni hech qachon o'qiy olmaydi (qoidalar get() qiladi).
+    match /config/admin {
+      allow read, update, delete: if false;
+      allow create: if signedIn();       // mavjud bo'lsa create o'zi rad etiladi
+    }
+
     match /classes/{c} {
       allow read:   if signedIn();
-      allow create: if signedIn() && request.resource.data.createdBy == me();
+      // sinf hujjatini faqat private/auth egasi yaratadi
+      allow create: if signedIn() && request.resource.data.createdBy == me() &&
+        get(/databases/$(db)/documents/classes/$(c)/private/auth).data.owner == me();
       allow update: if isTeacher(c);
 
       match /private/auth {
         allow read:   if isTeacher(c);
+        // yangi sinf: kod bo'sh bo'lishi va bosh kalit mos kelishi shart
         allow create: if signedIn() &&
-          get(/databases/$(db)/documents/classes/$(c)).data.createdBy == me();
+          !exists(/databases/$(db)/documents/classes/$(c)) &&
+          request.resource.data.owner == me() &&
+          request.resource.data.key == get(/databases/$(db)/documents/config/admin).data.key;
         allow update: if isTeacher(c);
       }
       match /teachers/{uid} {
@@ -239,6 +251,9 @@ faqat `sinf:uid`, `sinf:role`, `sinf:code` kalitlarini o'zgartiring.
 
 Himoyalangan (Firestore qoidalari bilan, mijoz kodiga ishonmasdan):
 
+- **Sinf yaratish** faqat *bosh kalit* bilan — uni birinchi muallim belgilaydi,
+  mijoz hech qachon o'qiy olmaydi, server solishtiradi. O'quvchi o'ziga "sinf"
+  ochib, o'zini muallim qilib ololmaydi va sizning kodingizni band qila olmaydi.
 - **Muallim PIN i** sinf hujjatida emas — `private/auth` da, uni faqat muallim
   o'qiydi. Muallim bo'lish = to'g'ri PIN bilan `teachers/{uid}` yaratish; PIN
   tekshiruvi serverda.
@@ -259,7 +274,7 @@ Hozircha bor cheklovlar:
   bo'limida ish bor-yo'qligini ko'radi), lekin qat'iy hisob kerak bo'lsa
   Cloud Functions orqali yozish kerak.
 - **PIN ni terib ko'rish** (brute force) qoidalar darajasida cheklanmagan —
-  PIN ni 6+ belgili qiling.
+  shuning uchun PIN kamida 6 belgi (dastur qisqasini qabul qilmaydi).
 - **Telegram `initData` server tomonda tekshirilmagan.** Hozir dastur
   `initDataUnsafe` ga ishonadi. Ishonchli qilish uchun bot tokeni bilan HMAC-SHA256
   tekshiruvi (`WebAppData` kaliti) server tomonda bajarilishi kerak.
