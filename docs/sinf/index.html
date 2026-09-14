@@ -15,6 +15,7 @@
   --ink:#e8ebf2; --muted:#9aa6bb;
   --accent:#8b7ff0; --accent2:#b3aaf7; --accent-soft:rgba(139,127,240,.16);
   --ok:#6cc59b; --err:#e2857f; --gold:#9fd6bd;
+  --field:#f5f6fa; --field-ink:#1b2130; --field-line:#cfd5e4; --field-muted:#7d859a;
   --r:16px; --shadow:0 10px 30px -12px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -61,13 +62,24 @@ button{font:inherit}
 .btn-row .btn{width:auto;flex:1 1 130px}
 
 /* ---- inputlar ---- */
+/* Yoziladigan joy — yorug'. Qolgan hamma narsa qoramtir bo'lib qoladi,
+   shuning uchun bola qayerga yozishini adashtirmaydi. */
 input,textarea,select{
-  width:100%;padding:12px 13px;border-radius:12px;border:1px solid var(--line);
-  background:var(--bg2);color:var(--ink);font:inherit;outline:none}
-input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+  width:100%;padding:13px 14px;border-radius:12px;
+  border:1px solid var(--field-line);background:var(--field);color:var(--field-ink);
+  font:inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+input::placeholder,textarea::placeholder{color:var(--field-muted)}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,127,240,.28)}
 textarea{resize:vertical;min-height:76px}
-label{display:block;font-size:.8rem;color:var(--muted);margin:10px 0 4px}
-.field-code{text-transform:uppercase;letter-spacing:.22em;text-align:center;font-size:1.3rem;font-weight:700}
+label{display:block;font-size:.87rem;font-weight:600;color:var(--ink);margin:12px 0 5px}
+label .hint{display:block;font-weight:400;font-size:.79rem;color:var(--muted);margin-top:2px}
+.field-code{text-transform:uppercase;letter-spacing:.22em;text-align:center;font-size:1.35rem;font-weight:800}
+/* bosqichli shakl */
+.step h2{display:flex;align-items:center;gap:10px}
+.num{width:26px;height:26px;flex:0 0 auto;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:.85rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.step.ready .num{background:var(--ok)}
 
 /* ---- chiplar ---- */
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -868,34 +880,47 @@ ACT.pickMe = async (n)=>{
 function screenReg(){
   const tgu = IN_TG ? TG.initDataUnsafe.user : null;
   const nm = S.reg.name ?? (tgu ? ((tgu.first_name||"")+" "+(tgu.last_name||"")).trim() : "");
+  const okCode = (S.reg.code||S.code||"").length>=3, okName=(nm||"").trim().length>=4, okPhoto=!!S.reg.photo;
   h(`<div class="wrap">
-    ${brand("Ro'yxatdan o'tish")}
-    <div class="card">
-      <label>Sinf kodi (muallim aytadi)</label>
-      <input id="f-code" class="field-code" maxlength="8" value="${esc(S.reg.code||S.code||"")}" placeholder="AI13">
-      <label>To'liq isming (familiya, ism)</label>
+    ${brand("Ro'yxatdan o'tish — 4 qadam")}
+
+    <div class="card step ${okCode?"ready":""}">
+      <h2><span class="num">${okCode?"✓":"1"}</span> Sinf kodi</h2>
+      <label>Muallim aytgan kodni yoz
+        <span class="hint">Masalan: OSCAR</span></label>
+      <input id="f-code" class="field-code" maxlength="8" value="${esc(S.reg.code||S.code||"")}" placeholder="OSCAR">
+    </div>
+
+    <div class="card step ${okName?"ready":""}">
+      <h2><span class="num">${okName?"✓":"2"}</span> Isming</h2>
+      <label>Familiya va ism
+        <span class="hint">Haqiqiy ismingni yoz — muallim shu ism bilan topadi</span></label>
       <input id="f-name" value="${esc(nm)}" placeholder="Karimov Jasur">
-      <label>Loyiha guruhing</label>
+      <label>Loyiha guruhing
+        <span class="hint">Bilmasang «Hali yo'q» qoldir, keyin muallim aytadi</span></label>
       <select id="f-group">
         ${["","1-guruh","2-guruh","3-guruh","4-guruh","5-guruh","6-guruh"].map(g=>
           `<option value="${g}" ${S.reg.group===g?"selected":""}>${g||"Hali yo'q"}</option>`).join("")}
       </select>
     </div>
-    <div class="card">
-      <h2>Rasmga tushish</h2>
-      <p class="small">Rasm faqat muallim seni tanishi uchun. Boshqa hech qayerga chiqmaydi.</p>
+
+    <div class="card step ${okPhoto?"ready":""}">
+      <h2><span class="num">${okPhoto?"✓":"3"}</span> Rasmga tushish</h2>
+      <p class="small">Rasm faqat muallim seni tanishi uchun. Boshqa hech kim ko'rmaydi.</p>
       ${S.reg.photo
-        ? `<img src="${esc(S.reg.photo)}" style="width:130px;height:130px;object-fit:cover;border-radius:18px;border:2px solid var(--accent);display:block;margin:10px auto">`
-        : `<div style="height:130px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:18px;margin:10px 0;font-size:40px">📷</div>`}
+        ? `<img src="${esc(S.reg.photo)}" style="width:130px;height:130px;object-fit:cover;border-radius:18px;border:2px solid var(--ok);display:block;margin:10px auto">`
+        : `<div style="height:130px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px dashed var(--line);border-radius:18px;margin:10px 0;color:var(--muted);font-size:.85rem">rasm hali yo'q</div>`}
       <div class="btn-row">
         <button class="btn ghost" data-a="cam">${S.reg.photo?"Qayta olish":"Kamera"}</button>
         <button class="btn ghost" data-a="pick">Fayldan</button>
       </div>
       <input type="file" id="f-file" accept="image/*" capture="user" class="hide">
     </div>
-    <div class="card">
-      <h2>Himoya</h2>
-      <p class="small">Keyingi kirishlarda ${esc(Bio.kind==="yo'q"?"qurilma parolingiz":Bio.kind)} so'raladi — sening nomingdan boshqa hech kim kira olmaydi.</p>
+
+    <div class="card step accent">
+      <h2><span class="num">4</span> Tugatish</h2>
+      <p class="small">Telefoning ${esc(Bio.kind==="yo'q"?"parolini":Bio.kind+"ni")} so'raydi — sening nomingdan boshqa hech kim kira olmaydi.
+        Keyin muallim tasdiqlaydi va darslar ochiladi.</p>
       <button class="btn" data-a="doReg">Ro'yxatdan o'tish</button>
     </div>
     <button class="btn ghost" data-a="back">Orqaga</button>
