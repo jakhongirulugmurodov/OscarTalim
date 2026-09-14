@@ -138,8 +138,16 @@ else:
 
 step("1b. Loyihaga Firebase qo'shish")
 s_, r = api("GET", f"https://firebase.googleapis.com/v1beta1/projects/{PROJECT}")
+if s_ != 200:
+    # Balki muallim konsolda boshqa ID bilan yaratgan — nomi bo'yicha qidiramiz
+    s2, lst = api("GET", "https://firebase.googleapis.com/v1beta1/projects?pageSize=50")
+    for pr in (lst.get("results") or []) if s2 == 200 else []:
+        if (pr.get("displayName") or "").strip().lower() in ("oscartalim sinf", PROJECT):
+            PROJECT = pr["projectId"]; s_ = 200
+            print("konsolda yaratilgan loyiha topildi:", PROJECT)
+            break
 if s_ == 200:
-    print("Firebase allaqachon ulangan")
+    print("Firebase allaqachon ulangan:", PROJECT)
 else:
     s_, r = api("POST", f"https://firebase.googleapis.com/v1beta1/projects/{PROJECT}:addFirebase", {})
     if s_ not in (200, 201):
