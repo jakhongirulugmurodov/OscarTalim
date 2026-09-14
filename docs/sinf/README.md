@@ -130,62 +130,77 @@ Xavfsizlik qoidalari (Firestore → Rules):
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function signedIn()  { return request.auth != null; }
-    function me()        { return request.auth.uid; }
-    // Muallim = shu sinfning teachers/{uid} hujjati bor odam
+    function signedIn(){ return request.auth != null; }
+    function me(){ return request.auth.uid; }
     function isTeacher(c){ return signedIn() &&
       exists(/databases/$(db)/documents/classes/$(c)/teachers/$(request.auth.uid)); }
-    // PIN faqat private/auth da; muallim bo'lish uchun aynan shu PIN kerak
-    function pinOk(c){ return request.resource.data.pin ==
-      get(/databases/$(db)/documents/classes/$(c)/private/auth).data.pin; }
+    function stu(c, sid){ return get(/databases/$(db)/documents/classes/$(c)/students/$(sid)).data; }
+    function same(k){ return request.resource.data[k] == resource.data[k]; }
+    function sameFlag(k){ return request.resource.data.get(k,false) == resource.data.get(k,false); }
 
-    // Bosh kalit: sinf yaratish huquqi. Birinchi marta yaratiladi, keyin
-    // o'zgarmaydi; mijoz uni hech qachon o'qiy olmaydi (qoidalar get() qiladi).
+    // Bosh kalit: sinf yaratish huquqi. Mijoz uni o'qiy olmaydi.
     match /config/admin {
       allow read, update, delete: if false;
-      allow create: if signedIn();       // mavjud bo'lsa create o'zi rad etiladi
+      allow create: if signedIn();
     }
 
     match /classes/{c} {
       allow read:   if signedIn();
-      // sinf hujjatini faqat private/auth egasi yaratadi
       allow create: if signedIn() && request.resource.data.createdBy == me() &&
         get(/databases/$(db)/documents/classes/$(c)/private/auth).data.owner == me();
       allow update: if isTeacher(c);
 
       match /private/auth {
         allow read:   if isTeacher(c);
-        // yangi sinf: kod bo'sh bo'lishi va bosh kalit mos kelishi shart
         allow create: if signedIn() &&
           !exists(/databases/$(db)/documents/classes/$(c)) &&
           request.resource.data.owner == me() &&
           request.resource.data.key == get(/databases/$(db)/documents/config/admin).data.key;
-        allow update: if isTeacher(c);
+        // PIN ni tiklash: bosh kalitni bilgan odam yangi PIN qo'yadi
+        allow update: if isTeacher(c) ||
+          (signedIn() && request.resource.data.key == resource.data.key);
       }
       match /teachers/{uid} {
         allow read:  if signedIn() && (me() == uid || isTeacher(c));
-        allow write: if signedIn() && me() == uid && pinOk(c);
+        allow write: if signedIn() && me() == uid && request.resource.data.pin ==
+          get(/databases/$(db)/documents/classes/$(c)/private/auth).data.pin;
       }
-      // Reyting uchun ochiq maydonlar: ism, guruh, ball, streak
-      match /students/{uid} {
+
+      // Reyting uchun ochiq: ism, guruh, ball, streak. Egalik — authUid.
+      match /students/{sid} {
         allow read:   if signedIn();
-        allow create: if signedIn() && me() == uid && request.resource.data.ok == false;
-        // o'quvchi o'zini tasdiqlay olmaydi va rad etilganini o'zgartira olmaydi
-        allow update: if isTeacher(c) || (signedIn() && me() == uid &&
-          request.resource.data.ok == resource.data.ok &&
-          request.resource.data.get('rejected', false) == resource.data.get('rejected', false));
+        allow create: if signedIn() && request.resource.data.authUid == me()
+                      && request.resource.data.ok == false;
+        allow update: if isTeacher(c)
+          // egasi: o'z ballini yozadi, lekin o'zini tasdiqlay va egalikni o'zgartira olmaydi
+          || (signedIn() && resource.data.authUid == me()
+              && same('ok') && sameFlag('rejected') && same('authUid'))
+          // qurilma bo'sh yoki Telegram hisobi — egallanadi
+          || (signedIn() && request.resource.data.authUid == me()
+              && (resource.data.get('authUid','') == '' || sid.matches('tg[0-9]+'))
+              && same('ok') && sameFlag('rejected'))
+          // boshqa qurilmadan so'rov: faqat claimUid o'zgaradi, muallim tasdiqlaydi
+          || (signedIn() && request.resource.data.claimUid == me()
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimUid']));
+        allow delete: if isTeacher(c);
+
         match /entries/{e} {
           allow read:  if signedIn();
-          allow write: if signedIn() && me() == uid;
+          allow write: if isTeacher(c) || (signedIn() && stu(c,sid).authUid == me());
         }
       }
-      // Rasm va Telegram ma'lumoti: faqat egasi va muallim o'qiydi
-      match /profiles/{uid} {
-        allow read:  if signedIn() && (me() == uid || isTeacher(c));
-        allow write: if signedIn() && me() == uid;
+
+      // Rasm va Telegram ma'lumoti: faqat egasi va muallim
+      match /profiles/{sid} {
+        allow read:  if isTeacher(c) || (signedIn() && stu(c,sid).authUid == me());
+        allow write: if isTeacher(c) || (signedIn() &&
+          (!exists(/databases/$(db)/documents/classes/$(c)/students/$(sid))
+           || stu(c,sid).authUid == me()));
       }
-      match /live/{d} { allow read: if signedIn(); allow write: if isTeacher(c); }
-      // Har kim faqat o'z javobini yozadi
+
+      // Muallim yozadigan vazifalar
+      match /tasks/{t} { allow read: if signedIn(); allow write: if isTeacher(c); }
+      match /live/{d}  { allow read: if signedIn(); allow write: if isTeacher(c); }
       match /answers/{key}/votes/{uid} {
         allow read:  if signedIn();
         allow write: if signedIn() && me() == uid;
@@ -252,21 +267,23 @@ faqat `sinf:uid`, `sinf:role`, `sinf:code` kalitlarini o'zgartiring.
 Himoyalangan (Firestore qoidalari bilan, mijoz kodiga ishonmasdan):
 
 - **Sinf yaratish** faqat *bosh kalit* bilan — uni birinchi muallim belgilaydi,
-  mijoz hech qachon o'qiy olmaydi, server solishtiradi. O'quvchi o'ziga "sinf"
-  ochib, o'zini muallim qilib ololmaydi va sizning kodingizni band qila olmaydi.
-- **Muallim PIN i** sinf hujjatida emas — `private/auth` da, uni faqat muallim
-  o'qiydi. Muallim bo'lish = to'g'ri PIN bilan `teachers/{uid}` yaratish; PIN
-  tekshiruvi serverda.
-- **O'quvchi o'zini tasdiqlay olmaydi** (`ok` maydonini faqat muallim o'zgartiradi).
-- **Rasm va Telegram ID** alohida `profiles/{uid}` da — faqat egasi va muallim
-  o'qiydi. Reyting ro'yxatida faqat ism, guruh, ball, streak bor.
-- **Javoblar**: har kim faqat o'z `votes/{uid}` hujjatini yozadi.
-- **Jonli o'yin va darsni ochish** — faqat muallim.
-- Foydalanuvchi kiritgan har qanday matn va rasm ekranga qochirib (escape)
-  chiqariladi.
+  mijoz hech qachon o'qiy olmaydi, server solishtiradi.
+- **Muallim PIN i** sinf hujjatida emas — `private/auth` da, faqat muallim o'qiydi.
+  PIN esdan chiqsa, bosh kalit bilan tiklanadi.
+- **O'quvchi o'zini tasdiqlay olmaydi** va **o'z hisobining egaligini**
+  (`authUid`) o'zgartira olmaydi.
+- **Boshqa o'quvchining hisobiga yozib bo'lmaydi** — faqat egalik qilayotgan
+  qurilma yozadi. Yangi qurilmadan kirish = so'rov, muallim tasdiqlaydi.
+- **Rasm va Telegram ID** alohida `profiles/` da — faqat egasi va muallim o'qiydi.
+- **Javoblar**: har kim faqat o'z ovozini yozadi.
+- **Vazifa qo'shish, darsni ochish, jonli o'yin, o'quvchini o'chirish** — faqat muallim.
+- Foydalanuvchi kiritgan har qanday matn va rasm ekranga qochirib chiqariladi.
 
 Hozircha bor cheklovlar:
 
+- **Telegram hisobini raqamini bilgan odam egallashi mumkin.** `initData`
+  server tomonda tekshirilmagani uchun, kimningdir Telegram raqamini bilgan
+  odam uning hisobiga kira oladi. Raqamlar faqat muallimga ko'rinadi.
 - **Savollar javobi mijoz faylida.** Duel savollari `index.html` ichida, ya'ni
   devtools ochgan bola javobni ko'ra oladi. Keyingi bosqich: savollar bazasini
   Firestore'ga ko'chirib, o'qishni faqat muallimga ochish.

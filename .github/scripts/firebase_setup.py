@@ -116,6 +116,26 @@ def err_text(r):
     e = r.get("error", {})
     return (e.get("message") or json.dumps(e)[:400]) if isinstance(e, dict) else str(e)[:400]
 
+if MODE == "rules":
+    # Faqat qoidalarni yangilash: loyiha allaqachon tayyor
+    s_, lst = api("GET", "https://firebase.googleapis.com/v1beta1/projects?pageSize=50")
+    for pr in (lst.get("results") or []) if s_ == 200 else []:
+        if pr["projectId"].startswith(PROJECT.split("-")[0]) or pr["projectId"] == PROJECT:
+            PROJECT = pr["projectId"]; break
+    print("loyiha:", PROJECT)
+    readme = open(f"{REPO}/docs/sinf/README.md", encoding="utf-8").read()
+    rules = re.search(r"```js\n(rules_version.*?)```", readme, re.S).group(1)
+    open(f"{REPO}/firestore.rules", "w").write(rules)
+    open(f"{REPO}/firebase.json", "w").write(json.dumps({"firestore": {"rules": "firestore.rules"}}, indent=2) + "\n")
+    open(f"{REPO}/.firebaserc", "w").write(json.dumps({"projects": {"default": PROJECT}}, indent=2) + "\n")
+    c, out, err = fb("deploy", "--only", "firestore:rules")
+    if c != 0:
+        die("Qoidalar yuklanmadi:\n" + (out + err)[-2000:])
+    print("qoidalar yuklandi")
+    with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as f:
+        f.write(f"## Qoidalar yangilandi\n\nLoyiha: `{PROJECT}`\n")
+    sys.exit(0)
+
 step("1. Google Cloud loyihasi")
 s_, r = api("GET", f"https://cloudresourcemanager.googleapis.com/v1/projects/{PROJECT}")
 if s_ == 200 and r.get("lifecycleState") == "ACTIVE":

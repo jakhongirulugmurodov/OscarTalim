@@ -240,13 +240,6 @@ const COURSE = {
   key:["Kuchaytiruvchi yo'l: fikr sendan chiqadi, AI tekshiradi.",
        "Dangasalashtiruvchi yo'l: fikr AI'dan chiqadi, sen ko'chirasan.",
        "Ikkovi bir xil ko'rinadi — natija besh yildan keyin ko'rinadi."],
-  tasks:[
-    {id:"p10",type:"list",t:"10 ta real muammo",pts:10,max:10,
-     d:"O'z hayotingdan haqiqiy muammolarni yoz. Xayoliy emas — bugun seni yoki yaqiningni bezovta qilgani.",
-     ph:"Masalan: ertalab darsga kechikaman, chunki..."},
-    {id:"ikki",type:"text",t:"Ikki yo'l",pts:15,min:60,
-     d:"Bugun AI'ni KUCHAYTIRUVCHI tarzda ishlatgan bitta holatni va DANGASALASHTIRUVCHI tarzda ishlatgan bitta holatni yoz.",
-     ph:"1) Kuchaytirdi: ...\n2) Dangasalashtirdi: ..."}],
   duel:[
     {q:"Insho yozish kerak. Qaysi yo'l seni kuchli qiladi?",
      a:["AI yozib beradi, ko'chirasan","O'zing yozasan, AI xatolarni ko'rsatadi","AI 3 ta tayyor variant beradi, birini tanlaysan","Do'stingdan olib, ozgina o'zgartirasan"],c:1,
@@ -265,12 +258,6 @@ const COURSE = {
        "2-savol: u takrorlanadimi yoki bir martalikmi?",
        "3-savol: yechilmasa kimgadir zarar tegadimi?",
        "Uchalasiga ham \"ha\" bo'lsa — ishlashga arziydi."],
-  tasks:[
-    {id:"filt",type:"filter",t:"3 savol filtri",pts:15,
-     d:"1-darsdagi ro'yxatingdan bitta muammoni tanla va uchta savoldan o'tkaz."},
-    {id:"tanla",type:"text",t:"Guruh muammosi",pts:15,min:50,
-     d:"Guruhing qaysi muammoni tanladi va NEGA aynan uni? Filtrdan qanday o'tdi?",
-     ph:"Tanladik: ... Chunki: ..."}],
   duel:[
     {q:"Qaysi muammo ishlashga ARZIYDI?",
      a:["Mening qalamim yo'qoldi","Sinfimizda navbatchilik jadvali doim chalkashadi","Bugun havo sovuq","Telefonim zaryadi tez tugadi"],c:1,
@@ -288,11 +275,6 @@ const COURSE = {
   key:["Katta ish qo'rqitadi, chunki miya uni bitta bo'lak deb ko'radi.",
        "Har bosqich 20-30 daqiqada tugaydigan bo'lsin.",
        "Birinchi bosqich shunchalik kichik bo'lsinki, boshlamaslik uyat bo'lsin."],
-  tasks:[
-    {id:"bosq",type:"steps",t:"Filni bo'lish",pts:20,
-     d:"Guruhing loyihasini 5-7 bosqichga bo'l. Har biri bitta o'tirishda tugaydigan bo'lsin."},
-    {id:"birinchi",type:"text",t:"Birinchi bosqich",pts:10,min:30,
-     d:"Eng birinchi bosqichni yoz va uni bugun bajarasanmi? Qachon?",ph:"Bugun soat ...da ..."}],
   duel:[
     {q:"\"Mobil ilova qilamiz\" — bu nima?",
      a:["Yaxshi birinchi bosqich","Bosqich emas, bu butun fil","Kichik vazifa","Reja"],c:1,
@@ -310,12 +292,6 @@ const COURSE = {
   key:["1-daraja: umumiy (\"yaxshi matn yoz\")",
        "2-daraja: aniq (\"5 jumlalik, 7-sinf uchun\")",
        "3-daraja: to'liq (kim uchun, qanday ohangda, qanday formatda, nima bo'lmasin)"],
-  tasks:[
-    {id:"uch",type:"triple",t:"Uch daraja",pts:20,
-     d:"Bitta fikrni uch xil aniqlikda yoz. Keyin uchalasini AI'ga berib, javob farqini ko'r.",
-     labels:["1-daraja: umumiy","2-daraja: aniqroq","3-daraja: to'liq"]},
-    {id:"farq",type:"text",t:"Farq nimada?",pts:10,min:40,
-     d:"Uchta javob qanday farq qildi? Qaysi biri ishga yaradi?"}],
   duel:[
     {q:"AI noto'g'ri javob berdi. Birinchi navbatda nimani tekshirasan?",
      a:["Boshqa AI'ga o'taman","Savolimni — nimani aytmay qoldirdim?","AI buzilgan deb qo'yaman","Qayta-qayta so'rayman"],c:1,
@@ -334,11 +310,6 @@ const COURSE = {
   key:["AI bilmasligini tan olmaydi — o'rniga ishonarli to'qiydi.",
        "Eng xavflisi: ism, sana, raqam, manba, iqtibos.",
        "Qoida: raqam yoki manba bo'lsa — mustaqil joydan tekshir."],
-  tasks:[
-    {id:"ov",type:"hunt",t:"Yolg'on ovi",pts:25,
-     d:"AI javobini o'qi va ichidagi to'qilgan jumlani top."},
-    {id:"tekshir",type:"text",t:"O'z ovingni yoz",pts:20,min:50,
-     d:"Bugun AI'dan olgan javobingda xato topdingmi? Nimani, qanday tekshirding?"}],
   duel:[
     {q:"AI kitob nomi va muallifini keltirdi. Nima qilasan?",
      a:["Ishonaman, AI bilimdon","Kutubxona yoki qidiruvda tekshiraman","AI'dan \"rostmi?\" deb so'rayman","Do'stimdan so'rayman"],c:1,
@@ -358,11 +329,6 @@ const COURSE = {
        "Shuning uchun har safar javob biroz boshqacha.",
        "Uning \"xotirasi\" cheklangan — uzun suhbatda boshi tushib qoladi.",
        "Google topadi, AI yasaydi. Ikkovi boshqa asbob."],
-  tasks:[
-    {id:"uch3",type:"text",t:"Bir savol, uch javob",pts:20,min:60,
-     d:"Bitta savolni AI'ga uch marta yangi chatda ber. Javoblar qanday farq qildi? Nimasi bir xil qoldi?"},
-    {id:"unut",type:"text",t:"Xotira sinovi",pts:15,min:40,
-     d:"Uzun suhbatda AI nimani unutib qo'ydi? Qanday tikladin?"}],
   duel:[
     {q:"AI bir xil savolga har safar boshqacha javob bermoqda. Bu nima?",
      a:["Buzilgan","Normal — u ehtimol bilan so'z tanlaydi","Internet sekin","Kimdir o'zgartirgan"],c:1,
@@ -381,11 +347,6 @@ const COURSE = {
        "SHAROIT: nima uchun, kim uchun, qanday cheklov bor",
        "MISOL: mana shunga o'xshash bo'lsin",
        "FORMAT: ro'yxat / jadval / 5 jumla / sarlavhalar bilan"],
-  tasks:[
-    {id:"prm",type:"prompt",t:"To'rt qismli vazifa",pts:20,
-     d:"Bitta real ishing uchun to'liq vazifa yoz."},
-    {id:"prm2",type:"text",t:"Yaxshilash",pts:15,min:40,
-     d:"Birinchi javob yoqmadi. Vazifaning QAYSI qismini o'zgartirding va natija qanday o'zgardi?"}],
   duel:[
     {q:"\"Sen 7-sinf o'qituvchisisan\" — bu qaysi qism?",
      a:["Format","Rol","Misol","Sharoit"],c:1,
@@ -403,12 +364,6 @@ const COURSE = {
   key:["Bitta chat — bolg'a. Hamma narsa mix emas.",
        "Avval ishni ayt, keyin asbob tanla — teskarisi emas.",
        "Bepul versiya ko'p ishga yetadi; pul to'lashdan oldin chegarani bil."],
-  tasks:[
-    {id:"vos",type:"list",t:"Asbob xaritasi",pts:10,max:5,
-     d:"5 ta real ishni yoz va har biriga qaysi turdagi vosita kerakligini ayt.",
-     ph:"Ish: ... → Vosita turi: ..."},
-    {id:"sinov",type:"text",t:"Ikkita vositani solishtir",pts:15,min:50,
-     d:"Bitta ishni ikki xil vosita bilan qilib ko'r. Qaysi biri yaxshi chiqdi va nega?"}],
   duel:[
     {q:"Prezentatsiyaga rasm kerak. Qaysi turdagi vosita?",
      a:["Matn chati","Rasm generatori","Ovoz vositasi","Jadval dasturi"],c:1,
@@ -426,11 +381,6 @@ const COURSE = {
   key:["Qoida: mashq qilayotgan ishingni AI'ga bermaysan.",
        "Takroriy va mexanik ishni berish mumkin.",
        "Chegarani o'zing yozib qo'ysang — har safar qaytadan o'ylamaysan."],
-  tasks:[
-    {id:"cheg",type:"border",t:"Mening chegaram",pts:20,
-     d:"Uchta ishni \"o'zim qilaman\" ga, uchtasini \"AI qilishi mumkin\" ga yoz."},
-    {id:"qiyin",type:"text",t:"Eng qiyin chegara",pts:15,min:40,
-     d:"Qaysi ishda chegara chizish qiyin bo'ldi va nega?"}],
   duel:[
     {q:"Ertaga matematika imtihoni. AI masalani yechib berdi. Sen o'sdingmi?",
      a:["Ha, javobni bildim","Yo'q — mashq qilish o'rniga natija oldim","Qisman","Baho muhim"],c:1,
@@ -449,11 +399,6 @@ const COURSE = {
        "Soxta video belgilari: g'alati ko'z pirpirashi, quloq/soch chegarasi, lab bilan ovoz mos emasligi.",
        "Ovoz ham qalbakilashtiriladi — telefonda pul so'ralsa, boshqa kanaldan tasdiqlat.",
        "AI hamisha rozi bo'ladi. Rozi bo'lib turadigan narsa do'st emas."],
-  tasks:[
-    {id:"hech",type:"list",t:"Qora ro'yxat",pts:10,max:5,
-     d:"Hech qachon AI'ga (yoki internetga) yozmaydigan 5 narsani yoz.",ph:"Masalan: uy manzilim"},
-    {id:"deep",type:"text",t:"Soxtani ushlash",pts:20,min:50,
-     d:"Soxta bo'lishi mumkin bo'lgan video/ovoz/xabarni tasvirla. Qaysi belgilar shubha uyg'otdi?"}],
   duel:[
     {q:"Onangning ovozida qo'ng'iroq: \"tez pul yubor\". To'g'ri harakat?",
      a:["Darhol yuboraman","Qo'ng'iroqni tugatib, o'zim uning raqamiga qo'ng'iroq qilaman","SMS yozaman","Ovozni tekshiraman"],c:1,
@@ -471,11 +416,6 @@ const COURSE = {
   key:["Narx sarflangan vaqtdan emas — muammoning qiymatidan kelib chiqadi.",
        "Osonlashgan ish arzonlashadi. AI nimani osonlashtirsa, o'sha arzonlashadi.",
        "Javobgarlik, ishonch va tanlov qilish qimmatlashadi."],
-  tasks:[
-    {id:"narx",type:"text",t:"Ikki ish",pts:20,min:60,
-     d:"Bir xil vaqt oladigan, lekin narxi juda farq qiladigan ikkita ishni top. Farq nimadan?"},
-    {id:"nol",type:"list",t:"Nolga tushayotgan ishlar",pts:10,max:4,
-     d:"AI tufayli arzonlashayotgan 4 ta ishni yoz.",ph:"Masalan: oddiy matn tarjimasi"}],
   duel:[
     {q:"Ikki dizayner logo qildi: biri 2 soat, biri 2 kun. Nega narx teng bo'lishi mumkin?",
      a:["Xato","Narx vaqtga emas, natija qiymatiga qarab belgilanadi","Biri aldayapti","Tasodif"],c:1,
@@ -493,11 +433,6 @@ const COURSE = {
   key:["Kasb yo'qolmaydi — uning bir qismi yo'qoladi.",
        "Bugundan yig'iladigan narsa: portfel, ko'rsatib beriladigan ish, odamlar bilan aloqa.",
        "Diplom emas, ko'rsata oladigan ishing gapiradi."],
-  tasks:[
-    {id:"kasb",type:"text",t:"Bitta kasbni sindir",pts:20,min:60,
-     d:"O'zingga yoqqan kasbni tanla. Uning qaysi qismini AI oladi, qaysi qismi odamda qoladi?"},
-    {id:"yig",type:"steps",t:"Bugundan yig'aman",pts:15,
-     d:"Shu kasb uchun bugundan boshlab yig'a boshlaydigan 3-5 narsani yoz."}],
   duel:[
     {q:"\"Bu kasb yo'qoladi\" degan gap odatda nimani anglatadi?",
      a:["Kasb butunlay tugaydi","Kasbning takroriy qismi avtomatlashadi","Hech narsa","Maosh oshadi"],c:1,
@@ -515,11 +450,6 @@ const COURSE = {
   key:["Tuzilma: muammo → nega arziydi → nima qildik → men nima qildim → nima o'rgandim.",
        "Jurnalingdagi qarorlar — gapiradigan materialing.",
        "\"Bilmayman\" deyish mumkin. To'qish mumkin emas — 5-darsni esla."],
-  tasks:[
-    {id:"nutq",type:"steps",t:"Nutq rejasi",pts:20,
-     d:"Himoya nutqingni 5 bosqichga bo'l: muammo, nega arziydi, nima qildik, mening qismim, nima o'rgandim."},
-    {id:"savol",type:"text",t:"Qiyin savol",pts:15,min:40,
-     d:"Mehmon beradigan eng qiyin savol nima bo'ladi? Javobingni yoz."}],
   duel:[
     {q:"Mehmon \"buni AI yozganmi?\" deb so'radi. Eng kuchli javob?",
      a:["Yo'q, o'zim","Mana jurnalim — har bir qaror qachon va nega qabul qilinganini ko'rsataman","Bilmayman","Savolni o'zgartiraman"],c:1,
@@ -683,7 +613,20 @@ const LocalDB = {
     this.set(`c/${c}`,{...d,pin}); return true; },
   async teacherLogin(c,pin){ const d=this.get(`c/${c}`,null); return !!d && String(d.pin)===String(pin); },
   async setProfile(c,uid,d){ const all=this.get(`c/${c}/pr`,{}); all[uid]={...(all[uid]||{}),...d,uid}; this.set(`c/${c}/pr`,all); },
+  async delStudent(c,sid){
+    const st=this.get(`c/${c}/st`,{}); delete st[sid]; this.set(`c/${c}/st`,st);
+    const pr=this.get(`c/${c}/pr`,{}); delete pr[sid]; this.set(`c/${c}/pr`,pr);
+    localStorage.removeItem(this.k(`c/${c}/e/${sid}`)); },
+  async addTask(c,t){ const all=this.get(`c/${c}/tk`,{}); const id="t"+Date.now().toString(36);
+    all[id]={...t,id}; this.set(`c/${c}/tk`,all); },
+  async delTask(c,id){ const all=this.get(`c/${c}/tk`,{}); delete all[id]; this.set(`c/${c}/tk`,all); },
+  watchTasks(c,cb){ return this.onList(`c/${c}/tk`,cb); },
+  async teacherResetPin(c,key,pin){
+    if(localStorage.getItem("sinf:admin")!==key) return false;
+    const d=this.get(`c/${c}`,null); if(!d) return false;
+    this.set(`c/${c}`,{...d,pin}); return true; },
   watchProfiles(c,cb){ return this.sub(`c/${c}/pr`, ()=>cb(this.get(`c/${c}/pr`,{}))); },
+  async listStudents(c){ return Object.values(this.get(`c/${c}/st`,{})); },
   watchMyProfile(c,uid,cb){ return this.sub(`c/${c}/pr`, ()=>cb((this.get(`c/${c}/pr`,{})||{})[uid]||null)); },
   watchClass(c,cb){ return this.on(`c/${c}`,cb); },
   watchStudents(c,cb){ return this.onList(`c/${c}/st`,cb); },
@@ -727,16 +670,27 @@ async function makeCloudDB(cfg){
       /* 3) sinf hujjati faqat private/auth egasi tomonidan */
       await setDoc(D("classes",c), d);
       await setDoc(D("classes",c,"teachers",me), {pin:String(pin), at:serverTimestamp()});
-      /* 4) bosh kalit sinf hujjatlarida qolmasin */
-      try { await F.updateDoc(D("classes",c,"private","auth"), {key: F.deleteField()}); } catch(e){}
-      return true;
+      return true;   /* bosh kalit private/auth da qoladi — PIN ni tiklash uchun; uni faqat muallim o'qiydi */
     },
     async teacherLogin(c,pin){
       try { await setDoc(D("classes",c,"teachers",auth.currentUser.uid), {pin:String(pin), at:serverTimestamp()}); return true; }
       catch(e){ return false; }          /* qoidalar rad etdi = PIN noto'g'ri */
     },
     async setProfile(c,uid,d){ await setDoc(D("classes",c,"profiles",uid), {...d,uid}, {merge:true}); },
+    async delStudent(c,sid){
+      await F.deleteDoc(D("classes",c,"students",sid)).catch(()=>{});
+      await F.deleteDoc(D("classes",c,"profiles",sid)).catch(()=>{}); },
+    async addTask(c,t){ await setDoc(D("classes",c,"tasks","t"+Date.now().toString(36)), {...t, ts:serverTimestamp()}); },
+    async delTask(c,id){ await F.deleteDoc(D("classes",c,"tasks",id)); },
+    watchTasks(c,cb){ return onSnapshot(C("classes",c,"tasks"), q=>cb(q.docs.map(d=>({...d.data(),id:d.id})))); },
+    async teacherResetPin(c,key,pin){
+      try {
+        await setDoc(D("classes",c,"private","auth"), {pin:String(pin), key:String(key)}, {merge:true});
+        return await this.teacherLogin(c,pin);
+      } catch(e){ return false; }
+    },
     watchProfiles(c,cb){ return onSnapshot(C("classes",c,"profiles"), q=>{ const m={}; q.docs.forEach(d=>m[d.id]=d.data()); cb(m); }); },
+    async listStudents(c){ const q=await F.getDocs(C("classes",c,"students")); return q.docs.map(d=>({...d.data(),uid:d.id})); },
     watchMyProfile(c,uid,cb){ return onSnapshot(D("classes",c,"profiles",uid), s=>cb(s.exists()?s.data():null)); },
     watchClass(c,cb){ return onSnapshot(D("classes",c), s=>cb(s.exists()?s.data():null)); },
     watchStudents(c,cb){ return onSnapshot(C("classes",c,"students"), q=>cb(q.docs.map(d=>({...d.data(),uid:d.id})))); },
@@ -759,10 +713,12 @@ async function makeCloudDB(cfg){
    5) HOLAT VA YORDAMCHILAR
    --------------------------------------------------------------------- */
 const S = {
-  screen:"boot", tab:"darslar", role:"", code:"", uid:"",
+  screen:"boot", tab:"darslar", role:"", code:"",
+  uid:"",            /* qurilma (Firebase anonim kirish) */
+  sid:"",            /* hisob — o'quvchining doimiy identifikatori */
   cls:null, me:null, students:[], entries:[], live:null,
   lesson:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[],
-  profiles:{}, myProfile:null
+  profiles:{}, myProfile:null, tasks:[], pendingSid:""
 };
 const app = document.getElementById("app");
 const _svg = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -781,6 +737,13 @@ const I = {
 };
 const streak = n => n ? ` · ${I.flame}${n}` : "";
 const ACT = {};
+const SES = {
+  get(k){ try{ return JSON.parse(localStorage.getItem("sinf:"+k)) || null; }catch(e){ return null; } },
+  set(k,v){ localStorage.setItem("sinf:"+k, JSON.stringify(v)); },
+  clear(k){ localStorage.removeItem("sinf:"+k); }
+};
+const newSid = () => IN_TG ? ("tg"+TG.initDataUnsafe.user.id)
+                           : ("d"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4));
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const nl2br = s => esc(s).replace(/\n/g,"<br>");
 
@@ -835,6 +798,7 @@ function screenGate(){
       ${tgu ? `<p class="small">Salom, ${esc(tgu.first_name||"")}! Sen uchun joy tayyor.</p>` : ""}
       <button class="btn big" data-a="goReg">Boshlash →</button>
       <small>Sinf kodi · rasm · muallim tasdig'i — 1 daqiqa</small>
+      <button class="btn ghost" style="margin-top:12px" data-a="goLogin">Ro'yxatdan o'tganman — kirish</button>
     </section>
     <section class="feats">
       <div class="feat"><i>${I.target}</i><b>Ball ishdan chiqadi</b><span>Muammo topding, vazifa yozding, AI yolg'onini ushlading — ball shu zahoti tushadi.</span></div>
@@ -850,11 +814,56 @@ function screenGate(){
       <p class="small">Darslar muallim ochgan sari birin-ketin ochiladi.</p></section>
     <section class="card"><h2>Bu kurs nima va'da qilmaydi</h2>
       <p class="small">Darhol pul topish — buni ochiq aytamiz. Beradigan narsasi: tugallangan loyiha, portfolio va odamlar oldida chiqish tajribasi.</p>
-      <button class="btn" data-a="goReg">Boshlash</button></section>
+      <button class="btn" data-a="goReg">Boshlash</button>
+      <button class="btn ghost" style="margin-top:8px" data-a="goLogin">Kirish</button></section>
   </div>`);
 }
 ACT.goReg = ()=>{ S.screen="reg"; render(); };
+ACT.goLogin = ()=>{ S.screen="login"; S.loginList=null; render(); };
 ACT.goTeacher = ()=>{ S.screen="tgate"; render(); };
+
+function screenLogin(){
+  const list = S.loginList;
+  h(`<div class="wrap">
+    ${brand("Kirish")}
+    ${!list ? `<div class="card">
+        <h2>Sinf kodi</h2>
+        <p class="small">Muallim aytgan kod. Ro'yxatdan o'tgan bo'lsang, ismingni ro'yxatdan topasan.</p>
+        <input id="l-code" class="field-code" maxlength="8" value="${esc(S.code||"")}" placeholder="AI13">
+        <button class="btn" style="margin-top:10px" data-a="loadClass">Davom etish</button></div>`
+    : list.length ? `<div class="card flat"><h2>${esc(S.code)} — ismingni top</h2>
+        <p class="small">Boshqa qurilmadan kirsang, muallim tasdiqlaydi.</p></div>
+      ${list.map(st=>`<div class="rank" data-a="pickMe" data-s="${esc(st.uid)}" style="cursor:pointer">
+        <div class="n">${esc((st.name||"?").trim()[0]||"?")}</div>
+        <div class="nm">${esc(st.name)}<div class="st">${esc(st.group||"")}</div></div>
+        <div class="st">${st.authUid===S.uid?"shu qurilma":""}</div></div>`).join("")}`
+    : `<div class="card"><h2>Bu sinfda hali hech kim yo'q</h2>
+        <p class="small">Avval ro'yxatdan o'tish kerak.</p>
+        <button class="btn" data-a="goReg">Ro'yxatdan o'tish</button></div>`}
+    <button class="btn ghost" data-a="back">Orqaga</button></div>`);
+}
+ACT.loadClass = async (btn)=>{
+  const c=(document.getElementById("l-code").value||"").toUpperCase().trim();
+  if(c.length<3) return toast("Sinf kodini kiriting",true);
+  btn.disabled=true; btn.textContent="Tekshirilmoqda...";
+  if(!(await DB.getClass(c))){ btn.disabled=false; btn.textContent="Davom etish"; return toast("Bunday sinf topilmadi",true); }
+  S.code=c; S.loginList=(await DB.listStudents(c)).filter(x=>x&&x.name);
+  render();
+};
+ACT.pickMe = async (n)=>{
+  const st=(S.loginList||[]).find(x=>x.uid===n.dataset.s); if(!st) return;
+  const myTg = IN_TG ? "tg"+TG.initDataUnsafe.user.id : "";
+  const mine = st.authUid===S.uid || (myTg && st.uid===myTg) || !st.authUid;
+  try {
+    if (mine) await DB.setStudent(S.code, st.uid, {authUid:S.uid, claimUid:""});
+    else      await DB.setStudent(S.code, st.uid, {claimUid:S.uid});
+  } catch(e){ return toast("Kirishda xato — muallimga ayting",true); }
+  S.sid=st.uid; S.role="student";
+  SES.set("stu",{code:S.code, sid:st.uid});
+  S.screen="app"; await attach(S.code);
+  toast(mine?"Xush kelibsan!":"So'rov yuborildi — muallim tasdiqlaydi");
+  render();
+};
 
 function screenReg(){
   const tgu = IN_TG ? TG.initDataUnsafe.user : null;
@@ -950,46 +959,73 @@ ACT.doReg = async (btn)=>{
   const ok = await Bio.verify("Ro'yxatdan o'tishni tasdiqlang");
   if (!ok){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; return toast("Tasdiqlanmadi", true); }
   const tgu = IN_TG ? TG.initDataUnsafe.user : null;
-  await DB.setStudent(code, S.uid, {
-    name:S.reg.name.trim(), group:S.reg.group||"",
-    ok:false, pts:0, wkPts:0, wk:weekNo(), streak:0, lastLesson:0,
-    joined: Date.now(), bio: Bio.kind
-  });
-  /* rasm va Telegram ma'lumoti — hamma ko'radigan reyting hujjatida emas,
-     faqat muallim va egasi o'qiy oladigan alohida hujjatda */
-  await DB.setProfile(code, S.uid, {
-    photo:S.reg.photo, tgId: tgu?String(tgu.id):"", tgUser: tgu?(tgu.username||""):""
-  });
-  localStorage.setItem("sinf:code", code);
-  localStorage.setItem("sinf:role", "student");
-  S.role="student"; S.screen="app";
+  /* Hisob identifikatori qurilmaga emas, shaxsga bog'lanadi: Telegram'da —
+     Telegram raqami (istalgan qurilmadan qaytib kiriladi), aks holda doimiy
+     tasodifiy identifikator. authUid — hozir qaysi qurilma egalik qilyapti. */
+  const sid = newSid();
+  let already;
+  try { already = (await DB.listStudents(code)).find(x=>x && x.uid===sid); }
+  catch(e){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; return toast("Bazaga ulanmadi — muallimga ayting",true); }
+  if (already){
+    await DB.setStudent(code, sid, {authUid:S.uid, claimUid:""});
+    toast("Sen allaqachon ro'yxatdasan — kirdik");
+  } else {
+   try {
+    await DB.setStudent(code, sid, {
+      name:S.reg.name.trim(), group:S.reg.group||"", authUid:S.uid, claimUid:"",
+      ok:false, pts:0, wkPts:0, wk:weekNo(), streak:0, lastLesson:0,
+      joined: Date.now(), bio: Bio.kind
+    });
+    /* rasm va Telegram ma'lumoti — hamma ko'radigan reyting hujjatida emas,
+       faqat muallim va egasi o'qiy oladigan alohida hujjatda */
+    await DB.setProfile(code, sid, {
+      photo:S.reg.photo, tgId: tgu?String(tgu.id):"", tgUser: tgu?(tgu.username||""):""
+    });
+   } catch(e){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish";
+     return toast("Yozib bo'lmadi — muallimga ayting",true); }
+  }
+  S.sid = sid; S.role="student"; S.screen="app";
+  SES.set("stu",{code, sid});
   await attach(code);
   render();
 };
 
 function screenPending(){
+  const me=S.me||{};
+  const rejected = !!me.rejected;
+  const otherDevice = me.ok && me.authUid && me.authUid!==S.uid;
+  const title = rejected ? "Rad etildi" : otherDevice ? "Qurilma almashtirish" : "Tasdiqlash kutilmoqda";
+  const body = rejected
+    ? "Muallim bu hisobni tasdiqlamadi. Muallimga murojaat qiling — u qayta tasdiqlashi mumkin."
+    : otherDevice
+      ? "So'rov yuborildi. Muallim «Tasdiq» bo'limida tasdiqlagach, shu qurilmadan kirasan. Sahifa o'zi ochiladi."
+      : "Muallim ro'yxatdan o'tishingni tasdiqlashi kerak. Tasdiqlangach bu sahifa o'zi ochiladi.";
   h(`<div class="wrap">
-    ${brand("Tasdiqlash kutilmoqda")}
+    ${brand(title)}
     <div class="card accent" style="text-align:center">
       ${S.myProfile&&S.myProfile.photo?`<img src="${esc(S.myProfile.photo)}" style="width:120px;height:120px;border-radius:20px;object-fit:cover;border:2px solid var(--accent)">`:""}
-      <h2 style="margin-top:10px">${esc(S.me?S.me.name:"")}</h2>
-      <p class="small">${esc(S.code)} · ${esc((S.me&&S.me.group)||"guruh tayinlanmagan")}</p>
+      <h2 style="margin-top:10px">${esc(me.name||"")}</h2>
+      <p class="small">${esc(S.code)} · ${esc(me.group||"guruh tayinlanmagan")}</p>
       <div class="sep"></div>
-      <p>Muallim ro'yxatdan o'tishingizni tasdiqlashi kerak. Tasdiqlangach bu sahifa o'zi ochiladi.</p>
+      <p>${esc(body)}</p>
     </div>
     <button class="btn ghost" data-a="logout">Chiqish</button>
   </div>`);
 }
-ACT.logout = ()=>{ localStorage.removeItem("sinf:code"); localStorage.removeItem("sinf:role");
-  S.code=""; S.me=null; S.role=""; S.screen="gate"; detach(); render(); };
+ACT.logout = ()=>{ SES.clear("stu"); SES.clear("tea");
+  S.code=""; S.me=null; S.sid=""; S.role=""; S.loginList=null; S.screen="gate"; detach(); render(); };
 
 /* ---------------------------------------------------------------------
    7) O'QUVCHI PANELI
    --------------------------------------------------------------------- */
-const JOURNAL = {id:"jurnal", type:"text", t:"Loyiha jurnali", pts:15, min:40,
+/* Yagona tayyor yozuv — loyiha jurnali (kursning o'z mexanikasi: har darsda
+   15 daqiqa loyiha, qarorlar jurnalga yoziladi, himoyada shundan gapiriladi).
+   Qolgan hamma vazifani muallim o'z qo'li bilan yozadi. */
+const JOURNAL = {id:"jurnal", t:"Loyiha jurnali", pts:15, min:40,
   d:"Bugun guruhing qanday qaror qabul qildi va NEGA? Himoya kunida aynan shu yozuvdan gapirasan.",
   ph:"Qaror: ...  Sabab: ...  Mening qismim: ..."};
-const tasksOf = l => [...l.tasks, JOURNAL];
+const tasksOf = l => [...S.tasks.filter(t=>+t.lesson===l.n)
+                        .sort((a,b)=>String(a.id).localeCompare(String(b.id))), JOURNAL];
 
 function hud(){
   const p = (S.me&&S.me.pts)||0, lv = levelOf(p);
@@ -1063,104 +1099,41 @@ function viewLesson(n){
 }
 
 function taskCard(l,t){
-  const done = isDone(l.n,t.id), cnt = taskCount(l.n,t.id);
+  const done = isDone(l.n,t.id);
   const id = `${l.n}_${t.id}`;
-  let form="";
-  if (t.type==="list"){
-    const mine = S.entries.filter(e=>e.lesson===l.n&&e.task===t.id);
-    form = `<ul class="items">${mine.map((e,i)=>`<li><b>${i+1}.</b><span>${nl2br(e.text)}</span></li>`).join("")}</ul>
-      ${cnt>=t.max?`<p class="small">Bajarildi: ${cnt}/${t.max} ✓</p>`:
-      `<textarea id="i-${id}-0" placeholder="${esc(t.ph||"")}"></textarea>
-       <button class="btn sm" data-a="sub" data-l="${l.n}" data-t="${t.id}">Qo'shish (+${t.pts})</button>
-       <small> ${cnt}/${t.max}</small>`}`;
-  } else if (t.type==="text"){
-    form = done ? myAnswer(l.n,t.id) :
-      `<textarea id="i-${id}-0" placeholder="${esc(t.ph||"")}"></textarea>
-       <button class="btn sm" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
-  } else if (t.type==="steps"){
-    form = done ? myAnswer(l.n,t.id) :
-      [0,1,2,3,4].map(i=>`<input id="i-${id}-${i}" placeholder="${i+1}-bosqich">`).join("") +
-      `<button class="btn sm" style="margin-top:8px" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
-  } else if (t.type==="triple"){
-    form = done ? myAnswer(l.n,t.id) :
-      t.labels.map((lb,i)=>`<label>${esc(lb)}</label><textarea id="i-${id}-${i}"></textarea>`).join("") +
-      `<button class="btn sm" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
-  } else if (t.type==="filter"){
-    form = done ? myAnswer(l.n,t.id) :
-      `<label>Muammo</label><input id="i-${id}-0" placeholder="Qaysi muammoni tekshiryapsan?">
-       ${["Nechta odamda bor?","Takrorlanadimi?","Yechilmasa zarar tegadimi?"].map((q,i)=>
-        `<label>${q}</label><select id="i-${id}-${i+1}"><option>ha</option><option>yo'q</option></select>`).join("")}
-       <label>Xulosa</label><input id="i-${id}-4" placeholder="Ishlashga arziydimi va nega?">
-       <button class="btn sm" style="margin-top:8px" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
-  } else if (t.type==="prompt"){
-    form = done ? myAnswer(l.n,t.id) :
-      ["ROL — kim bo'lib javob bersin","SHAROIT — nima uchun, kim uchun, qanday cheklov","MISOL — namuna","FORMAT — ko'rinishi va hajmi"]
-        .map((lb,i)=>`<label>${esc(lb)}</label><textarea id="i-${id}-${i}"></textarea>`).join("") +
-      `<button class="btn sm" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
-  } else if (t.type==="border"){
-    form = done ? myAnswer(l.n,t.id) :
-      `<label>O'ZIM qilaman (3 ta)</label>${[0,1,2].map(i=>`<input id="i-${id}-${i}">`).join("")}
-       <label>AI qilishi mumkin (3 ta)</label>${[3,4,5].map(i=>`<input id="i-${id}-${i}">`).join("")}
-       <button class="btn sm" style="margin-top:8px" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
-  } else if (t.type==="hunt"){
-    form = done ? `<p class="small">Ov muvaffaqiyatli ✓</p>` + myAnswer(l.n,t.id) : huntBox(l.n,t);
-  }
+  const form = done ? myAnswer(l.n,t.id) :
+    `<textarea id="i-${id}-0" placeholder="${esc(t.ph||"Javobingni shu yerga yoz")}"></textarea>
+     <button class="btn sm" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
   return `<div class="card task ${done?"done":""}">
     <h3>${done?"✓":"○"} ${esc(t.t)}<span class="pill">+${t.pts}</span></h3>
-    <p class="small">${esc(t.d)}</p>${form}</div>`;
+    <p class="small">${nl2br(t.d||"")}</p>${form}</div>`;
 }
 function myAnswer(ln,tid){
   const e = S.entries.find(x=>x.lesson===ln && x.task===tid);
   return e ? `<div class="note">${nl2br(e.text)}</div>` : "";
 }
 
-/* --- yolg'on ovi (yakka tartibda) --- */
-function huntBox(ln,t){
-  const idx = (S.huntIdx ?? 0) % HUNTS.length, hn = HUNTS[idx];
-  return `<div class="note" style="margin:10px 0">Mavzu: ${esc(hn.topic)} — quyidagi "AI javobi"da bitta to'qilgan jumla bor.</div>
-    ${hn.s.map((s,i)=>`<button class="opt" data-a="hunt" data-l="${ln}" data-t="${t.id}" data-i="${i}" data-x="${idx}">${esc(s)}</button>`).join("")}`;
-}
-ACT.hunt = async (n)=>{
-  const i=+n.dataset.i, x=+n.dataset.x, hn=HUNTS[x], ln=+n.dataset.l;
-  if (i===hn.lie){
-    await award(ln, n.dataset.t, 25, `Yolg'on topildi — ${hn.topic}: "${hn.s[hn.lie]}" · ${hn.w}`);
-    toast("To'g'ri! +25");
-  } else {
-    S.huntIdx = x; toast("Bu jumla rost. Yana o'qi.", true);
-    n.classList.add("wrong");
-  }
-};
-
 /* --- topshirish --- */
 ACT.sub = async (btn)=>{
-  const ln=+btn.dataset.l, tid=btn.dataset.t, l=lessonOf(ln), t=tasksOf(l).find(x=>x.id===tid);
-  const g = i => (document.getElementById(`i-${ln}_${tid}-${i}`)||{}).value?.trim()||"";
-  let text="";
-  if (t.type==="list" || t.type==="text") text = g(0);
-  else if (t.type==="steps")  text = [0,1,2,3,4].map(i=>g(i)).filter(Boolean).map((s,i)=>`${i+1}. ${s}`).join("\n");
-  else if (t.type==="triple") text = t.labels.map((lb,i)=>`${lb}: ${g(i)}`).filter(s=>s.split(": ")[1]).join("\n");
-  else if (t.type==="filter") text = `Muammo: ${g(0)}\nNechta odamda: ${g(1)} · Takrorlanadi: ${g(2)} · Zarar: ${g(3)}\nXulosa: ${g(4)}`;
-  else if (t.type==="prompt") text = ["ROL","SHAROIT","MISOL","FORMAT"].map((k,i)=>`${k}: ${g(i)}`).filter(s=>s.split(": ")[1]).join("\n");
-  else if (t.type==="border") text = `O'zim: ${[0,1,2].map(g).filter(Boolean).join(", ")}\nAI: ${[3,4,5].map(g).filter(Boolean).join(", ")}`;
-
-  const plain = text.replace(/^[^:]*:/gm,"").trim();
-  if (t.min && plain.length < t.min) return toast(`Kamida ${t.min} belgi yozing`, true);
-  if (!plain || plain.length < 6) return toast("Bo'sh qoldirmang", true);
-  if (t.type==="steps" && text.split("\n").length < 3) return toast("Kamida 3 bosqich yozing", true);
-  if (t.type==="prompt" && text.split("\n").length < 4) return toast("To'rt qismni ham to'ldiring", true);
+  const ln=+btn.dataset.l, tid=btn.dataset.t, l=lessonOf(ln);
+  const t = tasksOf(l).find(x=>x.id===tid);
+  if(!t) return;
+  const text = (document.getElementById(`i-${ln}_${tid}-0`)||{}).value?.trim()||"";
+  if (t.min && text.length < t.min) return toast(`Kamida ${t.min} belgi yozing`, true);
+  if (text.length < 10) return toast("Javob juda qisqa", true);
   btn.disabled = true;
-  await award(ln, tid, t.pts, text);
+  await award(ln, tid, +t.pts||10, text);
   toast(`+${t.pts} ball`);
 };
 
 async function award(lesson, task, pts, text){
   const wk = weekNo();
-  await DB.addEntry(S.code, S.uid, {lesson, task, pts, text, ts:Date.now()});
-  await DB.bumpPoints(S.code, S.uid, pts, wk);
+  await DB.addEntry(S.code, S.sid, {lesson, task, pts, text, ts:Date.now()});
+  await DB.bumpPoints(S.code, S.sid, pts, wk);
   const st = {lastLesson: lesson};
   const today = new Date().toDateString();
   if (S.me && S.me.lastDay !== today){ st.lastDay = today; st.streak = (S.me.streak||0)+1; }
-  await DB.setStudent(S.code, S.uid, st);
+  await DB.setStudent(S.code, S.sid, st);
 }
 
 /* --- reyting --- */
@@ -1172,7 +1145,7 @@ function viewRank(){
   const groups = {};
   ok.forEach(s=>{ const g=s.group||"guruhsiz"; groups[g]=(groups[g]||0)+(s.pts||0); });
   const gl = Object.entries(groups).sort((a,b)=>b[1]-a[1]);
-  const row = (s,i,val)=>`<div class="rank ${s.uid===S.uid?"me":""} top${i+1}">
+  const row = (s,i,val)=>`<div class="rank ${s.uid===S.sid?"me":""} top${i+1}">
       <div class="n">${i+1}</div>
       <div class="nm">${esc(s.name)}<div class="st">${esc(s.group||"")}${streak(s.streak)}</div></div>
       <div class="sc">${val}</div></div>`;
@@ -1253,7 +1226,7 @@ function screenLive(){
 ACT.pickLive = async (n)=>{
   const L=S.live, i=+n.dataset.i;
   S.answered = {key:L.key, c:i, ms:Date.now()-L.t0};
-  await DB.setAnswer(S.code, L.key, S.uid, {c:i, ms:S.answered.ms, name:(S.me&&S.me.name)||""});
+  await DB.setAnswer(S.code, L.key, S.sid, {c:i, ms:S.answered.ms, name:(S.me&&S.me.name)||""});
   render();
 };
 /* Bir darsda jonli o'yindan olinadigan ballning shifti.
@@ -1283,9 +1256,9 @@ async function maybeAwardLive(){
   const left = Math.max(0, LIVE_CAP - liveEarned(lesson));
   const capped = Math.min(pts, left);
   if (capped>0){
-    await DB.addEntry(S.code,S.uid,{lesson, task:"live:"+L.mode, pts:capped,
+    await DB.addEntry(S.code,S.sid,{lesson, task:"live:"+L.mode, pts:capped,
       text:`${label} — ${L.mode==="hunt"?L.topic:L.q}`, ts:Date.now()});
-    await DB.bumpPoints(S.code,S.uid,capped,weekNo());
+    await DB.bumpPoints(S.code,S.sid,capped,weekNo());
     toast("+"+capped+" ball");
   } else if (pts>0){
     toast("To'g'ri! Bu darsning o'yin balli to'ldi — qolgani ishdan");
@@ -1300,7 +1273,14 @@ function screenTeacherGate(){
     <div class="card"><h2>Mavjud sinfga kirish</h2>
       <label>Sinf kodi</label><input id="t-code" class="field-code" maxlength="8" value="${esc(S.code||"")}">
       <label>PIN</label><input id="t-pin" type="password" placeholder="Sinf PIN i">
-      <button class="btn" style="margin-top:10px" data-a="tLogin">Kirish</button></div>
+      <button class="btn" style="margin-top:10px" data-a="tLogin">Kirish</button>
+      <button class="btn ghost sm" style="margin-top:8px;width:100%" data-a="tForgot">PIN esdan chiqdimi?</button></div>
+    ${S.forgot?`<div class="card accent"><h2>PIN ni tiklash</h2>
+      <p class="small">Bosh kalit — birinchi sinf ochilganda o'zingiz belgilagan kalit.</p>
+      <label>Sinf kodi</label><input id="r-code" class="field-code" maxlength="8" value="${esc(S.code||"")}">
+      <label>Bosh kalit</label><input id="r-key" type="password" placeholder="bosh kalit">
+      <label>Yangi PIN</label><input id="r-pin" type="password" placeholder="kamida 6 belgi">
+      <button class="btn" style="margin-top:10px" data-a="tReset">PIN ni yangilash</button></div>`:""}
     <div class="card flat"><h2>Yangi sinf yaratish</h2>
       <label>Kod (o'quvchilarga aytasiz)</label><input id="n-code" class="field-code" maxlength="8" placeholder="AI13">
       <label>Nomi</label><input id="n-name" placeholder="9-A sinf, AI kursi">
@@ -1312,13 +1292,27 @@ function screenTeacherGate(){
     <p class="small" style="text-align:center">Rejim: ${DB&&DB.mode==="cloud"?"bulut (hamma sinf birga)":"mahalliy (faqat shu qurilma)"}</p>
     <button class="btn ghost" data-a="back">Orqaga</button></div>`);
 }
+ACT.tForgot = ()=>{ S.forgot=!S.forgot; render(); };
+ACT.tReset = async (btn)=>{
+  const c=(document.getElementById("r-code").value||"").toUpperCase().trim();
+  const k=(document.getElementById("r-key").value||"").trim();
+  const np=(document.getElementById("r-pin").value||"").trim();
+  if(np.length<6) return toast("Yangi PIN kamida 6 belgi",true);
+  btn.disabled=true; btn.textContent="Tekshirilmoqda...";
+  const ok = await DB.teacherResetPin(c,k,np);
+  btn.disabled=false; btn.textContent="PIN ni yangilash";
+  if(!ok) return toast("Bosh kalit noto'g'ri",true);
+  S.code=c; S.role="teacher"; S.teacherOk=true; S.forgot=false; S.screen="teacher"; S.tab="dars";
+  SES.set("tea",{code:c});
+  await attach(c); toast("PIN yangilandi"); render();
+};
 ACT.tLogin = async ()=>{
   const c=document.getElementById("t-code").value.toUpperCase().trim();
   const p=document.getElementById("t-pin").value.trim();
   const cls=await DB.getClass(c);
   if(!cls) return toast("Sinf topilmadi",true);
   if(!(await DB.teacherLogin(c,p))) return toast("PIN noto'g'ri",true);
-  localStorage.setItem("sinf:code",c); localStorage.setItem("sinf:role","teacher");
+  SES.set("tea",{code:c});
   S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
   await attach(c); render();
 };
@@ -1334,7 +1328,7 @@ ACT.tCreate = async ()=>{
   const made = await DB.createClass(c,{code:c,name:nm||c,open:0,createdBy:S.uid,created:Date.now()},p,k);
   if(!made) return toast("Bosh kalit noto'g'ri",true);
   await DB.setLive(c,{mode:"off"});
-  localStorage.setItem("sinf:code",c); localStorage.setItem("sinf:role","teacher");
+  SES.set("tea",{code:c});
   S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
   await attach(c); toast("Sinf yaratildi"); render();
 };
@@ -1372,16 +1366,45 @@ function tDars(){
         <button class="btn ghost" data-a="setOpen" data-n="0">Hammasini yopish</button>
       </div></div>
     ${open?`<div class="card flat"><h3>Hozirgi dars: ${open}. ${esc(lessonOf(open).t)}</h3>
-      <ul class="items">${lessonOf(open).key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul></div>`:""}
+      <ul class="items">${lessonOf(open).key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul></div>
+    <div class="card"><h2>Vazifalar — ${open}-dars</h2>
+      <p class="small">Vazifani o'zingiz yozasiz. O'quvchida shu dars ichida chiqadi.</p>
+      ${S.tasks.filter(t=>+t.lesson===open).map(t=>`<div class="note" style="margin:8px 0">
+        <b>${esc(t.t)}</b> <span class="st">+${esc(t.pts)}</span>
+        <div class="small">${nl2br(t.d||"")}</div>
+        <button class="btn sm ghost" style="margin-top:6px" data-a="delTask" data-i="${esc(t.id)}">O'chirish</button>
+      </div>`).join("") || `<p class="small">Hali vazifa yo'q.</p>`}
+      <label>Sarlavha</label><input id="nt-t" placeholder="Masalan: Bugungi bahsda tanlagan tomoningni asosla">
+      <label>Tushuntirish (o'quvchi o'qiydi)</label><textarea id="nt-d" placeholder="Nima qilishi kerakligini o'z so'zingiz bilan yozing"></textarea>
+      <label>Ball</label><input id="nt-p" inputmode="numeric" value="20">
+      <button class="btn" style="margin-top:10px" data-a="addTask">Vazifa qo'shish</button></div>`:""}
     <button class="btn ghost" data-a="logout">Chiqish</button>`;
 }
+ACT.addTask = async ()=>{
+  const t=(document.getElementById("nt-t").value||"").trim();
+  const d=(document.getElementById("nt-d").value||"").trim();
+  const pts=parseInt(document.getElementById("nt-p").value,10)||20;
+  if(t.length<4) return toast("Sarlavha yozing",true);
+  await DB.addTask(S.code,{lesson:openCount(), t, d, pts, min:0});
+  toast("Vazifa qo'shildi");
+};
+ACT.delTask = async n=>{ if(confirm("Vazifa o'chirilsinmi?")) await DB.delTask(S.code,n.dataset.i); };
 ACT.setOpen = async n => { await DB.saveClass(S.code,{open:+n.dataset.n}); toast("Darslar yangilandi"); };
 
 function tTasdiq(){
   const p=S.students.filter(s=>!s.ok);
-  if(!p.length) return `<div class="card"><h2>Navbat bo'sh</h2>
+  const dev=S.students.filter(s=>s.ok && s.claimUid && s.claimUid!==s.authUid);
+  const devHtml = dev.length ? `<div class="card flat"><h2>Qurilma almashtirish (${dev.length})</h2>
+      <p class="small">Bola yangi telefondan kirmoqchi. Rasmiga qarang — o'shami?</p></div>` +
+    dev.map(s=>`<div class="card"><div style="display:flex;gap:12px;align-items:center">
+      ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:60px;height:60px;border-radius:14px;object-fit:cover">`:""}
+      <div style="flex:1"><b>${esc(s.name)}</b><div class="small">${esc(s.group||"")}</div></div></div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn" data-a="devOk" data-u="${esc(s.uid)}">Ruxsat berish</button>
+        <button class="btn danger" data-a="devNo" data-u="${esc(s.uid)}">Rad etish</button></div></div>`).join("") : "";
+  if(!p.length) return devHtml || `<div class="card"><h2>Navbat bo'sh</h2>
     <p class="small">Yangi ro'yxatdan o'tganlar shu yerda paydo bo'ladi.</p></div>`;
-  return `<div class="card flat"><h2>Tasdiqlash navbati (${p.length})</h2>
+  return devHtml + `<div class="card flat"><h2>Tasdiqlash navbati (${p.length})</h2>
       <p class="small">Rasmga qarang — shu bola sinfingizdami?</p></div>` +
     p.map(s=>`<div class="card"><div style="display:flex;gap:12px;align-items:center">
       ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:72px;height:72px;border-radius:16px;object-fit:cover">`:""}
@@ -1391,8 +1414,11 @@ function tTasdiq(){
         <button class="btn" data-a="appr" data-u="${s.uid}">Tasdiqlash</button>
         <button class="btn danger" data-a="rej" data-u="${s.uid}">Rad etish</button></div></div>`).join("");
 }
-ACT.appr = async n=>{ await DB.setStudent(S.code,n.dataset.u,{ok:true}); toast("Tasdiqlandi"); };
+ACT.appr = async n=>{ await DB.setStudent(S.code,n.dataset.u,{ok:true,rejected:false}); toast("Tasdiqlandi"); };
 ACT.rej  = async n=>{ await DB.setStudent(S.code,n.dataset.u,{ok:false,rejected:true}); toast("Rad etildi",true); };
+ACT.devOk = async n=>{ const s=S.students.find(x=>x.uid===n.dataset.u); if(!s) return;
+  await DB.setStudent(S.code,s.uid,{authUid:s.claimUid,claimUid:""}); toast("Ruxsat berildi"); };
+ACT.devNo = async n=>{ await DB.setStudent(S.code,n.dataset.u,{claimUid:""}); toast("Rad etildi",true); };
 
 function tJonli(){
   const L=S.live||{mode:"off"};
@@ -1490,7 +1516,19 @@ function tRuyxat(){
     const s=S.students.find(x=>x.uid===S.viewStudent);
     return `<div class="card"><button class="btn sm ghost" data-a="closeStudent">← Orqaga</button>
       <h2 style="margin-top:8px">${esc(s?s.name:"")}</h2>
-      <p class="small">${esc((s&&s.group)||"")} · ${s?s.pts||0:0} ball</p></div>` +
+      <p class="small">${esc((s&&s.group)||"")} · ${s?s.pts||0:0} ball</p>
+      <div class="sep"></div>
+      <h3>Qo'lda ball berish</h3>
+      <p class="small">Darsda ko'rsatgan ishi uchun — sababini yozing, o'quvchida ko'rinadi.</p>
+      <input id="aw-r" placeholder="Nima uchun? Masalan: bahsda kuchli dalil keltirdi">
+      <div class="btn-row" style="margin-top:8px">
+        ${[5,10,20,-5].map(v=>`<button class="btn sm ${v<0?"danger":"ghost"}" data-a="award" data-u="${esc(s?s.uid:"")}" data-v="${v}">${v>0?"+":""}${v}</button>`).join("")}
+      </div>
+      <div class="sep"></div>
+      <div class="btn-row">
+        <button class="btn sm ghost" data-a="devReset" data-u="${esc(s?s.uid:"")}">Qurilmani bo'shatish</button>
+        <button class="btn sm danger" data-a="delStu" data-u="${esc(s?s.uid:"")}">O'quvchini o'chirish</button>
+      </div></div>` +
       (S.viewEntries||[]).sort((a,b)=>a.lesson-b.lesson).map(e=>`<div class="card">
         <small>${e.lesson}-dars · ${esc(e.task)} · +${e.pts}</small>
         <div class="note" style="margin-top:6px">${nl2br(e.text)}</div></div>`).join("") ||
@@ -1503,6 +1541,23 @@ function tRuyxat(){
       <div class="nm">${esc(s.name)}<div class="st">${esc(s.group||"guruhsiz")} · ${I.flame}${s.streak||0}</div></div>
       <div class="sc">${s.pts||0}</div></div>`).join("");
 }
+ACT.award = async n=>{
+  const sid=n.dataset.u, v=+n.dataset.v;
+  const why=(document.getElementById("aw-r")||{}).value?.trim()||"";
+  if(!why) return toast("Sababini yozing",true);
+  await DB.addEntry(S.code, sid, {lesson:openCount()||0, task:"muallim", pts:v,
+    text:(v>0?"Muallim berdi: ":"Muallim oldi: ")+why, ts:Date.now()});
+  await DB.bumpPoints(S.code, sid, v, weekNo());
+  toast((v>0?"+":"")+v+" ball");
+};
+ACT.devReset = async n=>{
+  if(!confirm("Bu o'quvchi keyingi kirishda istalgan qurilmadan kira olsinmi?")) return;
+  await DB.setStudent(S.code,n.dataset.u,{authUid:"",claimUid:""}); toast("Qurilma bo'shatildi");
+};
+ACT.delStu = async n=>{
+  if(!confirm("O'quvchi va uning hamma ishlari o'chirilsinmi? Qaytarib bo'lmaydi.")) return;
+  await DB.delStudent(S.code,n.dataset.u); S.viewStudent=null; toast("O'chirildi",true); render();
+};
 ACT.openStudent = n=>{ S.viewStudent=n.dataset.u; S.viewEntries=[];
   if(S._unsubStud) S._unsubStud();
   S._unsubStud = DB.watchEntries(S.code,n.dataset.u,e=>{ S.viewEntries=e; if(S.tab==="ruyxat") render(); });
@@ -1522,7 +1577,7 @@ async function attach(code){
   S.unsub.push(DB.watchStudents(code, list=>{
     S.students = list.filter(s=>s && s.name);
     const was = S.me && S.me.ok;
-    S.me = S.students.find(s=>s.uid===S.uid) || null;
+    S.me = S.students.find(s=>s.uid===S.sid) || null;
     S.loaded = true;
     if (S.me && S.me.ok && !was && S.role==="student") toast("Tasdiqlandi — darslar ochiq");
     render();
@@ -1542,9 +1597,10 @@ async function attach(code){
     } else if (S.tab==="live") S.tab="bugun";
     render();
   }));
-  S.unsub.push(DB.watchEntries(code, S.uid, e=>{ S.entries=e; render(); }));
+  S.unsub.push(DB.watchEntries(code, S.sid, e=>{ S.entries=e; render(); }));
+  S.unsub.push(DB.watchTasks(code, t=>{ S.tasks=(t||[]).filter(x=>x&&x.t); render(); }));
   if (S.role==="teacher") S.unsub.push(DB.watchProfiles(code, m=>{ S.profiles=m||{}; render(); }));
-  else S.unsub.push(DB.watchMyProfile(code, S.uid, pr=>{ S.myProfile=pr; render(); }));
+  else S.unsub.push(DB.watchMyProfile(code, S.sid, pr=>{ S.myProfile=pr; render(); }));
 }
 
 let _raf=null;
@@ -1556,14 +1612,15 @@ function draw(){
     case "boot":   h(`<div class="wrap">${brand("Yuklanmoqda...")}</div>`); break;
     case "gate":   screenGate(); break;
     case "reg":    screenReg(); break;
+    case "login":  screenLogin(); break;
     case "tgate":  screenTeacherGate(); break;
     case "teacher":
       if (!S.cls) { h(`<div class="wrap">${brand("Yuklanmoqda...")}</div>`); break; }
       screenTeacher(); break;
     case "app":
       if (!S.loaded) { h(`<div class="wrap">${brand("Yuklanmoqda...")}</div>`); break; }
-      if (!S.me) { S.screen="reg"; S.reg.code=S.code; screenReg(); break; }
-      if (!S.me.ok) { screenPending(); break; }
+      if (!S.me) { S.screen="gate"; S.reg.code=S.code; screenGate(); break; }
+      if (!S.me.ok || (S.me.authUid && S.me.authUid!==S.uid)) { screenPending(); break; }
       screenStudent(); break;
     default: screenGate();
   }
@@ -1576,20 +1633,23 @@ function draw(){
   S.uid = await DB.auth();
   await Bio.init();
 
-  let code = localStorage.getItem("sinf:code") || "";
+  /* Sessiyalar alohida: bitta telefonda ham o'quvchi, ham muallim bo'lish mumkin.
+     O'quvchi sessiyasi hisob identifikatorini (sid) eslab qoladi — qurilma
+     almashsa ham hisob yo'qolmaydi, "Kirish" orqali qaytariladi. */
+  const stu = SES.get("stu"), tea = SES.get("tea");
+  let code = "";
   const qc = new URLSearchParams(location.search).get("code");
   if (qc) code = qc.toUpperCase();
   if (IN_TG && TG.initDataUnsafe.start_param) code = String(TG.initDataUnsafe.start_param).toUpperCase();
-  S.role = localStorage.getItem("sinf:role") || "";
 
-  if (code && S.role){
-    S.code = code;
-    S.screen = S.role==="teacher" ? "teacher" : "app";
-    S.tab    = S.role==="teacher" ? "dars" : "darslar";
-    await attach(code);
+  if (stu && stu.sid && (!code || code===stu.code)){
+    S.code=stu.code; S.sid=stu.sid; S.role="student"; S.screen="app"; S.tab="darslar";
+    await attach(S.code);
+  } else if (tea && tea.code && !code){
+    S.code=tea.code; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
+    await attach(S.code);
   } else if (code){
-    S.code = code; S.reg.code = code;
-    S.screen = (await DB.getClass(code)) ? "reg" : "gate";
+    S.code = code; S.reg.code = code; S.screen = "gate";
   } else S.screen = "gate";
   render();
 

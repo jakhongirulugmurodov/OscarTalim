@@ -20,6 +20,10 @@ on:
       location:
         description: "Firestore joylashuvi"
         default: asia-south1
+      faqat_qoidalar:
+        description: "Faqat xavfsizlik qoidalarini yangilash"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -53,7 +57,7 @@ jobs:
         env:
           PROJECT_ID: ${{ inputs.project_id }}
           LOCATION: ${{ inputs.location }}
-        run: python3 .github/scripts/firebase_setup.py provision
+        run: python3 .github/scripts/firebase_setup.py ${{ inputs.faqat_qoidalar && 'rules' || 'provision' }}
 
       - name: Config'ni commit qilish
         run: |
