@@ -754,6 +754,11 @@ const SES = {
   set(k,v){ localStorage.setItem("sinf:"+k, JSON.stringify(v)); },
   clear(k){ localStorage.removeItem("sinf:"+k); }
 };
+/* Ismlarni solishtirish uchun: katta-kichik harf, apostrof turlari va
+   ortiqcha bo'shliqlar farqi hisobga olinmaydi. */
+const normName = n => String(n||"").toLowerCase()
+  .replace(/[\u2018\u2019\u02bb\u02bc\u0060\u00b4']/g,"'")
+  .replace(/\s+/g," ").trim();
 const newSid = () => IN_TG ? ("tg"+TG.initDataUnsafe.user.id)
                            : ("d"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4));
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -877,6 +882,43 @@ ACT.pickMe = async (n)=>{
   render();
 };
 
+function screenDup(){
+  const d = S.reg.dupes||[];
+  h(`<div class="wrap">
+    ${brand("Bir daqiqa")}
+    <div class="card accent">
+      <h2>Shu ismda hisob bor</h2>
+      <p class="small">${esc(S.code)} sinfida <b>${esc(S.reg.name)}</b> allaqachon ro'yxatdan o'tgan.
+        Agar bu sen bo'lsang, yangi hisob ochma — ballaring yo'qoladi. Quyidan o'zingni tanla.</p>
+    </div>
+    ${d.map(st=>`<div class="rank" data-a="dupMine" data-s="${esc(st.uid)}" style="cursor:pointer">
+      <div class="n">${esc((st.name||"?").trim()[0]||"?")}</div>
+      <div class="nm">${esc(st.name)}<div class="st">${esc(st.group||"guruhsiz")} · ${st.pts||0} ball${st.ok?"":" · tasdiq kutmoqda"}</div></div>
+      <div class="st">bu men →</div></div>`).join("")}
+    <div class="card">
+      <h3>Bu men emasman</h3>
+      <p class="small">Sinfda xuddi shu ismli boshqa bola bo'lsa, yangi hisob ochamiz. Muallim ikkovingni rasmdan ajratadi.</p>
+      <button class="btn ghost" data-a="dupNew">Baribir yangi hisob ochish</button>
+    </div>
+    <button class="btn ghost" data-a="back">Orqaga</button>
+  </div>`);
+}
+ACT.dupMine = async (n)=>{
+  const st=(S.reg.dupes||[]).find(x=>x.uid===n.dataset.s); if(!st) return;
+  const myTg = IN_TG ? "tg"+TG.initDataUnsafe.user.id : "";
+  const mine = st.authUid===S.uid || (myTg && st.uid===myTg) || !st.authUid;
+  try {
+    if (mine) await DB.setStudent(S.code, st.uid, {authUid:S.uid, claimUid:""});
+    else      await DB.setStudent(S.code, st.uid, {claimUid:S.uid});
+  } catch(e){ return toast("Kirishda xato — muallimga ayting",true); }
+  S.sid=st.uid; S.role="student"; SES.set("stu",{code:S.code, sid:st.uid});
+  S.screen="app"; await attach(S.code);
+  toast(mine?"Xush kelibsan!":"So'rov yuborildi — muallim tasdiqlaydi");
+  render();
+};
+ACT.dupNew = ()=>{ S.reg.forceNew=true; S.screen="reg"; render();
+  setTimeout(()=>{ const b=document.querySelector('[data-a="doReg"]'); if(b) b.click(); }, 60); };
+
 function screenReg(){
   const tgu = IN_TG ? TG.initDataUnsafe.user : null;
   const nm = S.reg.name ?? (tgu ? ((tgu.first_name||"")+" "+(tgu.last_name||"")).trim() : "");
@@ -988,9 +1030,18 @@ ACT.doReg = async (btn)=>{
      Telegram raqami (istalgan qurilmadan qaytib kiriladi), aks holda doimiy
      tasodifiy identifikator. authUid — hozir qaysi qurilma egalik qilyapti. */
   const sid = newSid();
-  let already;
-  try { already = (await DB.listStudents(code)).find(x=>x && x.uid===sid); }
+  let list;
+  try { list = await DB.listStudents(code); }
   catch(e){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; return toast("Bazaga ulanmadi — muallimga ayting",true); }
+  const already = list.find(x=>x && x.uid===sid);
+  /* Shu ismda hisob bormi? Bolalar tasdiq kutib turib, "ishlamadi" deb
+     qayta-qayta ro'yxatdan o'tadi va bitta bola bir necha hisobga bo'linadi. */
+  if (!already && !S.reg.forceNew){
+    const dupes = list.filter(x=>x && normName(x.name)===normName(S.reg.name));
+    if (dupes.length){
+      S.reg.dupes = dupes; S.screen = "dup"; btn.disabled=false; render(); return;
+    }
+  }
   if (already){
     await DB.setStudent(code, sid, {authUid:S.uid, claimUid:""});
     toast("Sen allaqachon ro'yxatdasan — kirdik");
@@ -1434,7 +1485,9 @@ function tTasdiq(){
     p.map(s=>`<div class="card"><div style="display:flex;gap:12px;align-items:center">
       ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:72px;height:72px;border-radius:16px;object-fit:cover">`:""}
       <div style="flex:1"><b>${esc(s.name)}</b>
-        <div class="small">${esc(s.group||"guruhsiz")}${tgOf(s.uid)?" · @"+esc(tgOf(s.uid)):""}</div></div></div>
+        <div class="small">${esc(s.group||"guruhsiz")}${tgOf(s.uid)?" · @"+esc(tgOf(s.uid)):""}</div>
+        ${S.students.filter(x=>x.uid!==s.uid && normName(x.name)===normName(s.name)).length
+          ? `<div class="st" style="color:var(--err)">Shu ismda yana hisob bor — dublikat bo'lishi mumkin</div>`:""}</div></div>
       <div class="btn-row" style="margin-top:10px">
         <button class="btn" data-a="appr" data-u="${s.uid}">Tasdiqlash</button>
         <button class="btn danger" data-a="rej" data-u="${s.uid}">Rad etish</button></div></div>`).join("");
@@ -1559,7 +1612,21 @@ function tRuyxat(){
         <div class="note" style="margin-top:6px">${nl2br(e.text)}</div></div>`).join("") ||
       `<div class="card"><p class="small">Hali ish topshirmagan.</p></div>`;
   }
-  return `<div class="card flat"><h2>O'quvchilar (${ok.length})</h2>
+  const groups={};
+  S.students.forEach(s=>{ const k=normName(s.name); (groups[k]=groups[k]||[]).push(s); });
+  const dupes=Object.values(groups).filter(g=>g.length>1);
+  const dupHtml = dupes.length ? `<div class="card accent"><h2>Takrorlangan ismlar (${dupes.length})</h2>
+      <p class="small">Bitta bola bir necha marta ro'yxatdan o'tgan. Ballari ko'p bo'lganini qoldiring,
+        qolganini o'chiring — shunda reytingda bir marta chiqadi.</p>
+      ${dupes.map(g=>`<div class="note" style="margin:10px 0">
+        <b>${esc(g[0].name)}</b>
+        ${g.sort((a,b)=>(b.pts||0)-(a.pts||0)).map((s,i)=>`<div class="rank" style="margin-top:6px">
+          <div class="n">${i+1}</div>
+          <div class="nm">${s.pts||0} ball<div class="st">${s.ok?"tasdiqlangan":"tasdiqlanmagan"}${i===0?" · asosiy":""}</div></div>
+          ${i===0?`<div class="st">qoldirish</div>`
+                 :`<button class="btn sm danger" data-a="delStu" data-u="${esc(s.uid)}">o'chirish</button>`}
+        </div>`).join("")}</div>`).join("")}</div>` : "";
+  return dupHtml + `<div class="card flat"><h2>O'quvchilar (${ok.length})</h2>
       <p class="small">Ism ustiga bosing — nima yozganini ko'rasiz. Ball bor, ish yo'q bo'lsa — savol bering.</p></div>` +
     ok.map(s=>`<div class="rank" data-a="openStudent" data-u="${s.uid}" style="cursor:pointer">
       ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:34px;height:34px;border-radius:11px;object-fit:cover">`:`<div class="n">·</div>`}
@@ -1580,8 +1647,11 @@ ACT.devReset = async n=>{
   await DB.setStudent(S.code,n.dataset.u,{authUid:"",claimUid:""}); toast("Qurilma bo'shatildi");
 };
 ACT.delStu = async n=>{
-  if(!confirm("O'quvchi va uning hamma ishlari o'chirilsinmi? Qaytarib bo'lmaydi.")) return;
-  await DB.delStudent(S.code,n.dataset.u); S.viewStudent=null; toast("O'chirildi",true); render();
+  const s=S.students.find(x=>x.uid===n.dataset.u);
+  if(!confirm(`${s?s.name:"O'quvchi"} va uning hamma ishlari o'chirilsinmi? Qaytarib bo'lmaydi.`)) return;
+  await DB.delStudent(S.code,n.dataset.u);
+  if(S.viewStudent===n.dataset.u) S.viewStudent=null;
+  toast("O'chirildi",true); render();
 };
 ACT.openStudent = n=>{ S.viewStudent=n.dataset.u; S.viewEntries=[];
   if(S._unsubStud) S._unsubStud();
@@ -1638,6 +1708,7 @@ function draw(){
     case "gate":   screenGate(); break;
     case "reg":    screenReg(); break;
     case "login":  screenLogin(); break;
+    case "dup":    screenDup(); break;
     case "tgate":  screenTeacherGate(); break;
     case "teacher":
       if (!S.cls) { h(`<div class="wrap">${brand("Yuklanmoqda...")}</div>`); break; }
