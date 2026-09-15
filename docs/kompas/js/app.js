@@ -26,6 +26,13 @@
   const fanQisqa = (id) => (FAN[id] && FAN[id].qisqa) || id;
   const otmById = (id) => OTM.find(o => o.id === id);
   const yById = (id) => DATA.yonalishlar.find(y => y.id === id);
+  // uzun mavzu nomlarini ro'yxatda qisqartirish (to'liq matn title da)
+  const shortNom = (nom, max = 64) => {
+    nom = String(nom || "");
+    if (nom.length <= max) return nom;
+    const cut = Math.max(nom.lastIndexOf(";", max), nom.lastIndexOf(",", max), nom.lastIndexOf(":", max));
+    return (cut > 24 ? nom.slice(0, cut) : nom.slice(0, max - 1).replace(/\s+\S*$/, "")) + "…";
+  };
   const go = (p) => { location.hash = "#" + p; };
   const HOLLAND = {
     R: { nom: "Amaliy", tavsif: "qo'l bilan, texnika va tabiat bilan ishlash" },
@@ -396,9 +403,9 @@
   VIEWS["/fanlar"] = {
     html: () => {
       const list = ranked();
-      const blocks = E.blockOptions(list, DATA, 40);
       const my = S.tanlov.map(id => yById(id)).filter(Boolean);
       const myKeys = my.map(y => y.fan1 + "+" + y.fan2);
+      const blocks = E.blockOptions(list, DATA, 40, [...new Set(myKeys.concat(S.block ? [S.block.fan1 + "+" + S.block.fan2] : []))]);
       const cover = (b) => my.filter(y => y.fan1 === b.fan1 && y.fan2 === b.fan2).length;
       const best = blocks[0];
       const sel = S.block ? blocks.find(b => b.fan1 === S.block.fan1 && b.fan2 === S.block.fan2) : null;
@@ -407,7 +414,7 @@
       <div class="page-head"><span class="eyebrow">4-qadam · Fanlar va blok</span><h1>Qaysi blokdan test topshirasiz?</h1><p>Iyunda ro'yxatdan o'tishda tanlangan ikki fan avgustda ochiladigan yo'nalishlar ro'yxatini butunlay belgilaydi. Bu qaror qaytarilmaydi — shuning uchun uni hisoblab tanlaymiz.</p></div>
       ${myBlocks.length > 1 ? `<div class="note warn" style="margin-bottom:20px"><b>Ro'yxatingizdagi 5 ta yo'nalish ${myBlocks.length} xil blokka tegishli.</b> Bitta blokdan test topshirasiz — demak, ro'yxatni bitta blok ichida qayta tuzish kerak. Quyida har blok qaysi tanlovlaringizni qamrashi ko'rsatilgan.</div>` : ""}
       <div class="blocks">
-        ${blocks.slice(0, 6).map((b, i) => `<div class="block ${sel === b ? "best" : ""}">
+        ${blocks.filter((b, i) => i < 6 || b === sel || cover(b)).map((b, i) => `<div class="block ${sel === b ? "best" : ""}">
           <div>
             <div class="fans"><span class="chip k1">${h(fanNom(b.fan1))} ×${fmt(C.koef.fan1)}</span><span>+</span><span class="chip k2">${h(fanNom(b.fan2))} ×${fmt(C.koef.fan2)}</span>${i === 0 ? `<span class="tag maqsad">kompas tavsiyasi</span>` : ""}${cover(b) ? `<span class="tag info">ro'yxatingizdan ${cover(b)} ta</span>` : ""}</div>
             <div class="stats"><span>sizga mos top-40 dan <b>${b.items.length}</b> yo'nalish</span><span>bazada jami <b>${b.jamiYonalish}</b></span><span>o'rtacha moslik <b>${pct(b.meanI)}</b></span>${b.pAny != null ? `<span>kamida bittasiga kirish <b>${pct(b.pAny)}</b></span>` : ""}</div>
@@ -532,7 +539,7 @@
       const sim = choices.length ? E.simulateChoices(choices, mu, 8, 4000, 11, S.grantUstuvor) : null;
       const best = choices.length >= 2 ? E.bestOrder(choices, mu, 8, (c, t) => 0.6 + 0.4 * c.I + (t === "grant" ? 0.25 : 0), S.grantUstuvor) : null;
       rejaCache = { P, best, ids: choices.map(c => c.id) };
-      const weekHTML = (w, open) => `<details class="week" ${open ? "open" : ""}><summary><span>${w.n}-hafta${w.sinov ? ` <span class="tag flag">sinov</span>` : ""}</span><span class="n">${fmt(w.study + w.review + (w.sinov ? C.model.sinov_soat : 0), 0)} soat</span></summary><ul>${w.items.map(it => `<li><span>${h(it.nom)} <span class="muted small">${h(fanQisqa(it.fan))}${it.davom ? " · davomi" : ""}</span></span><span>${fmt(it.hours, 1)} s</span></li>`).join("")}<li class="rev"><span>Intervalli takrorlash (o'tgan mavzular)</span><span>${fmt(w.review, 1)} s</span></li>${w.sinov ? `<li class="sin"><span>To'liq sinov imtihoni + tahlil</span><span>${C.model.sinov_soat} s</span></li>` : ""}</ul></details>`;
+      const weekHTML = (w, open) => `<details class="week" ${open ? "open" : ""}><summary><span>${w.n}-hafta${w.sinov ? ` <span class="tag flag">sinov</span>` : ""}</span><span class="n">${fmt(w.study + w.review + (w.sinov ? C.model.sinov_soat : 0), 0)} soat</span></summary><ul>${w.items.map(it => `<li><span title="${h(it.nom)}">${h(shortNom(it.nom, 56))} <span class="muted small">${h(fanQisqa(it.fan))}${it.davom ? " · davomi" : ""}</span></span><span>${fmt(it.hours, 1)} s</span></li>`).join("")}<li class="rev"><span>Intervalli takrorlash (o'tgan mavzular)</span><span>${fmt(w.review, 1)} s</span></li>${w.sinov ? `<li class="sin"><span>To'liq sinov imtihoni + tahlil</span><span>${C.model.sinov_soat} s</span></li>` : ""}</ul></details>`;
       rejaCache.weekHTML = weekHTML;
       return `
       <div class="page-head"><span class="eyebrow">6-qadam · Reja</span><h1>Qancha vaqt kerak?</h1><p>Farq mavzularga bo'linadi; har soat eng ko'p ball beradigan mavzuga sarflanadi. Uch ssenariy — chunki bitta aniq raqam yolg'on bo'lardi.</p></div>
@@ -571,7 +578,7 @@
           </div>
           <div class="card">
             <span class="eyebrow">Eng foydali mavzular (ball / soat)</span>
-            <div class="topics" style="margin-top:8px">${P.topics.slice(0, 10).map(t => `<div class="topic"><span>${h(t.nom)}<br><span class="f">${h(fanQisqa(t.fan))}${t.bolim ? " · " + h(t.bolim) : ""}</span></span><span class="n">${fmt(t.hours / P.scenario.eta, 1)} s</span><span class="n">+${fmt(t.gain, 1)}</span></div>`).join("") || `<p class="muted small">Mavzu daraxti yo'q — reja fan darajasida.</p>`}</div>
+            <div class="topics" style="margin-top:8px">${P.topics.slice(0, 10).map(t => `<div class="topic"><span title="${h(t.nom)}">${h(shortNom(t.nom))}<br><span class="f">${h(fanQisqa(t.fan))}${t.bolim ? " · " + h(t.bolim) : ""}</span></span><span class="n">${fmt(t.hours / P.scenario.eta, 1)} s</span><span class="n">+${fmt(t.gain, 1)}</span></div>`).join("") || `<p class="muted small">Mavzu daraxti yo'q — reja fan darajasida.</p>`}</div>
           </div>
         </div>
       </div>

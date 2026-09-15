@@ -39,7 +39,11 @@ aytadigan gap qolmaydi.
 **Chiqish mezoni:** validatsiya 100% o'tadi; kamida 3 yillik o'tish balli mavjud
 yo'nalishlar ulushi ≥ 60%.
 
-### Faza 1 — MVP: qiziqish → yo'nalish → fanlar · 4 hafta (oktabr 2026)
+### Faza 1 — MVP: qiziqish → yo'nalish → fanlar · 4 hafta (oktabr 2026) — **bajarildi (2026-09-15)**
+
+> Ilova `docs/kompas/index.html` da. Faza 0 ma'lumotlari ham dastlabki (taxminiy) holatda
+> kiritilgan: 154 yo'nalish, 52 OTM, 12 fan mavzulari, 60 savol. Rasmiy manba bilan
+> solishtirish (MANBALAR.md §11) hali ochiq.
 
 Statik veb-ilova (`docs/` ichida, GitHub Pages) — backend hali kerak emas,
 barcha ma'lumot JSON sifatida yuklanadi, hisob-kitob brauzerda ketadi.

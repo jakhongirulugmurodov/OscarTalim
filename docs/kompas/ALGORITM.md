@@ -138,12 +138,18 @@ Vektorni birlik uzunlikka keltirish bu farqni yo'qotadi va **profil shakli** qol
 Har bir ta'lim yo'nalishi uchun ham RIASEC profili bo'ladi (`u_yonalish`, 6 o'lchovli,
 normalizatsiyalangan). Ularni qanday olamiz — [MAALUMOT-MODELI.md](MAALUMOT-MODELI.md) § 4.
 
-**Qiziqish mosligi** — kosinus o'xshashlik:
+**Qiziqish mosligi** — markazlashtirilgan kosinus (Pearson korrelyatsiyasi), [0, 1] ga keltirilgan:
 
 ```
-I(o) = Σ_k ( v_k · u_k )            // ikkala vektor ham birlik uzunlikda
-I(o) ∈ [0, 1],  1 = mukammal moslik
+v̄ = mean(v), ū = mean(u)
+r  = Σ_k (v_k − v̄)(u_k − ū) / sqrt( Σ(v_k − v̄)² · Σ(u_k − ū)² )
+I(o) = (r + 1) / 2                  // 1 = profil shakli mukammal mos, 0,5 = aloqasiz
 ```
+
+Nega oddiy kosinus emas: RIASEC vektorlari hammasi musbat, shuning uchun oddiy kosinus
+istalgan ikki profilni 0,7–1,0 oraliqqa siqib qo'yadi va yo'nalishlarni ajratmaydi.
+Markazlashtirish profilning **shaklini** solishtiradi. Yassi profil (hamma javob bir xil)
+→ I = 0,5 va foydalanuvchiga testni qayta topshirish tavsiya qilinadi.
 
 Tushuntirish uchun qo'shimcha **C-indeks** (Brown & Gore) ham hisoblanadi — u 3 harfli
 kodlar mosligini 0..18 oralig'ida beradi va foydalanuvchiga "SIR ↔ SIC: 15/18" kabi
@@ -483,7 +489,7 @@ Ball_f      = n_f · k_f · ( m_f + (1 − m_f)·g ) ,  g = 0,25
 Umumiy_ball = Σ_f Ball_f
 m_f         = Σ_t q_t·m_t / Σ_t q_t
 
-I(o)        = Σ_k v_k·u_k                                  (kosinus moslik)
+I(o)        = (pearson(v, u) + 1) / 2                      (markazlashtirilgan moslik)
 Score(o)    = w₁I + w₂A + w₃P + w₄M + w₅V
 
 Ĉ           = 0,5·C_{y−1} + 0,3·C_{y−2} + 0,2·C_{y−3}

@@ -23,6 +23,16 @@
     return Math.max(0, Math.min(1, d));
   }
 
+  // Profil SHAKLI o'xshashligi: har vektor o'z o'rtachasidan markazlashtiriladi (Pearson),
+  // natija [-1, 1] → [0, 1]. Oddiy kosinus musbat vektorlarda hamma juftlikni 0,7–1,0 ga siqadi.
+  function profileSim(a, b) {
+    const ma = KEYS.reduce((s, k) => s + (a[k] || 0), 0) / 6, mb = KEYS.reduce((s, k) => s + (b[k] || 0), 0) / 6;
+    let d = 0, na = 0, nb = 0;
+    KEYS.forEach(k => { const x = (a[k] || 0) - ma, y = (b[k] || 0) - mb; d += x * y; na += x * x; nb += y * y; });
+    if (na < 1e-9 || nb < 1e-9) return 0.5; // yassi profil — ajratib bo'lmaydi
+    return Math.max(0, Math.min(1, (d / Math.sqrt(na * nb) + 1) / 2));
+  }
+
   // Standart normal taqsimot funksiyasi Φ (Abramowitz–Stegun 7.1.26, xato < 1.5e-7)
   function phi(z) {
     const t = 1 / (1 + 0.2316419 * Math.abs(z));
@@ -213,8 +223,7 @@
     const out = [];
     data.yonalishlar.forEach(y => {
       if (!hardFilter(y, ctx)) return;
-      const uvec = normalize(y.riasec);
-      const I = cosine(ctx.vec, uvec);
+      const I = profileSim(ctx.vec, y.riasec);
       const fb = ctx.fanBaho || {};
       const A = 0.6 * (fb[y.fan1] ?? 0.5) + 0.4 * (fb[y.fan2] ?? 0.5);
       const turi = ctx.moliya === "faqat_grant" ? "grant" : "kontrakt";
@@ -259,14 +268,20 @@
 
   /* ---------- QADAM 4: blok optimizatsiyasi ---------- */
 
-  function blockOptions(ranked, data, topN) {
+  // mustInclude: ["biologiya+kimyo", ...] — tanlangan blok va foydalanuvchi ro'yxatidagi bloklar har doim ko'rinsin
+  function blockOptions(ranked, data, topN, mustInclude) {
     topN = topN || 40;
     const top = ranked.slice(0, topN);
     const groups = {};
-    top.forEach(r => {
+    const add = (r) => {
       const key = r.y.fan1 + "+" + r.y.fan2;
       if (!groups[key]) groups[key] = { key, fan1: r.y.fan1, fan2: r.y.fan2, items: [], jamiYonalish: 0 };
-      groups[key].items.push(r);
+      if (!groups[key].items.includes(r)) groups[key].items.push(r);
+    };
+    top.forEach(add);
+    (mustInclude || []).forEach(key => {
+      if (groups[key]) return;
+      ranked.filter(r => r.y.fan1 + "+" + r.y.fan2 === key).slice(0, 8).forEach(add);
     });
     data.yonalishlar.forEach(y => {
       const key = y.fan1 + "+" + y.fan2;
@@ -278,7 +293,8 @@
       const meanScore = top5.reduce((s, r) => s + r.score, 0) / top5.length;
       const hasP = top5.every(r => r.P != null);
       const pAny = hasP ? 1 - top5.reduce((p, r) => p * (1 - r.P), 1) : null;
-      return { ...g, top5, meanI, meanScore, pAny, utility: meanScore * (pAny ?? 1) * Math.min(1, 0.6 + g.items.length / 10) };
+      const breadth = Math.min(1, 0.4 + g.items.length / 10) * (0.85 + 0.15 * Math.min(1, g.jamiYonalish / 20));
+      return { ...g, top5, meanI, meanScore, pAny, utility: meanScore * (pAny ?? 1) * breadth };
     });
     list.sort((a, b) => b.utility - a.utility);
     return list;
@@ -438,7 +454,7 @@
   }
 
   global.KompasEngine = {
-    KEYS, normalize, cosine, phi, cIndex, codeOf,
+    KEYS, normalize, cosine, profileSim, phi, cIndex, codeOf,
     riasecScores, ballFromMastery, fanBall, totalBall,
     cutoffEstimate, admitProb, simulateChoices, bestOrder,
     matchDirections, pickFive, blockOptions,

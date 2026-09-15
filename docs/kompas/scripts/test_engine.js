@@ -30,6 +30,9 @@ const rf = E.riasecScores(flat, items);
 near(E.cosine(rf.vec, rf.vec), 1, 1e-9, "yassi profil kosinusi");
 // C-indeks
 ok(E.cIndex("RIA", "RIA") === 18, "C-indeks bir xil kod = 18");
+near(E.profileSim({ R: .9, I: .8, A: .2, S: .1, E: .3, C: .6 }, { R: .9, I: .8, A: .2, S: .1, E: .3, C: .6 }), 1, 1e-9, "profileSim bir xil = 1");
+near(E.profileSim({ R: 1, I: 0, A: 0, S: 0, E: 0, C: 0 }, { R: 0, I: 0, A: 0, S: 1, E: 0, C: 0 }), 0.4, 1e-9, "profileSim qarama-qarshi < 0,5");
+near(E.profileSim({ R: .5, I: .5, A: .5, S: .5, E: .5, C: .5 }, { R: 1, I: 0, A: 0, S: 0, E: 0, C: 0 }), 0.5, 1e-9, "yassi profil = 0,5");
 ok(E.cIndex("RIA", "SEC") === 0, "C-indeks qarama-qarshi = 0");
 
 /* --- ball modeli --- */
