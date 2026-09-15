@@ -708,9 +708,11 @@ async function makeCloudDB(cfg){
     watchStudents(c,cb){ return onSnapshot(C("classes",c,"students"), q=>cb(q.docs.map(d=>({...d.data(),uid:d.id})))); },
     async setStudent(c,uid,d){ await setDoc(D("classes",c,"students",uid), {...d,uid,seen:serverTimestamp()}, {merge:true}); },
     async bumpPoints(c,uid,n,wk){
+      /* Ikkala hisoblagich ham atomik oshadi — bir vaqtda ikkita ball
+         tushsa ham (masalan vazifa va duel) biri yo'qolmaydi. */
       const r=D("classes",c,"students",uid); const s=await getDoc(r);
-      const cur=s.exists()?s.data():{};
-      await setDoc(r,{pts:increment(n), wk, wkPts:(cur.wk===wk?(cur.wkPts||0):0)+n},{merge:true}); },
+      const sameWeek = s.exists() && s.data().wk===wk;
+      await setDoc(r,{pts:increment(n), wk, wkPts: sameWeek?increment(n):n},{merge:true}); },
     watchEntries(c,uid,cb){ return onSnapshot(C("classes",c,"students",uid,"entries"), q=>cb(q.docs.map(d=>({...d.data(),id:d.id})))); },
     async addEntry(c,uid,e){ await setDoc(D("classes",c,"students",uid,"entries","e"+Date.now()+Math.random().toString(36).slice(2,6)),
       {...e, ts:serverTimestamp()}); },
@@ -1316,7 +1318,9 @@ function liveEarned(lesson){
 }
 async function maybeAwardLive(){
   const L = S.live; if (!L || !L.reveal || !L.key) return;
-  const flag = "sinf:aw:"+S.code+":"+L.key;
+  /* Belgi hisobga bog'lanadi: bitta telefonda ikki bola bo'lsa ham
+     ikkalasi ham o'z ballini oladi. */
+  const flag = "sinf:aw:"+S.code+":"+S.sid+":"+L.key;
   if (localStorage.getItem(flag)) return;
   const mine = S.answered && S.answered.key===L.key ? S.answered : null;
   if (!mine) return;

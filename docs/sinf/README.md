@@ -210,6 +210,10 @@ service cloud.firestore {
 }
 ```
 
+> Mahalliy rejimda bir brauzerdagi barcha varaqlar bitta xotiraga yozadi,
+> shuning uchun bir vaqtda bir necha "o'quvchi" ball olsa, biri yo'qolishi
+> mumkin. Bulutda bunday emas — har kim o'z hujjatiga atomik yozadi.
+
 `FB_CONFIG` bo'sh qolsa dastur **mahalliy rejim**da ishlaydi: hamma narsa shu
 qurilmaning `localStorage` ida. Sinovdan o'tkazish uchun qulay, haqiqiy sinf
 uchun yaramaydi (bir qurilmadagi ikki brauzer varag'i bir-birini ko'radi, xolos).
