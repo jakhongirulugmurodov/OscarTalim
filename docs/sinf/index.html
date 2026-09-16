@@ -148,6 +148,31 @@ label .hint{display:block;font-weight:400;font-size:.79rem;color:var(--muted);ma
 .timer{height:8px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:10px 0 14px}
 .timer i{display:block;height:100%;background:var(--accent);transition:width 1s linear}
 
+.pin{font-size:2.1rem;font-weight:800;letter-spacing:.14em;margin:12px 0;color:var(--accent2)}
+body.proj .pin{font-size:4.5rem}
+/* ---- doska ---- */
+.bd{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.bd .cap{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent2);margin-bottom:8px}
+.bd .big{font-size:1.25rem;font-weight:800;line-height:1.3;white-space:pre-line;letter-spacing:-.01em}
+.bd .sub{color:var(--muted);font-size:.9rem;margin-top:8px}
+.bd ol,.bd ul{margin:6px 0 0;padding-left:0;list-style:none;counter-reset:b}
+.bd ol li{counter-increment:b;position:relative;padding:9px 0 9px 34px;border-bottom:1px solid var(--line)}
+.bd ol li:before{content:counter(b);position:absolute;left:0;top:8px;width:23px;height:23px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:.78rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.bd ul li{position:relative;padding:9px 0 9px 20px;border-bottom:1px solid var(--line)}
+.bd ul li:before{content:"";position:absolute;left:4px;top:17px;width:6px;height:6px;border-radius:50%;background:var(--accent2)}
+.bd li:last-child{border-bottom:0}
+.bd .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.bd .two>div{background:var(--bg2);border-radius:12px;padding:12px}
+.bd .two b{display:block;margin-bottom:5px;font-size:.9rem}
+.bd .two span{color:var(--muted);font-size:.86rem;line-height:1.5}
+.bd .two>div:first-child{border-left:3px solid var(--err)}
+.bd .two>div:last-child{border-left:3px solid var(--ok)}
+@media (max-width:420px){.bd .two{grid-template-columns:1fr}}
+body.proj .bd{padding:26px}
+body.proj .bd .big{font-size:2.1rem}
+body.proj .bd ol li,body.proj .bd ul li{font-size:1.25rem;padding:13px 0 13px 44px}
+body.proj .bd ol li:before{width:30px;height:30px;font-size:1rem}
 /* ---- proyektor ---- */
 body.proj .wrap{max-width:1400px}
 body.proj{font-size:22px}
@@ -324,6 +349,29 @@ const COURSE = {
        "DOIM tekshiriladi: raqam, sana, ism, manba, sitata, sahifa.",
        "Tekshirish shart emas: fikr, tushuntirish, g'oya.",
        "Oxirgi hakam — AI emas."],
+  board:[
+    {t:"Bugungi qoida", big:"AI ba'zan biladi, ba'zan o'ylab topadi.\nIkkalasini bir xil ohangda aytadi.",
+     d:"Tashqaridan farqini ajratib bo'lmaydi — shuning uchun tekshiramiz."},
+    {t:"Atama", big:"Gallyutsinatsiya",
+     d:"AI o'ylab topgan, lekin haqiqat qilib aytgan narsa."},
+    {t:"Nega shunday bo'ladi", num:[
+      "AI bilmasligini bilmaydi. U \"bilmayman\" deyish uchun emas, javob berish uchun qurilgan.",
+      "U keyingi so'zni taxmin qiladi. Darslik nomi qanday ko'rinishini biladi — ichida nima borligini emas.",
+      "Ishonchli ohang — bu uslub, bilim emas. To'g'risini ham, to'qimasini ham bir xil aytadi."]},
+    {t:"Tekshiruv qoidasi", two:[
+      ["DOIM tekshiriladi", "raqam · sana · ism · manba · sitata · sahifa"],
+      ["Tekshirish shart emas", "fikr · tushuntirish · g'oya"]],
+     d:"Hammasini tekshirsang — AI foydasiz bo'lib qoladi. Ajratish shu."},
+    {t:"Uch tekshiruv usuli", num:[
+      "Manbani so'rash — \"Buni qayerdan bilding?\" Zaif: havolaning o'zi ham to'qilgan bo'lishi mumkin.",
+      "Ikki marta so'rash — yangi chatda xuddi shu savol. Javob farq qilsa, ishonch yo'q.",
+      "Boshqa joydan tekshirish — kitob, hujjat yoki jonli odam. Eng kuchlisi."]},
+    {t:"Uch qoida — yodda tut", list:[
+      "Bir marta so'rash — bir marta taxmin. Muhim narsani ikki marta so'ra.",
+      "\"Aynan\", \"so'zma-so'z\", \"roppa-rosa\" — ogohlantirish belgisi.",
+      "Oxirgi hakam — AI emas."]},
+    {t:"Xulosa", big:"AI yaroqsiz emas.",
+     d:"U kalkulyator kabi — noto'g'ri tugma bosilsa, noto'g'ri javob beradi. Farqi shundaki, kalkulyator xatosini darrov ko'rasan, AI'ning xatosi chiroyli ko'rinadi."}],
   duel:[
     {q:"Bir xil savolga AI ikki daqiqa oraliqda ikki xil javob berdi. Bu nimani anglatadi?",
      a:["Internet uzilgan","Kamida bittasi to'qilgan — ishonch yo'q","Ikkinchi javob doim to'g'ri","Model yangilangan"],c:1,
@@ -1160,7 +1208,7 @@ ACT.tab = n => { S.tab = n.dataset.k; S.lesson=null; render(); };
 
 function liveBanner(){
   if (!S.live || S.live.mode==="off" || !S.live.mode) return "";
-  const names={duel:"Jonli duel",hunt:"Yolg'on ovi",poll:"Ovoz berish"};
+  const names={duel:"Jonli duel",hunt:"Yolg'on ovi",poll:"Ovoz berish",result:"Natijalar",kahoot:"Kahoot boshlandi"};
   return `<div class="live-banner" data-a="goLive">
     <b>${names[S.live.mode]||"Jonli o'yin"} boshlandi</b>
     <div class="small" style="color:#ffe8d2">Qo'shilish uchun bosing →</div></div>`;
@@ -1195,6 +1243,18 @@ function viewLessons(){
 }
 ACT.openLesson = n => { S.lesson = +n.dataset.n; S.tab="bugun"; render(); };
 
+function boardHtml(l){
+  if (!l.board) return "";
+  return l.board.map(b=>`<div class="bd">
+    <div class="cap">${esc(b.t)}</div>
+    ${b.big?`<div class="big">${esc(b.big)}</div>`:""}
+    ${b.two?`<div class="two">${b.two.map(([t,d])=>
+      `<div><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("")}</div>`:""}
+    ${b.num?`<ol>${b.num.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:""}
+    ${b.list?`<ul>${b.list.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+    ${b.d?`<div class="sub">${esc(b.d)}</div>`:""}
+  </div>`).join("");
+}
 function viewLesson(n){
   const l = lessonOf(n);
   if (!l || !isOpen(n)) return `<div class="card"><h2>Hali ochilmagan</h2>
@@ -1205,8 +1265,8 @@ function viewLesson(n){
       <h3>O'rganasan</h3><p class="small">${esc(l.learn)}</p>
       <h3 style="margin-top:10px">Qayerda ishlatasan</h3><p class="small">${esc(l.where)}</p>
     </div>
-    <div class="card"><h2>Asosiy fikrlar</h2>
-      <ul class="items">${l.key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul></div>
+    ${l.board ? boardHtml(l) : `<div class="card"><h2>Asosiy fikrlar</h2>
+      <ul class="items">${l.key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul></div>`}
     ${tasksOf(l).map(t=>taskCard(l,t)).join("")}
     <div class="card flat"><p class="small">Ball ishdan chiqadi. Jonli o'yin — qo'shimcha, asosiy emas.</p></div>`;
 }
@@ -1302,6 +1362,22 @@ ACT.print = ()=>window.print();
 /* ---------------------------------------------------------------------
    8) JONLI O'YIN (o'quvchi tomoni)
    --------------------------------------------------------------------- */
+function screenKahoot(L){
+  const pin=String(L.pin||"").replace(/\s+/g,"");
+  const url=`https://kahoot.it/?pin=${encodeURIComponent(pin)}`;
+  h(`<div class="wrap">${hud()}
+    <div class="card accent" style="text-align:center">
+      <small class="small">KAHOOT</small>
+      <h2 style="margin:6px 0 2px">O'yin boshlandi</h2>
+      <p class="small">Tugmani bos — PIN o'zi qo'yiladi. Taxallus o'rniga
+        <b>familiya va ismingni</b> yoz, aks holda balling reytingga tushmaydi.</p>
+      <div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>
+      <a class="btn" href="${esc(url)}" target="_blank" rel="noopener"
+         style="display:block;text-decoration:none;text-align:center">Kahoot'ga kirish →</a>
+      <p class="small" style="margin-top:10px">Ochilmasa: <b>kahoot.it</b> ga kirib, shu PIN ni yoz.</p>
+    </div>
+  </div>${nav()}`);
+}
 function screenResult(L){
   const list=(L.podium||[]), mine=list.findIndex(x=>x.uid===S.sid);
   h(`<div class="wrap">${hud()}
@@ -1328,6 +1404,7 @@ function screenLive(){
   const mine = S.answered && S.answered.key===L.key ? S.answered : null;
   const left = Math.max(0, Math.round((L.t0 + L.dur*1000 - Date.now())/1000));
   const opts = L.mode==="hunt" ? L.s : L.a;
+  if (L.mode==="kahoot") return screenKahoot(L);
   if (L.mode==="result") return screenResult(L);
   const total = L.mode==="duel" && L.lesson ? (lessonOf(L.lesson)||{duel:[]}).duel.length : 0;
   const title = (L.mode==="duel" ? "Jonli duel" : L.mode==="hunt" ? "Yolg'on ovi" : "Ovoz berish")
@@ -1574,7 +1651,10 @@ function tDars(){
         <button class="btn ghost" data-a="setOpen" data-n="0">Hammasini yopish</button>
       </div></div>
     ${open?`<div class="card flat"><h3>Hozirgi dars: ${open}. ${esc(lessonOf(open).t)}</h3>
-      <ul class="items">${lessonOf(open).key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul></div>
+      ${lessonOf(open).board?`<p class="small">Pastdagi doska o'quvchilarda ham shu ko'rinishda turadi.</p>
+        <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button>`
+       :`<ul class="items">${lessonOf(open).key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul>`}</div>
+    ${boardHtml(lessonOf(open))}
     <div class="card"><h2>Vazifalar — ${open}-dars</h2>
       <p class="small">Vazifani o'zingiz yozasiz. O'quvchida shu dars ichida chiqadi.</p>
       ${S.tasks.filter(t=>+t.lesson===open).map(t=>`<div class="note" style="margin:8px 0">
@@ -1645,6 +1725,11 @@ function tJonli(){
     <div class="card"><h3>2. Yolg'on ovi</h3>
       <p class="small">Ekranda AI javobi — o'quvchilar to'qilgan jumlani topadi (+25).</p>
       <div class="chips">${HUNTS.map((x,i)=>`<button class="chip" data-a="startHunt" data-i="${i}">${esc(x.topic)}</button>`).join("")}</div></div>
+    <div class="card"><h3>Kahoot o'yinini boshlash</h3>
+      <p class="small">Kahoot'da o'yinni ishga tushiring va ekrandagi PIN ni shu yerga yozing —
+        u hamma o'quvchining telefoniga tugma bo'lib chiqadi.</p>
+      <label>O'yin PIN i</label><input id="kh-pin" inputmode="numeric" placeholder="1234567">
+      <button class="btn" style="margin-top:10px" data-a="khStart">O'quvchilarga yuborish</button></div>
     ${tKahoot()}
     <div class="card"><h3>3. Ovoz berish / bahs</h3>
       <p class="small">To'g'ri javobi yo'q savol. Hamma ovoz beradi (+5), keyin bahslashasiz.</p>
@@ -1749,6 +1834,12 @@ ACT.startHunt = async n=>{
   await DB.setLive(S.code,{mode:"hunt",lesson:openCount()||5,hi:x,topic:hn.topic,s:hn.s,c:null,w:null,
     t0:Date.now(),dur:60,reveal:false,key:`h${x}_${Date.now()}`});
 };
+ACT.khStart = async ()=>{
+  const pin=(document.getElementById("kh-pin").value||"").replace(/\D/g,"");
+  if(pin.length<4) return toast("PIN ni to'liq yozing",true);
+  await DB.setLive(S.code,{mode:"kahoot", pin, lesson:openCount()||0, key:"kh"+Date.now()});
+  toast("Havola yuborildi");
+};
 ACT.startPoll = async ()=>{
   const q=document.getElementById("p-q").value.trim();
   const a=document.getElementById("p-a").value.split(",").map(s=>s.trim()).filter(Boolean);
@@ -1756,6 +1847,18 @@ ACT.startPoll = async ()=>{
   await DB.setLive(S.code,{mode:"poll",q,a,c:-1,w:"",t0:Date.now(),dur:40,reveal:false,key:"p"+Date.now()});
 };
 function tLiveRunning(L){
+  if(L.mode==="kahoot"){
+    const pin=String(L.pin||"");
+    return `<div class="card accent" style="text-align:center">
+        <small class="small">KAHOOT O'YINI</small>
+        <h2>O'quvchilarda havola chiqdi</h2>
+        <div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>
+        <p class="small">O'yin tugagach hisobotni yuklab, pastdagi kartaga bering —
+          ballar reytingga o'zi tarqaladi.</p></div>
+      <div class="btn-row"><button class="btn ghost" data-a="stopLive">Yopish</button>
+        <button class="btn ghost" data-a="proj">Proyektor</button></div>
+      ${tKahoot()}`;
+  }
   if(L.mode==="result"){
     const list=L.podium||[];
     return `<div class="card accent" style="text-align:center"><small class="small">YAKUNIY NATIJA</small>
