@@ -207,6 +207,14 @@ service cloud.firestore {
         allow write: if signedIn() && me() == uid;
       }
     }
+
+    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun)
+    match /tugilgankun/{uid} {
+      allow read, write: if signedIn() && me() == uid;
+      match /items/{id} {
+        allow read, write: if signedIn() && me() == uid;
+      }
+    }
   }
 }
 ```
