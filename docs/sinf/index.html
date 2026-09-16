@@ -1655,28 +1655,9 @@ function tDars(){
         <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button>`
        :`<ul class="items">${lessonOf(open).key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul>`}</div>
     ${boardHtml(lessonOf(open))}
-    <div class="card"><h2>Vazifalar — ${open}-dars</h2>
-      <p class="small">Vazifani o'zingiz yozasiz. O'quvchida shu dars ichida chiqadi.</p>
-      ${S.tasks.filter(t=>+t.lesson===open).map(t=>`<div class="note" style="margin:8px 0">
-        <b>${esc(t.t)}</b> <span class="st">+${esc(t.pts)}</span>
-        <div class="small">${nl2br(t.d||"")}</div>
-        <button class="btn sm ghost" style="margin-top:6px" data-a="delTask" data-i="${esc(t.id)}">O'chirish</button>
-      </div>`).join("") || `<p class="small">Hali vazifa yo'q.</p>`}
-      <label>Sarlavha</label><input id="nt-t" placeholder="Masalan: Bugungi bahsda tanlagan tomoningni asosla">
-      <label>Tushuntirish (o'quvchi o'qiydi)</label><textarea id="nt-d" placeholder="Nima qilishi kerakligini o'z so'zingiz bilan yozing"></textarea>
-      <label>Ball</label><input id="nt-p" inputmode="numeric" value="20">
-      <button class="btn" style="margin-top:10px" data-a="addTask">Vazifa qo'shish</button></div>`:""}
+`:""}
     <button class="btn ghost" data-a="logout">Chiqish</button>`;
 }
-ACT.addTask = async ()=>{
-  const t=(document.getElementById("nt-t").value||"").trim();
-  const d=(document.getElementById("nt-d").value||"").trim();
-  const pts=parseInt(document.getElementById("nt-p").value,10)||20;
-  if(t.length<4) return toast("Sarlavha yozing",true);
-  await DB.addTask(S.code,{lesson:openCount(), t, d, pts, min:0});
-  toast("Vazifa qo'shildi");
-};
-ACT.delTask = async n=>{ if(confirm("Vazifa o'chirilsinmi?")) await DB.delTask(S.code,n.dataset.i); };
 ACT.setOpen = async n => { await DB.saveClass(S.code,{open:+n.dataset.n}); toast("Darslar yangilandi"); };
 
 function tTasdiq(){
