@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TekshiruvchiAI — Narx va sifatni solishtiruvchi</title>
+<style>
+    :root {
+        --primary: #2563eb;
+        --secondary: #1e40af;
+        --accent: #f59e0b;
+        --bg: #f1f5f9;
+        --text: #1e293b;
+        --white: #ffffff;
+        --good: #16a34a;
+        --good-bg: #f0fdf4;
+        --star: #f59e0b;
+        --muted: #64748b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: var(--white);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+
+    header { text-align: center; border-bottom: 4px solid var(--primary); padding-bottom: 20px; margin-bottom: 30px; }
+    h1 { color: var(--primary); margin: 0; font-size: 2.2rem; }
+    header p { color: var(--muted); margin: 10px 0 0; }
+
+    .badges { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .badge { background: var(--good-bg); color: var(--good); border: 1px solid #bbf7d0; padding: 6px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+
+    h2 { color: var(--secondary); border-left: 6px solid var(--primary); padding-left: 15px; margin: 35px 0 18px; }
+
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.92rem; }
+    input[type="text"], input[type="number"], textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        background: var(--white);
+    }
+    textarea { resize: vertical; min-height: 64px; }
+    input:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+    .product-field { margin-bottom: 24px; }
+
+    .stores-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .store-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 20px;
+        background: #f8fafc;
+    }
+    .store-card h3 { margin: 0 0 14px; color: var(--primary); font-size: 1.05rem; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+
+    .stars { display: flex; gap: 4px; font-size: 1.4rem; }
+    .stars button {
+        background: none; border: none; cursor: pointer; padding: 0;
+        color: #cbd5e1; line-height: 1;
+    }
+    .stars button.active { color: var(--star); }
+
+    .weight-row { display: flex; align-items: center; gap: 14px; margin: 20px 0 30px; }
+    .weight-row input[type="range"] { flex: 1; }
+    .weight-labels { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); }
+
+    .compare-btn {
+        display: block;
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .compare-btn:hover { opacity: 0.92; }
+
+    #results { margin-top: 40px; display: none; }
+
+    .results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 20px;
+    }
+
+    .result-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 22px;
+        background: #fff;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    .result-card.winner {
+        border-color: var(--accent);
+        box-shadow: 0 10px 20px -8px rgba(245,158,11,0.4);
+    }
+    .result-card h3 { margin: 0 0 4px; color: var(--text); }
+    .result-card .price { font-size: 1.5rem; font-weight: 700; color: var(--secondary); margin: 6px 0 14px; }
+
+    .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .tag { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+    .tag.cheap { background: #dbeafe; color: var(--secondary); }
+    .tag.quality { background: #fef3c7; color: #92400e; }
+    .tag.best { background: var(--accent); color: white; }
+
+    .score-row { margin-bottom: 10px; }
+    .score-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    .score-bar { height: 8px; border-radius: 6px; background: #e2e8f0; overflow: hidden; }
+    .score-bar > div { height: 100%; border-radius: 6px; background: var(--primary); }
+    .score-bar.quality > div { background: var(--accent); }
+
+    .verdict {
+        margin-top: 30px;
+        background: var(--good-bg);
+        border: 2px dashed #86efac;
+        border-radius: 15px;
+        padding: 24px;
+    }
+    .verdict h3 { margin-top: 0; color: #166534; }
+
+    .note-section {
+        margin-top: 30px;
+        background: #eef2ff;
+        border-radius: 12px;
+        padding: 18px 22px;
+        font-size: 0.88rem;
+        color: #3730a3;
+    }
+
+    .footer {
+        margin-top: 50px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--muted);
+        border-top: 1px solid #e2e8f0;
+        padding-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+        .container { padding: 22px; }
+        h1 { font-size: 1.7rem; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🔍 TekshiruvchiAI</h1>
+        <p>Bitta mahsulotni 3 xil do'kondan solishtiring — narxi va sifati avtomatik tekshiriladi.</p>
+        <div class="badges">
+            <span class="badge">💸 To'lovsiz</span>
+            <span class="badge">🔓 Ro'yxatdan o'tish shart emas</span>
+            <span class="badge">🤖 AI tahlili</span>
+        </div>
+    </header>
+
+    <h2>1. Mahsulot</h2>
+    <div class="product-field">
+        <label for="productName">Mahsulot nomi</label>
+        <input type="text" id="productName" placeholder="Masalan: Alkimyogar (kitob)">
+    </div>
+
+    <h2>2. Do'konlar</h2>
+    <div class="stores-grid" id="storesGrid"></div>
+
+    <div class="weight-row">
+        <span style="font-size:1.3rem;">⚖️</span>
+        <input type="range" id="weightSlider" min="0" max="100" value="50">
+    </div>
+    <div class="weight-labels" style="margin-top:-14px;">
+        <span>💰 Arzonlik muhim</span>
+        <span id="weightValue">Teng muvozanat</span>
+        <span>⭐ Sifat muhim</span>
+    </div>
+
+    <button class="compare-btn" onclick="compareStores()">Solishtirish</button>
+
+    <div id="results">
+        <h2>Natija</h2>
+        <div class="results-grid" id="resultsGrid"></div>
+        <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="note-section">
+        ℹ️ <strong>Qanday ishlaydi:</strong> har bir do'kon uchun kiritilgan narx, yulduzli baho va sharh matni asosida
+        TekshiruvchiAI narx va sifat balini hisoblaydi, so'ng eng arzon, eng sifatli va eng maqbul variantni ko'rsatadi.
+        Joriy versiya kiritilgan ma'lumotlarni tahlil qiladi (haqiqiy vaqtda do'konlardan avtomatik narx yig'ish hali ulanmagan) —
+        shuning uchun har bir do'kon uchun narx va sharhni o'zingiz kiriting.
+    </div>
+
+    <div class="footer">
+        <p>© 2026 TekshiruvchiAI | Oscar Ta'lim loyihasi doirasida</p>
+    </div>
+</div>
+
+<script>
+const STORE_COUNT = 3;
+const grid = document.getElementById('storesGrid');
+
+for (let i = 0; i < STORE_COUNT; i++) {
+    const card = document.createElement('div');
+    card.className = 'store-card';
+    card.innerHTML = `
+        <h3>Do'kon ${i + 1}</h3>
+        <div class="field">
+            <label for="name${i}">Do'kon nomi</label>
+            <input type="text" id="name${i}" placeholder="Masalan: Asaxiy">
+        </div>
+        <div class="field">
+            <label for="price${i}">Narxi (so'm)</label>
+            <input type="number" id="price${i}" min="0" placeholder="150000">
+        </div>
+        <div class="field">
+            <label>Sifat bahosi</label>
+            <div class="stars" data-store="${i}" data-value="0">
+                ${[1,2,3,4,5].map(n => `<button type="button" data-star="${n}" onclick="setStar(${i}, ${n})">★</button>`).join('')}
+            </div>
+        </div>
+        <div class="field">
+            <label for="review${i}">Sharh / tavsif (ixtiyoriy)</label>
+            <textarea id="review${i}" placeholder="Masalan: original nashr, tez yetkazib berdi, qadoqlash yaxshi"></textarea>
+        </div>
+    `;
+    grid.appendChild(card);
+}
+
+const starRatings = [0, 0, 0];
+
+function setStar(storeIndex, value) {
+    starRatings[storeIndex] = value;
+    const container = document.querySelector(`.stars[data-store="${storeIndex}"]`);
+    container.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', Number(btn.dataset.star) <= value);
+    });
+}
+
+const weightSlider = document.getElementById('weightSlider');
+const weightValue = document.getElementById('weightValue');
+weightSlider.addEventListener('input', () => {
+    const v = Number(weightSlider.value);
+    if (v < 40) weightValue.textContent = 'Arzonlik ustuvor';
+    else if (v > 60) weightValue.textContent = 'Sifat ustuvor';
+    else weightValue.textContent = 'Teng muvozanat';
+});
+
+const POSITIVE_WORDS = ['original', 'sifatli', 'sifat', 'yaxshi', "zo'r", 'tez', 'ishonchli', 'yangi', 'toza',
+    'qulay', 'mustahkam', 'aniq', 'professional', 'chiroyli', 'mukammal', "a'lo", 'tavsiya'];
+const NEGATIVE_WORDS = ['soxta', 'past', 'yomon', 'sekin', 'muammo', 'shikast', 'eski', "g'alati",
+    'nosoz', 'yaroqsiz', 'buzuq', 'aldash', 'firibgarlik', 'kech'];
+
+function textSentimentScore(text) {
+    if (!text) return null;
+    const lower = text.toLowerCase();
+    let pos = 0, neg = 0;
+    POSITIVE_WORDS.forEach(w => { if (lower.includes(w)) pos++; });
+    NEGATIVE_WORDS.forEach(w => { if (lower.includes(w)) neg++; });
+    if (pos === 0 && neg === 0) return null;
+    return Math.max(0, Math.min(100, 50 + (pos - neg) * 12));
+}
+
+function qualityScoreFor(rating, reviewText) {
+    const sentiment = textSentimentScore(reviewText);
+    const ratingScore = rating > 0 ? (rating / 5) * 100 : null;
+    if (ratingScore !== null && sentiment !== null) return ratingScore * 0.7 + sentiment * 0.3;
+    if (ratingScore !== null) return ratingScore;
+    if (sentiment !== null) return sentiment;
+    return 60;
+}
+
+function compareStores() {
+    const productName = document.getElementById('productName').value.trim() || 'Mahsulot';
+    const stores = [];
+
+    for (let i = 0; i < STORE_COUNT; i++) {
+        const name = document.getElementById(`name${i}`).value.trim();
+        const price = Number(document.getElementById(`price${i}`).value);
+        const review = document.getElementById(`review${i}`).value.trim();
+        if (!name || !price) continue;
+        stores.push({ name, price, rating: starRatings[i], review });
+    }
+
+    if (stores.length < 2) {
+        alert("Kamida 2 ta do'kon uchun nomi va narxini kiriting.");
+        return;
+    }
+
+    const minPrice = Math.min(...stores.map(s => s.price));
+    const maxPrice = Math.max(...stores.map(s => s.price));
+    const weight = Number(weightSlider.value) / 100;
+
+    stores.forEach(s => {
+        s.priceScore = maxPrice === minPrice ? 100 : ((maxPrice - s.price) / (maxPrice - minPrice)) * 100;
+        s.qualityScore = qualityScoreFor(s.rating, s.review);
+        s.overallScore = s.priceScore * (1 - weight) + s.qualityScore * weight;
+    });
+
+    const cheapest = stores.reduce((a, b) => (a.price < b.price ? a : b));
+    const mostQuality = stores.reduce((a, b) => (a.qualityScore > b.qualityScore ? a : b));
+    const bestOverall = stores.reduce((a, b) => (a.overallScore > b.overallScore ? a : b));
+
+    const resultsGrid = document.getElementById('resultsGrid');
+    resultsGrid.innerHTML = '';
+
+    stores.forEach(s => {
+        const isCheapest = s === cheapest;
+        const isQuality = s === mostQuality;
+        const isBest = s === bestOverall;
+
+        const card = document.createElement('div');
+        card.className = 'result-card' + (isBest ? ' winner' : '');
+        card.innerHTML = `
+            <h3>${escapeHtml(s.name)}</h3>
+            <div class="price">${s.price.toLocaleString('uz-UZ')} so'm</div>
+            <div class="tag-row">
+                ${isBest ? '<span class="tag best">🏆 TekshiruvchiAI tavsiyasi</span>' : ''}
+                ${isCheapest ? '<span class="tag cheap">💰 Eng arzon</span>' : ''}
+                ${isQuality ? '<span class="tag quality">⭐ Eng sifatli</span>' : ''}
+            </div>
+            <div class="score-row">
+                <div class="score-label"><span>Narx balli</span><span>${Math.round(s.priceScore)}/100</span></div>
+                <div class="score-bar"><div style="width:${s.priceScore}%"></div></div>
+            </div>
+            <div class="score-row">
+                <div class="score-label"><span>Sifat balli</span><span>${Math.round(s.qualityScore)}/100</span></div>
+                <div class="score-bar quality"><div style="width:${s.qualityScore}%"></div></div>
+            </div>
+        `;
+        resultsGrid.appendChild(card);
+    });
+
+    const verdict = document.getElementById('verdict');
+    const savedAmount = maxPrice - cheapest.price;
+    verdict.innerHTML = `
+        <h3>🏆 Xulosa: ${escapeHtml(productName)} uchun — ${escapeHtml(bestOverall.name)}</h3>
+        <p><strong>${escapeHtml(cheapest.name)}</strong> eng arzon narxni taklif qiladi (${cheapest.price.toLocaleString('uz-UZ')} so'm),
+        boshqalarga nisbatan ${savedAmount > 0 ? savedAmount.toLocaleString('uz-UZ') + " so'mgacha tejaydi." : 'barchasi bir xil narxda.'}</p>
+        <p><strong>${escapeHtml(mostQuality.name)}</strong> kiritilgan baho va sharhlarga ko'ra eng yuqori sifat ko'rsatkichiga ega
+        (${Math.round(mostQuality.qualityScore)}/100).</p>
+        <p>Sizning tanlagan muvozanatingizga ko'ra (narx vs sifat), TekshiruvchiAI <strong>${escapeHtml(bestOverall.name)}</strong>ni tavsiya qiladi.</p>
+    `;
+
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+</script>
+
+</body>
+</html>
