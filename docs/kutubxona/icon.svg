@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="44" fill="#171310"/>
+  <path d="M40 52c0-6 5-10 11-10h39c8 0 15 4 20 10 5-6 12-10 20-10h39c6 0 11 4 11 10v92c0 6-5 10-11 10h-39c-8 0-15 3-20 9-5-6-12-9-20-9H51c-6 0-11-4-11-10V52z" fill="#d9a441"/>
+  <path d="M110 62c5-6 12-10 20-10h39c6 0 11 4 11 10v92c0 6-5 10-11 10h-39c-8 0-15 3-20 9V62z" fill="#f0c77a"/>
+  <rect x="122" y="72" width="45" height="6" rx="3" fill="#171310" opacity=".55"/>
+  <rect x="122" y="88" width="45" height="6" rx="3" fill="#171310" opacity=".4"/>
+  <rect x="122" y="104" width="34" height="6" rx="3" fill="#171310" opacity=".4"/>
+</svg>

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#171310">
+<meta name="description" content="AI Kutubxona — PDF kitoblar, bir necha tilda, o'qish reytingi bilan.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>AI Kutubxona</title>
+<style>
+:root{
+  --bg:#171310; --bg2:#1e1811; --card:#241d15; --line:#3a2f22;
+  --ink:#f1e9dc; --muted:#b3a58f;
+  --accent:#d9a441; --accent2:#f0c77a; --accent-soft:rgba(217,164,65,.16);
+  --ok:#6cc59b; --err:#e2857f; --gold:#f0c77a;
+  --field:#f7f1e6; --field-ink:#241d15; --field-line:#d9cbb0; --field-muted:#8a7a5e;
+  --r:16px; --shadow:0 10px 30px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.55;
+  padding:0 0 90px; min-height:100vh; overscroll-behavior-y:contain;
+}
+.wrap{max-width:640px;margin:0 auto;padding:16px 14px}
+h1,h2,h3{margin:0;letter-spacing:-.02em;line-height:1.25}
+h1{font-size:1.35rem} h2{font-size:1.05rem} h3{font-size:.95rem}
+p{margin:6px 0}
+small,.small{font-size:.82rem;color:var(--muted)}
+.hide{display:none!important}
+a{color:var(--accent2)}
+
+/* ---- sarlavha ---- */
+.brand{display:flex;align-items:center;gap:11px;padding:14px 0 6px}
+.mark{width:42px;height:42px;border-radius:13px;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--accent),#a9752a);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 8px 20px -8px rgba(217,164,65,.55)}
+.brand .eyebrow{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2)}
+
+/* ---- kartalar ---- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;margin-bottom:12px;box-shadow:var(--shadow);animation:up .35s both}
+.card.flat{box-shadow:none;background:var(--bg2)}
+.card.accent{border-color:var(--accent);background:linear-gradient(180deg,var(--accent-soft),transparent)}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---- tugmalar ---- */
+button{font:inherit}
+.btn{display:block;width:100%;padding:14px 16px;border:0;border-radius:13px;
+  background:var(--accent);color:#221806;font-weight:700;font-size:1rem;cursor:pointer;
+  transition:transform .12s,filter .12s}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:600}
+.btn.sm{padding:9px 13px;font-size:.86rem;width:auto;display:inline-block;border-radius:10px}
+.btn.danger{background:transparent;border:1px solid var(--err);color:#f3c1bd}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-row .btn{width:auto;flex:1 1 130px}
+
+/* ---- inputlar ---- */
+input,textarea,select{
+  width:100%;padding:13px 14px;border-radius:12px;
+  border:1px solid var(--field-line);background:var(--field);color:var(--field-ink);
+  font:inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+input::placeholder,textarea::placeholder{color:var(--field-muted)}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,164,65,.28)}
+textarea{resize:vertical;min-height:76px}
+label{display:block;font-size:.87rem;font-weight:600;color:var(--ink);margin:12px 0 5px}
+label .hint{display:block;font-weight:400;font-size:.79rem;color:var(--muted);margin-top:2px}
+.step h2{display:flex;align-items:center;gap:10px}
+.num{width:26px;height:26px;flex:0 0 auto;border-radius:50%;background:var(--accent);color:#221806;
+  font-size:.85rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+/* ---- chiplar ---- */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);
+  color:var(--muted);font-size:.82rem;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#221806;font-weight:700}
+
+/* ---- top panel ---- */
+.hud{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:12px 14px;margin-bottom:12px;position:sticky;top:8px;z-index:20;
+  backdrop-filter:blur(8px)}
+.hud .ico{width:40px;height:40px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;background:var(--accent-soft);border:1px solid var(--accent);font-size:19px}
+.hud .who{flex:1;min-width:0}
+.hud .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- kitob katalogi ---- */
+.books{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.book{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px;
+  cursor:pointer;transition:transform .12s,border-color .15s;animation:up .3s both}
+.book:active{transform:scale(.97)}
+.book .cover{width:100%;aspect-ratio:3/4;border-radius:9px;background:linear-gradient(135deg,var(--accent-soft),var(--bg2));
+  display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:8px;overflow:hidden}
+.book .cover img{width:100%;height:100%;object-fit:cover}
+.book .t{font-size:.87rem;font-weight:700;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.book .a{font-size:.76rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .langs{margin-top:6px;font-size:.7rem;color:var(--accent2)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:.9rem}
+
+/* ---- kitobim / borrow kartasi ---- */
+.borrow{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px;margin-bottom:10px;animation:up .3s both}
+.borrow .row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.borrow .row h3{flex:1}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700}
+.badge.ok{background:rgba(108,197,155,.16);color:var(--ok)}
+.badge.warn{background:rgba(240,199,122,.16);color:var(--gold)}
+.badge.err{background:rgba(226,133,127,.16);color:var(--err)}
+
+/* ---- reyting ---- */
+.rank{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;
+  background:var(--bg2);margin-bottom:7px;animation:up .3s both}
+.rank .n{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:800;background:var(--card);color:var(--muted);flex:0 0 auto}
+.rank.me{background:var(--accent-soft);border:1px solid var(--accent)}
+.rank.top1 .n{background:var(--gold);color:#3a2a06}
+.rank.top2 .n{background:#c3cad6;color:#252b36}
+.rank.top3 .n{background:#d8b5a8;color:#3a2a26}
+.rank .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .sc{font-weight:800;color:var(--gold);white-space:nowrap}
+.rank .st{font-size:.75rem;color:var(--muted)}
+
+/* ---- pastki menyu ---- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;
+  background:rgba(23,19,16,.94);border-top:1px solid var(--line);backdrop-filter:blur(12px);
+  padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;background:none;border:0;color:var(--muted);padding:11px 4px 13px;
+  font-size:.68rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.nav button i{font-style:normal;font-size:19px;line-height:1}
+.nav button.on{color:var(--accent2)}
+
+/* ---- modal ---- */
+#modal{position:fixed;inset:0;z-index:80;background:rgba(10,8,5,.7);display:flex;
+  align-items:flex-end;justify-content:center}
+.modalBox{background:var(--card);border:1px solid var(--line);border-top-left-radius:20px;
+  border-top-right-radius:20px;max-width:640px;width:100%;max-height:88vh;overflow:auto;
+  padding:18px;animation:slideUp .25s ease both}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.modalClose{position:sticky;top:0;text-align:right;margin:-4px -4px 4px}
+.modalClose button{width:auto;padding:6px 10px;background:var(--bg2);border-radius:10px;border:1px solid var(--line);color:var(--muted)}
+
+/* ---- toast ---- */
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
+  background:#0f0c08;color:#fff;padding:11px 20px;border-radius:999px;font-size:.9rem;font-weight:600;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;
+  z-index:90;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.checkline{display:flex;align-items:center;gap:8px;margin-top:10px}
+.checkline input[type=checkbox]{width:18px;height:18px;flex:0 0 auto;accent-color:var(--accent)}
+.checkline label{margin:0;font-weight:600;font-size:.86rem}
+.editionRow{display:flex;gap:8px;align-items:center;margin-top:4px}
+.editionRow input[type=url]{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap" id="scrBoot"><p class="small">Yuklanmoqda...</p></div>
+
+<!-- ============ RO'YXATDAN O'TISH ============ -->
+<div class="wrap hide" id="scrReg">
+  <div class="brand">
+    <div class="mark">📚</div>
+    <div>
+      <div class="eyebrow">Oscar Ta'lim</div>
+      <h1>AI Kutubxona</h1>
+    </div>
+  </div>
+  <p class="small">Davom etishdan oldin ro'yxatdan o'ting — bu bir marta, 1 daqiqa.</p>
+
+  <div class="card step">
+    <h2><span class="num">1</span> Ma'lumotlaringiz</h2>
+    <label>To'liq ism<input id="regName" type="text" placeholder="Ism Familiya" autocomplete="name"></label>
+    <label>Telefon raqam<input id="regPhone" type="tel" placeholder="+998 90 123 45 67" autocomplete="tel"></label>
+  </div>
+
+  <div class="card step">
+    <h2><span class="num">2</span> Tasdiqlash</h2>
+    <p class="small" id="regBioHint">Qurilmangiz Face ID yoki barmoq izini qo'llasa, hisobingizni
+      shu qurilmaga bog'laymiz — boshqa hech kim sizning nomingizdan kira olmaydi.</p>
+    <button class="btn" id="regBtn" onclick="royxatTugat()">✅ Ro'yxatdan o'tish</button>
+    <p class="small" id="regErr" style="color:var(--err)"></p>
+  </div>
+</div>
+
+<!-- ============ ASOSIY DASTUR ============ -->
+<div class="hide" id="scrMain">
+<div class="wrap">
+  <div class="hud">
+    <div class="ico">📖</div>
+    <div class="who">
+      <b id="hudName">—</b>
+      <span class="small" id="hudStat">0 ta kitob o'qilgan</span>
+    </div>
+  </div>
+
+  <!-- ---- Katalog ---- -->
+  <div id="tabKatalog">
+    <h1 style="margin-bottom:10px">📚 Katalog</h1>
+    <input id="katSearch" type="text" placeholder="Kitob yoki muallif qidirish..." oninput="katalogChiz()">
+    <div class="chips" id="katTillar"></div>
+    <div class="books" id="katGrid"></div>
+  </div>
+
+  <!-- ---- Kitoblarim ---- -->
+  <div id="tabKitoblarim" class="hide">
+    <h1 style="margin-bottom:10px">📖 Kitoblarim</h1>
+    <div id="olganlarim"></div>
+    <h3 style="margin:18px 0 8px;color:var(--muted)">O'qib tugatilganlar</h3>
+    <div id="tugatganlarim"></div>
+  </div>
+
+  <!-- ---- Reyting ---- -->
+  <div id="tabReyting" class="hide">
+    <h1 style="margin-bottom:4px">🏆 Reyting</h1>
+    <p class="small" style="margin-bottom:12px">Eng kam muddatda o'qib tugatgan — 1-o'rinda.
+      Reyting faqat kamida bitta kitobni tugatgan o'quvchilar orasida hisoblanadi.</p>
+    <div id="reytingList"></div>
+  </div>
+
+  <!-- ---- Profil ---- -->
+  <div id="tabProfil" class="hide">
+    <h1 style="margin-bottom:10px">👤 Profil</h1>
+    <div class="card">
+      <h3 id="profName">—</h3>
+      <p class="small" id="profPhone"></p>
+      <p class="small" id="profTg"></p>
+    </div>
+    <div class="card">
+      <h3>📊 Statistika</h3>
+      <p class="small" id="profStats"></p>
+    </div>
+    <div class="card" id="editorCard">
+      <h3>🛠 Kutubxonachi</h3>
+      <p class="small" id="editorHint">Kitob qo'shish/o'chirish huquqi uchun bosh kalitni kiriting.</p>
+      <div id="editorLoginBox">
+        <input id="editorKey" type="password" placeholder="Bosh kalit">
+        <button class="btn ghost" onclick="kutubxonachiKirish()">Kirish</button>
+      </div>
+      <button class="btn hide" id="editorPanelBtn" onclick="kitobQoshishOch()">➕ Kitob qo'shish</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="nav hide" id="nav">
+  <button onclick="tabOch('katalog')" id="navKatalog"><i>📚</i>Katalog</button>
+  <button onclick="tabOch('kitoblarim')" id="navKitoblarim"><i>📖</i>Kitoblarim</button>
+  <button onclick="tabOch('reyting')" id="navReyting"><i>🏆</i>Reyting</button>
+  <button onclick="tabOch('profil')" id="navProfil"><i>👤</i>Profil</button>
+</div>
+
+<div id="modal" class="hide"><div class="modalBox" id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   AI KUTUBXONA
+   Bitta fayl: HTML + CSS + JS. Backend: Firebase (yoki mahalliy rejim).
+   Xuddi shu repodagi docs/sinf/ bilan bitta Firebase loyihasini bo'lishadi
+   (turli top-level to'plamlar: libBooks, libUsers, libBorrows, libReminders).
+   ===================================================================== */
+
+/* 1) FIREBASE — sinf bilan bitta loyiha. Bo'sh (null) qoldirilsa mahalliy rejim. */
+const FB_CONFIG = {
+  "apiKey": "AIzaSyDJh1D_SwuZA4TtavoooeTSIPaRvzE4QzY",
+  "authDomain": "oscartalim-sinf-80da0.firebaseapp.com",
+  "projectId": "oscartalim-sinf-80da0",
+  "storageBucket": "oscartalim-sinf-80da0.firebasestorage.app",
+  "messagingSenderId": "451154934941",
+  "appId": "1:451154934941:web:28c540f7d10edff5736874"
+};
+
+const PERIOD_DAYS = 14;   // bitta kitobni o'qish uchun standart muddat
+const KUN = 86400000;
+
+const TILLAR = {
+  uz: "🇺🇿 O'zbek", ru: "🇷🇺 Rus", en: "🇬🇧 Ingliz",
+  de: "🇩🇪 Nemis", zh: "🇨🇳 Xitoy", ar: "🇸🇦 Arab",
+};
+
+/* ---------------------------------------------------------------------
+   2) PLATFORMA: Telegram Mini App / oddiy brauzer
+   --------------------------------------------------------------------- */
+const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined)
+  ? window.Telegram.WebApp : null;
+const IN_TG = !!(TG && TG.initDataUnsafe && TG.initDataUnsafe.user);
+if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor("#171310"); } catch(e){} }
+
+const Bio = {
+  kind: "yo'q",
+  async init(){
+    if (TG && TG.BiometricManager && TG.BiometricManager.init){
+      await new Promise(r=>{ try{ TG.BiometricManager.init(r); }catch(e){ r(); } });
+      if (TG.BiometricManager.isBiometricAvailable){
+        this.kind = TG.BiometricManager.biometricType === "face" ? "Face ID" : "Barmoq izi";
+        return "tg";
+      }
+    }
+    if (window.PublicKeyCredential && location.protocol === "https:"){
+      try{
+        if (await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()){
+          this.kind = "Face ID / barmoq izi"; return "webauthn";
+        }
+      }catch(e){}
+    }
+    return null;
+  },
+  async verify(reason){
+    const t = await this.init();
+    if (t === "tg"){
+      const bm = TG.BiometricManager;
+      if (!bm.isAccessGranted){
+        const ok = await new Promise(r=>bm.requestAccess({reason}, r));
+        if (!ok) return false;
+      }
+      return await new Promise(r=>bm.authenticate({reason}, ok=>r(!!ok)));
+    }
+    if (t === "webauthn") return await webauthn();
+    return true; /* qurilma qo'llamasa — to'sib qo'ymaymiz */
+  }
+};
+
+async function webauthn(){
+  const KEY = "kutubxona:wa";
+  const saved = localStorage.getItem(KEY);
+  const rnd = n => { const a=new Uint8Array(n); crypto.getRandomValues(a); return a; };
+  try{
+    if (!saved){
+      const c = await navigator.credentials.create({publicKey:{
+        challenge: rnd(32),
+        rp:{name:"AI Kutubxona"},
+        user:{id: rnd(16), name:(S.name||"o'quvchi"), displayName:(S.name||"o'quvchi")},
+        pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+        authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"preferred"},
+        timeout:60000
+      }});
+      if(!c) return false;
+      localStorage.setItem(KEY, btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
+      return true;
+    }
+    const id = Uint8Array.from(atob(saved), ch=>ch.charCodeAt(0));
+    const a = await navigator.credentials.get({publicKey:{
+      challenge: rnd(32), allowCredentials:[{type:"public-key",id}],
+      userVerification:"required", timeout:60000
+    }});
+    return !!a;
+  }catch(e){ return false; }
+}
+
+/* ---------------------------------------------------------------------
+   3) SAQLASH QATLAMI — bulut (Firebase) yoki mahalliy
+   --------------------------------------------------------------------- */
+let DB = null;
+
+const LocalDB = {
+  mode:"local",
+  bc: ("BroadcastChannel" in window) ? new BroadcastChannel("kutubxona") : null,
+  subs: [],
+  k(p){ return "kutubxona:" + p; },
+  get(p,d){ try{ return JSON.parse(localStorage.getItem(this.k(p))) ?? d; }catch(e){ return d; } },
+  set(p,v){ localStorage.setItem(this.k(p), JSON.stringify(v)); this.ping(p); },
+  ping(p){ if(this.bc) this.bc.postMessage(p); this.subs.forEach(f=>f(p)); },
+  start(){ if(this.bc) this.bc.onmessage = e => this.subs.forEach(f=>f(e.data));
+           window.addEventListener("storage", e => { if(e.key&&e.key.startsWith("kutubxona:")) this.subs.forEach(f=>f(e.key.slice(11))); }); },
+  sub(path, run){ const f = p => { if (p===path) run(); };
+    this.subs.push(f); run(); return ()=>{ this.subs = this.subs.filter(x=>x!==f); }; },
+
+  async auth(){ let u=localStorage.getItem("kutubxona:uid");
+    if(!u){ u = IN_TG ? ("tg"+TG.initDataUnsafe.user.id) : ("u"+Math.random().toString(36).slice(2,10));
+      localStorage.setItem("kutubxona:uid",u); } return u; },
+
+  async getUser(uid){ return this.get(`u/${uid}`, null); },
+  watchUser(uid, cb){ return this.sub(`u/${uid}`, ()=>cb(this.get(`u/${uid}`,null))); },
+  async createUser(uid, d){
+    this.set(`u/${uid}`, {uid, finishedCount:0, totalDays:0, bestDays:null, createdAt:Date.now(), ...d});
+    const idx = this.get("userIndex", []);
+    if (!idx.includes(uid)) { idx.push(uid); this.set("userIndex", idx); }
+  },
+  async setContact(uid, d){ this.set(`u/${uid}/contact`, d); },
+  async getContact(uid){ return this.get(`u/${uid}/contact`, null); },
+
+  watchBooks(cb){ return this.sub("books", ()=>cb(Object.values(this.get("books",{})))); },
+  async addBook(b){ const id="bk"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    const all=this.get("books",{}); all[id]={...b,id,createdAt:Date.now()}; this.set("books",all); return id; },
+  async deleteBook(id){ const all=this.get("books",{}); delete all[id]; this.set("books",all); },
+
+  watchMyBorrows(uid, cb){ return this.sub(`b/${uid}`, ()=>cb(Object.values(this.get(`b/${uid}`,{}))
+    .sort((a,b)=>(b.startAtMs||0)-(a.startAtMs||0)))); },
+  async startBorrow(uid, book, lang){
+    const id = "br"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    const startAtMs = Date.now(), dueAtMs = startAtMs + PERIOD_DAYS*KUN;
+    const all = this.get(`b/${uid}`,{});
+    all[id] = {id, uid, bookId:book.id, bookTitle:book.title, lang, startAtMs, dueAtMs, status:"active"};
+    this.set(`b/${uid}`, all);
+    const rem = this.get("reminders",{});
+    rem[id] = {id, uid, bookTitle:book.title, dueAtMs, chatId: IN_TG?TG.initDataUnsafe.user.id:null, reminded:false};
+    this.set("reminders", rem);
+    return id;
+  },
+  async finishBorrow(uid, borrow){
+    const days = Math.max(1, Math.round((Date.now()-borrow.startAtMs)/KUN));
+    const all = this.get(`b/${uid}`,{});
+    if (all[borrow.id]) all[borrow.id] = {...all[borrow.id], status:"finished", returnedAt:Date.now(), days};
+    this.set(`b/${uid}`, all);
+    const u = this.get(`u/${uid}`,{finishedCount:0,totalDays:0,bestDays:null});
+    u.finishedCount = (u.finishedCount||0)+1; u.totalDays = (u.totalDays||0)+days;
+    u.bestDays = u.bestDays!=null ? Math.min(u.bestDays,days) : days;
+    this.set(`u/${uid}`, u);
+    const rem = this.get("reminders",{}); delete rem[borrow.id]; this.set("reminders", rem);
+    return days;
+  },
+
+  watchLeaderboard(cb){
+    const run = () => {
+      const idx = this.get("userIndex", []);
+      cb(idx.map(uid => this.get(`u/${uid}`, null)).filter(Boolean));
+    };
+    const f = p => { if (p==="userIndex" || (p && p.startsWith("u/"))) run(); };
+    this.subs.push(f); run();
+    return ()=>{ this.subs = this.subs.filter(x=>x!==f); };
+  },
+
+  async tryEditorLogin(key){
+    const adm = localStorage.getItem("kutubxona:admin");
+    if (adm==null) { localStorage.setItem("kutubxona:admin", key); localStorage.setItem("kutubxona:isEditor","1"); return true; }
+    if (adm===key) { localStorage.setItem("kutubxona:isEditor","1"); return true; }
+    return false;
+  },
+  isEditor(){ return localStorage.getItem("kutubxona:isEditor")==="1"; },
+};
+
+async function makeCloudDB(cfg){
+  const A = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+  const U = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+  const F = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+  const app = A.initializeApp(cfg);
+  const auth = U.getAuth(app);
+  const fs = F.getFirestore(app);
+  const {doc,setDoc,getDoc,updateDoc,deleteDoc,onSnapshot,collection,query,where,increment,serverTimestamp} = F;
+  const D = (...p)=>doc(fs,...p), C = (...p)=>collection(fs,...p);
+  let editor = false;
+  return {
+    mode:"cloud", fs, F,
+    async auth(){ if(!auth.currentUser) await U.signInAnonymously(auth); return auth.currentUser.uid; },
+
+    async getUser(uid){ const s=await getDoc(D("libUsers",uid)); return s.exists()?s.data():null; },
+    watchUser(uid,cb){ return onSnapshot(D("libUsers",uid), s=>cb(s.exists()?s.data():null)); },
+    async createUser(uid,d){ await setDoc(D("libUsers",uid), {uid, finishedCount:0, totalDays:0, bestDays:null, createdAt:serverTimestamp(), ...d}); },
+    async setContact(uid,d){ await setDoc(D("libUsers",uid,"private","contact"), d, {merge:true}); },
+    async getContact(uid){ const s=await getDoc(D("libUsers",uid,"private","contact")); return s.exists()?s.data():null; },
+
+    watchBooks(cb){ return onSnapshot(C("libBooks"), q=>cb(q.docs.map(d=>({...d.data(),id:d.id})))); },
+    async addBook(b){ const id="bk"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+      await setDoc(D("libBooks",id), {...b, id, createdAt:serverTimestamp()}); return id; },
+    async deleteBook(id){ await deleteDoc(D("libBooks",id)); },
+
+    watchMyBorrows(uid,cb){
+      return onSnapshot(query(C("libBorrows"), where("uid","==",uid)), q=>{
+        const list = q.docs.map(d=>({...d.data(),id:d.id}));
+        list.sort((a,b)=>(b.startAtMs||0)-(a.startAtMs||0));
+        cb(list);
+      });
+    },
+    async startBorrow(uid, book, lang){
+      const id = "br"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+      const startAtMs = Date.now(), dueAtMs = startAtMs + PERIOD_DAYS*KUN;
+      await setDoc(D("libBorrows",id), {id, uid, bookId:book.id, bookTitle:book.title, lang,
+        startAt:serverTimestamp(), startAtMs, dueAtMs, status:"active"});
+      await setDoc(D("libReminders",id), {id, uid, bookTitle:book.title, dueAtMs,
+        chatId: IN_TG?TG.initDataUnsafe.user.id:null, reminded:false});
+      return id;
+    },
+    async finishBorrow(uid, borrow){
+      const days = Math.max(1, Math.round((Date.now()-borrow.startAtMs)/KUN));
+      await updateDoc(D("libBorrows",borrow.id), {status:"finished", returnedAt:serverTimestamp(), days});
+      const uRef = D("libUsers",uid);
+      const cur = (await getDoc(uRef)).data() || {};
+      const best = cur.bestDays!=null ? Math.min(cur.bestDays, days) : days;
+      await setDoc(uRef, {finishedCount:increment(1), totalDays:increment(days), bestDays:best}, {merge:true});
+      await deleteDoc(D("libReminders",borrow.id)).catch(()=>{});
+      return days;
+    },
+
+    watchLeaderboard(cb){ return onSnapshot(C("libUsers"), q=>cb(q.docs.map(d=>d.data()))); },
+
+    async tryEditorLogin(key){
+      const me = auth.currentUser.uid;
+      try { await setDoc(D("libConfig","admin"), {key:String(key), by:me, at:serverTimestamp()}); } catch(e){}
+      try { await setDoc(D("libConfig","editors",me), {key:String(key), at:serverTimestamp()}); editor=true; return true; }
+      catch(e){ return false; }
+    },
+    isEditor(){ return editor; },
+  };
+}
+
+/* ---------------------------------------------------------------------
+   4) HOLAT
+   --------------------------------------------------------------------- */
+const S = {
+  uid:"", name:"", registered:false,
+  books:[], myBorrows:[], leaderboard:[],
+  tab:"katalog", katFilter:"barchasi",
+};
+const $ = id => document.getElementById(id);
+
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._timer); t._timer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+function kunQoldi(dueAtMs){ return Math.ceil((dueAtMs - Date.now())/KUN); }
+
+/* ---------------------------------------------------------------------
+   5) RO'YXATDAN O'TISH
+   --------------------------------------------------------------------- */
+async function royxatTugat(){
+  const name = $("regName").value.trim();
+  const phone = $("regPhone").value.trim();
+  $("regErr").textContent = "";
+  if (!name){ $("regErr").textContent = "Ismingizni kiriting."; return; }
+  if (!phone || phone.replace(/\D/g,"").length < 9){ $("regErr").textContent = "Telefon raqamni to'g'ri kiriting."; return; }
+
+  $("regBtn").disabled = true;
+  $("regBtn").textContent = "Tekshirilmoqda...";
+  const ok = await Bio.verify("Kutubxonaga ro'yxatdan o'tish");
+  if (!ok){
+    $("regBtn").disabled = false; $("regBtn").textContent = "✅ Ro'yxatdan o'tish";
+    $("regErr").textContent = "Tasdiqlash amalga oshmadi. Qayta urining.";
+    return;
+  }
+
+  await DB.createUser(S.uid, {name});
+  await DB.setContact(S.uid, {
+    phone,
+    telegramId: IN_TG ? TG.initDataUnsafe.user.id : null,
+    telegramUsername: IN_TG ? (TG.initDataUnsafe.user.username||"") : "",
+  });
+  localStorage.setItem("kutubxona:registered", "1");
+  localStorage.setItem("kutubxona:name", name);
+  S.name = name; S.registered = true;
+  boshlaAsosiy();
+  toast("Xush kelibsiz, " + name + "! 📚");
+}
+
+/* ---------------------------------------------------------------------
+   6) EKRAN / TAB BOSHQARUVI
+   --------------------------------------------------------------------- */
+function ekranKorsat(id){
+  ["scrBoot","scrReg","scrMain"].forEach(s => $(s).classList.toggle("hide", s!==id));
+  $("nav").classList.toggle("hide", id!=="scrMain");
+}
+function tabOch(t){
+  S.tab = t;
+  ["katalog","kitoblarim","reyting","profil"].forEach(x=>{
+    $("tab"+x[0].toUpperCase()+x.slice(1)).classList.toggle("hide", x!==t);
+    $("nav"+x[0].toUpperCase()+x.slice(1)).classList.toggle("on", x===t);
+  });
+  if (t==="katalog") katalogChiz();
+  if (t==="kitoblarim") kitoblarimChiz();
+  if (t==="reyting") reytingChiz();
+  if (t==="profil") profilChiz();
+  window.scrollTo(0,0);
+}
+
+/* ---------------------------------------------------------------------
+   7) KATALOG
+   --------------------------------------------------------------------- */
+function katalogChiz(){
+  const chipsEl = $("katTillar");
+  if (!chipsEl.dataset.built){
+    chipsEl.dataset.built = "1";
+    const barchasi = {kod:"barchasi", nom:"🔎 Barchasi"};
+    [barchasi, ...Object.entries(TILLAR).map(([kod,nom])=>({kod,nom}))].forEach(t=>{
+      const b = document.createElement("button");
+      b.className = "chip" + (t.kod===S.katFilter ? " on" : "");
+      b.textContent = t.nom;
+      b.onclick = () => { S.katFilter = t.kod; katalogChiz(); };
+      chipsEl.appendChild(b);
+    });
+  }
+  [...chipsEl.children].forEach((b,i)=>{
+    const kod = i===0 ? "barchasi" : Object.keys(TILLAR)[i-1];
+    b.classList.toggle("on", kod===S.katFilter);
+  });
+
+  const q = ($("katSearch").value||"").trim().toLowerCase();
+  const list = S.books.filter(b=>{
+    if (S.katFilter!=="barchasi" && !(b.editions && b.editions[S.katFilter])) return false;
+    if (q && !((b.title||"").toLowerCase().includes(q) || (b.author||"").toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  const grid = $("katGrid");
+  if (!list.length){ grid.innerHTML = `<div class="empty">Hozircha kitob yo'q.<br>Kutubxonachi bo'lsangiz, Profil bo'limidan qo'shing.</div>`; return; }
+  grid.innerHTML = list.map(b=>{
+    const langs = Object.keys(b.editions||{}).map(k=>TILLAR[k]?.slice(0,2)||k).join(" ");
+    const cover = b.cover ? `<img src="${escapeHtml(b.cover)}" alt="">` : "📕";
+    return `<div class="book" onclick="kitobOch('${b.id}')">
+      <div class="cover">${cover}</div>
+      <div class="t">${escapeHtml(b.title||"")}</div>
+      <div class="a">${escapeHtml(b.author||"")}</div>
+      <div class="langs">${langs}</div>
+    </div>`;
+  }).join("");
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function kitobOch(id){
+  const book = S.books.find(b=>b.id===id);
+  if (!book) return;
+  const active = S.myBorrows.find(x=>x.bookId===id && x.status==="active");
+  const editions = Object.entries(book.editions||{});
+  const langOpts = editions.map(([k,e])=>`<option value="${k}">${TILLAR[k]||k}</option>`).join("");
+
+  let actionHtml;
+  if (active){
+    const qoldi = kunQoldi(active.dueAtMs);
+    actionHtml = `
+      <p class="small">Siz bu kitobni ${TILLAR[active.lang]||active.lang} tilida o'qiyapsiz.</p>
+      ${qoldi >= 0 ? `<p class="badge warn">⏳ ${qoldi} kun qoldi</p>` : `<p class="badge err">⏰ Muddati o'tgan</p>`}
+      <div class="btn-row" style="margin-top:10px">
+        <a class="btn sm" href="${escapeHtml(book.editions[active.lang].url)}" target="_blank" rel="noopener">📖 O'qish</a>
+        <button class="btn sm ghost" onclick="tugatdim('${active.id}')">✅ Tugatdim</button>
+      </div>`;
+  } else {
+    actionHtml = `
+      <label>Til<select id="pickLang">${langOpts}</select></label>
+      <button class="btn" onclick="oqishniBoshla('${book.id}')">📖 O'qishni boshlash (${PERIOD_DAYS} kun)</button>`;
+  }
+
+  $("modalBox").innerHTML = `
+    <div class="modalClose"><button onclick="modalYop()">✕ Yopish</button></div>
+    <h2>${escapeHtml(book.title||"")}</h2>
+    <p class="small">${escapeHtml(book.author||"")}${book.category ? " · "+escapeHtml(book.category) : ""}</p>
+    ${book.desc ? `<p style="margin-top:10px">${escapeHtml(book.desc)}</p>` : ""}
+    <div class="card flat" style="margin-top:14px">${actionHtml}</div>
+  `;
+  $("modal").classList.remove("hide");
+}
+function modalYop(){ $("modal").classList.add("hide"); $("modalBox").innerHTML=""; }
+
+async function oqishniBoshla(bookId){
+  const book = S.books.find(b=>b.id===bookId);
+  const lang = $("pickLang").value;
+  await DB.startBorrow(S.uid, book, lang);
+  modalYop();
+  toast("Boshlandi! " + PERIOD_DAYS + " kun ichida o'qib tugating 📖");
+  tabOch("kitoblarim");
+}
+async function tugatdim(borrowId){
+  const b = S.myBorrows.find(x=>x.id===borrowId);
+  if (!b) return;
+  const days = await DB.finishBorrow(S.uid, b);
+  modalYop();
+  toast(`Tabriklaymiz! ${days} kunda tugatdingiz 🎉`);
+  tabOch("reyting");
+}
+
+/* ---------------------------------------------------------------------
+   8) KITOBLARIM
+   --------------------------------------------------------------------- */
+function kitoblarimChiz(){
+  const active = S.myBorrows.filter(b=>b.status==="active");
+  const finished = S.myBorrows.filter(b=>b.status==="finished");
+
+  $("olganlarim").innerHTML = active.length ? active.map(b=>{
+    const qoldi = kunQoldi(b.dueAtMs);
+    const badge = qoldi >= 3 ? `<span class="badge ok">⏳ ${qoldi} kun</span>`
+      : qoldi >= 0 ? `<span class="badge warn">⏳ ${qoldi} kun</span>`
+      : `<span class="badge err">⏰ Muddati o'tgan</span>`;
+    const book = S.books.find(x=>x.id===b.bookId);
+    const url = book && book.editions && book.editions[b.lang] ? book.editions[b.lang].url : "#";
+    return `<div class="borrow">
+      <div class="row"><h3>${escapeHtml(b.bookTitle)}</h3>${badge}</div>
+      <p class="small">${TILLAR[b.lang]||b.lang}</p>
+      <div class="btn-row">
+        <a class="btn sm" href="${escapeHtml(url)}" target="_blank" rel="noopener">📖 O'qish</a>
+        <button class="btn sm ghost" onclick="tugatdim('${b.id}')">✅ Tugatdim</button>
+      </div>
+    </div>`;
+  }).join("") : `<div class="empty">Hozircha o'qiyotgan kitobingiz yo'q — Katalogdan tanlang.</div>`;
+
+  $("tugatganlarim").innerHTML = finished.length ? finished.map(b=>
+    `<div class="borrow"><div class="row"><h3>${escapeHtml(b.bookTitle)}</h3>
+      <span class="badge ok">${b.days} kunda</span></div></div>`
+  ).join("") : `<p class="small">Hali yo'q.</p>`;
+}
+
+/* ---------------------------------------------------------------------
+   9) REYTING
+   --------------------------------------------------------------------- */
+function reytingChiz(){
+  const ranked = S.leaderboard
+    .filter(u=>u.finishedCount>0)
+    .map(u=>({...u, avg: u.totalDays / u.finishedCount}))
+    .sort((a,b)=>a.avg-b.avg);
+
+  if (!ranked.length){ $("reytingList").innerHTML = `<div class="empty">Hali hech kim kitob tugatmagan. Birinchi bo'ling!</div>`; return; }
+
+  $("reytingList").innerHTML = ranked.map((u,i)=>{
+    const n = i+1;
+    const cls = "rank" + (u.uid===S.uid?" me":"") + (n<=3?` top${n}`:"");
+    return `<div class="${cls}">
+      <div class="n">${n}</div>
+      <div class="nm">${escapeHtml(u.name||"?")}${u.uid===S.uid?" (siz)":""}
+        <div class="st">${u.finishedCount} ta kitob · eng tezi ${u.bestDays ?? "—"} kun</div></div>
+      <div class="sc">${u.avg.toFixed(1)} kun</div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------------------------------------------------------------------
+   10) PROFIL / KUTUBXONACHI
+   --------------------------------------------------------------------- */
+async function profilChiz(){
+  $("profName").textContent = S.name || "—";
+  const contact = await DB.getContact(S.uid);
+  $("profPhone").textContent = contact && contact.phone ? "📞 " + contact.phone : "";
+  $("profTg").textContent = IN_TG
+    ? "✅ Telegram orqali ulangan — eslatmalar shu yerga keladi."
+    : "⚠️ Telegram ulanmagan — eslatma olish uchun ilovani bot orqali oching.";
+
+  const u = await DB.getUser(S.uid);
+  const finishedCount = u?.finishedCount || 0;
+  const avg = finishedCount ? (u.totalDays/finishedCount).toFixed(1) : "—";
+  $("profStats").textContent =
+    `Tugatilgan kitoblar: ${finishedCount} · O'rtacha muddat: ${avg} kun · Eng tezi: ${u?.bestDays ?? "—"} kun`;
+
+  const isEditor = DB.isEditor();
+  $("editorLoginBox").classList.toggle("hide", isEditor);
+  $("editorPanelBtn").classList.toggle("hide", !isEditor);
+  $("editorHint").classList.toggle("hide", isEditor);
+}
+
+async function kutubxonachiKirish(){
+  const key = $("editorKey").value.trim();
+  if (!key){ toast("Kalitni kiriting"); return; }
+  const ok = await DB.tryEditorLogin(key);
+  if (!ok){ toast("Kalit noto'g'ri"); return; }
+  toast("Kutubxonachi sifatida kirdingiz ✅");
+  profilChiz();
+}
+
+function kitobQoshishOch(){
+  const langInputs = Object.entries(TILLAR).map(([kod,nom])=>`
+    <div class="checkline"><input type="checkbox" id="ed_${kod}_on"><label for="ed_${kod}_on">${nom}</label></div>
+    <div class="editionRow"><input type="url" id="ed_${kod}_url" placeholder="PDF havolasi (https://...)"></div>
+  `).join("");
+
+  $("modalBox").innerHTML = `
+    <div class="modalClose"><button onclick="modalYop()">✕ Yopish</button></div>
+    <h2>➕ Kitob qo'shish</h2>
+    <label>Nomi<input id="nkTitle" type="text"></label>
+    <label>Muallif<input id="nkAuthor" type="text"></label>
+    <label>Kategoriya<input id="nkCategory" type="text" placeholder="Roman, ilmiy, bolalar..."></label>
+    <label>Muqova (rasm havolasi, ixtiyoriy)<input id="nkCover" type="url"></label>
+    <label>Tavsif<textarea id="nkDesc"></textarea></label>
+    <label>Tillar va PDF havolalari</label>
+    ${langInputs}
+    <button class="btn" style="margin-top:16px" onclick="kitobSaqla()">Saqlash</button>
+    <h3 style="margin-top:22px">Mavjud kitoblar</h3>
+    <div id="adminBookList">${S.books.map(b=>`
+      <div class="borrow"><div class="row"><h3>${escapeHtml(b.title)}</h3>
+        <button class="btn sm danger" onclick="kitobOchir('${b.id}')">🗑</button></div></div>
+    `).join("") || `<p class="small">Hozircha yo'q.</p>`}</div>
+  `;
+  $("modal").classList.remove("hide");
+}
+
+async function kitobSaqla(){
+  const title = $("nkTitle").value.trim();
+  const author = $("nkAuthor").value.trim();
+  if (!title || !author){ toast("Nomi va muallifni kiriting"); return; }
+  const editions = {};
+  Object.keys(TILLAR).forEach(kod=>{
+    const on = $(`ed_${kod}_on`).checked;
+    const url = $(`ed_${kod}_url`).value.trim();
+    if (on && url) editions[kod] = {url};
+  });
+  if (!Object.keys(editions).length){ toast("Kamida bitta til uchun havola qo'shing"); return; }
+  await DB.addBook({
+    title, author,
+    category: $("nkCategory").value.trim(),
+    cover: $("nkCover").value.trim(),
+    desc: $("nkDesc").value.trim(),
+    editions,
+  });
+  modalYop();
+  toast("Kitob qo'shildi ✅");
+}
+async function kitobOchir(id){
+  if (!confirm("Bu kitob o'chirilsinmi?")) return;
+  await DB.deleteBook(id);
+  kitobQoshishOch();
+}
+
+/* ---------------------------------------------------------------------
+   11) ISHGA TUSHIRISH
+   --------------------------------------------------------------------- */
+async function boshlaAsosiy(){
+  ekranKorsat("scrMain");
+  $("hudName").textContent = S.name;
+  DB.watchBooks(list => { S.books = list; if (S.tab==="katalog") katalogChiz(); });
+  DB.watchMyBorrows(S.uid, list => {
+    S.myBorrows = list;
+    const finished = list.filter(b=>b.status==="finished").length;
+    $("hudStat").textContent = finished + " ta kitob o'qilgan";
+    if (S.tab==="kitoblarim") kitoblarimChiz();
+  });
+  DB.watchLeaderboard(list => { S.leaderboard = list; if (S.tab==="reyting") reytingChiz(); });
+  tabOch("katalog");
+}
+
+async function init(){
+  try { DB = FB_CONFIG ? await makeCloudDB(FB_CONFIG) : LocalDB; }
+  catch(e){ console.warn("Bulutga ulanmadi, mahalliy rejimga o'tildi:", e); DB = LocalDB; }
+  if (DB.mode === "local") DB.start();
+
+  S.uid = await DB.auth();
+  S.registered = localStorage.getItem("kutubxona:registered") === "1";
+  S.name = localStorage.getItem("kutubxona:name") || "";
+
+  if (IN_TG && !S.name && TG.initDataUnsafe.user.first_name){
+    $("regName").value = [TG.initDataUnsafe.user.first_name, TG.initDataUnsafe.user.last_name||""].join(" ").trim();
+  }
+
+  if (S.registered){
+    const u = await DB.getUser(S.uid);
+    if (u){ S.name = u.name || S.name; boshlaAsosiy(); return; }
+  }
+  ekranKorsat("scrReg");
+}
+
+init();
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>

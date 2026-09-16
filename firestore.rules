@@ -77,5 +77,66 @@ service cloud.firestore {
         allow write: if signedIn() && me() == uid;
       }
     }
+
+    /* =====================================================================
+       AI KUTUBXONA — docs/kutubxona/
+       Bosh kalit bilan "kutubxonachi" (admin) huquqi olinadi — xuddi
+       sinf'dagi bosh kalit patterni: libConfig/admin'ni mijoz o'qiy olmaydi,
+       faqat solishtirish uchun ishlatiladi.
+       ===================================================================== */
+    function isLibEditor(){ return signedIn() &&
+      exists(/databases/$(db)/documents/libConfig/editors/$(me())); }
+
+    match /libConfig/admin {
+      allow read, update, delete: if false;
+      allow create: if signedIn();
+    }
+    match /libConfig/editors/{uid} {
+      allow read:   if signedIn() && me() == uid;
+      allow create: if signedIn() && me() == uid &&
+        request.resource.data.key == get(/databases/$(db)/documents/libConfig/admin).data.key;
+      allow update, delete: if false;
+    }
+
+    // Kitoblar katalogi — hammaga ochiq, faqat kutubxonachi yozadi.
+    match /libBooks/{id} {
+      allow read:  if true;
+      allow write: if isLibEditor();
+    }
+
+    // Reyting uchun ochiq: ism va statistika. Telefon/Telegram — private/contact'da.
+    match /libUsers/{uid} {
+      allow read:   if true;
+      allow create: if signedIn() && me() == uid &&
+        request.resource.data.uid == uid &&
+        request.resource.data.finishedCount == 0 &&
+        request.resource.data.totalDays == 0;
+      allow update: if signedIn() && me() == uid && request.resource.data.uid == resource.data.uid;
+
+      match /private/contact {
+        allow read, write: if signedIn() && me() == uid;
+      }
+    }
+
+    // Har kimning o'z kitob olish tarixi — faqat egasi o'qiydi/yozadi.
+    match /libBorrows/{id} {
+      allow read:   if signedIn() && resource.data.uid == me();
+      allow create: if signedIn() && request.resource.data.uid == me();
+      allow update: if signedIn() && resource.data.uid == me();
+      allow delete: if false;
+    }
+
+    // Eslatma navbati: ochiq o'qiladi (bot Telegram ID va muddatni ko'rishi kerak —
+    // shuning uchun bu yerda ism yoki telefon YO'Q, faqat kitob nomi va muddat).
+    // Har kim faqat 'reminded' maydonini true qilishi mumkin — bot shuni ishlatadi.
+    match /libReminders/{id} {
+      allow read:   if true;
+      allow create: if signedIn() && request.resource.data.uid == me() &&
+        request.resource.data.reminded == false;
+      allow update: if (signedIn() && resource.data.uid == me())
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reminded','remindedAt'])
+            && request.resource.data.reminded == true);
+      allow delete: if signedIn() && resource.data.uid == me();
+    }
   }
 }

@@ -1,0 +1,73 @@
+# AI Kutubxona — Telegram bot GitHub Actions'da ishlaydi (server kerak emas).
+#
+# Har 15 daqiqada: kelgan xabarlarga javob beradi VA muddati o'tgan kitoblar
+# uchun eslatma yuboradi (bir xil ish ichida — alohida cron shart emas).
+# "Run workflow" tugmasi orqali: bir martalik sozlash yoki e'lon yuborish.
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   LIBRARY_BOT_TOKEN   — BotFather bergan token (sinf botidan alohida)
+#   variable LIBRARY_ADMIN_IDS   — kutubxonachi Telegram ID si (ixtiyoriy, /eslatma uchun)
+#
+# Eslatma: GitHub jadval bo'yicha ishga tushirishni faqat asosiy (main)
+# shoxchadagi workflow uchun qiladi va 60 kun harakat bo'lmasa o'chiradi.
+
+name: Kutubxona bot
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      rejim:
+        description: "Nima qilsin"
+        type: choice
+        options: [xabarlar, sozlash, eslatma]
+        default: xabarlar
+      matn:
+        description: "E'lon matni (faqat 'eslatma' rejimi uchun)"
+        required: false
+        default: ""
+
+concurrency:
+  group: kutubxona-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BOT_TOKEN: ${{ secrets.LIBRARY_BOT_TOKEN }}
+      APP_URL: https://jakhongirulugmurodov.github.io/OscarTalim/kutubxona/
+      ADMIN_IDS: ${{ vars.LIBRARY_ADMIN_IDS }}
+      STATE_FILE: ${{ github.workspace }}/state/kutubxona_users.json
+      REJIM: ${{ github.event.inputs.rejim || 'xabarlar' }}
+      MATN: ${{ github.event.inputs.matn }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Foydalanuvchilar ro'yxatini tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: lib-state-${{ github.run_id }}
+          restore-keys: lib-state-
+
+      - name: Bot
+        run: |
+          mkdir -p state
+          case "$REJIM" in
+            sozlash) python3 bot/kutubxona_bot.py --setup ;;
+            eslatma) python3 bot/kutubxona_bot.py --broadcast "$MATN" ;;
+            *)       python3 bot/kutubxona_bot.py --once --tekshir ;;
+          esac
+
+      - name: Foydalanuvchilar ro'yxatini saqlash
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: lib-state-${{ github.run_id }}
