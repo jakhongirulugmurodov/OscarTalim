@@ -1,3 +1,5 @@
-# Qo'shimcha kutubxona kerak emas — faqat standart kutubxona ishlatilgan.
+# Qo'shimcha kutubxona kerak emas — faqat standart kutubxona ishlatilgan
+# (TestCorrect ham Gemini REST API'ga to'g'ridan-to'g'ri, urllib orqali
+# murojaat qiladi — bot/gemini.py'ga qarang).
 # Kelajakda initData'ni server tomonda tekshirish uchun:
 # firebase-admin>=6.5
