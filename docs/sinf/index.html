@@ -660,6 +660,8 @@ const LocalDB = {
     const st=this.get(`c/${c}/st`,{}); delete st[sid]; this.set(`c/${c}/st`,st);
     const pr=this.get(`c/${c}/pr`,{}); delete pr[sid]; this.set(`c/${c}/pr`,pr);
     localStorage.removeItem(this.k(`c/${c}/e/${sid}`)); },
+  async hasImport(c,id){ return !!this.get(`c/${c}/imp`,{})[id]; },
+  async addImport(c,id,meta){ const all=this.get(`c/${c}/imp`,{}); all[id]={...meta,id}; this.set(`c/${c}/imp`,all); },
   async addTask(c,t){ const all=this.get(`c/${c}/tk`,{}); const id="t"+Date.now().toString(36);
     all[id]={...t,id}; this.set(`c/${c}/tk`,all); },
   async delTask(c,id){ const all=this.get(`c/${c}/tk`,{}); delete all[id]; this.set(`c/${c}/tk`,all); },
@@ -723,6 +725,8 @@ async function makeCloudDB(cfg){
     async delStudent(c,sid){
       await F.deleteDoc(D("classes",c,"students",sid)).catch(()=>{});
       await F.deleteDoc(D("classes",c,"profiles",sid)).catch(()=>{}); },
+    async hasImport(c,id){ return (await getDoc(D("classes",c,"imports",id))).exists(); },
+    async addImport(c,id,meta){ await setDoc(D("classes",c,"imports",id), {...meta, ts:serverTimestamp()}); },
     async addTask(c,t){ await setDoc(D("classes",c,"tasks","t"+Date.now().toString(36)), {...t, ts:serverTimestamp()}); },
     async delTask(c,id){ await F.deleteDoc(D("classes",c,"tasks",id)); },
     watchTasks(c,cb){ return onSnapshot(C("classes",c,"tasks"), q=>cb(q.docs.map(d=>({...d.data(),id:d.id})))); },
@@ -762,7 +766,7 @@ const S = {
   uid:"",            /* qurilma (Firebase anonim kirish) */
   sid:"",            /* hisob — o'quvchining doimiy identifikatori */
   cls:null, me:null, students:[], entries:[], live:null,
-  lesson:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[],
+  lesson:null, imp:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[],
   profiles:{}, myProfile:null, tasks:[], pendingSid:"", quiz:{scores:{},names:{}}
 };
 const app = document.getElementById("app");
@@ -1396,6 +1400,80 @@ async function maybeAwardLive(){
 }
 
 /* ---------------------------------------------------------------------
+   8b) KAHOOT HISOBOTINI O'QISH
+   Kahoot o'yin natijalarini API orqali bermaydi. Shuning uchun muallim
+   o'yin oxirida hisobotni yuklab oladi (xlsx/csv) yoki jadvalni nusxalaydi,
+   va shu yerga beradi — ballar o'quvchilarga tarqatiladi.
+   --------------------------------------------------------------------- */
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if (window.XLSX) return res();
+    const t=document.createElement("script"); t.src=src; t.onload=res; t.onerror=rej;
+    document.head.appendChild(t);
+  });
+}
+const NUM = v => { const n=parseFloat(String(v).replace(/[^0-9.,-]/g,"").replace(/\s/g,"").replace(",",".")); return isFinite(n)?n:NaN; };
+const isName  = h => /player|nickname|name|ism|o'?yinchi|taxallus/i.test(String(h));
+const isScore = h => /score|point|ball|total/i.test(String(h));
+
+/* Har qanday jadvaldan (massivlar massivi) ism+ball juftlarini ajratadi */
+function rowsFromTable(rows){
+  let head=-1, ni=-1, si=-1;
+  for (let r=0; r<Math.min(rows.length,40); r++){
+    const row=rows[r]||[];
+    const n=row.findIndex(isName), sc=row.findIndex(isScore);
+    if (n>=0 && sc>=0){ head=r; ni=n; si=sc; break; }
+  }
+  const out=[];
+  if (head>=0){
+    for (let r=head+1; r<rows.length; r++){
+      const nm=String((rows[r]||[])[ni]??"").trim(), v=NUM((rows[r]||[])[si]);
+      if (nm && isFinite(v)) out.push({name:nm, score:v});
+    }
+    return out;
+  }
+  /* sarlavha topilmasa: "ism ... raqam" ko'rinishidagi qatorlar */
+  rows.forEach(row=>{
+    const cells=(row||[]).map(x=>String(x??"").trim()).filter(Boolean);
+    if (cells.length<2) return;
+    const v=NUM(cells[cells.length-1]);
+    const nm=cells.slice(0,-1).join(" ").trim();
+    if (nm && isFinite(v) && !isName(nm)) out.push({name:nm, score:v});
+  });
+  return out;
+}
+function parsePasted(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  /* Ajratgichni bir marta aniqlaymiz. Aks holda ism ichidagi qo'sh bo'shliq
+     ("Bekzod  Testov") ism va familiyani ikkiga bo'lib yuboradi. */
+  const has = d => lines.filter(l=>l.includes(d)).length >= Math.max(1, lines.length/2);
+  const re = has("\t") ? /\t/
+           : has(";")  ? /;/
+           : has(",")  ? /,(?=(?:[^"]*"[^"]*")*[^"]*$)/
+           : /\s{2,}/;
+  const rows=lines.map(l=>l.split(re).map(c=>c.trim().replace(/^"|"$/g,"")));
+  return rowsFromTable(rows);
+}
+async function parseFile(file){
+  const name=(file.name||"").toLowerCase();
+  if (name.endsWith(".csv") || name.endsWith(".txt")) return parsePasted(await file.text());
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+  const wb = XLSX.read(await file.arrayBuffer(), {type:"array"});
+  /* avval "Final Scores" varag'i, topilmasa — hammasidan eng ko'p qator bergani */
+  const order = [...wb.SheetNames].sort((a,b)=>
+    (/final|score|ball/i.test(b)?1:0) - (/final|score|ball/i.test(a)?1:0));
+  let best=[];
+  for (const sn of order){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, blankrows:false});
+    const got = rowsFromTable(rows);
+    if (got.length > best.length) best = got;
+    if (best.length && /final|score|ball/i.test(sn)) break;
+  }
+  return best;
+}
+const hashOf = str => { let h=5381; for(let i=0;i<str.length;i++) h=((h*33)^str.charCodeAt(i))>>>0; return "k"+h.toString(36); };
+
+/* ---------------------------------------------------------------------
    9) MUALLIM PANELI
    --------------------------------------------------------------------- */
 function screenTeacherGate(){
@@ -1567,11 +1645,97 @@ function tJonli(){
     <div class="card"><h3>2. Yolg'on ovi</h3>
       <p class="small">Ekranda AI javobi — o'quvchilar to'qilgan jumlani topadi (+25).</p>
       <div class="chips">${HUNTS.map((x,i)=>`<button class="chip" data-a="startHunt" data-i="${i}">${esc(x.topic)}</button>`).join("")}</div></div>
+    ${tKahoot()}
     <div class="card"><h3>3. Ovoz berish / bahs</h3>
       <p class="small">To'g'ri javobi yo'q savol. Hamma ovoz beradi (+5), keyin bahslashasiz.</p>
       <input id="p-q" placeholder="Savol"><input id="p-a" placeholder="Variantlar, vergul bilan">
       <button class="btn ghost" style="margin-top:8px" data-a="startPoll">Ovoz berishni boshlash</button></div>`;
 }
+function tKahoot(){
+  const I=S.imp;
+  if (!I) return `<div class="card"><h3>Kahoot natijasini qo'shish</h3>
+    <p class="small">Kahoot'da o'ynagach: <b>Reports</b> → o'yinni oching → <b>Download</b> →
+      jadval faylini shu yerga bering. Yoki natijalar jadvalini nusxalab, pastga qo'ying.</p>
+    <label>Hisobot fayli <span class="hint">.xlsx yoki .csv</span></label>
+    <input type="file" id="kh-file" accept=".xlsx,.xls,.csv,.txt">
+    <label>Yoki jadvalni shu yerga qo'ying
+      <span class="hint">Har qatorda: ism va ball</span></label>
+    <textarea id="kh-paste" placeholder="Karimov Jasur    8420&#10;Yusupova Malika  7310"></textarea>
+    <button class="btn" style="margin-top:10px" data-a="khRead">O'qish</button></div>`;
+
+  const ok=S.students.filter(x=>x.ok);
+  const top=Math.max(1,...I.rows.map(r=>r.score));
+  const pts=r=>{ const sid=I.map[r.name]; if(!sid) return 0;
+    return Math.max(5, Math.round(I.max * r.score / top)); };
+  const matched=I.rows.filter(r=>I.map[r.name]).length;
+  return `<div class="card accent"><h3>Kahoot natijasi — ${I.rows.length} o'yinchi</h3>
+      <p class="small">Taqqoslandi: <b>${matched}</b> ta. Topilmaganini qo'lda tanlang yoki bo'sh qoldiring.</p>
+      <label>Eng yaxshi natijaga beriladigan ball
+        <span class="hint">Qolganlari shunga nisbatan hisoblanadi, eng kami 5</span></label>
+      <input id="kh-max" inputmode="numeric" value="${I.max}">
+      <label>Qaysi darsga yozilsin</label>
+      <select id="kh-lesson">${COURSE.lessons.map(l=>
+        `<option value="${l.n}" ${l.n===I.lesson?"selected":""}>${l.n}-dars</option>`).join("")}</select>
+    </div>
+    ${I.rows.map((r,i)=>`<div class="rank">
+      <div class="nm">${esc(r.name)}<div class="st">Kahoot: ${r.score}</div></div>
+      <select data-a="khMap" data-i="${i}" style="width:auto;max-width:46%;padding:8px 10px">
+        <option value="">— tashlab ketish —</option>
+        ${ok.map(x=>`<option value="${esc(x.uid)}" ${I.map[r.name]===x.uid?"selected":""}>${esc(x.name)}</option>`).join("")}
+      </select>
+      <div class="sc">${pts(r)||"—"}</div></div>`).join("")}
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn" data-a="khApply">Ballarni qo'shish</button>
+      <button class="btn ghost" data-a="khCancel">Bekor</button></div>`;
+}
+ACT.khRead = async (btn)=>{
+  const f=document.getElementById("kh-file").files[0];
+  const txt=(document.getElementById("kh-paste").value||"").trim();
+  btn.disabled=true; btn.textContent="O'qilmoqda...";
+  let rows=[], src="";
+  try {
+    if (f){ rows=await parseFile(f); src=f.name+":"+f.size; }
+    else if (txt){ rows=parsePasted(txt); src=txt.slice(0,200); }
+  } catch(e){ rows=[]; }
+  btn.disabled=false; btn.textContent="O'qish";
+  if (!rows.length) return toast("Ism va ball ustunlari topilmadi",true);
+  /* ismlarni o'quvchilarga taqqoslash */
+  const map={}; const ok=S.students.filter(x=>x.ok);
+  rows.forEach(r=>{
+    const n=normName(r.name);
+    const hit = ok.find(x=>normName(x.name)===n)
+             || ok.find(x=>normName(x.name).startsWith(n) || n.startsWith(normName(x.name)))
+             || ok.find(x=>normName(x.name).split(" ").some(w=>w && n.split(" ").includes(w)));
+    if (hit) map[r.name]=hit.uid;
+  });
+  S.imp={rows:rows.sort((a,b)=>b.score-a.score), map, max:LIVE_CAP, lesson:openCount()||1, src};
+  render();
+};
+ACT.khMap = n=>{ const r=S.imp.rows[+n.dataset.i]; if(r){ if(n.value) S.imp.map[r.name]=n.value; else delete S.imp.map[r.name]; render(); } };
+ACT.khCancel = ()=>{ S.imp=null; render(); };
+ACT.khApply = async (btn)=>{
+  const I=S.imp; if(!I) return;
+  I.max = Math.max(1, parseInt(document.getElementById("kh-max").value,10)||LIVE_CAP);
+  I.lesson = +document.getElementById("kh-lesson").value || 1;
+  const id = hashOf(I.src + "|" + I.lesson);
+  if (await DB.hasImport(S.code, id)) { if(!confirm("Bu natija allaqachon qo'shilgan. Yana qo'shilsinmi?")) return; }
+  const top=Math.max(1,...I.rows.map(r=>r.score));
+  const list=I.rows.filter(r=>I.map[r.name]);
+  if (!list.length) return toast("Birorta o'quvchi tanlanmagan",true);
+  btn.disabled=true; btn.textContent="Qo'shilmoqda...";
+  let n=0;
+  for (const r of list){
+    const sid=I.map[r.name];
+    const p=Math.max(5, Math.round(I.max * r.score / top));
+    const place=I.rows.indexOf(r)+1;
+    await DB.addEntry(S.code, sid, {lesson:I.lesson, task:"kahoot", pts:p, ts:Date.now(),
+      text:`Kahoot: ${place}-o'rin · ${r.score} ball (${esc(r.name)})`});
+    await DB.bumpPoints(S.code, sid, p, weekNo());
+    n++;
+  }
+  await DB.addImport(S.code, id, {lesson:I.lesson, players:list.length, max:I.max});
+  S.imp=null; toast(`${n} ta o'quvchiga ball qo'shildi`); render();
+};
 ACT.qL = n=>{ S.qLesson=+n.dataset.n; render(); };
 ACT.startDuel = async n=>{
   const ln=+n.dataset.n, i=+n.dataset.i, q=lessonOf(ln).duel[i];

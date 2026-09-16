@@ -198,8 +198,9 @@ service cloud.firestore {
            || stu(c,sid).authUid == me()));
       }
 
-      // Muallim yozadigan vazifalar
-      match /tasks/{t} { allow read: if signedIn(); allow write: if isTeacher(c); }
+      // Muallim yozadigan vazifalar va Kahoot import yozuvlari
+      match /tasks/{t}   { allow read: if signedIn(); allow write: if isTeacher(c); }
+      match /imports/{i} { allow read: if signedIn(); allow write: if isTeacher(c); }
       match /live/{d}  { allow read: if signedIn(); allow write: if isTeacher(c); }
       match /answers/{key}/votes/{uid} {
         allow read:  if signedIn();
