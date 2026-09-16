@@ -1364,17 +1364,17 @@ ACT.print = ()=>window.print();
    --------------------------------------------------------------------- */
 function screenKahoot(L){
   const pin=String(L.pin||"").replace(/\s+/g,"");
-  const url=`https://kahoot.it/?pin=${encodeURIComponent(pin)}`;
+  const url=L.url ? String(L.url) : `https://kahoot.it/?pin=${encodeURIComponent(pin)}`;
   h(`<div class="wrap">${hud()}
     <div class="card accent" style="text-align:center">
       <small class="small">KAHOOT</small>
       <h2 style="margin:6px 0 2px">O'yin boshlandi</h2>
       <p class="small">Tugmani bos — PIN o'zi qo'yiladi. Taxallus o'rniga
         <b>familiya va ismingni</b> yoz, aks holda balling reytingga tushmaydi.</p>
-      <div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>
+      ${pin?`<div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>`:""}
       <a class="btn" href="${esc(url)}" target="_blank" rel="noopener"
          style="display:block;text-decoration:none;text-align:center">Kahoot'ga kirish →</a>
-      <p class="small" style="margin-top:10px">Ochilmasa: <b>kahoot.it</b> ga kirib, shu PIN ni yoz.</p>
+      ${pin?`<p class="small" style="margin-top:10px">Ochilmasa: <b>kahoot.it</b> ga kirib, shu PIN ni yoz.</p>`:""}
     </div>
   </div>${nav()}`);
 }
@@ -1709,7 +1709,9 @@ function tJonli(){
     <div class="card"><h3>Kahoot o'yinini boshlash</h3>
       <p class="small">Kahoot'da o'yinni ishga tushiring va ekrandagi PIN ni shu yerga yozing —
         u hamma o'quvchining telefoniga tugma bo'lib chiqadi.</p>
-      <label>O'yin PIN i</label><input id="kh-pin" inputmode="numeric" placeholder="1234567">
+      <label>O'yin PIN i yoki havola
+        <span class="hint">Jonli o'yinda — PIN. Topshiriq (Assign) qilsangiz — kahoot.it/challenge/... havolasi</span></label>
+      <input id="kh-pin" placeholder="1234567 yoki https://kahoot.it/challenge/...">
       <button class="btn" style="margin-top:10px" data-a="khStart">O'quvchilarga yuborish</button></div>
     ${tKahoot()}
     <div class="card"><h3>3. Ovoz berish / bahs</h3>
@@ -1816,9 +1818,17 @@ ACT.startHunt = async n=>{
     t0:Date.now(),dur:60,reveal:false,key:`h${x}_${Date.now()}`});
 };
 ACT.khStart = async ()=>{
-  const pin=(document.getElementById("kh-pin").value||"").replace(/\D/g,"");
-  if(pin.length<4) return toast("PIN ni to'liq yozing",true);
-  await DB.setLive(S.code,{mode:"kahoot", pin, lesson:openCount()||0, key:"kh"+Date.now()});
+  const raw=(document.getElementById("kh-pin").value||"").trim();
+  if(!raw) return toast("PIN yoki havolani yozing",true);
+  const isUrl = /^https?:\/\//i.test(raw);
+  if (isUrl){
+    if(!/kahoot\.it|kahoot\.com/i.test(raw)) return toast("Kahoot havolasi emas",true);
+    await DB.setLive(S.code,{mode:"kahoot", url:raw, lesson:openCount()||0, key:"kh"+Date.now()});
+  } else {
+    const pin=raw.replace(/\D/g,"");
+    if(pin.length<4) return toast("PIN ni to'liq yozing",true);
+    await DB.setLive(S.code,{mode:"kahoot", pin, lesson:openCount()||0, key:"kh"+Date.now()});
+  }
   toast("Havola yuborildi");
 };
 ACT.startPoll = async ()=>{
@@ -1833,7 +1843,8 @@ function tLiveRunning(L){
     return `<div class="card accent" style="text-align:center">
         <small class="small">KAHOOT O'YINI</small>
         <h2>O'quvchilarda havola chiqdi</h2>
-        <div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>
+        ${pin?`<div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>`
+             :`<p class="mono small" style="word-break:break-all">${esc(L.url||"")}</p>`}
         <p class="small">O'yin tugagach hisobotni yuklab, pastdagi kartaga bering —
           ballar reytingga o'zi tarqaladi.</p></div>
       <div class="btn-row"><button class="btn ghost" data-a="stopLive">Yopish</button>
