@@ -1,0 +1,15 @@
+{
+  "name": "So'z Kartochkalari — AI",
+  "short_name": "Kartochka",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f4fb",
+  "theme_color": "#4338ca",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

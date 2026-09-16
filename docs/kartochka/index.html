@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#4338ca">
+<meta name="description" content="So'z yodlash kartochkalari — matn yoki rasm yuboring, AI tarjima va talaffuzini tayyorlab, kartochka va testga aylantiradi. Mutlaqo bepul.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>So'z Kartochkalari — AI</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-dark: #3730a3;
+    --primary-soft: #eef2ff;
+    --accent: #ec4899;
+    --bg: #f5f4fb;
+    --text: #1e1b3a;
+    --muted: #6b7280;
+    --white: #ffffff;
+    --border: #e4e2f2;
+    --ok: #16a34a;
+    --ok-soft: #f0fdf4;
+    --err: #dc2626;
+    --err-soft: #fef2f2;
+    --gold: #f59e0b;
+    --radius: 18px;
+    --shadow: 0 1px 2px rgba(30,27,58,.05), 0 10px 26px -10px rgba(30,27,58,.16);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #ece9fb 0%, var(--bg) 260px);
+    color: var(--text); margin: 0; padding: 16px 14px 36px; line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container { max-width: 560px; margin: 0 auto; }
+  .ekran { display: none; }
+  .ekran.aktiv { display: block; animation: fadeUp .35s both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  header.brand { text-align: center; margin: 6px 0 18px; }
+  .logo {
+    width: 60px; height: 60px; margin: 0 auto 10px; border-radius: 18px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 10px 22px -8px rgba(79,70,229,.5);
+  }
+  header.brand h1 {
+    font-size: 1.35rem; margin: 0; letter-spacing: -.02em;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header.brand p { color: var(--muted); margin: 3px 0 0; font-size: .88rem; }
+
+  .mini-header { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; }
+  .mini-header h1 { font-size: 1.1rem; margin: 0; }
+  .back {
+    width: 38px; height: 38px; border-radius: 12px; border: 1.5px solid var(--border);
+    background: var(--white); color: var(--primary); font-size: 1.1rem; font-weight: 700;
+    cursor: pointer; flex-shrink: 0; box-shadow: none;
+  }
+
+  /* ===== AI salomlashuv ===== */
+  .ai-msg { display: flex; gap: 10px; margin-bottom: 16px; animation: fadeUp .5s both; }
+  .ai-avatar {
+    width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .ai-bubble {
+    background: var(--white); border-radius: 4px 16px 16px 16px; padding: 13px 15px;
+    box-shadow: var(--shadow); font-size: .92rem; min-height: 1.4em;
+  }
+  .ai-bubble .cursor { display: inline-block; width: 2px; height: 1em; background: var(--primary);
+    vertical-align: -2px; animation: blink 1s step-end infinite; margin-left: 1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ===== Kartalar ===== */
+  .card {
+    background: var(--white); border-radius: var(--radius); padding: 18px;
+    margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .badge {
+    width: 26px; height: 26px; border-radius: 9px; background: var(--primary-soft);
+    color: var(--primary); font-size: .85rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  label { font-size: .85rem; font-weight: 600; display: block; margin: 10px 0 5px; color: #334155; }
+  input[type=text], input[type=password], textarea {
+    width: 100%; padding: 13px 14px; border: 1.5px solid var(--border);
+    border-radius: 12px; font-size: 1rem; background: var(--white); color: var(--text);
+    transition: border-color .2s, box-shadow .2s; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
+  input:focus, textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+  }
+  .hint { font-size: .8rem; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
+  .hint a { color: var(--primary); text-decoration: none; font-weight: 600; }
+
+  .key-saved {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--ok-soft); border: 1.5px solid #bbf7d0; border-radius: 12px;
+    padding: 11px 14px; font-size: .92rem; font-weight: 600; color: #15803d;
+  }
+  .key-saved button {
+    margin: 0; width: auto; padding: 7px 12px; font-size: .82rem;
+    background: var(--white); color: var(--primary); border: 1.5px solid var(--border);
+    box-shadow: none; margin-left: auto;
+  }
+
+  .tabs {
+    display: flex; background: #eef0f9; border-radius: 12px; padding: 4px; gap: 4px;
+    margin-bottom: 14px;
+  }
+  .tabs button {
+    flex: 1; margin: 0; padding: 10px; font-size: .92rem; font-weight: 600;
+    background: transparent; color: var(--muted); border: 0; border-radius: 9px;
+    box-shadow: none; transition: all .2s;
+  }
+  .tabs button.active { background: var(--white); color: var(--primary); box-shadow: 0 2px 8px rgba(30,27,58,.08); }
+  .pane { animation: fadeUp .25s both; }
+
+  .file-drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; border: 2px dashed #cbd0e6; border-radius: 14px; padding: 26px 14px;
+    text-align: center; cursor: pointer; transition: all .2s; background: #f8f8fd;
+  }
+  .file-drop.has-file { border-color: var(--ok); border-style: solid; background: var(--ok-soft); }
+  .file-drop .icon { font-size: 30px; }
+  .file-drop .title { font-weight: 600; font-size: .95rem; }
+  .file-drop .sub { font-size: .8rem; color: var(--muted); }
+  .file-drop input { display: none; }
+
+  button {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff; border: 0; border-radius: 13px;
+    padding: 15px 18px; font-size: 1.02rem; font-weight: 700; width: 100%;
+    cursor: pointer; margin-top: 16px; box-shadow: 0 8px 20px -8px rgba(79,70,229,.5);
+    transition: transform .15s, box-shadow .2s, opacity .2s;
+  }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .55; transform: none; cursor: default; }
+  button.ghost {
+    background: var(--white); color: var(--primary); border: 1.5px solid #cdd3f2;
+    box-shadow: none;
+  }
+
+  #yasaStatus { font-size: .9rem; margin-top: 10px; white-space: pre-line; color: #334155; }
+  #yasaStatus.err {
+    color: var(--err); background: var(--err-soft); border: 1.5px solid #fecaca;
+    border-radius: 12px; padding: 11px 14px;
+  }
+  .spin {
+    display: inline-block; width: 13px; height: 13px; border: 2px solid var(--primary);
+    border-top-color: transparent; border-radius: 50%; vertical-align: -2px;
+    animation: sp .7s linear infinite; margin-right: 7px;
+  }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  /* ===== To'plamlar ro'yxati ===== */
+  .deck-item {
+    display: flex; align-items: center; gap: 10px;
+    border: 1.5px solid var(--border); border-radius: 13px;
+    padding: 12px 13px; margin: 9px 0; transition: border-color .2s, background .2s;
+  }
+  .deck-item:hover { border-color: #cdd3f2; }
+  .deck-info { flex: 1; min-width: 0; cursor: pointer; }
+  .deck-nom { font-weight: 600; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .deck-meta { font-size: .78rem; color: var(--muted); margin: 2px 0 6px; }
+  .deck-bar { height: 6px; background: #eceafb; border-radius: 999px; overflow: hidden; }
+  .deck-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 999px; transition: width .3s; }
+  .pi-del {
+    margin: 0; width: 36px; height: 36px; padding: 0; font-size: .95rem; flex-shrink: 0;
+    background: transparent; color: #94a3b8; border: 0; box-shadow: none;
+    border-radius: 10px; transition: background .2s, color .2s;
+  }
+  .pi-del:active { background: var(--err-soft); color: var(--err); }
+
+  /* ===== Oldindan ko'rish ===== */
+  .preview-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 11px 13px; margin: 9px 0;
+  }
+  .pi-main { flex: 1; min-width: 0; }
+  .pi-tal { color: var(--muted); font-size: .85rem; font-weight: 400; }
+  .pi-tr { color: var(--primary); font-size: .88rem; margin-top: 2px; }
+  #korishSoni { font-size: .82rem; color: var(--muted); margin: 0 0 4px; }
+
+  /* ===== Flashkarta ===== */
+  .progress-text { text-align: center; font-size: .85rem; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+  .flash-wrap { perspective: 1400px; margin: 18px 0 6px; }
+  .flashcard { position: relative; width: 100%; min-height: 230px; cursor: pointer; }
+  .flashcard-inner {
+    position: relative; width: 100%; height: 100%; min-height: 230px;
+    transition: transform .5s; transform-style: preserve-3d;
+  }
+  .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+  .fc-front, .fc-back {
+    position: absolute; inset: 0; backface-visibility: hidden;
+    border-radius: 22px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 26px; text-align: center;
+  }
+  .fc-front { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; box-shadow: var(--shadow); }
+  .fc-back { background: var(--white); border: 1.5px solid var(--border); transform: rotateY(180deg); box-shadow: var(--shadow); }
+  .fc-word { font-size: 1.7rem; font-weight: 700; word-break: break-word; }
+  .fc-hint { font-size: .8rem; opacity: .85; margin-top: 12px; }
+  .fc-speak {
+    position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; margin: 0;
+    padding: 0; border-radius: 11px; background: rgba(255,255,255,.22); box-shadow: none;
+  }
+  .fc-tal { font-size: 1.05rem; color: var(--muted); margin-bottom: 8px; }
+  .fc-tr { font-size: 1.5rem; font-weight: 700; color: var(--primary); word-break: break-word; }
+  .fc-actions { display: none; gap: 10px; margin-top: 4px; }
+  .fc-actions button { margin-top: 0; }
+
+  /* ===== Test ===== */
+  .test-card { text-align: center; }
+  .test-q { font-size: 1.5rem; font-weight: 700; margin: 6px 0 4px; }
+  .test-sub { font-size: .88rem; color: var(--muted); margin-bottom: 16px; }
+  .test-options { display: flex; flex-direction: column; gap: 10px; }
+  .test-opt {
+    background: var(--white); color: var(--text); border: 1.5px solid var(--border);
+    box-shadow: none; margin-top: 0; font-weight: 600; font-size: .96rem;
+  }
+  .test-opt.ok { background: var(--ok-soft); border-color: var(--ok); color: #15803d; }
+  .test-opt.err { background: var(--err-soft); border-color: var(--err); color: #b91c1c; }
+
+  /* ===== Yakun ===== */
+  .yakun-card { text-align: center; padding: 40px 20px; }
+  .yakun-emoji { font-size: 3.2rem; margin-bottom: 10px; }
+  .yakun-card h1 { margin: 0 0 8px; font-size: 1.4rem; }
+  .yakun-card p { color: var(--muted); font-size: .95rem; margin-bottom: 4px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: #1e1b3a; color: #fff; padding: 11px 20px; border-radius: 999px;
+    font-size: .9rem; font-weight: 600; box-shadow: 0 10px 30px rgba(15,23,42,.3);
+    opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; z-index: 50;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer.app { text-align: center; font-size: .78rem; color: #94a3b8; margin: 26px 0 8px; }
+</style>
+</head>
+<body>
+
+<!-- ===== Bosh sahifa ===== -->
+<div class="ekran aktiv" id="ekranBosh">
+  <div class="container">
+    <header class="brand">
+      <div class="logo">✨</div>
+      <h1>So'z Kartochkalari</h1>
+      <p>AI bilan yodlang — bepul</p>
+    </header>
+
+    <div class="ai-msg">
+      <div class="ai-avatar">✨</div>
+      <div class="ai-bubble" id="salomText"></div>
+    </div>
+
+    <div class="card" id="keyCard">
+      <h2><span class="badge">1</span> API kalit</h2>
+      <div class="key-saved" id="keySaved" style="display:none">
+        ✅ Kalit saqlangan
+        <button onclick="kalitTahrir()">O'zgartirish</button>
+      </div>
+      <div id="keyEdit">
+        <input type="password" id="apiKey" placeholder="AIza... kalitingizni qo'ying">
+        <p class="hint">Kalit faqat shu qurilmada saqlanadi va faqat Google'ga yuboriladi. Bepul kalit:
+          <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="badge">2</span> So'zlaringiz</h2>
+      <div class="tabs">
+        <button type="button" id="tabMatn" class="active" onclick="tabTanla('matn')">✍️ Matn</button>
+        <button type="button" id="tabRasm" onclick="tabTanla('rasm')">📷 Rasm</button>
+      </div>
+
+      <div class="pane" id="paneMatn">
+        <textarea id="sozMatn" placeholder="Har bir so'zni alohida qatorga yozing, masalan:&#10;apple&#10;beautiful&#10;kutubxona"></textarea>
+        <p class="hint">O'zbekcha so'z yozsangiz — inglizcha tarjimasi, boshqa tildagi so'z yozsangiz — o'zbekcha tarjimasi tayyorlanadi.</p>
+      </div>
+
+      <div class="pane" id="paneRasm" style="display:none">
+        <label class="file-drop" id="fileDrop">
+          <input type="file" id="fileInput" accept="image/*" capture="environment">
+          <span class="icon" id="fdIcon">📷</span>
+          <span class="title" id="fdTitle">Rasm tanlash</span>
+          <span class="sub" id="fdSub">Lug'at yoki so'zlar ro'yxati surati</span>
+        </label>
+        <p class="hint">Kitobdagi so'zlar ro'yxati, doskadagi yozuv yoki qo'lyozma — AI rasmdan o'qib oladi.</p>
+      </div>
+
+      <button id="yasaBtn" onclick="kartochkaYasa()">✨ Kartochka yasash</button>
+      <div id="yasaStatus"></div>
+    </div>
+
+    <div class="card" id="decklarCard">
+      <h2>🗂 Mening to'plamlarim</h2>
+      <p class="hint" id="decklarBosh">Hali to'plam yo'q — yuqorida birinchi so'zlaringizni kiriting.</p>
+      <div id="decklarList"></div>
+    </div>
+
+    <footer class="app">Oscar Ta'lim · So'z Kartochkalari</footer>
+  </div>
+</div>
+
+<!-- ===== Oldindan ko'rish ===== -->
+<div class="ekran" id="ekranKorish">
+  <div class="container">
+    <div class="mini-header">
+      <button class="back" onclick="ekran('Bosh')">←</button>
+      <h1>Yangi kartochkalar</h1>
+    </div>
+    <div class="card">
+      <label>To'plam nomi</label>
+      <input type="text" id="korishNomi">
+      <p id="korishSoni"></p>
+      <div id="korishList"></div>
+      <button onclick="deckSaqlaVaBoshla()">💾 Saqlash va yodlashni boshlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Yodlash (flashkarta) ===== -->
+<div class="ekran" id="ekranYodlash">
+  <div class="container">
+    <div class="mini-header">
+      <button class="back" onclick="ekran('Bosh')">←</button>
+      <h1>Yodlash</h1>
+    </div>
+    <p class="progress-text" id="yodlashProgress"></p>
+    <div class="flash-wrap">
+      <div class="flashcard" id="flashcard" onclick="kartaniOchir()">
+        <div class="flashcard-inner">
+          <div class="fc-front">
+            <button class="fc-speak" onclick="event.stopPropagation(); ovozChiqarJoriy()" title="Talaffuzni eshitish">🔊</button>
+            <div class="fc-word" id="fcWord"></div>
+            <div class="fc-hint">Javobni ko'rish uchun bosing</div>
+          </div>
+          <div class="fc-back">
+            <div class="fc-tal" id="fcTal"></div>
+            <div class="fc-tr" id="fcTr"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-actions" id="fcActions">
+      <button class="ghost" onclick="studyYana()">🔁 Yana ko'raman</button>
+      <button onclick="studyYodladim()">✅ Yodladim</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Test ===== -->
+<div class="ekran" id="ekranTest">
+  <div class="container">
+    <div class="mini-header">
+      <button class="back" onclick="ekran('Bosh')">←</button>
+      <h1>Test</h1>
+    </div>
+    <p class="progress-text" id="testProgress"></p>
+    <div class="card test-card">
+      <div class="test-q" id="testSoz"></div>
+      <div class="test-sub">Bu so'zning tarjimasi qaysi?</div>
+      <div class="test-options" id="testOptions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Yakun ===== -->
+<div class="ekran" id="ekranYakun">
+  <div class="container">
+    <div class="card yakun-card">
+      <div class="yakun-emoji">🎉</div>
+      <h1>Tabriklaymiz!</h1>
+      <p id="yakunMatn"></p>
+      <button onclick="qaytaBoshla()">🔁 Qaytadan mashq qilish</button>
+      <button class="ghost" onclick="ekran('Bosh')">🏠 Bosh sahifaga</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = "https://generativelanguage.googleapis.com";
+const MODEL = "gemini-2.5-flash";
+const KALIT_KEY = "kartochka_gemini_key";
+const DECK_KEY = "kartochka_decks_v1";
+
+const $ = id => document.getElementById(id);
+
+/* ===== Ekranlar orasida o'tish ===== */
+function ekran(nomi) {
+  document.querySelectorAll(".ekran").forEach(e => e.classList.remove("aktiv"));
+  $("ekran" + nomi).classList.add("aktiv");
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+/* ===== AI salomlashuv — Gemini kabi yozib chiqadi ===== */
+const SALOM_MATN = "Salom! 👋 Men — sizning shaxsiy AI yordamchingizman. " +
+  "Yodlamoqchi bo'lgan so'zlaringizni yozing yoki ularning rasmini yuboring — " +
+  "men darhol tarjima, talaffuz va kartochkalar tayyorlab beraman.";
+function salomYoz() {
+  const el = $("salomText");
+  let i = 0;
+  el.innerHTML = '<span class="cursor"></span>';
+  const vaqt = setInterval(() => {
+    i++;
+    el.innerHTML = escapeHtml(SALOM_MATN.slice(0, i)) + '<span class="cursor"></span>';
+    if (i >= SALOM_MATN.length) { clearInterval(vaqt); el.innerHTML = escapeHtml(SALOM_MATN); }
+  }, 14);
+}
+
+/* ===== API kalit ===== */
+$("apiKey").value = localStorage.getItem(KALIT_KEY) || "";
+$("apiKey").addEventListener("change", () => {
+  localStorage.setItem(KALIT_KEY, $("apiKey").value.trim());
+  kalitKorinish();
+});
+function kalitKorinish() {
+  const bor = !!localStorage.getItem(KALIT_KEY);
+  $("keySaved").style.display = bor ? "flex" : "none";
+  $("keyEdit").style.display = bor ? "none" : "block";
+}
+function kalitTahrir() {
+  $("keySaved").style.display = "none";
+  $("keyEdit").style.display = "block";
+  $("apiKey").focus();
+}
+
+/* ===== Matn / rasm tablari ===== */
+let joriyTab = "matn";
+function tabTanla(t) {
+  joriyTab = t;
+  $("tabMatn").classList.toggle("active", t === "matn");
+  $("tabRasm").classList.toggle("active", t === "rasm");
+  $("paneMatn").style.display = t === "matn" ? "block" : "none";
+  $("paneRasm").style.display = t === "rasm" ? "block" : "none";
+}
+$("fileInput").addEventListener("change", () => {
+  const f = $("fileInput").files[0];
+  if (f) {
+    $("fileDrop").classList.add("has-file");
+    $("fdIcon").textContent = "✅";
+    $("fdTitle").textContent = qisqart(f.name, 30);
+    $("fdSub").textContent = (f.size / 1048576).toFixed(1) + " MB · almashtirish uchun bosing";
+  } else fileTanlanmadi();
+});
+function fileTanlanmadi() {
+  $("fileDrop").classList.remove("has-file");
+  $("fdIcon").textContent = "📷";
+  $("fdTitle").textContent = "Rasm tanlash";
+  $("fdSub").textContent = "Lug'at yoki so'zlar ro'yxati surati";
+}
+
+/* ===== Yordamchi funksiyalar ===== */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function qisqart(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+function aralashtir(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function sanaQisqa() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function base64Oqi(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1] || "");
+    r.onerror = () => rej(new Error("Rasmni o'qib bo'lmadi"));
+    r.readAsDataURL(file);
+  });
+}
+function ovozChiqar(matn) {
+  if (!("speechSynthesis" in window) || !matn) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(matn);
+    u.lang = /^[\x00-\x7F]+$/.test(matn) ? "en-US" : "uz-UZ";
+    speechSynthesis.speak(u);
+  } catch (e) { /* bu qurilmada ovoz mavjud emas */ }
+}
+function ovozChiqarJoriy() {
+  const s = joriySozOl();
+  if (s) ovozChiqar(s.soz);
+}
+
+/* ===== Gemini so'rovi ===== */
+const SCHEMA = {
+  type: "ARRAY",
+  items: {
+    type: "OBJECT",
+    properties: {
+      soz: { type: "STRING", description: "So'zning o'zi, xatosiz, original tilida" },
+      talaffuz: { type: "STRING", description: "O'zbek o'quvchisiga tushunarli, taxminiy talaffuz (IPA emas)" },
+      tarjima: { type: "STRING", description: "So'zning aniq tarjimasi (o'zbekcha yoki inglizcha)" },
+      notogri: {
+        type: "ARRAY", items: { type: "STRING" },
+        description: "Test uchun 2 ta mavzu jihatdan yaqin, lekin noto'g'ri tarjima varianti",
+      },
+    },
+    required: ["soz", "talaffuz", "tarjima", "notogri"],
+  },
+};
+
+const PROMPT = `Sen ko'p tilli lug'at va talaffuz mutaxassisisan. Foydalanuvchi yodlamoqchi
+bo'lgan so'zlar ro'yxatini yubordi (matn yoki rasm ko'rinishida — rasm bo'lsa, avval
+undagi barcha so'z va iboralarni to'g'ri o'qib ol).
+
+Har bir alohida so'z yoki ibora uchun:
+1. "soz" — so'zning o'zi, xatosiz va original tilida (katta-kichik harfini to'g'irlab).
+2. "tarjima" — agar so'z o'zbekcha bo'lmasa, uning ANIQ o'zbekcha tarjimasi (eng mos
+   bitta ma'noda); agar so'z allaqachon o'zbekcha bo'lsa, uning ANIQ inglizcha tarjimasi.
+3. "talaffuz" — so'zni o'zbek o'quvchisi to'g'ri o'qishi uchun, lotin harflarida oddiy
+   va tushunarli taxminiy talaffuz (IPA belgilarisiz, masalan "though" -> "zou").
+4. "notogri" — aynan shu so'z uchun test savolida ishlatiladigan, mavzu jihatdan yaqin
+   lekin ANIQ noto'g'ri bo'lgan 2 ta tarjima varianti (chalg'ituvchi, lekin asossiz emas).
+
+Qoidalar:
+- Bir xil so'z bir necha marta uchrasa, faqat bir marta chiqar.
+- Sarlavha, raqamlash, ortiqcha izohlarni e'tiborsiz qoldir — faqat haqiqiy so'z va
+  iboralarni ol.
+- Ko'pi bilan 40 ta so'z qaytar.
+- Javobni FAQAT berilgan JSON sxema bo'yicha qaytar.`;
+
+async function generate(key, parts) {
+  const URINISH = 4;
+  for (let urinish = 1; urinish <= URINISH; urinish++) {
+    try {
+      const r = await fetch(`${API}/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { responseMimeType: "application/json", responseSchema: SCHEMA, temperature: 0.3 },
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message || `HTTP ${r.status}`);
+      const text = j.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+      const sozlar = JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, ""));
+      if (!Array.isArray(sozlar) || !sozlar.length) throw new Error("So'z topilmadi");
+      return sozlar;
+    } catch (e) {
+      const kvota = /quota|RESOURCE_EXHAUSTED|429/i.test(e.message);
+      if (kvota || urinish === URINISH) throw e;
+      const band = /high demand|overloaded|UNAVAILABLE|503/i.test(e.message);
+      const kutish = band ? Math.min(6000 * urinish, 20000) : 1500 * urinish;
+      yasaHolat(band
+        ? `Google serverlari band. ${Math.round(kutish / 1000)} soniyadan keyin qayta urinamiz...`
+        : `Xato, qayta urinilmoqda (${urinish}/${URINISH - 1})...`, false, true);
+      await new Promise(res => setTimeout(res, kutish));
+    }
+  }
+}
+
+function yasaHolat(msg, xato = false, spinner = false) {
+  const s = $("yasaStatus");
+  s.className = xato ? "err" : "";
+  s.innerHTML = msg ? (spinner ? '<span class="spin"></span>' : "") + escapeHtml(msg) : "";
+}
+
+let joriyYaratilgan = [];
+
+async function kartochkaYasa() {
+  const key = ($("apiKey").value || localStorage.getItem(KALIT_KEY) || "").trim();
+  if (!key) return yasaHolat("Avval API kalitni kiriting (1-bo'lim).", true);
+  localStorage.setItem(KALIT_KEY, key);
+  kalitKorinish();
+
+  const matn = joriyTab === "matn" ? $("sozMatn").value.trim() : "";
+  const fayl = joriyTab === "rasm" ? $("fileInput").files[0] : null;
+  if (!matn && !fayl) {
+    return yasaHolat(joriyTab === "matn" ? "So'zlarni yozing." : "Avval rasm tanlang.", true);
+  }
+
+  $("yasaBtn").disabled = true;
+  yasaHolat("AI so'zlarni tayyorlamoqda...", false, true);
+  try {
+    const parts = [];
+    if (fayl) {
+      const data = await base64Oqi(fayl);
+      parts.push({ inlineData: { mimeType: fayl.type || "image/jpeg", data } });
+    }
+    parts.push({ text: matn ? `${PROMPT}\n\nSo'zlar ro'yxati:\n${matn}` : PROMPT });
+
+    const natija = await generate(key, parts);
+    joriyYaratilgan = natija.map((s, i) => ({
+      id: "s" + Date.now() + i,
+      soz: String(s.soz || "").trim(),
+      talaffuz: String(s.talaffuz || "").trim(),
+      tarjima: String(s.tarjima || "").trim(),
+      notogri: Array.isArray(s.notogri) ? s.notogri.map(String).filter(Boolean).slice(0, 2) : [],
+    })).filter(s => s.soz && s.tarjima);
+
+    if (!joriyYaratilgan.length) throw new Error("So'z topilmadi, boshqa matn yoki rasm bilan urinib ko'ring.");
+
+    korishKorsat();
+    ekran("Korish");
+    yasaHolat("");
+  } catch (e) {
+    yasaHolat("Xato: " + e.message, true);
+  } finally {
+    $("yasaBtn").disabled = false;
+  }
+}
+
+/* ===== Oldindan ko'rish ===== */
+function korishKorsat() {
+  $("korishNomi").value = `To'plam — ${sanaQisqa()}`;
+  renderKorishList();
+}
+function renderKorishList() {
+  $("korishSoni").textContent = `${joriyYaratilgan.length} ta so'z tayyor`;
+  $("korishList").innerHTML = joriyYaratilgan.map((s, i) => `
+    <div class="preview-item">
+      <div class="pi-main">
+        <b>${escapeHtml(s.soz)}</b> <span class="pi-tal">[${escapeHtml(s.talaffuz)}]</span>
+        <div class="pi-tr">${escapeHtml(s.tarjima)}</div>
+      </div>
+      <button class="pi-del" onclick="korishOchir(${i})" title="O'chirish">✕</button>
+    </div>`).join("");
+}
+function korishOchir(i) {
+  joriyYaratilgan.splice(i, 1);
+  renderKorishList();
+}
+
+/* ===== To'plamlar (localStorage) ===== */
+function decklarOl() {
+  try { return JSON.parse(localStorage.getItem(DECK_KEY)) || []; }
+  catch { return []; }
+}
+let decklar = decklarOl();
+
+function decklarSaqla() {
+  localStorage.setItem(DECK_KEY, JSON.stringify(decklar));
+  renderDecklar();
+}
+function renderDecklar() {
+  $("decklarBosh").style.display = decklar.length ? "none" : "block";
+  $("decklarList").innerHTML = decklar.map(d => {
+    const jami = d.sozlar.length;
+    const tayyor = d.sozlar.filter(s => s.holat === "tayyor").length;
+    const foiz = jami ? Math.round(tayyor / jami * 100) : 0;
+    return `
+      <div class="deck-item">
+        <div class="deck-info" onclick="davomEt('${d.id}')">
+          <div class="deck-nom">${escapeHtml(d.nom)}</div>
+          <div class="deck-meta">${tayyor}/${jami} yodlandi</div>
+          <div class="deck-bar"><div class="deck-bar-fill" style="width:${foiz}%"></div></div>
+        </div>
+        <button class="pi-del" onclick="event.stopPropagation(); deckOchir('${d.id}')" title="O'chirish">🗑</button>
+      </div>`;
+  }).join("");
+}
+
+function deckSaqlaVaBoshla() {
+  if (!joriyYaratilgan.length) return;
+  const nom = $("korishNomi").value.trim() || `To'plam — ${sanaQisqa()}`;
+  const deck = {
+    id: "d" + Date.now(),
+    nom,
+    yaratildi: new Date().toISOString(),
+    sozlar: joriyYaratilgan.map(s => ({ ...s, holat: "yangi" })),
+  };
+  decklar.unshift(deck);
+  decklarSaqla();
+  joriyYaratilgan = [];
+  $("sozMatn").value = "";
+  $("fileInput").value = "";
+  fileTanlanmadi();
+  toast("To'plam saqlandi 📚");
+  davomEt(deck.id);
+}
+
+function deckOchir(id) {
+  if (!confirm("Bu to'plam butunlay o'chirilsinmi?")) return;
+  decklar = decklar.filter(d => d.id !== id);
+  decklarSaqla();
+  toast("O'chirildi 🗑");
+}
+
+function joriyDeckOl() { return decklar.find(d => d.id === joriyDeckId); }
+function soznYangila(id, patch) {
+  const deck = joriyDeckOl();
+  const s = deck.sozlar.find(x => x.id === id);
+  if (s) Object.assign(s, patch);
+  decklarSaqla();
+}
+
+/* ===== Yo'nalishni tanlash: yodlash yoki test ===== */
+let joriyDeckId = null;
+
+function davomEt(deckId) {
+  const deck = decklar.find(d => d.id === deckId);
+  if (!deck) return;
+  joriyDeckId = deckId;
+  const yangi = deck.sozlar.filter(s => s.holat === "yangi").map(s => s.id);
+  const testga = deck.sozlar.filter(s => s.holat === "testga_tayyor").map(s => s.id);
+  if (yangi.length) studyBoshla(yangi);
+  else if (testga.length) testBoshla(testga);
+  else yakunKorsat(deck, "Bu to'plamdagi barcha so'zlar allaqachon yodlangan!");
+}
+
+function qaytaBoshla() {
+  const deck = joriyDeckOl();
+  if (!deck) return ekran("Bosh");
+  deck.sozlar.forEach(s => s.holat = "yangi");
+  decklarSaqla();
+  davomEt(deck.id);
+}
+
+/* ===== Yodlash (flashkarta) ===== */
+let joriySoznoma = [];
+
+function joriySozOl() {
+  const deck = joriyDeckOl();
+  return deck && deck.sozlar.find(x => x.id === joriySoznoma[0]);
+}
+function studyBoshla(sozIdlar) {
+  joriySoznoma = aralashtir(sozIdlar);
+  ekran("Yodlash");
+  studyKorsat();
+}
+function studyKorsat() {
+  $("flashcard").classList.remove("flipped");
+  $("fcActions").style.display = "none";
+  const s = joriySozOl();
+  $("fcWord").textContent = s.soz;
+  $("fcTal").textContent = s.talaffuz ? `[${s.talaffuz}]` : "";
+  $("fcTr").textContent = s.tarjima;
+  $("yodlashProgress").textContent = `Qoldi: ${joriySoznoma.length} ta so'z`;
+}
+function kartaniOchir() {
+  const fc = $("flashcard");
+  if (fc.classList.contains("flipped")) return;
+  fc.classList.add("flipped");
+  $("fcActions").style.display = "flex";
+}
+function davomYodlashYokiTest() {
+  if (joriySoznoma.length) { studyKorsat(); return; }
+  const deck = joriyDeckOl();
+  const testga = deck.sozlar.filter(s => s.holat === "testga_tayyor").map(s => s.id);
+  if (testga.length) testBoshla(testga);
+  else yakunKorsat(deck, "Barcha so'zlarni ko'rib chiqdingiz!");
+}
+function studyYana() {
+  const id = joriySoznoma.shift();
+  joriySoznoma.push(id);
+  davomYodlashYokiTest();
+}
+function studyYodladim() {
+  const id = joriySoznoma.shift();
+  soznYangila(id, { holat: "testga_tayyor" });
+  davomYodlashYokiTest();
+}
+
+/* ===== Test ===== */
+let joriyTestNoma = [];
+let joriyTestJami = 0;
+let qaytadiganlar = new Set();
+
+function testBoshla(sozIdlar) {
+  joriyTestNoma = aralashtir(sozIdlar);
+  joriyTestJami = joriyTestNoma.length;
+  qaytadiganlar = new Set();
+  ekran("Test");
+  testKorsat();
+}
+function testKorsat() {
+  const id = joriyTestNoma[0];
+  const deck = joriyDeckOl();
+  const s = deck.sozlar.find(x => x.id === id);
+  $("testProgress").textContent = `Qoldi: ${joriyTestNoma.length} ta savol`;
+  $("testSoz").textContent = s.soz;
+
+  let variantlar = [s.tarjima, ...(s.notogri || [])].filter(Boolean);
+  if (variantlar.length < 3) {
+    const boshqalar = aralashtir(deck.sozlar.filter(x => x.id !== id).map(x => x.tarjima));
+    for (const t of boshqalar) {
+      if (variantlar.length >= 3) break;
+      if (!variantlar.includes(t)) variantlar.push(t);
+    }
+  }
+  variantlar = aralashtir([...new Set(variantlar)]).slice(0, 3);
+  if (!variantlar.includes(s.tarjima)) variantlar[0] = s.tarjima;
+
+  const wrap = $("testOptions");
+  wrap.innerHTML = "";
+  variantlar.forEach(v => {
+    const b = document.createElement("button");
+    b.className = "test-opt";
+    b.textContent = v;
+    b.addEventListener("click", () => testJavob(b, v, s.tarjima, id));
+    wrap.appendChild(b);
+  });
+}
+function testJavob(btn, tanlangan, togri, id) {
+  const tugmalar = [...$("testOptions").children];
+  tugmalar.forEach(b => b.disabled = true);
+  const togriMi = tanlangan === togri;
+  btn.classList.add(togriMi ? "ok" : "err");
+  if (!togriMi) {
+    tugmalar.find(b => b.textContent === togri)?.classList.add("ok");
+    soznYangila(id, { holat: "yangi" });
+    qaytadiganlar.add(id);
+  } else {
+    soznYangila(id, { holat: "tayyor" });
+  }
+  setTimeout(() => {
+    joriyTestNoma.shift();
+    if (joriyTestNoma.length) testKorsat();
+    else testYakunla();
+  }, 1100);
+}
+function testYakunla() {
+  const deck = joriyDeckOl();
+  if (qaytadiganlar.size) {
+    toast(`${qaytadiganlar.size} ta so'zni yana bir bor ko'rib chiqamiz`);
+    studyBoshla([...qaytadiganlar]);
+  } else {
+    yakunKorsat(deck, `Barchasi to'g'ri! ${joriyTestJami} ta so'zni mukammal yodladingiz.`);
+  }
+}
+
+/* ===== Yakun ===== */
+function yakunKorsat(deck, matn) {
+  const jami = deck.sozlar.length;
+  const tayyor = deck.sozlar.filter(s => s.holat === "tayyor").length;
+  $("yakunMatn").textContent = `${matn} (${tayyor}/${jami} so'z yodlandi)`;
+  ekran("Yakun");
+}
+
+/* ===== Ishga tushirish ===== */
+kalitKorinish();
+renderDecklar();
+salomYoz();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
