@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xarid ro'yxati</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <h1>🛒 Xarid ro'yxati</h1>
+  <p class="subtitle">Uy uchun kundalik xaridlarni kiriting va xarajatlaringizni kuzating</p>
+</header>
+
+<main class="container">
+
+  <section class="card form-card">
+    <h2>Yangi mahsulot qo'shish</h2>
+    <form id="item-form">
+      <div class="field">
+        <label for="name">Mahsulot nomi</label>
+        <input type="text" id="name" list="name-suggestions" placeholder="Masalan: Guruch" required>
+        <datalist id="name-suggestions"></datalist>
+      </div>
+
+      <div class="field">
+        <label for="category">Kategoriya</label>
+        <input type="text" id="category" list="category-suggestions" placeholder="Masalan: Oziq-ovqat" required>
+        <datalist id="category-suggestions">
+          <option value="Oziq-ovqat">
+          <option value="Maishiy kimyo">
+          <option value="Kiyim-kechak">
+          <option value="Sog'liq">
+          <option value="Uy-ro'zg'or">
+          <option value="Boshqa">
+        </datalist>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="quantity">Miqdori</label>
+          <input type="number" id="quantity" min="0.01" step="0.01" value="1" required>
+        </div>
+        <div class="field">
+          <label for="unit">Birlik</label>
+          <input type="text" id="unit" list="unit-suggestions" placeholder="dona" required>
+          <datalist id="unit-suggestions">
+            <option value="dona">
+            <option value="kg">
+            <option value="litr">
+            <option value="paket">
+          </datalist>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="price">Narxi (bir birlik, so'm)</label>
+          <input type="number" id="price" min="0" step="1" placeholder="0" required>
+        </div>
+        <div class="field">
+          <label for="date">Sana</label>
+          <input type="date" id="date" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">Qo'shish</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="period-tabs" id="period-tabs">
+      <button data-period="today" class="tab active">Bugun</button>
+      <button data-period="week">Bu hafta</button>
+      <button data-period="month">Bu oy</button>
+      <button data-period="all">Hammasi</button>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-box">
+        <span class="summary-label">Jami xarajat</span>
+        <span class="summary-value" id="summary-total">0 so'm</span>
+      </div>
+      <div class="summary-box">
+        <span class="summary-label">Xaridlar soni</span>
+        <span class="summary-value" id="summary-count">0</span>
+      </div>
+      <div class="summary-box">
+        <span class="summary-label">Turli mahsulotlar</span>
+        <span class="summary-value" id="summary-products">0</span>
+      </div>
+      <div class="summary-box">
+        <span class="summary-label">Kunlik o'rtacha</span>
+        <span class="summary-value" id="summary-daily-avg">0 so'm</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Kategoriya bo'yicha xarajat</h2>
+    <div id="category-chart" class="chart"></div>
+  </section>
+
+  <section class="card">
+    <h2>Ko'p ishlatiladigan mahsulotlar</h2>
+    <table class="products-table">
+      <thead>
+        <tr>
+          <th>Mahsulot</th>
+          <th>Necha marta olingan</th>
+          <th>Jami miqdor</th>
+          <th>Jami sarflangan</th>
+        </tr>
+      </thead>
+      <tbody id="top-products-body"></tbody>
+    </table>
+    <p class="empty-hint" id="top-products-empty">Hali ma'lumot yo'q</p>
+  </section>
+
+  <section class="card">
+    <h2>Xaridlar ro'yxati</h2>
+    <table class="products-table">
+      <thead>
+        <tr>
+          <th>Sana</th>
+          <th>Mahsulot</th>
+          <th>Kategoriya</th>
+          <th>Miqdor</th>
+          <th>Narx</th>
+          <th>Jami</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="items-body"></tbody>
+    </table>
+    <p class="empty-hint" id="items-empty">Hali xaridlar kiritilmagan</p>
+  </section>
+
+  <section class="card data-actions">
+    <h2>Ma'lumotlar</h2>
+    <div class="data-buttons">
+      <button id="export-btn" class="btn-secondary">Zaxira nusxa (JSON) yuklab olish</button>
+      <label class="btn-secondary file-label">
+        JSON dan tiklash
+        <input type="file" id="import-input" accept="application/json" hidden>
+      </label>
+      <button id="clear-btn" class="btn-danger">Barchasini o'chirish</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <p>Barcha ma'lumotlar faqat shu brauzerda (localStorage) saqlanadi.</p>
+</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>
