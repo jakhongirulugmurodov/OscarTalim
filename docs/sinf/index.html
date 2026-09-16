@@ -319,20 +319,51 @@ const COURSE = {
 { n:5, t:"AI ishonch bilan yolg'on gapiradi",
   learn:"AI bergan javobni tekshirishning aniq usulini. To'qib chiqarilgan kitob, sana, raqamni qanday ushlashni.",
   where:"Har kuni. Sinfingda AI'ga aldanmagan yagona odam bo'lasan.",
-  key:["AI bilmasligini tan olmaydi — o'rniga ishonarli to'qiydi.",
-       "Eng xavflisi: ism, sana, raqam, manba, iqtibos.",
-       "Qoida: raqam yoki manba bo'lsa — mustaqil joydan tekshir."],
+  key:["AI ba'zan biladi, ba'zan o'ylab topadi — ikkalasini bir xil ohangda aytadi.",
+       "Gallyutsinatsiya — AI o'ylab topgan, lekin haqiqat qilib aytgan narsa.",
+       "DOIM tekshiriladi: raqam, sana, ism, manba, sitata, sahifa.",
+       "Tekshirish shart emas: fikr, tushuntirish, g'oya.",
+       "Oxirgi hakam — AI emas."],
   duel:[
-    {q:"AI kitob nomi va muallifini keltirdi. Nima qilasan?",
-     a:["Ishonaman, AI bilimdon","Kutubxona yoki qidiruvda tekshiraman","AI'dan \"rostmi?\" deb so'rayman","Do'stimdan so'rayman"],c:1,
-     w:"AI'dan \"rostmi?\" deb so'rash ishlamaydi — u yana ishonch bilan \"ha\" deydi. Mustaqil manba kerak."},
-    {q:"Qaysi javobda YOLG'ON ehtimoli eng yuqori?",
-     a:["\"Suv 100°C da qaynaydi\"","\"Bu she'r 1897-yilda «Oy» jurnalida chop etilgan\"","\"2+2=4\"","\"Toshkent O'zbekiston poytaxti\""],c:1,
-     w:"Aniq sana + aniq nashr nomi — AI eng ko'p to'qiydigan joy. Umumiy faktlar xavfsizroq."},
-    {q:"AI \"bilmayman\" deyishi kerak edi, lekin javob berdi. Nega?",
-     a:["Yolg'onchi qilib yasalgan","U keyingi so'zni taxmin qiladi, \"bilmayman\" kamdan-kam taxmin bo'ladi",
-        "Internet uzilgan","Savol noto'g'ri"],c:1,
-     w:"6-darsda buni chuqurroq ko'ramiz: AI haqiqatni emas, ehtimolli davomni tanlaydi."}]},
+    {q:"Bir xil savolga AI ikki daqiqa oraliqda ikki xil javob berdi. Bu nimani anglatadi?",
+     a:["Internet uzilgan","Kamida bittasi to'qilgan — ishonch yo'q","Ikkinchi javob doim to'g'ri","Model yangilangan"],c:1,
+     w:"Ikkalasi bir vaqtda to'g'ri bo'la olmaydi. Javob o'zgarsa — bu ogohlantirish belgisi."},
+    {q:"Gallyutsinatsiya nima?",
+     a:["AI internetdan topgan xato","AI o'ylab topgan, lekin haqiqat qilib aytgan narsa","Foydalanuvchining xatosi","Modelning sekinlashishi"],c:1,
+     w:"Atama shu: to'qilgan, lekin ishonchli ohangda aytilgan javob."},
+    {q:"Nega AI \"bilmayman\" deyish o'rniga to'qiydi?",
+     a:["Yolg'onchi qilib yasalgan","U javob berish uchun qurilgan — keyingi so'zni taxmin qiladi","Bazasi to'lib ketgan","Savol noto'g'ri berilgan"],c:1,
+     w:"U haqiqatni qidirmaydi, ehtimolli davomni tanlaydi. \"Bilmayman\" kamdan-kam ehtimolli davom."},
+    {q:"Qaysi javobni DOIM tekshirish kerak?",
+     a:["\"Menimcha, bu reja yaxshi\"","\"Bu she'r 1897-yilda «Oy» jurnalida chop etilgan\"","\"Insho uchun uchta g'oya\"","\"Buni sodda tushuntirib beraman\""],c:1,
+     w:"Aniq sana va nashr nomi — to'qish eng ko'p uchraydigan joy."},
+    {q:"Qaysi birini tekshirish SHART EMAS?",
+     a:["Sahifa raqami","Muallifning ismi","Fikr va tushuntirish","Sana"],c:2,
+     w:"Hammasini tekshirsang AI foydasiz bo'lib qoladi. Raqam, sana, ism, manba — tekshiriladi; fikr va g'oya — yo'q."},
+    {q:"AI kitob nomi va sahifa raqamini berdi. Eng ishonchli tekshiruv qaysi?",
+     a:["AI'dan \"rostmi?\" deb so'rash","Do'stingdan so'rash","Kitobning o'zini ochib ko'rish","Savolni qayta yozish"],c:2,
+     w:"AI'dan \"rostmi?\" deb so'rash ishlamaydi — u yana ishonch bilan \"ha\" deydi. Oxirgi hakam — AI emas."},
+    {q:"Javobda \"aynan\", \"so'zma-so'z\", \"roppa-rosa\" so'zlari chiqdi. Bu nima?",
+     a:["Javob aniqroq bo'lgani","Ogohlantirish belgisi — model bilmasligini shu so'zlar bilan yopadi","Model tezroq ishlagani","Hech narsani anglatmaydi"],c:1,
+     w:"Aniqlikni ta'kidlagan joy — eng ko'p tekshirish kerak bo'lgan joy."},
+    {q:"Qaysi savolda to'qish ehtimoli eng yuqori?",
+     a:["Suv necha gradusda qaynaydi?","Toshkent qaysi davlatning poytaxti?","Tumanimizdagi eng eski maktab qachon qurilgan va birinchi direktori kim?","Ikki karra ikki nechchi?"],c:2,
+     w:"Mahalliy va internetda kam yozilgan ma'lumot. Model bunday joyda naqshdan to'qiydi."},
+    {q:"AI \"bu haqda ma'lumotim yo'q\" dedi. Bu qanday belgi?",
+     a:["Model buzilgan","Yomon belgi — boshqa AI'ga o'tish kerak","Yaxshi belgi — to'qimagani ma'qul","Savolni qayta yozish kerak"],c:2,
+     w:"Bilmasligini tan olish — to'qishdan yaxshi. Bunday javobga ishonch ko'proq."},
+    {q:"Savolning ichiga noto'g'ri shart yashirilgan bo'lsa (masalan bo'lmagan voqea haqida so'ralsa), AI ko'pincha nima qiladi?",
+     a:["Savolni rad etadi","Shartni qabul qilib, uning ustiga javob to'qiydi","Internetdan qidiradi","Sukut saqlaydi"],c:1,
+     w:"Model savolni to'g'ri deb qabul qiladi va \"mos keladigan\" javob yasaydi."},
+    {q:"Ikki tekshiruv usulidan qaysi biri kuchliroq?",
+     a:["AI'dan manba so'rash","Kitob, hujjat yoki jonli odamdan tekshirish","Savolni uzunroq yozish","Boshqa AI'dan so'rash"],c:1,
+     w:"Manba so'rash zaif: ba'zan havolaning o'zi ham to'qilgan bo'ladi."},
+    {q:"\"AI 90 foiz holatda to'g'ri gapiradi\" — unda nega tekshirish kerak?",
+     a:["Kerak emas, 90 foiz yetarli","Qaysi 10 foiz xato ekanini oldindan ko'rib bo'lmaydi","AI har doim xato qiladi","Shunchaki qoida shunday"],c:1,
+     w:"Xato oldindan ko'rinmaydi — aynan shuning uchun tekshirish odat bo'lishi kerak."},
+    {q:"Xulosa: AI yaroqsizmi?",
+     a:["Ha, ishlatmaslik kerak","Yo'q — kalkulyator kabi, lekin uning xatosi chiroyli ko'rinadi","Faqat kattalar ishlatsin","Faqat o'yin uchun yaraydi"],c:1,
+     w:"Kalkulyator xatosini darrov ko'rasan, AI'ning xatosi ishonchli ko'rinadi. Farq shunda."}]},
 
 { n:6, t:"AI aslida qanday \"o'ylaydi\"?",
   learn:"Nega xato qilishini, nega bir savolga har safar boshqa javob berishini, nega uzun suhbatda unutib qo'yishini.",
@@ -732,7 +763,7 @@ const S = {
   sid:"",            /* hisob — o'quvchining doimiy identifikatori */
   cls:null, me:null, students:[], entries:[], live:null,
   lesson:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[],
-  profiles:{}, myProfile:null, tasks:[], pendingSid:""
+  profiles:{}, myProfile:null, tasks:[], pendingSid:"", quiz:{scores:{},names:{}}
 };
 const app = document.getElementById("app");
 const _svg = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -1267,6 +1298,22 @@ ACT.print = ()=>window.print();
 /* ---------------------------------------------------------------------
    8) JONLI O'YIN (o'quvchi tomoni)
    --------------------------------------------------------------------- */
+function screenResult(L){
+  const list=(L.podium||[]), mine=list.findIndex(x=>x.uid===S.sid);
+  h(`<div class="wrap">${hud()}
+    <div class="card accent" style="text-align:center">
+      <small class="small">YAKUNIY NATIJA</small>
+      <h2 style="margin:6px 0">${esc(L.title||"Viktorina")}</h2>
+      ${mine>=0?`<p>Sening o'rning: <b>${mine+1}</b> · ${list[mine].pts} ball</p>`
+               :`<p class="small">Bu o'yinda qatnashmading</p>`}
+    </div>
+    ${list.slice(0,10).map((x,i)=>`<div class="rank ${x.uid===S.sid?"me":""} top${i+1}">
+      <div class="n">${i+1}</div><div class="nm">${esc(x.name||"?")}</div>
+      <div class="sc">${x.pts}</div></div>`).join("")}
+    <div class="card flat"><p class="small">Bu o'yin balli. Umumiy reytingga qo'shilgani —
+      «Reyting» bo'limida (bir darsda o'yindan ko'pi bilan ${LIVE_CAP} ball).</p></div>
+  </div>${nav()}`);
+}
 function screenLive(){
   const L = S.live;
   if (!L || !L.mode || L.mode==="off"){
@@ -1277,7 +1324,10 @@ function screenLive(){
   const mine = S.answered && S.answered.key===L.key ? S.answered : null;
   const left = Math.max(0, Math.round((L.t0 + L.dur*1000 - Date.now())/1000));
   const opts = L.mode==="hunt" ? L.s : L.a;
-  const title = L.mode==="duel" ? "Jonli duel" : L.mode==="hunt" ? "Yolg'on ovi" : "Ovoz berish";
+  if (L.mode==="result") return screenResult(L);
+  const total = L.mode==="duel" && L.lesson ? (lessonOf(L.lesson)||{duel:[]}).duel.length : 0;
+  const title = (L.mode==="duel" ? "Jonli duel" : L.mode==="hunt" ? "Yolg'on ovi" : "Ovoz berish")
+    + (total ? ` · ${(L.qi||0)+1}/${total}` : "");
   const head = L.mode==="hunt" ? `Mavzu: ${esc(L.topic)} — to'qilgan jumlani top` : esc(L.q);
 
   h(`<div class="wrap">${hud()}
@@ -1526,6 +1576,7 @@ ACT.qL = n=>{ S.qLesson=+n.dataset.n; render(); };
 ACT.startDuel = async n=>{
   const ln=+n.dataset.n, i=+n.dataset.i, q=lessonOf(ln).duel[i];
   if(!q) return toast("Savollar tugadi");
+  if(i===0) S.quiz={scores:{},names:{}};   /* yangi viktorina — hisob noldan */
   await DB.setLive(S.code,{mode:"duel",lesson:ln,qi:i,q:q.q,a:q.a,c:null,w:null,
     t0:Date.now(),dur:25,reveal:false,key:`d${ln}_${i}_${Date.now()}`});
 };
@@ -1541,12 +1592,24 @@ ACT.startPoll = async ()=>{
   await DB.setLive(S.code,{mode:"poll",q,a,c:-1,w:"",t0:Date.now(),dur:40,reveal:false,key:"p"+Date.now()});
 };
 function tLiveRunning(L){
+  if(L.mode==="result"){
+    const list=L.podium||[];
+    return `<div class="card accent" style="text-align:center"><small class="small">YAKUNIY NATIJA</small>
+        <h2>${esc(L.title||"Viktorina")}</h2><p class="small">${list.length} ta qatnashchi</p></div>` +
+      list.slice(0,10).map((x,i)=>`<div class="rank top${i+1}">
+        <div class="n">${i+1}</div><div class="nm">${esc(x.name)}</div><div class="sc">${x.pts}</div></div>`).join("") +
+      `<div class="btn-row" style="margin-top:12px">
+        <button class="btn ghost" data-a="stopLive">Yopish</button>
+        <button class="btn ghost" data-a="proj">Proyektor</button></div>`;
+  }
   const total=S.students.filter(s=>s.ok).length;
   const ans=S.liveAns||[];
   const opts = L.mode==="hunt"?L.s:L.a;
   const counts = opts.map((_,i)=>ans.filter(a=>a.c===i).length);
   const head = L.mode==="hunt"?`Mavzu: ${esc(L.topic)} — to'qilgan jumlani toping`:esc(L.q);
-  return `<div class="card accent"><small class="small">${L.mode==="duel"?"DUEL":L.mode==="hunt"?"YOLG'ON OVI":"OVOZ BERISH"}</small>
+  const qs = L.mode==="duel" && L.lesson ? (lessonOf(L.lesson)||{duel:[]}).duel : [];
+  const last = L.mode==="duel" && L.qi>=qs.length-1;
+  return `<div class="card accent"><small class="small">${L.mode==="duel"?`DUEL · ${(L.qi||0)+1}/${qs.length}`:L.mode==="hunt"?"YOLG'ON OVI":"OVOZ BERISH"}</small>
       <h2>${head}</h2>
       <p class="small">${ans.length} / ${total} javob berdi</p></div>
     ${opts.map((o,i)=>{
@@ -1558,7 +1621,8 @@ function tLiveRunning(L){
     }).join("")}
     <div class="btn-row" style="margin-top:12px">
       ${L.reveal?"":`<button class="btn" data-a="reveal">Javobni ochish</button>`}
-      ${L.mode==="duel"&&L.reveal?`<button class="btn" data-a="startDuel" data-n="${L.lesson}" data-i="${L.qi+1}">Keyingi savol</button>`:""}
+      ${L.mode==="duel"&&L.reveal&&!last?`<button class="btn" data-a="startDuel" data-n="${L.lesson}" data-i="${L.qi+1}">Keyingi savol</button>`:""}
+      ${L.mode==="duel"&&L.reveal&&last?`<button class="btn" data-a="finishQuiz">Yakuniy natija</button>`:""}
       <button class="btn ghost" data-a="stopLive">To'xtatish</button>
       <button class="btn ghost" data-a="proj">Proyektor</button>
     </div>`;
@@ -1568,7 +1632,23 @@ ACT.reveal = async ()=>{
   let c=-1,w="";
   if(L.mode==="duel"){ const q=lessonOf(L.lesson).duel[L.qi]; c=q.c; w=q.w; }
   else if(L.mode==="hunt"){ c=HUNTS[L.hi].lie; w=HUNTS[L.hi].w; }
+  /* viktorina hisobi: to'g'ri javob 10 + tezlik uchun 20 gacha */
+  if(c>=0) (S.liveAns||[]).forEach(a=>{
+    S.quiz.names[a.uid]=a.name||S.quiz.names[a.uid]||"";
+    if(a.c===c){
+      const b=Math.round(20*Math.max(0,(L.dur*1000-(a.ms||0)))/(L.dur*1000));
+      S.quiz.scores[a.uid]=(S.quiz.scores[a.uid]||0)+10+b;
+    } else if(!(a.uid in S.quiz.scores)) S.quiz.scores[a.uid]=0;
+  });
   await DB.setLive(S.code,{...L,reveal:true,c,w});
+};
+ACT.finishQuiz = async ()=>{
+  const L=S.live;
+  const podium=Object.entries(S.quiz.scores)
+    .map(([uid,pts])=>({uid, pts, name:S.quiz.names[uid] || (S.students.find(x=>x.uid===uid)||{}).name || "?"}))
+    .sort((a,b)=>b.pts-a.pts);
+  await DB.setLive(S.code,{mode:"result", lesson:L.lesson||0, podium,
+    title:(lessonOf(L.lesson)||{}).t || "Viktorina", key:"r"+Date.now()});
 };
 ACT.stopLive = async ()=>{ await DB.setLive(S.code,{mode:"off"}); };
 ACT.proj = ()=>{ document.body.classList.toggle("proj");
