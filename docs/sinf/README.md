@@ -138,7 +138,7 @@ service cloud.firestore {
     function same(k){ return request.resource.data[k] == resource.data[k]; }
     function sameFlag(k){ return request.resource.data.get(k,false) == resource.data.get(k,false); }
 
-    // Bosh kalit: sinf yaratish huquqi. Mijoz uni o'qiy olmaydi.
+    // Bosh kalit: sinf yasash huquqi. Mijoz uni o'qiy olmaydi.
     match /config/admin {
       allow read, update, delete: if false;
       allow create: if signedIn();
@@ -271,7 +271,7 @@ faqat `sinf:uid`, `sinf:role`, `sinf:code` kalitlarini o'zgartiring.
 
 Himoyalangan (Firestore qoidalari bilan, mijoz kodiga ishonmasdan):
 
-- **Sinf yaratish** faqat *bosh kalit* bilan — uni birinchi muallim belgilaydi,
+- **Sinf yasash** faqat *bosh kalit* bilan — uni birinchi muallim belgilaydi,
   mijoz hech qachon o'qiy olmaydi, server solishtiradi.
 - **Muallim PIN i** sinf hujjatida emas — `private/auth` da, faqat muallim o'qiydi.
   PIN esdan chiqsa, bosh kalit bilan tiklanadi.

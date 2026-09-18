@@ -149,22 +149,22 @@ else:
         s_, r = api("POST", "https://cloudresourcemanager.googleapis.com/v1/projects",
                     {"projectId": PROJECT, "name": "OscarTalim Sinf"})
     if s_ not in (200, 201):
-        die("Google Cloud loyihasi yaratilmadi: " + err_text(r))
+        die("Google Cloud loyihasi yasalmadi: " + err_text(r))
     op = wait_op("https://cloudresourcemanager.googleapis.com/v1/" + r["name"])
     if "error" in op:
-        die("Loyiha yaratish operatsiyasi xato: " + err_text(op))
-    print("yaratildi:", PROJECT)
+        die("Loyiha yasash operatsiyasi xato: " + err_text(op))
+    print("yasaldi:", PROJECT)
     time.sleep(5)
 
 step("1b. Loyihaga Firebase qo'shish")
 s_, r = api("GET", f"https://firebase.googleapis.com/v1beta1/projects/{PROJECT}")
 if s_ != 200:
-    # Balki muallim konsolda boshqa ID bilan yaratgan — nomi bo'yicha qidiramiz
+    # Balki muallim konsolda boshqa ID bilan yasagan — nomi bo'yicha qidiramiz
     s2, lst = api("GET", "https://firebase.googleapis.com/v1beta1/projects?pageSize=50")
     for pr in (lst.get("results") or []) if s2 == 200 else []:
         if (pr.get("displayName") or "").strip().lower() in ("oscartalim sinf", PROJECT):
             PROJECT = pr["projectId"]; s_ = 200
-            print("konsolda yaratilgan loyiha topildi:", PROJECT)
+            print("konsolda yasalgan loyiha topildi:", PROJECT)
             break
 if s_ == 200:
     print("Firebase allaqachon ulangan:", PROJECT)
@@ -176,7 +176,7 @@ else:
             die("Firebase qo'shilmadi: " + msg + "\n\n"
                 "Ko'p hollarda sabab — Firebase foydalanish shartlari hali qabul qilinmagan. "
                 "Shu Google akkaunt bilan https://console.firebase.google.com ni bir marta oching, "
-                "shartlarni qabul qiling (loyiha yaratish shart emas), keyin yangi Google kodi bilan qayta ishga tushiring.")
+                "shartlarni qabul qiling (loyiha yasash shart emas), keyin yangi Google kodi bilan qayta ishga tushiring.")
         die("Firebase qo'shilmadi: " + msg)
     op = wait_op("https://firebase.googleapis.com/v1beta1/" + r["name"])
     if "error" in op:
@@ -197,7 +197,7 @@ if c != 0 and "already exists" not in (out + err).lower():
     s, r = api("POST", f"https://firestore.googleapis.com/v1/projects/{PROJECT}/databases?databaseId=(default)",
                {"type": "FIRESTORE_NATIVE", "locationId": LOCATION})
     if s not in (200, 409):
-        die("Firestore yaratilmadi: " + str(r)[:400] + "\n" + err[-400:])
+        die("Firestore yasalmadi: " + str(r)[:400] + "\n" + err[-400:])
 print("firestore:", LOCATION)
 
 # ------------------------------------------------------------------ 4. anonim kirish
@@ -228,7 +228,7 @@ step("5. Web ilova")
 apps = fb_json("apps:list", "WEB").get("result", [])
 if not apps:
     c, out, err = fb("apps:create", "WEB", "AI Sinf")
-    if c != 0: die("Web ilova yaratilmadi: " + (out + err)[-600:])
+    if c != 0: die("Web ilova yasalmadi: " + (out + err)[-600:])
     apps = fb_json("apps:list", "WEB").get("result", [])
 app_id = apps[0]["appId"]
 cfg = fb_json("apps:sdkconfig", "WEB", app_id)["result"]["sdkConfig"]

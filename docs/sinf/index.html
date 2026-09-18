@@ -736,7 +736,7 @@ const LocalDB = {
 };
 /* Sinf hujjatida PIN yo'q (hamma o'qiydi). PIN faqat private/auth da, uni
    faqat muallim o'qiydi; muallim bo'lish = to'g'ri PIN bilan teachers/{uid}
-   hujjatini yaratish — buni Firestore qoidalari tekshiradi. */
+   hujjatini yasash — buni Firestore qoidalari tekshiradi. */
 
 async function makeCloudDB(cfg){
   const A = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
@@ -754,7 +754,7 @@ async function makeCloudDB(cfg){
     async saveClass(c,d){ await setDoc(D("classes",c), d, {merge:true}); },
     async createClass(c,d,pin,key){
       const me = auth.currentUser.uid;
-      /* 1) bosh kalit: birinchi marta yaratiladi, keyin faqat mos kelishi tekshiriladi.
+      /* 1) bosh kalit: birinchi marta yasaladi, keyin faqat mos kelishi tekshiriladi.
             config/admin ni mijoz o'qiy olmaydi — qoidalar get() bilan solishtiradi. */
       try { await setDoc(D("config","admin"), {key:String(key), by:me, at:serverTimestamp()}); } catch(e){}
       /* 2) private/auth — kalit mos kelmasa qoidalar rad etadi */
@@ -1566,14 +1566,14 @@ function screenTeacherGate(){
       <label>Bosh kalit</label><input id="r-key" type="password" placeholder="bosh kalit">
       <label>Yangi PIN</label><input id="r-pin" type="password" placeholder="kamida 6 belgi">
       <button class="btn" style="margin-top:10px" data-a="tReset">PIN ni yangilash</button></div>`:""}
-    <div class="card flat"><h2>Yangi sinf yaratish</h2>
+    <div class="card flat"><h2>Yangi sinf yasash</h2>
       <label>Kod (o'quvchilarga aytasiz)</label><input id="n-code" class="field-code" maxlength="8" placeholder="AI13">
       <label>Nomi</label><input id="n-name" placeholder="9-A sinf, AI kursi">
       <label>PIN (faqat sizda qoladi)</label><input id="n-pin" type="password" placeholder="kamida 6 belgi">
       <label>Bosh kalit</label><input id="n-key" type="password" placeholder="kamida 8 belgi">
-      <p class="small">Bosh kalit sinf yaratishni himoya qiladi: birinchi marta o'zingiz o'ylab topasiz,
+      <p class="small">Bosh kalit sinf yasashni himoya qiladi: birinchi marta o'zingiz o'ylab topasiz,
         keyingi har bir sinf uchun aynan shu kalit so'raladi. Usiz hech kim sinf ocha olmaydi.</p>
-      <button class="btn ghost" style="margin-top:10px" data-a="tCreate">Sinf yaratish</button></div>
+      <button class="btn ghost" style="margin-top:10px" data-a="tCreate">Sinf yasash</button></div>
     <p class="small" style="text-align:center">Rejim: ${DB&&DB.mode==="cloud"?"bulut (hamma sinf birga)":"mahalliy (faqat shu qurilma)"}</p>
     <button class="btn ghost" data-a="back">Orqaga</button></div>`);
 }
@@ -1615,7 +1615,7 @@ ACT.tCreate = async ()=>{
   await DB.setLive(c,{mode:"off"});
   SES.set("tea",{code:c});
   S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
-  await attach(c); toast("Sinf yaratildi"); render();
+  await attach(c); toast("Sinf yasaldi"); render();
 };
 
 function tnav(){
