@@ -1786,7 +1786,11 @@ ACT.khApply = async (btn)=>{
   I.max = Math.max(1, parseInt(document.getElementById("kh-max").value,10)||LIVE_CAP);
   I.lesson = +document.getElementById("kh-lesson").value || 1;
   const id = hashOf(I.src + "|" + I.lesson);
-  if (await DB.hasImport(S.code, id)) { if(!confirm("Bu natija allaqachon qo'shilgan. Yana qo'shilsinmi?")) return; }
+  /* Takror tekshiruvi qo'shimcha himoya: qoidalar eskirgan bo'lsa ham
+     importning o'zi to'xtab qolmasin. */
+  try { if (await DB.hasImport(S.code, id)) {
+    if(!confirm("Bu natija allaqachon qo'shilgan. Yana qo'shilsinmi?")) return; } }
+  catch(e){ console.warn("import yozuvi o'qilmadi", e); }
   const top=Math.max(1,...I.rows.map(r=>r.score));
   const list=I.rows.filter(r=>I.map[r.name]);
   if (!list.length) return toast("Birorta o'quvchi tanlanmagan",true);
@@ -1801,7 +1805,8 @@ ACT.khApply = async (btn)=>{
     await DB.bumpPoints(S.code, sid, p, weekNo());
     n++;
   }
-  await DB.addImport(S.code, id, {lesson:I.lesson, players:list.length, max:I.max});
+  try { await DB.addImport(S.code, id, {lesson:I.lesson, players:list.length, max:I.max}); }
+  catch(e){ console.warn("import yozuvi saqlanmadi", e); }
   S.imp=null; toast(`${n} ta o'quvchiga ball qo'shildi`); render();
 };
 ACT.qL = n=>{ S.qLesson=+n.dataset.n; render(); };
