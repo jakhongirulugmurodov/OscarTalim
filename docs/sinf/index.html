@@ -166,8 +166,17 @@ body.proj .pin{font-size:4.5rem}
 .bd .two>div{background:var(--bg2);border-radius:12px;padding:12px}
 .bd .two b{display:block;margin-bottom:5px;font-size:.9rem}
 .bd .two span{color:var(--muted);font-size:.86rem;line-height:1.5}
-.bd .two>div:first-child{border-left:3px solid var(--err)}
-.bd .two>div:last-child{border-left:3px solid var(--ok)}
+.bd .two.warn>div:first-child{border-left:3px solid var(--err)}
+.bd .two.warn>div:last-child{border-left:3px solid var(--ok)}
+.bd .map{margin-top:8px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.bd .map .r{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)}
+.bd .map .r:last-child{border-bottom:0}
+.bd .map .r>div{padding:10px 12px;font-size:.88rem;line-height:1.45}
+.bd .map .r>div:first-child{background:var(--bg2)}
+.bd .map .r>div:last-child{color:var(--accent2)}
+.bd .map .r.h>div{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.bd .map .r.h>div:last-child{color:var(--muted)}
+body.proj .bd .map .r>div{font-size:1.2rem;padding:14px 18px}
 @media (max-width:420px){.bd .two{grid-template-columns:1fr}}
 body.proj .bd{padding:26px}
 body.proj .bd .big{font-size:2.1rem}
@@ -358,7 +367,7 @@ const COURSE = {
       "AI bilmasligini bilmaydi. U \"bilmayman\" deyish uchun emas, javob berish uchun qurilgan.",
       "U keyingi so'zni taxmin qiladi. Darslik nomi qanday ko'rinishini biladi — ichida nima borligini emas.",
       "Ishonchli ohang — bu uslub, bilim emas. To'g'risini ham, to'qimasini ham bir xil aytadi."]},
-    {t:"Tekshiruv qoidasi", two:[
+    {t:"Tekshiruv qoidasi", tone:"warn", two:[
       ["DOIM tekshiriladi", "raqam · sana · ism · manba · sitata · sahifa"],
       ["Tekshirish shart emas", "fikr · tushuntirish · g'oya"]],
      d:"Hammasini tekshirsang — AI foydasiz bo'lib qoladi. Ajratish shu."},
@@ -420,6 +429,35 @@ const COURSE = {
        "Shuning uchun har safar javob biroz boshqacha.",
        "Uning \"xotirasi\" cheklangan — uzun suhbatda boshi tushib qoladi.",
        "Google topadi, AI yasaydi. Ikkovi boshqa asbob."],
+  board:[
+    {t:"5-dars bilan farqi", two:[
+      ["5-darsda", "Javob kelgandan KEYIN tekshirdik"],
+      ["Bugun", "Savol berishdan OLDIN bilamiz"]],
+     d:"Bu savolda AI zaif bo'ladimi yoki yo'q — buni oldindan aytish mumkin."},
+    {t:"1. AI keyingi so'zni tanlaydi", big:"Zanjir jumla o'yinini esla",
+     d:"Navbating kelganda mos keladigan so'zlar ichidan bittasini tanlading. AI ham xuddi shunday: har safar keyingi so'zni tanlaydi. Shuning uchun bir xil savolga ikki marta so'rasang, javob boshqacha chiqishi mumkin."},
+    {t:"2. Xotirasi chegarali", big:"Bu xato emas \u2014 bu chegara",
+     d:"Robot chizish o'yinida boshidagi \"ko'k rangli\" va \"uchta oyoqli\" tushib qoldi. Yangi narsa kirganda, eskisi chiqib ketadi. Qoida: suhbat uzaysa, eng muhim shartni oxirida ham takrorla."},
+    {t:"3. AI ikki narsani ko'rmaydi", two:[
+      ["Harflarni ko'rmaydi", "So'zni bo'laklar bilan yaxlit ko'radi. Sanash, teskari tartib, oxirgi harf \u2014 unga qiyin."],
+      ["Bugunni bilmaydi", "O'qiganini biladi, bugun bo'lganini emas. Yangilik, natija, narx \u2014 eskisini aytadi."]]},
+    {t:"Zaif joylar xaritasi", map:{head:["AI qayerda zaif","Nima qilaman"], rows:[
+      ["Aniq raqam, sana, sahifa","Kitobdan tekshiraman"],
+      ["Harf sanash, teskari yozish","O'zim sanayman"],
+      ["Bugungi va yaqin kundagi voqealar","Yangilikdan qarayman"],
+      ["Uzun suhbatning boshi","Muhim shartni oxirida takrorlayman"],
+      ["Bir xil savolga ikki xil javob","Ikki marta so'rayman"],
+      ["Mahalliy, kichik joylar haqida","Odamdan so'rayman"]]},
+     d:"Eng muhim qism. Sinf devorida ham turadi."},
+    {t:"Bashorat o'yini", map:{head:["Savol","AI bunga qanday javob beradi"], rows:[
+      ["Suvning qaynash harorati necha gradus?","to'g'ri"],
+      ["Bizning maktabimiz qachon qurilgan?","shubhali"],
+      ["\"Algoritm\" so'zida nechta harf bor?","shubhali"],
+      ["Fotosintez nima?","to'g'ri"],
+      ["Kecha o'yinda hisob qanday bo'ldi?","shubhali"]]},
+     d:"Javobni ko'rmasdan oldin ayt \u2014 keyin sinab ko'r."},
+    {t:"Yodda tut", big:"AI ahmoq emas. U boshqacha.",
+     d:"Odam sanaydi \u2014 AI taxmin qiladi. Odam eslaydi \u2014 AI oxirgi qismini ko'radi. Ikkalasining kuchli joyi boshqa. Sening ishing \u2014 qaysi ishni kimga berishni bilish."}],
   duel:[
     {q:"AI bir xil savolga har safar boshqacha javob bermoqda. Bu nima?",
      a:["Buzilgan","Normal — u ehtimol bilan so'z tanlaydi","Internet sekin","Kimdir o'zgartirgan"],c:1,
@@ -1248,7 +1286,11 @@ function boardHtml(l){
   return l.board.map(b=>`<div class="bd">
     <div class="cap">${esc(b.t)}</div>
     ${b.big?`<div class="big">${esc(b.big)}</div>`:""}
-    ${b.two?`<div class="two">${b.two.map(([t,d])=>
+    ${b.map?`<div class="map">
+      ${b.map.head?`<div class="r h"><div>${esc(b.map.head[0])}</div><div>${esc(b.map.head[1])}</div></div>`:""}
+      ${b.map.rows.map(([a,c])=>`<div class="r"><div>${esc(a)}</div><div>${esc(c)}</div></div>`).join("")}
+    </div>`:""}
+    ${b.two?`<div class="two ${b.tone==="warn"?"warn":""}">${b.two.map(([t,d])=>
       `<div><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("")}</div>`:""}
     ${b.num?`<ol>${b.num.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:""}
     ${b.list?`<ul>${b.list.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
