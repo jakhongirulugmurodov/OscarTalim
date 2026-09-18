@@ -243,6 +243,14 @@ service cloud.firestore {
         allow update, delete: if famMember(f) && resource.data.memberUid == me();
       }
     }
+
+    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun)
+    match /tugilgankun/{uid} {
+      allow read, write: if signedIn() && me() == uid;
+      match /items/{id} {
+        allow read, write: if signedIn() && me() == uid;
+      }
+    }
   }
 }
 ```

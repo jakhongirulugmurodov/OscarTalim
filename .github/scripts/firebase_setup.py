@@ -223,6 +223,19 @@ if s != 200:
         "Keyin yangi Google kodi bilan qayta ishga tushiring.")
 print("anonim kirish: yoqildi")
 
+# ------------------------------------------------------------------ 4b. email/parol kirish
+step("4b. Email/parol kirish")
+url_ep = cfg_url + "?updateMask=signIn.email.enabled,signIn.email.passwordRequired"
+body_ep = {"signIn": {"email": {"enabled": True, "passwordRequired": True}}}
+s, r = api("PATCH", url_ep, body_ep)
+if s != 200:
+    print("::warning::Email/parol kirish avtomatik yoqilmadi (" + str(r)[:200] + "). "
+          "Docs/tugilgankun ilovasi mahalliy rejimda ishlayveradi; bulutli qilish uchun "
+          "konsolda qo'lda yoqing: https://console.firebase.google.com/project/" + PROJECT +
+          "/authentication → Sign-in method → Email/Password → Enable.")
+else:
+    print("email/parol kirish: yoqildi")
+
 # ------------------------------------------------------------------ 5. web ilova
 step("5. Web ilova")
 apps = fb_json("apps:list", "WEB").get("result", [])
