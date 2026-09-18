@@ -79,50 +79,6 @@ service cloud.firestore {
       }
     }
 
-    // ===================================================================
-    // VIKTORINA (docs/viktorina) — mustaqil to'plamlar, sinf'dan alohida.
-    // ===================================================================
-
-    // Profil: taxallus, avatar, XP, statistika, nishonlar, reyting hisobi.
-    // Mijoz o'z hujjatiga xohlagan maydonni yozadi (server funksiyasi yo'q,
-    // shuning uchun XP/ball hisobiga to'liq ishonch talab qilinadi — xuddi
-    // sinf'dagi bumpPoints kabi).
-    match /qUsers/{uid} {
-      allow read:  if signedIn();
-      allow write: if signedIn() && me() == uid;
-
-      // Shaxsiy natijalar tarixi — faqat egasi o'qiydi/yozadi.
-      match /qResults/{rid} {
-        allow read:  if signedIn() && me() == uid;
-        allow create: if signedIn() && me() == uid;
-      }
-    }
-
-    // Testlar: muallif yaratadi/o'chiradi; o'ynalganlar soni har kim
-    // tomonidan oshiriladi (faqat 'plays' maydoni o'zgarsa ruxsat).
-    match /qQuizzes/{qid} {
-      allow read:   if signedIn();
-      allow create: if signedIn() && request.resource.data.authorUid == me();
-      allow update: if signedIn() && (
-        resource.data.authorUid == me() ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['plays'])
-      );
-      allow delete: if signedIn() && resource.data.authorUid == me();
-    }
-
-    // Jonli xonalar: xonani faqat mezbon yaratadi/boshqaradi;
-    // o'yinchi faqat o'z hujjatiga yozadi (ball, javoblar).
-    match /qRooms/{pin} {
-      allow read:   if signedIn();
-      allow create: if signedIn() && request.resource.data.hostUid == me();
-      allow update: if signedIn() && resource.data.hostUid == me();
-
-      match /players/{uid} {
-        allow read:  if signedIn();
-        allow write: if signedIn() && me() == uid;
-      }
-    }
-
     // ===== Oilaviy xarajatlar (oila) =====
     function famMember(f){ return signedIn() &&
       exists(/databases/$(db)/documents/families/$(f)/members/$(request.auth.uid)); }
@@ -159,9 +115,7 @@ service cloud.firestore {
       }
     }
 
-    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun): har kim faqat
-    // o'z hisobini (uid) o'qiydi va yozadi — boshqa foydalanuvchi
-    // ma'lumotini na o'qish, na o'zgartirish mumkin emas.
+    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun)
     match /tugilgankun/{uid} {
       allow read, write: if signedIn() && me() == uid;
       match /items/{id} {
