@@ -384,6 +384,50 @@ const COURSE = {
       "Oxirgi hakam — AI emas."]},
     {t:"Xulosa", big:"AI yaroqsiz emas.",
      d:"U kalkulyator kabi — noto'g'ri tugma bosilsa, noto'g'ri javob beradi. Farqi shundaki, kalkulyator xatosini darrov ko'rasan, AI'ning xatosi chiroyli ko'rinadi."}],
+  /* Takrorlash to'plami. Qoida bitta: raqam/sana/ism/manba/sahifa —
+     tekshiriladi, fikr/tushuntirish/g'oya — yo'q. Har savolga javob shu
+     qoidadan kelib chiqadi; tashqi bilim (adabiyot, tarix) kerak emas. */
+  rep:[
+    {q:"«Bu voqea 1991-yilda bo'lgan» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Sana — tekshiriladigan ro'yxatda. AI eng ko'p shu yerda to'qiydi."},
+    {q:"«Kitobning 120-betida yozilgan» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Sahifa raqami — tekshiriladi. Kitobni ochsang bir soniyada bilinadi."},
+    {q:"«Menimcha bu kitob juda qiziqarli» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:1,
+     w:"«Menimcha» — bu fikr. Fikr to'g'ri ham, xato ham emas — tekshirib bo'lmaydi."},
+    {q:"«Muallifning ismi — Hamid Olimjon» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Ism — tekshiriladi. AI ismlarni almashtirib yuborishi oddiy hol."},
+    {q:"«Buni sodda qilib tushuntirib beraman» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:1,
+     w:"Tushuntirish — tekshirilmaydi. Tushunarli bo'ldimi yoki yo'qmi, o'zing bilasan."},
+    {q:"«Insho uchun uchta g'oya beraman» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:1,
+     w:"G'oya — tekshirilmaydi. Yoqdimi yoki yo'qmi — buni sen hal qilasan."},
+    {q:"«Bu «Fan va turmush» jurnalida chiqqan» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Manba — tekshiriladi. Ba'zan jurnalning o'zi ham to'qilgan bo'ladi."},
+    {q:"AI: «Bu qo'shiq 2003-yilda chiqqan. Menimcha juda yaxshi qo'shiq.» Nimani tekshirasan?", t:20,
+     a:["«Juda yaxshi» degan fikrni","Jumlaning uzunligini","2003-yilni","«Menimcha» so'zini"],c:2,
+     w:"Bitta jumlada ikki xil narsa bor: raqam va fikr. Faqat raqam tekshiriladi."},
+    {q:"AI: «Bu kitobni o'qishni maslahat beraman. U 320 betdan iborat.» Nimani tekshirasan?", t:20,
+     a:["320 betni","Maslahatni","AI'ning ohangini","Kitob nomining uzunligini"],c:0,
+     w:"Maslahat — fikr, tekshirilmaydi. 320 — raqam, tekshiriladi."},
+    {q:"AI: «Fotosintez — nur orqali energiya olish. 7-sinf darsligi, 58-bet.» Nimani tekshirasan?", t:20,
+     a:["Fotosintez tushuntirishini","«Energiya» so'zini","Jumla tartibini","58-betni"],c:3,
+     w:"Tushuntirish to'g'ri bo'lishi mumkin, lekin sahifa to'qilgan bo'lishi mumkin."},
+    {q:"AI: «Maqola 2019-yil 12-mayda «Ma'rifat»da chiqqan. Mavzusi juda dolzarb.» Qaysi biri TEKSHIRILMAYDI?", t:20,
+     a:["Gazeta nomi","«Juda dolzarb» degan fikr","2019-yil","12-may"],c:1,
+     w:"Uchtasi — sana va manba, tekshiriladi. Bittasi — fikr, tekshirilmaydi."},
+    {q:"AI kitob nomi va sahifa raqamini berdi. Eng ishonchli tekshiruv qaysi?", t:20,
+     a:["AI'dan «rostmi?» deb so'rash","Kitobning o'zini ochib ko'rish","Savolni qayta yozish","Do'stimdan so'rash"],c:1,
+     w:"AI'dan so'rasang yana ishonch bilan «ha» deydi. Oxirgi hakam — AI emas."},
+    {q:"Qoidani tanla:", t:20,
+     a:["Hammasini tekshiraman","Faqat uzun javoblarni tekshiraman","Hech narsani tekshirmayman",
+        "Raqam, sana, ism, manba, sahifa — tekshiriladi; fikr va g'oya — yo'q"],c:3,
+     w:"Hammasini tekshirsang AI foydasiz bo'ladi. Hech narsani tekshirmasang — aldanasan. Ajratish shu."}],
   duel:[
     {q:"Bir xil savolga AI ikki daqiqa oraliqda ikki xil javob berdi. Bu nimani anglatadi?",
      a:["Internet uzilgan","Kamida bittasi to'qilgan — ishonch yo'q","Ikkinchi javob doim to'g'ri","Model yangilangan"],c:1,
@@ -919,6 +963,9 @@ const tgOf    = uid => (S.profiles[uid]||{}).tgUser || "";
 const openCount = () => (S.cls && S.cls.open) ? S.cls.open : 0;
 const isOpen  = n => n <= openCount();
 const lessonOf = n => COURSE.lessons.find(l=>l.n===n);
+/* Jonli o'yin ikki to'plamdan o'ynaydi: "duel" — dars savollari,
+   "rep" — takrorlash. Ikkalasining tuzilishi bir xil. */
+const qsOf = (n,set) => ((lessonOf(n)||{})[set==="rep"?"rep":"duel"]) || [];
 const doneIds = () => new Set(S.entries.map(e=>e.lesson+":"+e.task));
 function taskCount(lesson, task){ return S.entries.filter(e=>e.lesson===lesson && e.task===task).length; }
 function isDone(lesson, task){ return taskCount(lesson,task)>0; }
@@ -1453,8 +1500,8 @@ function screenLive(){
   const opts = L.mode==="hunt" ? L.s : L.a;
   if (L.mode==="kahoot") return screenKahoot(L);
   if (L.mode==="result") return screenResult(L);
-  const total = L.mode==="duel" && L.lesson ? (lessonOf(L.lesson)||{duel:[]}).duel.length : 0;
-  const title = (L.mode==="duel" ? "Jonli duel" : L.mode==="hunt" ? "Yolg'on ovi" : "Ovoz berish")
+  const total = L.mode==="duel" && L.lesson ? qsOf(L.lesson,L.set).length : 0;
+  const title = (L.mode==="duel" ? (L.set==="rep"?"Takrorlash":"Jonli duel") : L.mode==="hunt" ? "Yolg'on ovi" : "Ovoz berish")
     + (total ? ` · ${(L.qi||0)+1}/${total}` : "");
   const head = L.mode==="hunt" ? `Mavzu: ${esc(L.topic)} — to'qilgan jumlani top` : esc(L.q);
 
@@ -1771,7 +1818,13 @@ function tJonli(){
       <div class="chips">${COURSE.lessons.filter(x=>x.n<=Math.max(open,1)).map(x=>
         `<button class="chip ${x.n===(S.qLesson||open)?"on":""}" data-a="qL" data-n="${x.n}">${x.n}</button>`).join("")}</div>
       <ul class="items" style="margin-top:10px">${l.duel.map((q,i)=>`<li><b>${i+1}.</b><span>${esc(q.q)}</span></li>`).join("")}</ul>
-      <button class="btn" data-a="startDuel" data-n="${l.n}" data-i="0">Duelni boshlash</button></div>
+      <button class="btn" data-a="startDuel" data-n="${l.n}" data-set="duel" data-i="0">Duelni boshlash</button></div>
+    ${l.rep?`<div class="card"><h3>Takrorlash — ${l.n}-dars</h3>
+      <p class="small">Bir hafta o'tib o'ynaladi. Tashqi bilim kerak emas: hamma javob
+        doskadagi bitta qoidadan chiqadi. Avval ${l.rep.filter(q=>q.a.length===2).length} ta tez savol
+        (ikki tugma, 15 soniya), keyin ${l.rep.filter(q=>q.a.length>2).length} tasi biroz qiyinrog'i.</p>
+      <ul class="items" style="margin-top:10px">${l.rep.map((q,i)=>`<li><b>${i+1}.</b><span>${esc(q.q)}</span></li>`).join("")}</ul>
+      <button class="btn" data-a="startDuel" data-n="${l.n}" data-set="rep" data-i="0">Takrorlashni boshlash</button></div>`:""}
     <div class="card"><h3>2. Yolg'on ovi</h3>
       <p class="small">Ekranda AI javobi — o'quvchilar to'qilgan jumlani topadi (+25).</p>
       <div class="chips">${HUNTS.map((x,i)=>`<button class="chip" data-a="startHunt" data-i="${i}">${esc(x.topic)}</button>`).join("")}</div></div>
@@ -1880,11 +1933,12 @@ ACT.khApply = async (btn)=>{
 };
 ACT.qL = n=>{ S.qLesson=+n.dataset.n; render(); };
 ACT.startDuel = async n=>{
-  const ln=+n.dataset.n, i=+n.dataset.i, q=lessonOf(ln).duel[i];
+  const ln=+n.dataset.n, i=+n.dataset.i, set=n.dataset.set||"duel";
+  const q=qsOf(ln,set)[i];
   if(!q) return toast("Savollar tugadi");
   if(i===0) S.quiz={scores:{},names:{}};   /* yangi viktorina — hisob noldan */
-  await DB.setLive(S.code,{mode:"duel",lesson:ln,qi:i,q:q.q,a:q.a,c:null,w:null,
-    t0:Date.now(),dur:25,reveal:false,key:`d${ln}_${i}_${Date.now()}`});
+  await DB.setLive(S.code,{mode:"duel",set,lesson:ln,qi:i,q:q.q,a:q.a,c:null,w:null,
+    t0:Date.now(),dur:q.t||25,reveal:false,key:`${set[0]}${ln}_${i}_${Date.now()}`});
 };
 ACT.startHunt = async n=>{
   const x=+n.dataset.i, hn=HUNTS[x];
@@ -1940,21 +1994,21 @@ function tLiveRunning(L){
   const opts = L.mode==="hunt"?L.s:L.a;
   const counts = opts.map((_,i)=>ans.filter(a=>a.c===i).length);
   const head = L.mode==="hunt"?`Mavzu: ${esc(L.topic)} — to'qilgan jumlani toping`:esc(L.q);
-  const qs = L.mode==="duel" && L.lesson ? (lessonOf(L.lesson)||{duel:[]}).duel : [];
+  const qs = L.mode==="duel" && L.lesson ? qsOf(L.lesson,L.set) : [];
   const last = L.mode==="duel" && L.qi>=qs.length-1;
-  return `<div class="card accent"><small class="small">${L.mode==="duel"?`DUEL · ${(L.qi||0)+1}/${qs.length}`:L.mode==="hunt"?"YOLG'ON OVI":"OVOZ BERISH"}</small>
+  return `<div class="card accent"><small class="small">${L.mode==="duel"?`${L.set==="rep"?"TAKRORLASH":"DUEL"} · ${(L.qi||0)+1}/${qs.length}`:L.mode==="hunt"?"YOLG'ON OVI":"OVOZ BERISH"}</small>
       <h2>${head}</h2>
       <p class="small">${ans.length} / ${total} javob berdi</p></div>
     ${opts.map((o,i)=>{
       const w = ans.length?Math.round(counts[i]/ans.length*100):0;
-      const right = L.reveal && L.mode!=="poll" && i===(L.mode==="hunt"?HUNTS[L.hi].lie:lessonOf(L.lesson).duel[L.qi].c);
+      const right = L.reveal && L.mode!=="poll" && i===(L.mode==="hunt"?HUNTS[L.hi].lie:qsOf(L.lesson,L.set)[L.qi].c);
       return `<div class="opt ${right?"right":""}">${esc(o)}
         <div class="bar" style="margin-top:8px"><i style="width:${w}%"></i></div>
         <small>${counts[i]} ta${L.reveal?"":""}</small></div>`;
     }).join("")}
     <div class="btn-row" style="margin-top:12px">
       ${L.reveal?"":`<button class="btn" data-a="reveal">Javobni ochish</button>`}
-      ${L.mode==="duel"&&L.reveal&&!last?`<button class="btn" data-a="startDuel" data-n="${L.lesson}" data-i="${L.qi+1}">Keyingi savol</button>`:""}
+      ${L.mode==="duel"&&L.reveal&&!last?`<button class="btn" data-a="startDuel" data-n="${L.lesson}" data-set="${L.set||"duel"}" data-i="${L.qi+1}">Keyingi savol</button>`:""}
       ${L.mode==="duel"&&L.reveal&&last?`<button class="btn" data-a="finishQuiz">Yakuniy natija</button>`:""}
       <button class="btn ghost" data-a="stopLive">To'xtatish</button>
       <button class="btn ghost" data-a="proj">Proyektor</button>
@@ -1963,7 +2017,7 @@ function tLiveRunning(L){
 ACT.reveal = async ()=>{
   const L=S.live;
   let c=-1,w="";
-  if(L.mode==="duel"){ const q=lessonOf(L.lesson).duel[L.qi]; c=q.c; w=q.w; }
+  if(L.mode==="duel"){ const q=qsOf(L.lesson,L.set)[L.qi]; c=q.c; w=q.w; }
   else if(L.mode==="hunt"){ c=HUNTS[L.hi].lie; w=HUNTS[L.hi].w; }
   /* viktorina hisobi: to'g'ri javob 10 + tezlik uchun 20 gacha */
   if(c>=0) (S.liveAns||[]).forEach(a=>{
