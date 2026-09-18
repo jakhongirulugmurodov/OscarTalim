@@ -497,6 +497,12 @@ async function makeCloudDB(cfg){
       catch(e){ return false; }
     },
     isEditor(){ return editor; },
+    // Sahifa qayta yuklanganda ham kutubxonachi holati saqlansin — Firestore'dan tekshiramiz.
+    async refreshEditor(){
+      try { editor = (await getDoc(D("libConfig","editors",auth.currentUser.uid))).exists(); }
+      catch(e){ editor = false; }
+      return editor;
+    },
   };
 }
 
@@ -535,12 +541,19 @@ async function royxatTugat(){
     return;
   }
 
-  await DB.createUser(S.uid, {name});
-  await DB.setContact(S.uid, {
-    phone,
-    telegramId: IN_TG ? TG.initDataUnsafe.user.id : null,
-    telegramUsername: IN_TG ? (TG.initDataUnsafe.user.username||"") : "",
-  });
+  try {
+    await DB.createUser(S.uid, {name});
+    await DB.setContact(S.uid, {
+      phone,
+      telegramId: IN_TG ? TG.initDataUnsafe.user.id : null,
+      telegramUsername: IN_TG ? (TG.initDataUnsafe.user.username||"") : "",
+    });
+  } catch(e){
+    console.warn("Ro'yxatdan o'tishda xato:", e);
+    $("regBtn").disabled = false; $("regBtn").textContent = "✅ Ro'yxatdan o'tish";
+    $("regErr").textContent = "Saqlashda xato yuz berdi. Internetni tekshirib, qayta urining.";
+    return;
+  }
   localStorage.setItem("kutubxona:registered", "1");
   localStorage.setItem("kutubxona:name", name);
   S.name = name; S.registered = true;
@@ -648,7 +661,8 @@ function modalYop(){ $("modal").classList.add("hide"); $("modalBox").innerHTML="
 async function oqishniBoshla(bookId){
   const book = S.books.find(b=>b.id===bookId);
   const lang = $("pickLang").value;
-  await DB.startBorrow(S.uid, book, lang);
+  try { await DB.startBorrow(S.uid, book, lang); }
+  catch(e){ console.warn("Kitob olishda xato:", e); toast("Xato yuz berdi, qayta urining"); return; }
   modalYop();
   toast("Boshlandi! " + PERIOD_DAYS + " kun ichida o'qib tugating 📖");
   tabOch("kitoblarim");
@@ -656,7 +670,9 @@ async function oqishniBoshla(bookId){
 async function tugatdim(borrowId){
   const b = S.myBorrows.find(x=>x.id===borrowId);
   if (!b) return;
-  const days = await DB.finishBorrow(S.uid, b);
+  let days;
+  try { days = await DB.finishBorrow(S.uid, b); }
+  catch(e){ console.warn("Tugatishda xato:", e); toast("Xato yuz berdi, qayta urining"); return; }
   modalYop();
   toast(`Tabriklaymiz! ${days} kunda tugatdingiz 🎉`);
   tabOch("reyting");
@@ -784,19 +800,22 @@ async function kitobSaqla(){
     if (on && url) editions[kod] = {url};
   });
   if (!Object.keys(editions).length){ toast("Kamida bitta til uchun havola qo'shing"); return; }
-  await DB.addBook({
-    title, author,
-    category: $("nkCategory").value.trim(),
-    cover: $("nkCover").value.trim(),
-    desc: $("nkDesc").value.trim(),
-    editions,
-  });
+  try {
+    await DB.addBook({
+      title, author,
+      category: $("nkCategory").value.trim(),
+      cover: $("nkCover").value.trim(),
+      desc: $("nkDesc").value.trim(),
+      editions,
+    });
+  } catch(e){ console.warn("Kitob qo'shishda xato:", e); toast("Xato: saqlanmadi (huquq yo'qmi?)"); return; }
   modalYop();
   toast("Kitob qo'shildi ✅");
 }
 async function kitobOchir(id){
   if (!confirm("Bu kitob o'chirilsinmi?")) return;
-  await DB.deleteBook(id);
+  try { await DB.deleteBook(id); }
+  catch(e){ console.warn("Kitobni o'chirishda xato:", e); toast("Xato: o'chirilmadi (huquq yo'qmi?)"); return; }
   kitobQoshishOch();
 }
 
@@ -823,6 +842,7 @@ async function init(){
   if (DB.mode === "local") DB.start();
 
   S.uid = await DB.auth();
+  if (DB.refreshEditor) await DB.refreshEditor();
   S.registered = localStorage.getItem("kutubxona:registered") === "1";
   S.name = localStorage.getItem("kutubxona:name") || "";
 
