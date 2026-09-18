@@ -77,5 +77,41 @@ service cloud.firestore {
         allow write: if signedIn() && me() == uid;
       }
     }
+
+    // ===== Oilaviy xarajatlar (oila) =====
+    function famMember(f){ return signedIn() &&
+      exists(/databases/$(db)/documents/families/$(f)/members/$(request.auth.uid)); }
+
+    match /families/{f} {
+      allow read:   if famMember(f);
+      allow create: if signedIn() && request.resource.data.ownerUid == me() &&
+        get(/databases/$(db)/documents/families/$(f)/private/auth).data.owner == me();
+      allow update: if famMember(f);
+
+      match /private/auth {
+        allow read:   if famMember(f);
+        allow create: if signedIn() &&
+          !exists(/databases/$(db)/documents/families/$(f)) &&
+          request.resource.data.owner == me();
+        allow update: if famMember(f) && request.resource.data.owner == resource.data.owner;
+      }
+
+      // A'zolik: faqat oila PIN ini bilgan odam qo'shilishi mumkin
+      match /members/{uid} {
+        allow read:   if famMember(f);
+        allow create: if signedIn() && uid == me() && request.resource.data.pin ==
+          get(/databases/$(db)/documents/families/$(f)/private/auth).data.pin;
+        allow update: if signedIn() && uid == me();
+        allow delete: if signedIn() && uid == me();
+      }
+
+      // Har kim o'z xarajatini yozadi; tahrir/o'chirish faqat egasiga — "kim qancha
+      // sarfladi" hisobi ishonchli qolsin
+      match /expenses/{e} {
+        allow read:   if famMember(f);
+        allow create: if famMember(f) && request.resource.data.memberUid == me();
+        allow update, delete: if famMember(f) && resource.data.memberUid == me();
+      }
+    }
   }
 }
