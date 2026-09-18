@@ -202,10 +202,10 @@ const LocalDB = {
   },
   async logout(){ this.setSession(false); },
   async listItems(){ return Object.values(this._items()); },
-  async addItem(_uid, item){
+  async addItem(uid, item){
     const all = this._items();
     const id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    all[id] = { ...item, id };
+    all[id] = { ...item, id, authUid: uid };
     this._save(all);
     return id;
   },
@@ -259,17 +259,20 @@ async function makeCloudDB(cfg){
       return cred.user.uid;
     },
     async logout(){ await U.signOut(auth); },
-    async listItems(uid){
-      const q = await getDocs(C("tugilgankun", uid, "items"));
+    // "birthdays_shared" — hamma ro'yxatdan o'tgan foydalanuvchi o'qiy oladigan
+    // umumiy to'plam: kim qo'shsa, hammaga ko'rinadi. Tahrirlash/o'chirish esa
+    // faqat o'sha yozuvni qo'shgan kishiga (authUid) — buni qoidalar tekshiradi.
+    async listItems(){
+      const q = await getDocs(C("birthdays_shared"));
       return q.docs.map(d => ({ ...d.data(), id: d.id }));
     },
     async addItem(uid, item){
       const id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      await setDoc(D("tugilgankun", uid, "items", id), { ...item, createdAt: Date.now() });
+      await setDoc(D("birthdays_shared", id), { ...item, authUid: uid, createdAt: Date.now() });
       return id;
     },
-    async updateItem(uid, id, item){ await setDoc(D("tugilgankun", uid, "items", id), item, { merge: true }); },
-    async deleteItem(uid, id){ await deleteDoc(D("tugilgankun", uid, "items", id)); },
+    async updateItem(_uid, id, item){ await setDoc(D("birthdays_shared", id), item, { merge: true }); },
+    async deleteItem(_uid, id){ await deleteDoc(D("birthdays_shared", id)); },
   };
 }
 
@@ -311,6 +314,11 @@ function turningAge(year, month, day){
 }
 function sortedItems(){
   return S.items.map(it => ({ ...it, left: daysUntil(it.day, it.month) })).sort((a, b) => a.left - b.left);
+}
+// Ro'yxat umumiy (hammaga ko'rinadi) — lekin onboarding va tahrirlash faqat
+// shu foydalanuvchi o'zi qo'shgan yozuvlarga (authUid) tegishli bo'lishi kerak.
+function myItems(){
+  return S.items.filter(it => it.authUid === S.uid);
 }
 function normalizePhone(raw){
   let digits = (raw || "").replace(/[^\d+]/g, "");
@@ -391,17 +399,19 @@ function screenAuth(){
 }
 
 function screenOnboard(){
-  const count = S.items.length;
+  const mine = myItems();
+  const count = mine.length;
   const pct = Math.min(100, Math.round((count / ONBOARD_MIN) * 100));
   return `
   <div class="hero small">
     <div class="logo">🎉</div>
     <h1>Boshlaymiz!</h1>
-    <p class="muted">Yodda tutish uchun kamida ${ONBOARD_MIN} ta (10 tagacha bo'lsa yanada yaxshi) tug'ilgan kunni kiriting</p>
+    <p class="muted">Yodda tutish uchun kamida ${ONBOARD_MIN} ta (10 tagacha bo'lsa yanada yaxshi) tug'ilgan kunni kiriting.
+      Kiritgan tug'ilgan kunlaringiz keyinroq <b>hammaga</b> ko'rinadi.</p>
   </div>
   <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
   <p class="center muted">${count} / ${ONBOARD_MIN} ta kiritildi</p>
-  ${count ? `<div class="list compact">${S.items.map(onboardChip).join("")}</div>` : ""}
+  ${count ? `<div class="list compact">${mine.map(onboardChip).join("")}</div>` : ""}
   ${birthdayFormHTML(null)}
   <button class="btn ${count < ONBOARD_MIN ? "disabled" : ""}" ${count < ONBOARD_MIN ? "disabled" : ""} onclick="finishOnboarding()">
     ${count < ONBOARD_MIN ? `Yana ${ONBOARD_MIN - count} ta kerak` : "Davom etish →"}
@@ -422,12 +432,12 @@ function screenDashboard(){
     <div class="brand"><div class="mark">🎂</div><div><b>Tug'ilgan kunlar</b><div class="muted">${esc(S.contact)}</div></div></div>
     <button class="iconbtn" onclick="doLogout()">Chiqish</button>
   </div>
-  ${DB.mode === "local" ? `<div class="notice">📴 Mahalliy rejim: ma'lumotlar faqat shu qurilmada, shu brauzerda saqlanadi.</div>` : ""}
+  ${DB.mode === "local" ? `<div class="notice">📴 Mahalliy rejim: ma'lumotlar faqat shu qurilmada saqlanadi va boshqalarga ko'rinmaydi. Hamma bir-birining tug'ilgan kunini ko'rishi uchun bulutli rejim yoqilgan bo'lishi kerak (README'ga qarang).</div>` : ""}
   ${notifBannerHTML()}
   ${banner.length ? `
   <div class="section-title">🔔 Yaqinlashayotgan tug'ilgan kunlar</div>
   <div class="alerts">${banner.map(alertCard).join("")}</div>` : ""}
-  <div class="section-title">📋 Barcha tug'ilgan kunlar (${list.length})</div>
+  <div class="section-title">📋 Hammaning tug'ilgan kunlari (${list.length})</div>
   <div class="list">${list.length ? list.map(itemCard).join("") : `<div class="emptystate">Hozircha bo'sh. Pastdagi ➕ tugma orqali qo'shing.</div>`}</div>
   ${S.showAddForm ? birthdayFormHTML(S.editingId ? list.find(x => x.id === S.editingId) : null) : ""}
   <button class="fab" onclick="toggleAddForm()" title="Yangi tug'ilgan kun qo'shish">${S.showAddForm ? "✕" : "+"}</button>
@@ -447,16 +457,17 @@ function itemCard(it){
   const age = turningAge(it.year, it.month, it.day);
   const leftLabel = it.left === 0 ? "Bugun!" : it.left === 1 ? "Ertaga" : `${it.left} kun qoldi`;
   const badgeCls = it.left <= 1 ? "urgent" : it.left <= REMINDER_WINDOW ? "soon" : "later";
+  const mine = it.authUid === S.uid;
   return `<div class="item">
     <div class="item-main">
       <div class="item-name">${esc(it.name)}</div>
-      <div class="item-sub">${dateStr}${age !== null ? ` · ${age} yosh to'ladi` : ""}</div>
+      <div class="item-sub">${dateStr}${age !== null ? ` · ${age} yosh to'ladi` : ""}${mine ? " · siz qo'shgansiz" : ""}</div>
     </div>
     <div class="item-badge ${badgeCls}">${leftLabel}</div>
-    <div class="item-actions">
+    ${mine ? `<div class="item-actions">
       <button class="ghostsm" onclick="startEdit('${it.id}')" title="Tahrirlash">✏️</button>
       <button class="ghostsm" onclick="removeItem('${it.id}')" title="O'chirish">🗑</button>
-    </div>
+    </div>` : ""}
   </div>`;
 }
 function notifBannerHTML(){
@@ -519,7 +530,7 @@ function toast(msg){
 }
 
 async function loadItems(){ S.items = await DB.listItems(S.uid); }
-function decideScreen(){ S.screen = S.items.length < ONBOARD_MIN ? "onboard" : "dashboard"; }
+function decideScreen(){ S.screen = myItems().length < ONBOARD_MIN ? "onboard" : "dashboard"; }
 
 async function doAuth(){
   if (S.busy) return;
@@ -608,6 +619,8 @@ async function saveEditItem(id){
   } catch (e){ formMsg("formMsg", "Saqlashda xatolik: " + (e.message || e), true); }
 }
 async function removeItem(id){
+  const it = S.items.find(x => x.id === id);
+  if (!it || it.authUid !== S.uid) return; // faqat o'zi qo'shganini o'chira oladi
   if (!confirm("Bu tug'ilgan kunni o'chirishni tasdiqlaysizmi?")) return;
   await DB.deleteItem(S.uid, id);
   await loadItems();
@@ -615,12 +628,14 @@ async function removeItem(id){
 }
 function toggleAddForm(){ S.showAddForm = !S.showAddForm; S.editingId = null; render(); }
 function startEdit(id){
+  const it = S.items.find(x => x.id === id);
+  if (!it || it.authUid !== S.uid) return; // faqat o'zi qo'shganini tahrirlaydi
   S.editingId = id; S.showAddForm = true; render();
   const f = $("bfName"); if (f) f.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 function cancelEdit(){ S.editingId = null; S.showAddForm = false; render(); }
 function finishOnboarding(){
-  if (S.items.length >= ONBOARD_MIN){ S.screen = "dashboard"; render(); maybeNotify(); }
+  if (myItems().length >= ONBOARD_MIN){ S.screen = "dashboard"; render(); maybeNotify(); }
 }
 
 async function askNotif(){

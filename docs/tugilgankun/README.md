@@ -10,17 +10,26 @@ veb-ilova. Bitta fayl: HTML + CSS + JS, backend — Firebase (yoki mahalliy reji
    har birida ism-familiya, kun, oy va (ixtiyoriy) yil. Har biri alohida
    "Saqlash" bosilib, birma-bir qo'shiladi — progress-bar nechta qolganini
    ko'rsatib turadi.
-3. Kamida 5 ta kiritilgach, **asosiy panel** ochiladi:
+3. Kamida 5 ta kiritilgach, **asosiy panel** ochiladi — bu yerda **hamma
+   ro'yxatdan o'tgan foydalanuvchi qo'shgan tug'ilgan kunlar birgalikda**
+   ko'rinadi (masalan, oila yoki do'stlar guruhi uchun umumiy taqvim sifatida):
    - Tug'ilgan kuniga eng kam qolgan odamlar **tepada**, katta va rangli
      bannerlar bilan chiqadi (masalan: *"Yuldashev Olimjon tug'ilgan kuniga
      2 kun qoldi"*, ertaga uchun *"1 kun qoldi"*, bugun uchun *"Bugun!"*).
    - Uzoqroq tug'ilgan kunlar ro'yxat **pastida** turadi — sanalar o'zgargani
      sayin (kunlar kamayib borgani sayin) ular avtomatik yuqoriga ko'tariladi.
-   - Har bir yozuvni tahrirlash yoki o'chirish mumkin, pastdagi **➕** tugma
-     bilan istalgan vaqt yangi tug'ilgan kun qo'shiladi.
+   - **Faqat o'zingiz qo'shgan yozuvni** tahrirlash yoki o'chirish mumkin
+     (u "siz qo'shgansiz" deb belgilanadi) — boshqalar qo'shgan yozuvlar
+     faqat ko'rish uchun. Pastdagi **➕** tugma bilan istalgan vaqt yangi
+     tug'ilgan kun qo'shiladi.
 4. **Brauzer bildirishnomasi**: ruxsat berilsa, tug'ilgan kuniga 2, 1 va
    0 kun qolganda tizim bildirishnomasi chiqadi (kuniga bir marta, takror
-   yubormaydi).
+   yubormaydi) — bu hammaning ro'yxatiga tegishli.
+
+> **Muhim:** "hamma bir-birining tug'ilgan kunini ko'rishi" faqat **bulutli
+> rejim**da ishlaydi (pastga qarang). Mahalliy rejimda ma'lumot faqat shu
+> qurilmada qoladi va boshqa hech kimga ko'rinmaydi — chunki u serverga
+> umuman yuborilmaydi.
 
 ## Nega bepul
 
@@ -55,8 +64,11 @@ o'chirish (yoki sahifani "Clear site data" qilish) kerak bo'ladi — shundan
 keyin sayt qayta bulutga ulanishga urinadi.
 
 Xavfsizlik qoidalari `firestore.rules` (va `docs/sinf/README.md`dagi nusxasi)
-ichida: har bir foydalanuvchi **faqat o'zining** `tugilgankun/{uid}` hujjati
-va `items` ro'yxatini o'qiy va yoza oladi, boshqa hech kim emas.
+ichida: `birthdays_shared` to'plamini ro'yxatdan o'tgan **har qanday**
+foydalanuvchi o'qiy oladi (shu sabab hamma bir-birining tug'ilgan kunini
+ko'radi), lekin yozuvni faqat uni qo'shgan kishi (`authUid`) tahrirlaydi
+yoki o'chiradi. Shaxsiy kontakt ma'lumoti (`tugilgankun/{uid}`) esa hech
+qachon ochiq emas — uni faqat egasi o'qiydi.
 
 ## Hozirgi cheklovlar (kamchiliklar — bilib turing)
 
