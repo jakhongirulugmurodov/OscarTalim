@@ -159,14 +159,17 @@ service cloud.firestore {
       }
     }
 
-    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun): har kim faqat
-    // o'z hisobini (uid) o'qiydi va yozadi — boshqa foydalanuvchi
-    // ma'lumotini na o'qish, na o'zgartirish mumkin emas.
+    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun): profil (kontakt)
+    // faqat egasiga; tug'ilgan kunlar esa umumiy — ro'yxatdan o'tgan har kim
+    // hammaning yozuvlarini o'qiydi, lekin faqat o'zi qo'shganini (authUid)
+    // tahrirlaydi yoki o'chiradi.
     match /tugilgankun/{uid} {
       allow read, write: if signedIn() && me() == uid;
-      match /items/{id} {
-        allow read, write: if signedIn() && me() == uid;
-      }
+    }
+    match /birthdays_shared/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.authUid == me();
+      allow update, delete: if signedIn() && resource.data.authUid == me();
     }
   }
 }

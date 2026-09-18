@@ -244,12 +244,15 @@ service cloud.firestore {
       }
     }
 
-    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun)
+    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun): profil faqat egasiga;
+    // tug'ilgan kunlar umumiy — hamma o'qiydi, faqat o'zi qo'shganini yozadi.
     match /tugilgankun/{uid} {
       allow read, write: if signedIn() && me() == uid;
-      match /items/{id} {
-        allow read, write: if signedIn() && me() == uid;
-      }
+    }
+    match /birthdays_shared/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.authUid == me();
+      allow update, delete: if signedIn() && resource.data.authUid == me();
     }
   }
 }
