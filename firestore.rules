@@ -9,7 +9,7 @@ service cloud.firestore {
     function same(k){ return request.resource.data[k] == resource.data[k]; }
     function sameFlag(k){ return request.resource.data.get(k,false) == resource.data.get(k,false); }
 
-    // Bosh kalit: sinf yaratish huquqi. Mijoz uni o'qiy olmaydi.
+    // Bosh kalit: sinf yasash huquqi. Mijoz uni o'qiy olmaydi.
     match /config/admin {
       allow read, update, delete: if false;
       allow create: if signedIn();
@@ -69,8 +69,9 @@ service cloud.firestore {
            || stu(c,sid).authUid == me()));
       }
 
-      // Muallim yozadigan vazifalar
-      match /tasks/{t} { allow read: if signedIn(); allow write: if isTeacher(c); }
+      // Muallim yozadigan vazifalar va Kahoot import yozuvlari
+      match /tasks/{t}   { allow read: if signedIn(); allow write: if isTeacher(c); }
+      match /imports/{i} { allow read: if signedIn(); allow write: if isTeacher(c); }
       match /live/{d}  { allow read: if signedIn(); allow write: if isTeacher(c); }
       match /answers/{key}/votes/{uid} {
         allow read:  if signedIn();
