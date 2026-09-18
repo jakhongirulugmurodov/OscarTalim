@@ -87,6 +87,9 @@ label .hint{display:block;font-weight:400;font-size:.79rem;color:var(--muted);ma
   color:var(--muted);font-size:.82rem;cursor:pointer;white-space:nowrap}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .chip.done{border-color:var(--ok);color:var(--ok)}
+.chip.rdy:after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--ok);margin-left:6px;vertical-align:middle}
+.chip.rdy.on:after{background:#fff}
 
 /* ---- o'quvchi paneli ---- */
 .hud{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
@@ -853,7 +856,8 @@ const S = {
   sid:"",            /* hisob — o'quvchining doimiy identifikatori */
   cls:null, me:null, students:[], entries:[], live:null,
   lesson:null, imp:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[],
-  profiles:{}, myProfile:null, tasks:[], pendingSid:"", quiz:{scores:{},names:{}}
+  profiles:{}, myProfile:null, tasks:[], pendingSid:"", quiz:{scores:{},names:{}},
+  bd:0               /* muallim ko'rib turgan doska — 0 bo'lsa hozirgi ochiq dars */
 };
 const app = document.getElementById("app");
 const _svg = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -1212,7 +1216,8 @@ function screenPending(){
   </div>`);
 }
 ACT.logout = ()=>{ SES.clear("stu"); SES.clear("tea");
-  S.code=""; S.me=null; S.sid=""; S.role=""; S.loginList=null; S.screen="gate"; detach(); render(); };
+  S.code=""; S.me=null; S.sid=""; S.role=""; S.loginList=null; S.bd=0;
+  S.screen="gate"; detach(); render(); };
 
 /* ---------------------------------------------------------------------
    7) O'QUVCHI PANELI
@@ -1692,15 +1697,37 @@ function tDars(){
         <button class="btn" data-a="setOpen" data-n="${Math.min(13,open+1)}">Keyingi darsni ochish</button>
         <button class="btn ghost" data-a="setOpen" data-n="0">Hammasini yopish</button>
       </div></div>
-    ${open?`<div class="card flat"><h3>Hozirgi dars: ${open}. ${esc(lessonOf(open).t)}</h3>
-      ${lessonOf(open).board?`<p class="small">Pastdagi doska o'quvchilarda ham shu ko'rinishda turadi.</p>
-        <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button>`
-       :`<ul class="items">${lessonOf(open).key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul>`}</div>
-    ${boardHtml(lessonOf(open))}
-`:""}
+    ${tDoska(open)}
     <button class="btn ghost" data-a="logout">Chiqish</button>`;
 }
-ACT.setOpen = async n => { await DB.saveClass(S.code,{open:+n.dataset.n}); toast("Darslar yangilandi"); };
+ACT.setOpen = async n => { S.bd = +n.dataset.n;
+  await DB.saveClass(S.code,{open:+n.dataset.n}); toast("Darslar yangilandi"); };
+
+/* Doska — istalgan darsni bosib ko'rish mumkin. O'quvchiga ta'sir qilmaydi. */
+ACT.showBoard = n => { S.bd = +n.dataset.n; render(); };
+function tDoska(open){
+  const cur = lessonOf(S.bd) ? S.bd : (open || 1);
+  const l = lessonOf(cur);
+  if (!l) return "";
+  return `<div class="card flat"><h2>Doska</h2>
+      <p class="small">Bosing — o'sha darsning doskasi pastda chiqadi. Bu o'quvchilarga ta'sir qilmaydi.
+        Yashil nuqta — doska tayyor.</p>
+      <div class="chips" style="margin-top:8px">
+        ${COURSE.lessons.map(x=>`<button class="chip ${x.n===cur?"on":""} ${x.board?"rdy":""}"
+          data-a="showBoard" data-n="${x.n}">${x.n}</button>`).join("")}
+      </div>
+      <div class="sep"></div>
+      <h3>${l.n}-dars: ${esc(l.t)}</h3>
+      ${l.board
+        ? `<p class="small">${cur<=open
+            ? "Dars ochiq — o'quvchilarda ham shu ko'rinishda turibdi."
+            : "Bu dars hali ochilmagan — o'quvchilarda ko'rinmaydi. Siz oldindan ko'rib turibsiz."}</p>
+          <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button>`
+        : `<p class="small">Bu darsga doska hali yozilmagan. Asosiy fikrlar:</p>
+          <ul class="items">${l.key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul>`}
+    </div>
+    ${boardHtml(l)}`;
+}
 
 function tTasdiq(){
   const p=S.students.filter(s=>!s.ok);
