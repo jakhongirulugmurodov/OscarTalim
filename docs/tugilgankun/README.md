@@ -41,7 +41,7 @@ veb-ilova. Bitta fayl: HTML + CSS + JS, backend — Firebase (yoki mahalliy reji
   Authentication'ning **Spark (bepul) tarifi** doirasida, telefon SMS
   tasdiqlash ishlatilmaydi (u pullik bo'lardi). Buning o'rniga telefon
   raqami email formatiga o'giriladi (`tel<raqam>@tugilgankun.uz`) va odatiy
-  **Email/Parol** kirish usuli orqali hisob yaratiladi — bu usul Firebase'da
+  **Email/Parol** kirish usuli orqali hisob ochiladi — bu usul Firebase'da
   har doim bepul.
 
 ## Bulutli rejimni yoqish (ixtiyoriy — ma'lumotlar istalgan qurilmadan ochilishi uchun)

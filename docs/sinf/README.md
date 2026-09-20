@@ -227,7 +227,7 @@ service cloud.firestore {
       }
     }
 
-    // Testlar: muallif yaratadi/o'chiradi; o'ynalganlar soni har kim
+    // Testlar: muallif yasaydi/o'chiradi; o'ynalganlar soni har kim
     // tomonidan oshiriladi (faqat 'plays' maydoni o'zgarsa ruxsat).
     match /qQuizzes/{qid} {
       allow read:   if signedIn();
@@ -239,7 +239,7 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.authorUid == me();
     }
 
-    // Jonli xonalar: xonani faqat mezbon yaratadi/boshqaradi;
+    // Jonli xonalar: xonani faqat mezbon yasaydi/boshqaradi;
     // o'yinchi faqat o'z hujjatiga yozadi (ball, javoblar).
     match /qRooms/{pin} {
       allow read:   if signedIn();
