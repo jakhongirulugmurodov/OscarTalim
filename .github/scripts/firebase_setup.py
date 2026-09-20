@@ -117,15 +117,22 @@ def err_text(r):
     return (e.get("message") or json.dumps(e)[:400]) if isinstance(e, dict) else str(e)[:400]
 
 if MODE == "rules":
-    # Faqat qoidalarni yangilash: loyiha allaqachon tayyor
+    # Faqat qoidalarni yangilash: loyiha allaqachon tayyor.
+    # MUHIM: firestore.rules — repodagi *asosiy* fayl (bir nechta ilova
+    # o'z to'plamlarini shu bitta faylga qo'shadi). Uni docs/sinf/README.md
+    # dagi namunadan qayta yasash boshqa ilovalarning qoidalarini
+    # o'chirib yuboradi — shuning uchun fayl mavjud bo'lsa, uni aynan
+    # shu ko'rinishda joylaymiz. Faqat fayl umuman yo'q bo'lsa (yangi fork/
+    # birinchi marta sozlash), namunadan boshlang'ich nusxa yasaymiz.
     s_, lst = api("GET", "https://firebase.googleapis.com/v1beta1/projects?pageSize=50")
     for pr in (lst.get("results") or []) if s_ == 200 else []:
         if pr["projectId"].startswith(PROJECT.split("-")[0]) or pr["projectId"] == PROJECT:
             PROJECT = pr["projectId"]; break
     print("loyiha:", PROJECT)
-    readme = open(f"{REPO}/docs/sinf/README.md", encoding="utf-8").read()
-    rules = re.search(r"```js\n(rules_version.*?)```", readme, re.S).group(1)
-    open(f"{REPO}/firestore.rules", "w").write(rules)
+    if not os.path.exists(f"{REPO}/firestore.rules"):
+        readme = open(f"{REPO}/docs/sinf/README.md", encoding="utf-8").read()
+        rules = re.search(r"```js\n(rules_version.*?)```", readme, re.S).group(1)
+        open(f"{REPO}/firestore.rules", "w").write(rules)
     open(f"{REPO}/firebase.json", "w").write(json.dumps({"firestore": {"rules": "firestore.rules"}}, indent=2) + "\n")
     open(f"{REPO}/.firebaserc", "w").write(json.dumps({"projects": {"default": PROJECT}}, indent=2) + "\n")
     c, out, err = fb("deploy", "--only", "firestore:rules")
@@ -223,6 +230,19 @@ if s != 200:
         "Keyin yangi Google kodi bilan qayta ishga tushiring.")
 print("anonim kirish: yoqildi")
 
+# ------------------------------------------------------------------ 4b. email/parol kirish
+step("4b. Email/parol kirish")
+url_ep = cfg_url + "?updateMask=signIn.email.enabled,signIn.email.passwordRequired"
+body_ep = {"signIn": {"email": {"enabled": True, "passwordRequired": True}}}
+s, r = api("PATCH", url_ep, body_ep)
+if s != 200:
+    print("::warning::Email/parol kirish avtomatik yoqilmadi (" + str(r)[:200] + "). "
+          "Docs/tugilgankun ilovasi mahalliy rejimda ishlayveradi; bulutli qilish uchun "
+          "konsolda qo'lda yoqing: https://console.firebase.google.com/project/" + PROJECT +
+          "/authentication → Sign-in method → Email/Password → Enable.")
+else:
+    print("email/parol kirish: yoqildi")
+
 # ------------------------------------------------------------------ 5. web ilova
 step("5. Web ilova")
 apps = fb_json("apps:list", "WEB").get("result", [])
@@ -237,9 +257,12 @@ print("config:", ", ".join(cfg))
 
 # ------------------------------------------------------------------ 6. qoidalar
 step("6. Xavfsizlik qoidalari")
-readme = open(f"{REPO}/docs/sinf/README.md", encoding="utf-8").read()
-rules = re.search(r"```js\n(rules_version.*?)```", readme, re.S).group(1)
-open(f"{REPO}/firestore.rules", "w").write(rules)
+# firestore.rules — bir nechta ilova ulashadigan asosiy fayl; mavjud bo'lsa
+# uni saqlaymiz (README namunasi faqat yangi fork uchun boshlang'ich nusxa).
+if not os.path.exists(f"{REPO}/firestore.rules"):
+    readme = open(f"{REPO}/docs/sinf/README.md", encoding="utf-8").read()
+    rules = re.search(r"```js\n(rules_version.*?)```", readme, re.S).group(1)
+    open(f"{REPO}/firestore.rules", "w").write(rules)
 open(f"{REPO}/firebase.json", "w").write(json.dumps({"firestore": {"rules": "firestore.rules"}}, indent=2) + "\n")
 open(f"{REPO}/.firebaserc", "w").write(json.dumps({"projects": {"default": PROJECT}}, indent=2) + "\n")
 c, out, err = fb("deploy", "--only", "firestore:rules")

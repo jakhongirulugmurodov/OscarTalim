@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#140f24">
+<meta name="description" content="Oscar Viktorina — mavzulashtirilgan testlar, jonli bellashuv, reyting va o'z testingizni yaratish.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Oscar Viktorina</title>
+<style>
+:root{
+  --bg:#140f24; --bg2:#1b1436; --card:#221a3d; --card2:#2a2150; --line:#382d5c;
+  --ink:#f1eefc; --muted:#a79bd1;
+  --accent:#8b5cf6; --accent2:#c4b5fd; --accent-soft:rgba(139,92,246,.18);
+  --gold:#f6b93b; --ok:#22c55e; --err:#ef4444;
+  --red:#e21b3c; --blue:#1368ce; --yellow:#d89e00; --green:#26890c;
+  --r:16px; --shadow:0 10px 30px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.5;
+  padding:0 0 78px; min-height:100vh; overscroll-behavior-y:contain;
+}
+.wrap{max-width:640px;margin:0 auto;padding:14px 14px 10px}
+h1,h2,h3{margin:0;letter-spacing:-.02em;line-height:1.25}
+p{margin:0}
+a{color:var(--accent2)}
+button{font-family:inherit}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(135deg,var(--accent),#6d28d9); color:#fff; border:0;
+  border-radius:13px; padding:14px 18px; font-size:1rem; font-weight:700; width:100%;
+  cursor:pointer; box-shadow:0 8px 20px -8px rgba(139,92,246,.55); transition:transform .15s,opacity .2s;
+}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.ghost{background:var(--card); color:var(--ink); border:1.5px solid var(--line); box-shadow:none}
+.btn.gold{background:linear-gradient(135deg,var(--gold),#e08e0b); box-shadow:0 8px 20px -8px rgba(246,185,59,.5)}
+.btn.danger{background:linear-gradient(135deg,#f87171,#dc2626); box-shadow:0 8px 20px -8px rgba(220,38,38,.5)}
+.btn.small{width:auto; padding:9px 14px; font-size:.86rem; border-radius:11px}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+  padding:16px; margin-bottom:12px; box-shadow:var(--shadow);
+}
+.muted{color:var(--muted)}
+.center{text-align:center}
+input[type=text],input[type=number],input[type=password],textarea,select{
+  width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:12px;
+  font-size:1rem; background:var(--bg2); color:var(--ink); margin-top:6px;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+label{font-size:.84rem;font-weight:600;color:var(--muted);display:block;margin-top:10px}
+label:first-child{margin-top:0}
+.hint{font-size:.8rem;color:var(--muted);margin-top:6px;line-height:1.5}
+
+/* ===== Topbar ===== */
+.topbar{
+  display:flex;align-items:center;gap:10px;justify-content:space-between;
+  max-width:640px;margin:0 auto;padding:12px 14px 2px;
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.08rem}
+.brand .logo{font-size:1.4rem}
+.me{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:5px 12px 5px 6px;cursor:pointer}
+.me .av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);display:flex;
+  align-items:center;justify-content:center;font-size:1.05rem}
+.me .lv{font-size:.72rem;color:var(--gold);font-weight:700}
+
+/* ===== Bottom nav ===== */
+.nav{
+  position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-top:1px solid var(--line);
+  display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom);
+}
+.nav button{
+  flex:1;background:transparent;border:0;color:var(--muted);padding:9px 2px 8px;
+  font-size:.68rem;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.nav button .ic{font-size:1.28rem}
+.nav button.active{color:var(--accent2)}
+
+/* ===== Kategoriya grid ===== */
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:4px}
+.cat-card{
+  background:linear-gradient(155deg,var(--card2),var(--card)); border:1px solid var(--line);
+  border-radius:var(--r); padding:16px 14px; cursor:pointer; transition:transform .15s;
+}
+.cat-card:active{transform:scale(.97)}
+.cat-card .em{font-size:1.9rem}
+.cat-card h3{font-size:.98rem;margin-top:8px}
+.cat-card .n{font-size:.76rem;color:var(--muted);margin-top:2px}
+
+/* ===== Test kartasi ===== */
+.quiz-card{
+  display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer;transition:transform .15s;
+}
+.quiz-card:active{transform:scale(.985)}
+.quiz-card .qem{font-size:1.7rem;width:44px;text-align:center;flex-shrink:0}
+.quiz-card .qi{flex:1;min-width:0}
+.quiz-card .qi h4{font-size:.95rem;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quiz-card .qi .meta{font-size:.76rem;color:var(--muted);margin-top:2px}
+.diff{display:inline-block;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-right:6px}
+.diff.oson{background:rgba(34,197,94,.18);color:#4ade80}
+.diff.orta{background:rgba(246,185,59,.18);color:var(--gold)}
+.diff.qiyin{background:rgba(239,68,68,.18);color:#f87171}
+
+/* ===== O'yin ekrani ===== */
+.qprog{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--muted);margin-bottom:8px}
+.timerwrap{height:8px;background:var(--bg2);border-radius:999px;overflow:hidden;margin-bottom:16px}
+.timerbar{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));width:100%;transition:width .1s linear}
+.qtext{font-size:1.28rem;font-weight:800;margin:6px 0 18px;line-height:1.35}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{
+  display:flex;align-items:center;gap:8px;border:0;border-radius:14px;padding:16px 10px;
+  color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;min-height:64px;text-align:left;
+  transition:transform .12s,opacity .2s;
+}
+.opt:active{transform:scale(.96)}
+.opt.o0{background:var(--red)} .opt.o1{background:var(--blue)}
+.opt.o2{background:var(--yellow)} .opt.o3{background:var(--green)}
+.opt.correct{outline:3px solid #fff;box-shadow:0 0 0 4px rgba(34,197,94,.6)}
+.opt.wrong{opacity:.4}
+.opt.dim{opacity:.35}
+.opt .shape{font-size:1.1rem;flex-shrink:0}
+
+/* ===== Natija ===== */
+.score-hero{text-align:center;padding:26px 10px 10px}
+.score-hero .big{font-size:2.6rem;font-weight:900;color:var(--gold)}
+.score-hero .sub{color:var(--muted);margin-top:4px}
+.xp-pill{display:inline-block;background:var(--accent-soft);color:var(--accent2);font-weight:700;
+  padding:5px 14px;border-radius:999px;font-size:.85rem;margin-top:10px}
+.review{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.review:last-child{border-bottom:0}
+.review .mark{flex-shrink:0}
+
+/* ===== Profil ===== */
+.profile-head{display:flex;align-items:center;gap:14px}
+.avatar-big{width:64px;height:64px;border-radius:50%;background:var(--accent-soft);
+  display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0}
+.xpbar-wrap{height:10px;background:var(--bg2);border-radius:999px;overflow:hidden;margin-top:8px}
+.xpbar{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold))}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stat-box{background:var(--bg2);border-radius:12px;padding:10px 6px;text-align:center}
+.stat-box b{font-size:1.15rem;display:block}
+.stat-box span{font-size:.7rem;color:var(--muted)}
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+.badge{text-align:center;padding:10px 4px;border-radius:14px;background:var(--bg2)}
+.badge.locked{opacity:.3}
+.badge .em{font-size:1.6rem}
+.badge .nm{font-size:.66rem;margin-top:4px;font-weight:700;color:var(--muted)}
+.avatar-pick{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.avatar-pick button{width:44px;height:44px;border-radius:50%;border:2px solid transparent;
+  background:var(--bg2);font-size:1.3rem;cursor:pointer}
+.avatar-pick button.sel{border-color:var(--accent)}
+
+/* ===== Reyting ===== */
+.tabs{display:flex;background:var(--bg2);border-radius:12px;padding:4px;gap:4px;margin-bottom:12px}
+.tabs button{flex:1;padding:10px;font-size:.88rem;font-weight:700;background:transparent;
+  color:var(--muted);border:0;border-radius:9px}
+.tabs button.active{background:var(--card);color:var(--accent2)}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.lb-row:last-child{border-bottom:0}
+.lb-row.me{background:var(--accent-soft);border-radius:10px}
+.lb-rank{width:28px;text-align:center;font-weight:800;color:var(--muted);flex-shrink:0}
+.lb-rank.top1{color:var(--gold)} .lb-rank.top2{color:#cbd5e1} .lb-rank.top3{color:#d99a5a}
+.lb-av{font-size:1.2rem}
+.lb-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.9rem;font-weight:600}
+.lb-score{font-weight:800;color:var(--gold);font-size:.92rem}
+
+/* ===== Jonli ===== */
+.pin-box{background:var(--bg2);border-radius:16px;padding:18px;text-align:center;margin:14px 0}
+.pin-box .pin{font-size:2.4rem;font-weight:900;letter-spacing:.12em;color:var(--gold)}
+.player-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border-radius:999px;
+  padding:6px 12px 6px 6px;margin:4px 4px 0 0;font-size:.85rem;font-weight:600}
+.player-chip .av{font-size:1.1rem}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.82rem}
+.bar-row .lbl{width:70px;flex-shrink:0;font-weight:700}
+.bar-track{flex:1;height:16px;background:var(--bg2);border-radius:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:8px}
+.big-count{font-size:3rem;font-weight:900;text-align:center;color:var(--accent2)}
+
+/* ===== Test yaratish ===== */
+.qedit{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:12px;background:var(--bg2)}
+.qedit .opt-input{display:flex;align-items:center;gap:8px;margin-top:6px}
+.qedit .opt-input .dot{width:22px;height:22px;border-radius:50%;flex-shrink:0}
+.opt-input input[type=radio]{width:20px;height:20px;flex-shrink:0}
+
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);
+  background:#0f0a1f;color:#fff;padding:11px 20px;border-radius:999px;font-size:.88rem;font-weight:600;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;
+  z-index:50;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:.9rem}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--accent2);border-top-color:transparent;
+  border-radius:50%;vertical-align:-2px;animation:sp .7s linear infinite;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:380px){ .opts{grid-template-columns:1fr} .badge-grid{grid-template-columns:repeat(3,1fr)} }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"></div>
+<div class="wrap" id="app"></div>
+<div class="nav" id="nav"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   OSCAR VIKTORINA
+   Bitta fayl: HTML + CSS + JS. Backend: Firebase Firestore (yoki mahalliy
+   rejim). Arxitektura sinf/anjuman ilovalari bilan bir xil andozada:
+   docs/<ilova>/index.html — mustaqil PWA, GitHub Pages orqali ishlaydi.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1) FIREBASE SOZLAMASI — sinf ilovasi bilan bitta loyihani ulashadi,
+   lekin butunlay boshqa to'plamlarga yozadi (qUsers/qQuizzes/qRooms),
+   shuning uchun sinf ma'lumotlariga tegmaydi.
+   --------------------------------------------------------------------- */
+const FB_CONFIG = {
+  "apiKey": "AIzaSyDJh1D_SwuZA4TtavoooeTSIPaRvzE4QzY",
+  "authDomain": "oscartalim-sinf-80da0.firebaseapp.com",
+  "projectId": "oscartalim-sinf-80da0",
+  "storageBucket": "oscartalim-sinf-80da0.firebasestorage.app",
+  "messagingSenderId": "451154934941",
+  "appId": "1:451154934941:web:28c540f7d10edff5736874"
+};
+
+/* ---------------------------------------------------------------------
+   2) STATIK MA'LUMOT: kategoriyalar, darajalar, nishonlar, tayyor testlar
+   --------------------------------------------------------------------- */
+const CATEGORIES = [
+  { id:"dasturlash", name:"Dasturlash",   em:"💻" },
+  { id:"tarix",       name:"Tarix",        em:"🏛️" },
+  { id:"fan",         name:"Fan",          em:"🔬" },
+  { id:"tillar",      name:"Tillar",       em:"🗣️" },
+  { id:"pop",         name:"Pop madaniyat",em:"🎬" },
+  { id:"madaniyat",   name:"Madaniyat",    em:"🎭" },
+  { id:"umumiy",      name:"Umumiy bilim", em:"🧠" },
+];
+const CAT = Object.fromEntries(CATEGORIES.map(c=>[c.id,c]));
+const AVATARS = ["🦊","🐱","🐼","🦁","🐸","🐧","🦄","🐯","🐨","🐰","🐵","🦉","🐺","🐳","🐲","🦖"];
+const LEVEL_TITLES = ["Yangi boshlovchi","Qiziquvchan","Bilimdon","Tajribali","Mohir",
+  "Ustoz","Dono","Afsonaviy","Chempion","Oskar"];
+const DIFF_LABEL = { oson:"Oson", orta:"O'rta", qiyin:"Qiyin" };
+
+const BADGES = [
+  { id:"first_quiz",  em:"🎯", name:"Birinchi qadam", desc:"1 ta test yeching",
+    check:p=>p.stats.played>=1 },
+  { id:"ten_quiz",    em:"🔟", name:"O'n martalik", desc:"10 ta test yeching",
+    check:p=>p.stats.played>=10 },
+  { id:"fifty_quiz",  em:"🏅", name:"Chempion",     desc:"50 ta test yeching",
+    check:p=>p.stats.played>=50 },
+  { id:"perfect",     em:"💯", name:"Mukammal",     desc:"Bironta testni 100% ball bilan yeching",
+    check:p=>p.stats.perfect>=1 },
+  { id:"perfect5",    em:"🌟", name:"Doimiy g'olib", desc:"5 marta 100% ball oling",
+    check:p=>p.stats.perfect>=5 },
+  { id:"speedster",   em:"⚡", name:"Chaqqon",      desc:"Bitta testda 5 ta ketma-ket to'g'ri javob bering",
+    check:p=>p.stats.bestStreak>=5 },
+  { id:"polyglot",    em:"🌍", name:"Ko'p qirrali", desc:"5 xil kategoriyadan test yeching",
+    check:p=>(p.stats.categoriesPlayed||[]).length>=5 },
+  { id:"level10",     em:"👑", name:"Oskar darajasi", desc:"10-darajaga yeting",
+    check:p=>levelOf(p.xp||0)>=10 },
+  { id:"creator",     em:"✍️", name:"Ijodkor",      desc:"O'zingiz test yarating",
+    check:p=>(p.stats.created||0)>=1 },
+  { id:"popular",     em:"🔥", name:"Mashhur muallif", desc:"Sizning testingiz 20 marta o'ynalsin",
+    check:()=>false /* alohida tekshiriladi, pastga qarang */ },
+];
+
+function q(text, options, correct, cat, time=20){ return { q:text, options, correct, time, category:cat }; }
+const BUILTIN_QUIZZES = [
+  { id:"b_dasturlash", title:"Dasturlash asoslari", category:"dasturlash", difficulty:"orta",
+    authorName:"Oscar Viktorina", builtin:true, plays:0, questions:[
+    q("HTML nima uchun ishlatiladi?",["Veb-sahifa tuzilmasini yaratish","Ma'lumotlar bazasini boshqarish","Server sozlash","Rasm tahrirlash"],0,"dasturlash"),
+    q("Python tilida ro'yxat (list) qanday belgilanadi?",["{1,2,3}","(1,2,3)","[1,2,3]","<1,2,3>"],2,"dasturlash"),
+    q("CSS nimani anglatadi?",["Cascading Style Sheets","Computer Style System","Creative Sheet Style","Coded Style Syntax"],0,"dasturlash"),
+    q("Qaysi til veb-sahifalarga interaktivlik qo'shadi?",["HTML","CSS","JavaScript","SQL"],2,"dasturlash"),
+    q("Git nima uchun ishlatiladi?",["Versiyalarni boshqarish","Rasm chizish","Video render qilish","Matn tahrirlash"],0,"dasturlash"),
+    q("Ikkilik (binary) sanoq sistemasida nechta raqam bor?",["8","10","2","16"],2,"dasturlash"),
+    q("'API' qisqartmasi nimani anglatadi?",["Application Programming Interface","Automated Program Instruction","Applied Programming Index","Advanced Protocol Interface"],0,"dasturlash"),
+    q("Qaysi ma'lumot turi true/false qiymatini saqlaydi?",["Integer","String","Boolean","Array"],2,"dasturlash"),
+  ]},
+  { id:"b_tarix", title:"Jahon tarixidan sinov", category:"tarix", difficulty:"orta",
+    authorName:"Oscar Viktorina", builtin:true, plays:0, questions:[
+    q("Amir Temur qaysi shaharni poytaxt qilgan?",["Buxoro","Samarqand","Xiva","Toshkent"],1,"tarix"),
+    q("Ikkinchi jahon urushi qaysi yilda tugagan?",["1943","1945","1939","1950"],1,"tarix"),
+    q("Birinchi odam Oyga qachon qadam bosgan?",["1969","1957","1975","1961"],0,"tarix"),
+    q("O'zbekiston mustaqilligi qachon e'lon qilingan?",["1989","1991","1993","1995"],1,"tarix"),
+    q("Buyuk Ipak yo'li asosan nimani bog'lagan?",["Yevropa va Afrikani","Sharq va G'arb savdosini","Faqat Xitoy ichini","Amerika qit'alarini"],1,"tarix"),
+    q("Piramidalar asosan qaysi qadimiy sivilizatsiyaga tegishli?",["Rim","Misr","Yunoniston","Fors"],1,"tarix"),
+    q("Berlin devori qachon qulagan?",["1989","1991","1985","1975"],0,"tarix"),
+    q("Mirzo Ulug'bek nimasi bilan mashhur?",["Harbiy yurishlari","Astronomiya va fani","Faqat savdo yo'llari","Faqat me'morchilik"],1,"tarix"),
+  ]},
+  { id:"b_fan", title:"Fan va tabiat", category:"fan", difficulty:"orta",
+    authorName:"Oscar Viktorina", builtin:true, plays:0, questions:[
+    q("Suvning kimyoviy formulasi?",["CO2","H2O","O2","NaCl"],1,"fan"),
+    q("Yorug'lik tezligi taxminan necha km/s?",["300 000","150 000","1 000 000","30 000"],0,"fan"),
+    q("Kattalar tanasida nechta suyak bor?",["206","150","300","180"],0,"fan"),
+    q("Quyosh tizimidagi eng katta sayyora?",["Yer","Yupiter","Saturn","Mars"],1,"fan"),
+    q("Fotosintez jarayonida o'simliklar nimani ishlab chiqaradi?",["Kislorod","Azot","Vodorod","Metan"],0,"fan"),
+    q("DNK nimaning qisqartmasi?",["Dezoksiribonuklein kislota","Digital Nuclear Acid","Dinamik Neyron Aloqasi","Double Nitrogen Atom"],0,"fan"),
+    q("Gravitatsiya qonunini kim kashf etgan?",["Albert Eynshteyn","Isaak Nyuton","Galiley","Kepler"],1,"fan"),
+    q("Insonning eng katta a'zosi qaysi?",["Jigar","Miya","Teri","Yurak"],2,"fan"),
+  ]},
+  { id:"b_tillar", title:"Tillar olamida", category:"tillar", difficulty:"orta",
+    authorName:"Oscar Viktorina", builtin:true, plays:0, questions:[
+    q("Dunyoda eng ko'p kishining ona tili qaysi?",["Ingliz","Xitoy (mandarin)","Ispan","Hind"],1,"tillar"),
+    q("Ingliz alifbosida nechta harf bor?",["24","26","28","30"],1,"tillar"),
+    q("O'zbek tili qaysi til oilasiga kiradi?",["Slavyan","Turkiy","Roman","German"],1,"tillar"),
+    q("'Salom' so'zining ispancha muqobili?",["Bonjour","Hola","Ciao","Hallo"],1,"tillar"),
+    q("Qaysi tilda o'ngdan chapga yoziladi?",["Fransuz","Arab","Nemis","Italyan"],1,"tillar"),
+    q("Esperanto nima?",["Tabiiy til","Sun'iy yaratilgan xalqaro til","Dasturlash tili","Qadimgi lotin shevasi"],1,"tillar"),
+    q("'Polyglot' so'zi kimni anglatadi?",["Bir necha til biladigan odamni","Tarjimon dasturni","Til o'qituvchisini","Faqat ikki tilli bolani"],0,"tillar"),
+    q("Qaysi so'z ingliz tilida 'kitob' ma'nosini beradi?",["Book","Livre","Buch","Libro"],0,"tillar"),
+  ]},
+  { id:"b_pop", title:"Pop madaniyat", category:"pop", difficulty:"oson",
+    authorName:"Oscar Viktorina", builtin:true, plays:0, questions:[
+    q("'Titanik' filmi qaysi yili chiqqan?",["1997","2001","1995","1999"],0,"pop"),
+    q("Marvel superqahramon filmlari qaysi studiyaga tegishli?",["Marvel Studios","Pixar","DreamWorks","Universal"],0,"pop"),
+    q("'Harry Potter' kitoblarining muallifi kim?",["J.R.R. Tolkien","J.K. Rowling","Stephen King","George R.R. Martin"],1,"pop"),
+    q("Qaysi qo'shiqchi 'King of Pop' laqabi bilan tanilgan?",["Elvis Presley","Michael Jackson","Prince","Freddie Mercury"],1,"pop"),
+    q("'Oscar' mukofoti qaysi sohada beriladi?",["Musiqa","Kino","Sport","Adabiyot"],1,"pop"),
+    q("Netflix asosan nima bilan shug'ullanadi?",["Musiqa striming","Video striming","Ijtimoiy tarmoq","Onlayn savdo"],1,"pop"),
+    q("'Mona Lisa' asarining muallifi kim?",["Pablo Pikasso","Leonardo da Vinchi","Van Gog","Salvador Dali"],1,"pop"),
+    q("TikTok ilovasi asosan nima uchun mo'ljallangan?",["Uzun filmlar","Qisqa videolar","Faqat rasmlar","Elektron kitoblar"],1,"pop"),
+  ]},
+  { id:"b_madaniyat", title:"Xalqlar madaniyati", category:"madaniyat", difficulty:"orta",
+    authorName:"Oscar Viktorina", builtin:true, plays:0, questions:[
+    q("O'zbekistonning eng mashhur milliy taomi?",["Osh (palov)","Pitsa","Sushi","Pasta"],0,"madaniyat"),
+    q("Navro'z bayrami qachon nishonlanadi?",["1-yanvar","21-mart","9-may","1-sentabr"],1,"madaniyat"),
+    q("Ikebana san'ati qaysi mamlakatga tegishli?",["Xitoy","Yaponiya","Koreya","Tailand"],1,"madaniyat"),
+    q("'Atlas' nima?",["An'anaviy o'zbek gazlamasi","Qadimiy xarita kitobi","Musiqa asbobi","Milliy raqs"],0,"madaniyat"),
+    q("Flamenko raqsi qaysi mamlakat madaniyatiga xos?",["Italiya","Ispaniya","Portugaliya","Gretsiya"],1,"madaniyat"),
+    q("Yaponiyada choy marosimi qanday nomlanadi?",["Sado (chanoyu)","Kabuki","Sumo","Origami"],0,"madaniyat"),
+    q("O'zbek milliy cholg'u asbobi qaysi?",["Skripka","Doira","Pianino","Gitara"],1,"madaniyat"),
+    q("UNESCO nima bilan shug'ullanadi?",["Sport tashkiloti","Ta'lim, fan va madaniyatni rivojlantirish","Harbiy ittifoq","Bank tizimi"],1,"madaniyat"),
+  ]},
+  { id:"b_umumiy", title:"Umumiy bilim", category:"umumiy", difficulty:"oson",
+    authorName:"Oscar Viktorina", builtin:true, plays:0, questions:[
+    q("Dunyodagi eng baland tog' cho'qqisi?",["Everest","Kilimanjaro","K2","Elbrus"],0,"umumiy"),
+    q("Bir soatda nechta daqiqa bor?",["50","60","100","30"],1,"umumiy"),
+    q("Dunyoning eng katta okeani?",["Atlantika","Hind okeani","Tinch okean","Shimoliy Muz okeani"],2,"umumiy"),
+    q("Bir yilda nechta oy bor?",["10","12","13","11"],1,"umumiy"),
+    q("Eng kichik tub son qaysi?",["0","1","2","3"],2,"umumiy"),
+    q("Qaysi qit'ada eng ko'p mamlakat joylashgan?",["Osiyo","Afrika","Yevropa","Janubiy Amerika"],1,"umumiy"),
+    q("Dunyodagi eng uzun daryo?",["Amazonka","Nil","Missisipi","Yangtszi"],1,"umumiy"),
+    q("Shaxmat taxtasida nechta katak bor?",["32","48","64","100"],2,"umumiy"),
+  ]},
+];
+
+/* ---------------------------------------------------------------------
+   3) YORDAMCHI FUNKSIYALAR
+   --------------------------------------------------------------------- */
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove("show"), 2400);
+}
+function uid8(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function weekKey(d=new Date()){
+  const dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day = (dt.getUTCDay()+6)%7; // 0=dushanba
+  dt.setUTCDate(dt.getUTCDate()-day);
+  return dt.toISOString().slice(0,10); // shu haftaning dushanbasi
+}
+function levelOf(xp){ return 1+Math.floor(xp/500); }
+function levelTitle(lv){ return LEVEL_TITLES[Math.min(lv-1, LEVEL_TITLES.length-1)]; }
+function fmtDate(iso){
+  const d = new Date(iso); const p = n=>String(n).padStart(2,"0");
+  return `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()}`;
+}
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const SHAPES = ["▲","◆","●","■"];
+
+/* ---------------------------------------------------------------------
+   4) MA'LUMOTLAR BAZASI QATLAMI — Firestore (cloud) yoki localStorage
+   (local). Ikkisi ham bir xil interfeysni beradi, shuning uchun ilova
+   qismi qaysi rejimda ishlayotganini bilishi shart emas.
+   --------------------------------------------------------------------- */
+async function makeCloudDB(cfg){
+  const A = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+  const U = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+  const F = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+  const app = A.initializeApp(cfg, "viktorina");
+  const auth = U.getAuth(app);
+  const fs = F.getFirestore(app);
+  const { doc,setDoc,getDoc,getDocs,updateDoc,deleteDoc,onSnapshot,collection,query,where,
+    orderBy,limit,increment,arrayUnion,serverTimestamp,getCountFromServer } = F;
+  const D = (...p)=>doc(fs,...p), C = (...p)=>collection(fs,...p);
+
+  return {
+    mode:"cloud",
+    async auth(){ if(!auth.currentUser) await U.signInAnonymously(auth); return auth.currentUser.uid; },
+
+    async getUser(uid){ const s = await getDoc(D("qUsers",uid)); return s.exists()? s.data(): null; },
+    async saveUser(uid, data){ await setDoc(D("qUsers",uid), data, {merge:true}); },
+
+    async listPublicQuizzes(){ const s = await getDocs(C("qQuizzes")); return s.docs.map(d=>({...d.data(), id:d.id})); },
+    async myQuizzes(uid){ const s = await getDocs(query(C("qQuizzes"), where("authorUid","==",uid))); return s.docs.map(d=>({...d.data(), id:d.id})); },
+    async createQuiz(obj){ const id = "u"+uid8(); await setDoc(D("qQuizzes",id), {...obj, createdAt:serverTimestamp()}); return id; },
+    async deleteQuiz(id){ await deleteDoc(D("qQuizzes",id)); },
+    async bumpPlays(id){ if(String(id).startsWith("b_")) return; try{ await updateDoc(D("qQuizzes",id), {plays:increment(1)}); }catch(e){} },
+
+    async addResult(uid, r){ await setDoc(D("qUsers",uid,"qResults","r"+uid8()), {...r, createdAt:serverTimestamp()}); },
+    async listResults(uid, n=30){
+      const s = await getDocs(query(C("qUsers",uid,"qResults"), orderBy("createdAt","desc"), limit(n)));
+      return s.docs.map(d=>({...d.data(), id:d.id}));
+    },
+
+    async topUsers(field, n=100){
+      const s = await getDocs(query(C("qUsers"), orderBy(field,"desc"), limit(n)));
+      return s.docs.map(d=>({...d.data(), uid:d.id}));
+    },
+    async countAbove(field, val){
+      try{ const s = await getCountFromServer(query(C("qUsers"), where(field,">",val||0))); return s.data().count; }
+      catch(e){ return null; }
+    },
+
+    async createRoom(pin, room){ await setDoc(D("qRooms",pin), {...room, createdAt:serverTimestamp()}); },
+    async roomExists(pin){ return (await getDoc(D("qRooms",pin))).exists(); },
+    async getRoom(pin){ const s = await getDoc(D("qRooms",pin)); return s.exists()? s.data(): null; },
+    async updateRoom(pin, patch){ await updateDoc(D("qRooms",pin), patch); },
+    watchRoom(pin, cb){ return onSnapshot(D("qRooms",pin), s=>cb(s.exists()? s.data(): null)); },
+    async setPlayer(pin, uid, data){ await setDoc(D("qRooms",pin,"players",uid), data, {merge:true}); },
+    async removePlayer(pin, uid){ await deleteDoc(D("qRooms",pin,"players",uid)).catch(()=>{}); },
+    watchPlayers(pin, cb){ return onSnapshot(C("qRooms",pin,"players"), s=>cb(s.docs.map(d=>({...d.data(), uid:d.id})))); },
+
+    arrayUnion:(...a)=>arrayUnion(...a),
+    serverTimestamp:()=>serverTimestamp(),
+    now: Date.now(),
+  };
+}
+
+const LocalDB = (()=>{
+  const K = p=>"vq:"+p;
+  const listeners = {}; // key -> Set(cb)
+  function read(k, def){ try{ return JSON.parse(localStorage.getItem(K(k))) ?? def; }catch(e){ return def; } }
+  function write(k, v){ try{ localStorage.setItem(K(k), JSON.stringify(v)); }catch(e){} fire(k); }
+  function fire(k){ (listeners[k]||new Set()).forEach(cb=>{ try{ cb(); }catch(e){} }); }
+  function watch(k, cb){ (listeners[k] ||= new Set()).add(cb); cb();
+    return ()=>listeners[k].delete(cb); }
+  window.addEventListener("storage", e=>{
+    if(!e.key) return;
+    const k = e.key.replace(/^vq:/,"");
+    if(listeners[k]) fire(k);
+  });
+  return {
+    mode:"local",
+    async auth(){ let u = localStorage.getItem("vq:uid"); if(!u){ u = "local_"+uid8(); localStorage.setItem("vq:uid",u); } return u; },
+
+    async getUser(uid){ return read("users:"+uid, null); },
+    async saveUser(uid, data){ const cur = read("users:"+uid, {}); write("users:"+uid, {...cur, ...data}); },
+
+    async listPublicQuizzes(){ return Object.values(read("quizzes", {})); },
+    async myQuizzes(uid){ return Object.values(read("quizzes", {})).filter(x=>x.authorUid===uid); },
+    async createQuiz(obj){ const id="u"+uid8(); const all=read("quizzes",{}); all[id]={...obj,id,createdAt:new Date().toISOString()}; write("quizzes",all); return id; },
+    async deleteQuiz(id){ const all=read("quizzes",{}); delete all[id]; write("quizzes",all); },
+    async bumpPlays(id){ if(String(id).startsWith("b_")) return; const all=read("quizzes",{}); if(all[id]){ all[id].plays=(all[id].plays||0)+1; write("quizzes",all);} },
+
+    async addResult(uid, r){ const list = read("results:"+uid, []); list.unshift({...r, id:uid8(), createdAt:new Date().toISOString()}); write("results:"+uid, list.slice(0,200)); },
+    async listResults(uid, n=30){ return read("results:"+uid, []).slice(0,n); },
+
+    async topUsers(field, n=100){
+      const users = read("users_index", []).map(u=>{ const d=read("users:"+u, null); return d && {...d, uid:u}; }).filter(Boolean);
+      const get = (o,f)=>f.split(".").reduce((a,k)=>a?.[k], o);
+      return users.sort((a,b)=>(get(b,field)||0)-(get(a,field)||0)).slice(0,n);
+    },
+    async countAbove(field, val){
+      const users = read("users_index", []).map(u=>read("users:"+u, null)).filter(Boolean);
+      const get = (o,f)=>f.split(".").reduce((a,k)=>a?.[k], o);
+      return users.filter(u=>(get(u,field)||0) > (val||0)).length;
+    },
+
+    async createRoom(pin, room){ const rooms = read("rooms",{}); rooms[pin]={...room}; write("rooms",rooms); write("room:"+pin, rooms[pin]); },
+    async roomExists(pin){ const rooms = read("rooms",{}); return !!rooms[pin]; },
+    async getRoom(pin){ const rooms = read("rooms",{}); return rooms[pin]||null; },
+    async updateRoom(pin, patch){ const rooms = read("rooms",{}); rooms[pin]={...(rooms[pin]||{}), ...patch}; write("rooms",rooms); write("room:"+pin, rooms[pin]); },
+    watchRoom(pin, cb){ return watch("room:"+pin, ()=>cb(read("rooms",{})[pin]||null)); },
+    async setPlayer(pin, uid, data){ const pl = read("players:"+pin, {}); pl[uid]={...(pl[uid]||{}), ...data}; write("players:"+pin, pl); },
+    async removePlayer(pin, uid){ const pl = read("players:"+pin, {}); delete pl[uid]; write("players:"+pin, pl); },
+    watchPlayers(pin, cb){ return watch("players:"+pin, ()=>{ const pl = read("players:"+pin, {}); cb(Object.entries(pl).map(([uid,v])=>({...v,uid}))); }); },
+
+    arrayUnion:(...a)=>({__union:a}),
+    serverTimestamp:()=>new Date().toISOString(),
+    start(){
+      // users_index'ni saqlab boramiz — reyting so'rovlari uchun
+      const orig = this.saveUser.bind(this);
+      this.saveUser = async (uid,data)=>{ await orig(uid,data);
+        const idx = read("users_index", []); if(!idx.includes(uid)){ idx.push(uid); write("users_index", idx); } };
+    }
+  };
+})();
+LocalDB.start();
+
+/* Mahalliy rejimda arrayUnion({__union:[...]}) ni to'g'ri qo'llash */
+function mergeArrayUnion(base, patch){
+  const out = {...base};
+  for(const k in patch){
+    if(patch[k] && patch[k].__union){ out[k] = Array.from(new Set([...(base[k]||[]), ...patch[k].__union])); }
+    else out[k] = patch[k];
+  }
+  return out;
+}
+
+/* ---------------------------------------------------------------------
+   5) HOLAT
+   --------------------------------------------------------------------- */
+let DB = null;
+const S = {
+  screen:"home", tab:"home", uid:null, profile:null,
+  quizzes:[], myQuizzes:[],
+  play:null,     // faol yakka test
+  live:{ role:"none" }, // 'none' | 'host' | 'player'
+  lb:{ tab:"umumiy", rows:[], myRank:null, loading:false },
+  draft:null,    // test yaratish qoralamasi
+  unsub:[],
+  savedFinalRooms: new Set(), // jonli xona natijasi ikki marta yozilmasligi uchun
+};
+
+/* ---------------------------------------------------------------------
+   6) PROFIL, XP, NISHONLAR
+   --------------------------------------------------------------------- */
+function freshProfile(){
+  return {
+    nickname: "O'yinchi"+Math.floor(1000+Math.random()*9000),
+    avatar: AVATARS[Math.floor(Math.random()*AVATARS.length)],
+    xp:0, badges:[],
+    stats:{ played:0, correct:0, questions:0, perfect:0, bestStreak:0, created:0, categoriesPlayed:[] },
+    daily:{ date: todayStr(), xp:0 },
+    weekly:{ week: weekKey(), xp:0 },
+  };
+}
+function ensureFreshBuckets(p){
+  if(p.daily.date !== todayStr()) p.daily = { date: todayStr(), xp:0 };
+  if(p.weekly.week !== weekKey()) p.weekly = { week: weekKey(), xp:0 };
+  return p;
+}
+async function saveProfile(){
+  S.profile = ensureFreshBuckets(S.profile);
+  await DB.saveUser(S.uid, S.profile);
+}
+function newlyEarnedBadges(){
+  const have = new Set(S.profile.badges||[]);
+  const got = BADGES.filter(b=>b.id!=="popular" && !have.has(b.id) && b.check(S.profile)).map(b=>b.id);
+  if(got.length){ S.profile.badges = [...(S.profile.badges||[]), ...got]; }
+  return got.map(id=>BADGES.find(b=>b.id===id));
+}
+async function checkCreatorBadge(){
+  if((S.profile.badges||[]).includes("popular")) return;
+  const mine = S.myQuizzes.length? S.myQuizzes : await DB.myQuizzes(S.uid);
+  if(mine.some(qz=>(qz.plays||0)>=20)){
+    S.profile.badges = [...(S.profile.badges||[]), "popular"];
+    await saveProfile();
+    toast("🔥 Yangi nishon: Mashhur muallif!");
+  }
+}
+
+/* Bitta urinish (yakka yoki jonli) yakunlanganda chaqiriladi */
+async function finishAttempt({ quizId, quizTitle, category, answers, mode }){
+  const total = answers.length;
+  const correctCount = answers.filter(a=>a.correct).length;
+  const score = answers.reduce((s,a)=>s+(a.points||0),0);
+  const xpGained = Math.max(1, Math.round(score/10));
+  let streak=0, maxStreak=0;
+  answers.forEach(a=>{ if(a.correct){ streak++; maxStreak=Math.max(maxStreak,streak);} else streak=0; });
+
+  const p = ensureFreshBuckets(S.profile);
+  p.stats.played += 1;
+  p.stats.correct += correctCount;
+  p.stats.questions += total;
+  p.stats.perfect += (correctCount===total && total>0) ? 1 : 0;
+  p.stats.bestStreak = Math.max(p.stats.bestStreak||0, maxStreak);
+  const catsSet = new Set(p.stats.categoriesPlayed||[]); catsSet.add(category);
+  p.stats.categoriesPlayed = [...catsSet];
+  p.xp = (p.xp||0) + xpGained;
+  p.daily.xp += xpGained;
+  p.weekly.xp += xpGained;
+  S.profile = p;
+
+  const earned = newlyEarnedBadges();
+  await saveProfile();
+  await DB.addResult(S.uid, { quizId, quizTitle, category, score, correct:correctCount, total, xp:xpGained, mode });
+  await DB.bumpPlays(quizId);
+
+  earned.forEach((b,i)=>setTimeout(()=>toast(`${b.em} Yangi nishon: ${b.name}!`), i*1600));
+  return { score, correctCount, total, xpGained, level: levelOf(p.xp) };
+}
+
+/* ---------------------------------------------------------------------
+   7) TESTLARNI TOPISH
+   --------------------------------------------------------------------- */
+function allQuizzes(){ return [...BUILTIN_QUIZZES, ...S.quizzes]; }
+function quizById(id){ return allQuizzes().find(x=>x.id===id); }
+async function refreshQuizzes(){
+  try{ S.quizzes = await DB.listPublicQuizzes(); }catch(e){ S.quizzes = []; }
+}
+
+/* ---------------------------------------------------------------------
+   8) RENDER — umumiy joylashuv
+   --------------------------------------------------------------------- */
+function render(){
+  const changedScreen = S._lastScreen !== S.screen;
+  renderTopbar();
+  renderNav();
+  const app = $("app");
+  switch(S.screen){
+    case "home": app.innerHTML = screenHome(); break;
+    case "category": app.innerHTML = screenCategory(); break;
+    case "play": app.innerHTML = screenPlay(); afterRenderPlay(); break;
+    case "result": app.innerHTML = screenResult(); break;
+    case "leaderboard": app.innerHTML = screenLeaderboard(); break;
+    case "live": app.innerHTML = screenLive(); afterRenderLive(); break;
+    case "create": app.innerHTML = screenCreate(); break;
+    case "profile": app.innerHTML = screenProfile(); break;
+    default: app.innerHTML = screenHome();
+  }
+  if(changedScreen) window.scrollTo(0,0);
+  S._lastScreen = S.screen;
+}
+function renderTopbar(){
+  if(!S.profile){ $("topbar").innerHTML=""; return; }
+  const lv = levelOf(S.profile.xp||0);
+  $("topbar").innerHTML = `
+    <div class="brand"><span class="logo">🏆</span> Oscar Viktorina</div>
+    <div class="me" onclick="go('profile')">
+      <span class="av">${S.profile.avatar}</span>
+      <span><div style="font-size:.82rem;font-weight:700">${esc(S.profile.nickname)}</div>
+      <div class="lv">Lv.${lv} · ${S.profile.xp||0} XP</div></span>
+    </div>`;
+}
+function renderNav(){
+  const tabs = [
+    { id:"home", ic:"🏠", nm:"Bosh" },
+    { id:"leaderboard", ic:"🏆", nm:"Reyting" },
+    { id:"live", ic:"📡", nm:"Jonli" },
+    { id:"create", ic:"➕", nm:"Yaratish" },
+    { id:"profile", ic:"👤", nm:"Profil" },
+  ];
+  $("nav").innerHTML = tabs.map(t=>
+    `<button class="${S.screen===t.id?"active":""}" onclick="go('${t.id}')">
+      <span class="ic">${t.ic}</span>${t.nm}</button>`).join("");
+}
+function go(screen){
+  if(S.screen==="play" && screen!=="play"){ if(!confirm("Testni tark etasizmi? Jarayon saqlanmaydi.")) return; stopPlayTimer(); }
+  S.screen = screen;
+  if(screen==="leaderboard") loadLeaderboard();
+  if(screen==="create") loadMyQuizzes();
+  render();
+}
+
+/* ---------------------------------------------------------------------
+   9) BOSH SAHIFA / KATEGORIYALAR
+   --------------------------------------------------------------------- */
+function screenHome(){
+  const popular = [...allQuizzes()].sort((a,b)=>(b.plays||0)-(a.plays||0)).slice(0,4);
+  return `
+    <h2>Kategoriyalar</h2>
+    <div class="cat-grid">
+      ${CATEGORIES.map(c=>{
+        const n = allQuizzes().filter(x=>x.category===c.id).length;
+        return `<div class="cat-card" onclick="openCategory('${c.id}')">
+          <div class="em">${c.em}</div><h3>${c.name}</h3><div class="n">${n} ta test</div>
+        </div>`;
+      }).join("")}
+    </div>
+    <h2 style="margin-top:20px">🔥 Ommabop testlar</h2>
+    <div style="margin-top:10px">
+      ${popular.map(quizCardHTML).join("") || `<div class="empty">Hozircha test yo'q</div>`}
+    </div>`;
+}
+function quizCardHTML(qz){
+  const c = CAT[qz.category] || {em:"❓",name:qz.category};
+  return `<div class="quiz-card" onclick="openQuiz('${qz.id}')">
+    <div class="qem">${c.em}</div>
+    <div class="qi">
+      <h4>${esc(qz.title)}</h4>
+      <div class="meta"><span class="diff ${qz.difficulty||'orta'}">${DIFF_LABEL[qz.difficulty]||"O'rta"}</span>
+      ${qz.questions.length} savol · ${qz.plays||0} marta o'ynalgan · ${esc(qz.authorName||"Foydalanuvchi")}</div>
+    </div>
+  </div>`;
+}
+function openCategory(id){ S.screen="category"; S.curCat=id; render(); }
+function screenCategory(){
+  const c = CAT[S.curCat];
+  const list = allQuizzes().filter(x=>x.category===S.curCat).sort((a,b)=>(b.plays||0)-(a.plays||0));
+  return `
+    <button class="btn ghost small" onclick="go('home')">← Orqaga</button>
+    <h2 style="margin-top:14px">${c.em} ${c.name}</h2>
+    <div style="margin-top:12px">
+      ${list.map(quizCardHTML).join("") || `<div class="empty">Bu kategoriyada hali test yo'q.<br>Birinchi bo'lib o'zingiz yarating!</div>`}
+    </div>`;
+}
+function openQuiz(id){
+  const qz = quizById(id);
+  if(!qz) return;
+  if(!confirm(`«${qz.title}» — ${qz.questions.length} ta savol.\nBoshlaymizmi?`)) return;
+  startSolo(qz);
+}
+
+/* ---------------------------------------------------------------------
+   10) YAKKA TEST O'YNASH
+   --------------------------------------------------------------------- */
+let playTimerId = null;
+function stopPlayTimer(){ if(playTimerId){ clearInterval(playTimerId); playTimerId=null; } }
+
+function startSolo(qz){
+  S.play = {
+    mode:"solo", quiz: qz, idx:0, answers:[], selected:null,
+    qStart: Date.now(), locked:false,
+  };
+  S.screen = "play";
+  render();
+}
+function curQuestion(){ return S.play.quiz.questions[S.play.idx]; }
+
+function screenPlay(){
+  const P = S.play, qz = P.quiz, i = P.idx, Q = qz.questions[i];
+  const c = CAT[qz.category] || {em:"❓"};
+  return `
+    <div class="qprog"><span>${c.em} ${esc(qz.title)}</span><span>${i+1}/${qz.questions.length}</span></div>
+    <div class="timerwrap"><div class="timerbar" id="timerbar" style="width:100%"></div></div>
+    <div class="qtext">${esc(Q.q)}</div>
+    <div class="opts">
+      ${Q.options.map((op,idx)=>`
+        <button class="opt o${idx}" id="opt${idx}" onclick="selectAnswer(${idx})">
+          <span class="shape">${SHAPES[idx]}</span> ${esc(op)}
+        </button>`).join("")}
+    </div>`;
+}
+function afterRenderPlay(){
+  stopPlayTimer();
+  const P = S.play, Q = curQuestion();
+  const total = (Q.time||20)*1000;
+  P.qStart = Date.now();
+  P.selected = null; P.locked = false;
+  const bar = $("timerbar");
+  playTimerId = setInterval(()=>{
+    const left = Math.max(0, total-(Date.now()-P.qStart));
+    if(bar) bar.style.width = (left/total*100)+"%";
+    if(left<=0){ stopPlayTimer(); if(!P.locked) selectAnswer(-1); }
+  }, 80);
+}
+function selectAnswer(idx){
+  const P = S.play; if(P.locked) return;
+  P.locked = true; stopPlayTimer();
+  const Q = curQuestion();
+  const elapsed = Date.now()-P.qStart, total=(Q.time||20)*1000;
+  const correct = idx===Q.correct;
+  const points = correct ? Math.round(500 + 500*Math.max(0,(total-elapsed)/total)) : 0;
+  P.answers.push({ correct, points, choice: idx });
+  document.querySelectorAll(".opt").forEach((el,i)=>{
+    if(i===Q.correct) el.classList.add("correct");
+    else if(i===idx) el.classList.add("wrong");
+    else el.classList.add("dim");
+  });
+  setTimeout(()=>{
+    if(P.idx < P.quiz.questions.length-1){ P.idx++; render(); }
+    else finishSolo();
+  }, 1100);
+}
+async function finishSolo(){
+  const P = S.play;
+  const res = await finishAttempt({
+    quizId:P.quiz.id, quizTitle:P.quiz.title, category:P.quiz.category, answers:P.answers, mode:"solo",
+  });
+  S.lastResult = { ...res, quiz:P.quiz, answers:P.answers };
+  S.play = null;
+  S.screen = "result";
+  render();
+}
+function screenResult(){
+  const r = S.lastResult; if(!r) return `<div class="empty">Natija topilmadi</div>`;
+  return `
+    <div class="card score-hero">
+      <div>🎉</div>
+      <div class="big">${r.score}</div>
+      <div class="sub">${r.correctCount}/${r.total} to'g'ri javob</div>
+      <div class="xp-pill">+${r.xpGained} XP · Lv.${r.level}</div>
+    </div>
+    <div class="card">
+      <h3>Javoblar tahlili</h3>
+      ${r.quiz.questions.map((qq,i)=>`
+        <div class="review">
+          <span class="mark">${r.answers[i].correct?"✅":"❌"}</span>
+          <span>${esc(qq.q)}<br><span class="muted">To'g'ri javob: ${esc(qq.options[qq.correct])}</span></span>
+        </div>`).join("")}
+    </div>
+    <div class="row">
+      <button class="btn" onclick="go('home')">Bosh sahifa</button>
+      <button class="btn ghost" onclick="startSolo(quizById('${r.quiz.id}'))">Qayta yechish</button>
+    </div>`;
+}
+
+/* ---------------------------------------------------------------------
+   11) REYTING
+   --------------------------------------------------------------------- */
+async function loadLeaderboard(){
+  S.lb.loading = true; render();
+  const tab = S.lb.tab;
+  const field = tab==="umumiy" ? "xp" : tab==="kunlik" ? "daily.xp" : "weekly.xp";
+  let rows = await DB.topUsers(field, 200);
+  if(tab==="kunlik") rows = rows.filter(u=>u.daily && u.daily.date===todayStr());
+  if(tab==="haftalik") rows = rows.filter(u=>u.weekly && u.weekly.week===weekKey());
+  rows = rows.slice(0,50);
+  const myVal = tab==="umumiy" ? (S.profile.xp||0) : tab==="kunlik" ? (S.profile.daily.xp||0) : (S.profile.weekly.xp||0);
+  const above = await DB.countAbove(field, myVal);
+  S.lb.rows = rows;
+  S.lb.myRank = above==null ? null : above+1;
+  S.lb.myVal = myVal;
+  S.lb.loading = false;
+  render();
+}
+function setLbTab(t){ S.lb.tab = t; loadLeaderboard(); }
+function screenLeaderboard(){
+  const tabs = [["umumiy","Umumiy"],["kunlik","Kunlik"],["haftalik","Haftalik"]];
+  const field = S.lb.tab==="umumiy" ? "xp" : "xp";
+  const inTop = S.lb.rows.some(r=>r.uid===S.uid);
+  return `
+    <h2>Peshqadamlar</h2>
+    <div class="tabs" style="margin-top:12px">
+      ${tabs.map(([id,nm])=>`<button class="${S.lb.tab===id?"active":""}" onclick="setLbTab('${id}')">${nm}</button>`).join("")}
+    </div>
+    <div class="card">
+      ${S.lb.loading ? `<div class="empty"><span class="spin"></span> Yuklanmoqda...</div>` :
+        (S.lb.rows.length ? S.lb.rows.map((u,i)=>lbRowHTML(u,i+1)).join("") : `<div class="empty">Hali hech kim ball to'plamagan</div>`)}
+      ${(!S.lb.loading && !inTop && S.lb.myRank) ? `<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:8px">
+        ${lbRowHTML({uid:S.uid, nickname:S.profile.nickname, avatar:S.profile.avatar, xp:S.lb.myVal}, S.lb.myRank, true)}
+      </div>` : ""}
+    </div>
+    <p class="hint center">Kunlik va haftalik hisoblagichlar mos ravishda har kuni va har dushanba nolinchi holatga qaytadi.</p>`;
+}
+function lbRowHTML(u, rank, forceVal){
+  const isMe = u.uid===S.uid;
+  const val = forceVal ? u.xp : (S.lb.tab==="umumiy"? (u.xp||0) : S.lb.tab==="kunlik" ? (u.daily?.xp||0) : (u.weekly?.xp||0));
+  const rc = rank===1?"top1":rank===2?"top2":rank===3?"top3":"";
+  return `<div class="lb-row ${isMe?"me":""}">
+    <span class="lb-rank ${rc}">${rank<=3?["🥇","🥈","🥉"][rank-1]:rank}</span>
+    <span class="lb-av">${u.avatar||"🙂"}</span>
+    <span class="lb-name">${esc(u.nickname||"Foydalanuvchi")}${isMe?" (siz)":""}</span>
+    <span class="lb-score">${val} XP</span>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------
+   12) PROFIL / KABINET
+   --------------------------------------------------------------------- */
+S.history = [];
+async function loadHistory(){ S.history = await DB.listResults(S.uid, 30); }
+function screenProfile(){
+  const p = S.profile, lv = levelOf(p.xp||0);
+  const need = lv*500, have = (p.xp||0) - (lv-1)*500;
+  const acc = p.stats.questions ? Math.round(100*p.stats.correct/p.stats.questions) : 0;
+  return `
+    <div class="card">
+      <div class="profile-head">
+        <div class="avatar-big">${p.avatar}</div>
+        <div style="flex:1">
+          <input type="text" id="nickInput" value="${esc(p.nickname)}" maxlength="24" onchange="changeNickname(this.value)">
+          <div class="muted" style="font-size:.82rem;margin-top:4px">Lv.${lv} · ${levelTitle(lv)}</div>
+        </div>
+      </div>
+      <div class="xpbar-wrap"><div class="xpbar" style="width:${Math.min(100,have/500*100)}%"></div></div>
+      <p class="hint">${have}/500 XP · keyingi darajagacha ${500-have} XP</p>
+      <div class="avatar-pick">
+        ${AVATARS.map(a=>`<button class="${a===p.avatar?"sel":""}" onclick="changeAvatar('${a}')">${a}</button>`).join("")}
+      </div>
+    </div>
+    <div class="card">
+      <h3>Statistika</h3>
+      <div class="stat-grid">
+        <div class="stat-box"><b>${p.stats.played}</b><span>test yechildi</span></div>
+        <div class="stat-box"><b>${acc}%</b><span>aniqlik</span></div>
+        <div class="stat-box"><b>${p.stats.bestStreak}</b><span>eng uzun ketma-ketlik</span></div>
+        <div class="stat-box"><b>${p.stats.perfect}</b><span>mukammal test</span></div>
+        <div class="stat-box"><b>${(p.stats.categoriesPlayed||[]).length}/${CATEGORIES.length}</b><span>kategoriya</span></div>
+        <div class="stat-box"><b>${p.stats.created||0}</b><span>yaratilgan test</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Nishonlar</h3>
+      <div class="badge-grid">
+        ${BADGES.map(b=>{
+          const got = (p.badges||[]).includes(b.id);
+          return `<div class="badge ${got?"":"locked"}" title="${esc(b.desc)}">
+            <div class="em">${b.em}</div><div class="nm">${esc(b.name)}</div></div>`;
+        }).join("")}
+      </div>
+    </div>
+    <div class="card">
+      <h3>O'tilgan testlar tarixi</h3>
+      <div id="histList">${historyListHTML()}</div>
+    </div>`;
+}
+function historyListHTML(){
+  if(!S.history.length) return `<div class="empty">Hali test yechilmagan</div>`;
+  return S.history.map(r=>{
+    const c = CAT[r.category]||{em:"❓"};
+    const date = typeof r.createdAt==="string" ? r.createdAt : new Date().toISOString();
+    return `<div class="review"><span class="mark">${c.em}</span>
+      <span style="flex:1"><b>${esc(r.quizTitle)}</b><br>
+      <span class="muted">${r.correct}/${r.total} to'g'ri · ${r.score} ball · +${r.xp} XP ${r.mode==='live'?'· 📡 jonli':''}</span></span>
+    </div>`;
+  }).join("");
+}
+async function changeNickname(v){
+  v = v.trim().slice(0,24) || S.profile.nickname;
+  S.profile.nickname = v; await saveProfile(); renderTopbar(); toast("Ism yangilandi");
+}
+async function changeAvatar(a){
+  S.profile.avatar = a; await saveProfile(); render(); toast("Avatar yangilandi");
+}
+
+/* ---------------------------------------------------------------------
+   13) JONLI BELLASHUV (real-time xonalar)
+   --------------------------------------------------------------------- */
+const QTIME_DEFAULT = 20;
+function genPin(){ return String(Math.floor(100000+Math.random()*900000)); }
+
+async function createRoomFlow(quizId){
+  const qz = quizById(quizId); if(!qz) return;
+  let pin;
+  for(let i=0;i<8;i++){ pin = genPin(); if(!(await DB.roomExists(pin))) break; }
+  const room = {
+    hostUid: S.uid, hostName: S.profile.nickname, quizId: qz.id, quizTitle: qz.title,
+    category: qz.category, questions: qz.questions, status:"lobby", currentQ:-1, qStartAt: Date.now(),
+  };
+  await DB.createRoom(pin, room);
+  sessionStorage.setItem("vq:live", JSON.stringify({role:"host", pin}));
+  attachHost(pin);
+}
+function attachHost(pin){
+  S.live = { role:"host", pin, room:null, players:[], revealed:false };
+  S.screen = "live";
+  S.unsub.push(DB.watchRoom(pin, r=>{ S.live.room=r; onHostRoomUpdate(); if(S.screen==="live") render(); }));
+  S.unsub.push(DB.watchPlayers(pin, pl=>{ S.live.players=pl; onHostRoomUpdate(); if(S.screen==="live") render(); }));
+}
+function onHostRoomUpdate(){
+  const L = S.live; if(!L.room) return;
+  if(L.room.status==="question"){
+    const answered = L.players.filter(p=>p.answers && p.answers[L.room.currentQ]).length;
+    if(L.players.length>0 && answered>=L.players.length && !L.revealed){ L.revealed=true; revealQuestion(); }
+  } else if(L.room.status!=="question"){ L.revealed=false; }
+}
+async function startRoom(){
+  await DB.updateRoom(S.live.pin, { status:"question", currentQ:0, qStartAt: Date.now() });
+}
+async function revealQuestion(){
+  await DB.updateRoom(S.live.pin, { status:"reveal" });
+}
+async function nextQuestion(){
+  const L=S.live, next = L.room.currentQ+1;
+  if(next >= L.room.questions.length){ await DB.updateRoom(L.pin, { status:"final" }); }
+  else{ await DB.updateRoom(L.pin, { status:"question", currentQ: next, qStartAt: Date.now() }); }
+}
+async function joinRoomFlow(pin, nickname){
+  pin = String(pin).trim(); if(!/^\d{4,8}$/.test(pin)) return toast("PIN noto'g'ri");
+  const room = await DB.getRoom(pin);
+  if(!room) return toast("Bunday xona topilmadi");
+  if(room.status!=="lobby") return toast("Xona allaqachon boshlangan");
+  await DB.setPlayer(pin, S.uid, { nickname: nickname||S.profile.nickname, avatar:S.profile.avatar, score:0, answers:{}, joinedAt:Date.now() });
+  sessionStorage.setItem("vq:live", JSON.stringify({role:"player", pin}));
+  attachPlayer(pin);
+}
+function attachPlayer(pin){
+  S.live = { role:"player", pin, room:null, players:[], lastQ:-1, qStart:0, myAnswered:false };
+  S.screen = "live";
+  S.unsub.push(DB.watchRoom(pin, r=>{
+    const L=S.live;
+    if(r && r.currentQ!==L.lastQ){ L.lastQ=r.currentQ; L.qStart=Date.now(); L.myAnswered=false; stopPlayTimer(); }
+    L.room=r;
+    if(S.screen==="live") render();
+    if(r && r.status==="final") savePlayerFinalResult();
+  }));
+  S.unsub.push(DB.watchPlayers(pin, pl=>{ S.live.players=pl; if(S.screen==="live") render(); }));
+}
+function afterRenderLive(){
+  if(S.live.role==="player" && S.live.room && S.live.room.status==="question" && !S.live.myAnswered){
+    startPlayerTimer();
+  }
+}
+function startPlayerTimer(){
+  stopPlayTimer();
+  const L=S.live, Q = L.room.questions[L.room.currentQ]; const total=(Q.time||QTIME_DEFAULT)*1000;
+  playTimerId = setInterval(()=>{
+    const bar = $("liveTimerBar"); const left = Math.max(0,total-(Date.now()-L.qStart));
+    if(bar) bar.style.width = (left/total*100)+"%";
+    if(left<=0) stopPlayTimer();
+  }, 80);
+}
+async function playerAnswer(idx){
+  const L=S.live; if(L.myAnswered || !L.room || L.room.status!=="question") return;
+  L.myAnswered = true; stopPlayTimer();
+  const Q = L.room.questions[L.room.currentQ];
+  const total=(Q.time||QTIME_DEFAULT)*1000, elapsed=Date.now()-L.qStart;
+  const correct = idx===Q.correct;
+  const points = correct ? Math.round(500+500*Math.max(0,(total-elapsed)/total)) : 0;
+  const me = L.players.find(p=>p.uid===S.uid) || {score:0, answers:{}};
+  const answers = {...(me.answers||{}), [L.room.currentQ]: {choice:idx, correct, points}};
+  await DB.setPlayer(L.pin, S.uid, { score:(me.score||0)+points, answers });
+  render();
+}
+async function savePlayerFinalResult(){
+  const L = S.live; if(!L.pin || S.savedFinalRooms.has(L.pin)) return;
+  S.savedFinalRooms.add(L.pin);
+  const me = L.players.find(p=>p.uid===S.uid);
+  const answers = L.room.questions.map((qq,i)=> (me && me.answers && me.answers[i]) || {correct:false, points:0});
+  await finishAttempt({ quizId:L.room.quizId, quizTitle:L.room.quizTitle, category:L.room.category, answers, mode:"live" });
+  if(S.screen==="live") render();
+}
+function leaveLive(){
+  S.unsub.forEach(u=>{ try{u();}catch(e){} }); S.unsub=[];
+  if(S.live.role==="player" && S.live.pin) DB.removePlayer(S.live.pin, S.uid).catch(()=>{});
+  sessionStorage.removeItem("vq:live");
+  S.live = { role:"none" };
+  S.screen = "home"; render();
+}
+
+function screenLive(){
+  if(S.live.role==="none") return liveHomeHTML();
+  if(S.live.role==="host") return liveHostHTML();
+  return livePlayerHTML();
+}
+function liveHomeHTML(){
+  const list = [...allQuizzes()].sort((a,b)=>a.title.localeCompare(b.title));
+  return `
+    <h2>📡 Jonli bellashuv</h2>
+    <div class="card">
+      <h3>Xona yaratish</h3>
+      <p class="hint">Har qanday testni tanlang, PIN kod olasiz — do'stlaringiz shu kod bilan qo'shiladi va bir vaqtda o'ynaysiz.</p>
+      <label>Test</label>
+      <select id="roomQuizPick">${list.map(qz=>`<option value="${qz.id}">${CAT[qz.category]?.em||""} ${esc(qz.title)} · ${esc(qz.authorName||"")}</option>`).join("")}</select>
+      <button class="btn gold" style="margin-top:12px" onclick="createRoomFlow($('roomQuizPick').value)">Xona yaratish</button>
+    </div>
+    <div class="card">
+      <h3>Xonaga qo'shilish</h3>
+      <label>PIN kod</label>
+      <input type="text" id="joinPin" inputmode="numeric" placeholder="000000" maxlength="8">
+      <label>Ismingiz</label>
+      <input type="text" id="joinNick" value="${esc(S.profile.nickname)}" maxlength="24">
+      <button class="btn" style="margin-top:12px" onclick="joinRoomFlow($('joinPin').value, $('joinNick').value)">Qo'shilish</button>
+    </div>`;
+}
+function liveHostHTML(){
+  const L = S.live, r = L.room;
+  if(!r) return `<div class="empty"><span class="spin"></span> Yuklanmoqda...</div>`;
+  const back = `<button class="btn ghost small" onclick="leaveLive()">✕ Xonani yopish</button>`;
+  if(r.status==="lobby"){
+    return `${back}
+      <div class="pin-box"><div class="muted">PIN kod</div><div class="pin">${L.pin}</div>
+        <div class="muted" style="margin-top:6px">${esc(r.quizTitle)}</div></div>
+      <h3>Qo'shilganlar (${L.players.length})</h3>
+      <div>${L.players.map(p=>`<span class="player-chip"><span class="av">${p.avatar||"🙂"}</span>${esc(p.nickname)}</span>`).join("") || `<div class="empty">Hali hech kim qo'shilmadi</div>`}</div>
+      <button class="btn gold" style="margin-top:16px" ${L.players.length?"":"disabled"} onclick="startRoom()">▶ Boshlash</button>`;
+  }
+  if(r.status==="question"){
+    const answered = L.players.filter(p=>p.answers && p.answers[r.currentQ]).length;
+    return `${back}
+      <div class="qprog"><span>Savol ${r.currentQ+1}/${r.questions.length}</span><span>${answered}/${L.players.length} javob berdi</span></div>
+      <div class="qtext">${esc(r.questions[r.currentQ].q)}</div>
+      <div class="big-count">${answered}/${L.players.length}</div>
+      <button class="btn" style="margin-top:16px" onclick="revealQuestion()">Javoblarni ko'rsatish</button>`;
+  }
+  if(r.status==="reveal"){
+    const Q = r.questions[r.currentQ];
+    const counts = [0,0,0,0];
+    L.players.forEach(p=>{ const a=p.answers&&p.answers[r.currentQ]; if(a) counts[a.choice]=(counts[a.choice]||0)+1; });
+    const max = Math.max(1,...counts);
+    const colors=["var(--red)","var(--blue)","var(--yellow)","var(--green)"];
+    return `${back}
+      <div class="qtext">${esc(Q.q)}</div>
+      <p class="hint">To'g'ri javob: <b style="color:var(--ok)">${esc(Q.options[Q.correct])}</b></p>
+      ${Q.options.map((op,i)=>`
+        <div class="bar-row"><span class="lbl">${SHAPES[i]} ${counts[i]}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${counts[i]/max*100}%;background:${colors[i]}"></div></div></div>`).join("")}
+      <button class="btn gold" style="margin-top:14px" onclick="nextQuestion()">
+        ${r.currentQ>=r.questions.length-1?"Yakunlash 🏁":"Keyingi savol →"}</button>`;
+  }
+  // final
+  const ranked = [...L.players].sort((a,b)=>(b.score||0)-(a.score||0));
+  return `${back}
+    <div class="card score-hero"><div>🏁</div><h2>Yakuniy natijalar</h2></div>
+    ${ranked.map((p,i)=>lbRowHTML({uid:p.uid, nickname:p.nickname, avatar:p.avatar, xp:p.score}, i+1, true)).join("")}
+    <button class="btn" style="margin-top:16px" onclick="leaveLive()">Bosh sahifaga qaytish</button>`;
+}
+function livePlayerHTML(){
+  const L = S.live, r = L.room;
+  if(!r) return `<div class="empty"><span class="spin"></span> Ulanmoqda...</div>`;
+  const back = `<button class="btn ghost small" onclick="leaveLive()">✕ Chiqish</button>`;
+  if(r.status==="lobby"){
+    return `${back}
+      <div class="pin-box"><div class="muted">Xona</div><div class="pin" style="font-size:1.4rem">${esc(r.quizTitle)}</div></div>
+      <p class="center muted">Mezbon o'yinni boshlashini kuting...</p>
+      <h3>O'yinchilar (${L.players.length})</h3>
+      <div>${L.players.map(p=>`<span class="player-chip"><span class="av">${p.avatar||"🙂"}</span>${esc(p.nickname)}</span>`).join("")}</div>`;
+  }
+  if(r.status==="question"){
+    const Q = r.questions[r.currentQ];
+    const me = L.players.find(p=>p.uid===S.uid);
+    return `${back}
+      <div class="qprog"><span>Savol ${r.currentQ+1}/${r.questions.length}</span><span>Ball: ${me?.score||0}</span></div>
+      <div class="timerwrap"><div class="timerbar" id="liveTimerBar" style="width:100%"></div></div>
+      <div class="qtext">${esc(Q.q)}</div>
+      <div class="opts">
+        ${Q.options.map((op,idx)=>`<button class="opt o${idx} ${L.myAnswered?"dim":""}" onclick="playerAnswer(${idx})" ${L.myAnswered?"disabled":""}>
+          <span class="shape">${SHAPES[idx]}</span> ${esc(op)}</button>`).join("")}
+      </div>
+      ${L.myAnswered ? `<p class="center hint">Javobingiz qabul qilindi. Boshqalarni kutmoqda...</p>` : ""}`;
+  }
+  if(r.status==="reveal"){
+    const Q = r.questions[r.currentQ];
+    const me = L.players.find(p=>p.uid===S.uid);
+    const my = me && me.answers && me.answers[r.currentQ];
+    return `${back}
+      <div class="qtext">${esc(Q.q)}</div>
+      <div class="card score-hero">
+        <div style="font-size:2rem">${my?.correct?"✅":"❌"}</div>
+        <div class="sub">To'g'ri javob: ${esc(Q.options[Q.correct])}</div>
+        <div class="xp-pill">+${my?.points||0} ball</div>
+      </div>
+      <p class="center hint">Mezbon keyingi savolni boshlashini kuting...</p>`;
+  }
+  // final
+  const ranked = [...L.players].sort((a,b)=>(b.score||0)-(a.score||0));
+  const myRank = ranked.findIndex(p=>p.uid===S.uid)+1;
+  return `${back}
+    <div class="card score-hero"><div>🏁</div><h2>#${myRank} o'rin</h2></div>
+    ${ranked.map((p,i)=>lbRowHTML({uid:p.uid, nickname:p.nickname, avatar:p.avatar, xp:p.score}, i+1, true)).join("")}
+    <button class="btn" style="margin-top:16px" onclick="leaveLive()">Bosh sahifaga qaytish</button>`;
+}
+
+/* ---------------------------------------------------------------------
+   14) TEST YARATISH
+   --------------------------------------------------------------------- */
+function blankQuestion(){ return { q:"", options:["","","",""], correct:0, time:20 }; }
+function newDraft(){ return { title:"", category: CATEGORIES[0].id, difficulty:"orta", questions:[blankQuestion(),blankQuestion(),blankQuestion()] }; }
+async function loadMyQuizzes(){
+  S.myQuizzes = await DB.myQuizzes(S.uid);
+  await checkCreatorBadge();
+}
+function screenCreate(){
+  if(!S.draft) S.draft = newDraft();
+  return `
+    <h2>➕ Test yaratish</h2>
+    <div class="card">
+      <label>Sarlavha</label>
+      <input type="text" id="dTitle" value="${esc(S.draft.title)}" placeholder="Masalan: Futbol tarixi" oninput="S.draft.title=this.value">
+      <div class="row">
+        <div>
+          <label>Kategoriya</label>
+          <select id="dCat" onchange="S.draft.category=this.value">
+            ${CATEGORIES.map(c=>`<option value="${c.id}" ${c.id===S.draft.category?"selected":""}>${c.em} ${c.name}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label>Qiyinlik</label>
+          <select id="dDiff" onchange="S.draft.difficulty=this.value">
+            ${Object.entries(DIFF_LABEL).map(([k,v])=>`<option value="${k}" ${k===S.draft.difficulty?"selected":""}>${v}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div id="qlist">${S.draft.questions.map((qq,i)=>questionEditHTML(qq,i)).join("")}</div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn ghost" onclick="addDraftQuestion()">+ Savol qo'shish</button>
+        <button class="btn gold" onclick="publishDraft()">Nashr qilish</button>
+      </div>
+    </div>
+    <h3>Mening testlarim</h3>
+    <div>${S.myQuizzes.length ? S.myQuizzes.map(myQuizRowHTML).join("") : `<div class="empty">Hali test yaratmagansiz</div>`}</div>`;
+}
+function questionEditHTML(qq,i){
+  return `<div class="qedit">
+    <label>${i+1}-savol</label>
+    <input type="text" value="${esc(qq.q)}" placeholder="Savol matni" oninput="S.draft.questions[${i}].q=this.value">
+    ${qq.options.map((op,oi)=>`
+      <div class="opt-input">
+        <span class="dot" style="background:${["var(--red)","var(--blue)","var(--yellow)","var(--green)"][oi]}"></span>
+        <input type="radio" name="correct${i}" ${qq.correct===oi?"checked":""} onchange="S.draft.questions[${i}].correct=${oi}">
+        <input type="text" value="${esc(op)}" placeholder="${oi+1}-variant" oninput="S.draft.questions[${i}].options[${oi}]=this.value">
+      </div>`).join("")}
+    <div class="row" style="margin-top:8px">
+      <select onchange="S.draft.questions[${i}].time=+this.value">
+        ${[10,15,20,30,45].map(t=>`<option value="${t}" ${t===qq.time?"selected":""}>${t} soniya</option>`).join("")}
+      </select>
+      <button class="btn danger small" onclick="removeDraftQuestion(${i})">O'chirish</button>
+    </div>
+  </div>`;
+}
+function addDraftQuestion(){ S.draft.questions.push(blankQuestion()); render(); }
+function removeDraftQuestion(i){
+  if(S.draft.questions.length<=1) return toast("Kamida 1 ta savol qolishi kerak");
+  S.draft.questions.splice(i,1); render();
+}
+async function publishDraft(){
+  const d = S.draft;
+  if(!d.title.trim()) return toast("Sarlavha kiriting");
+  if(d.questions.length<3) return toast("Kamida 3 ta savol kerak");
+  for(const qq of d.questions){
+    if(!qq.q.trim() || qq.options.some(o=>!o.trim())) return toast("Barcha savol va variantlarni to'ldiring");
+  }
+  const questions = d.questions.map(qq=>({ ...qq, category:d.category }));
+  const id = await DB.createQuiz({ title:d.title.trim(), category:d.category, difficulty:d.difficulty,
+    authorUid:S.uid, authorName:S.profile.nickname, questions, plays:0 });
+  S.profile.stats.created = (S.profile.stats.created||0)+1;
+  const earned = newlyEarnedBadges();
+  await saveProfile();
+  earned.forEach((b,i)=>setTimeout(()=>toast(`${b.em} Yangi nishon: ${b.name}!`), i*1600));
+  S.draft = newDraft();
+  await refreshQuizzes(); await loadMyQuizzes();
+  toast("✅ Test nashr qilindi!");
+  render();
+}
+function myQuizRowHTML(qz){
+  return `<div class="quiz-card">
+    <div class="qem">${CAT[qz.category]?.em||"❓"}</div>
+    <div class="qi"><h4>${esc(qz.title)}</h4>
+      <div class="meta">${qz.questions.length} savol · ${qz.plays||0} marta o'ynalgan</div></div>
+    <button class="btn danger small" onclick="deleteMyQuiz('${qz.id}')" style="width:auto">🗑</button>
+  </div>`;
+}
+async function deleteMyQuiz(id){
+  if(!confirm("Bu test butunlay o'chirilsinmi?")) return;
+  await DB.deleteQuiz(id);
+  await refreshQuizzes(); await loadMyQuizzes(); render();
+  toast("Test o'chirildi");
+}
+
+/* ---------------------------------------------------------------------
+   15) ISHGA TUSHIRISH
+   --------------------------------------------------------------------- */
+(async function boot(){
+  try{ DB = FB_CONFIG ? await makeCloudDB(FB_CONFIG) : LocalDB; }
+  catch(e){ console.warn("Bulutga ulanmadi, mahalliy rejimda ishlaydi:", e); DB = LocalDB; }
+  if(DB.mode==="local"){
+    // mahalliy rejimda arrayUnion ishlamaydi — saveUser'ni moslashtiramiz
+    const origSave = DB.saveUser.bind(DB);
+    DB.saveUser = async (uid,data)=>{ const cur = await DB.getUser(uid)||{}; await origSave(uid, mergeArrayUnion(cur,data)); };
+  }
+  S.uid = await DB.auth();
+  let p = await DB.getUser(S.uid);
+  if(!p){ p = freshProfile(); await DB.saveUser(S.uid, p); }
+  S.profile = ensureFreshBuckets(p);
+  await refreshQuizzes();
+  await loadHistory();
+
+  const resume = (()=>{ try{ return JSON.parse(sessionStorage.getItem("vq:live")); }catch(e){ return null; } })();
+  if(resume && resume.pin){
+    if(resume.role==="host") attachHost(resume.pin);
+    else attachPlayer(resume.pin);
+  } else {
+    render();
+  }
+
+  if("serviceWorker" in navigator && location.protocol==="https:")
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
