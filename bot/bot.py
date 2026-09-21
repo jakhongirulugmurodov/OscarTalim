@@ -2,10 +2,14 @@
 """
 AI kursi — Telegram bot.
 
-Vazifasi uchta:
+Vazifasi:
   1. Mini App'ga kirish nuqtasi (/start → tugma → dastur ochiladi)
   2. Sinf kodini havola orqali uzatish (t.me/BOT?start=AI13)
   3. Eslatmalar — GitHub Actions sahifasidan yoki /eslatma buyrug'i bilan
+  4. TestCorrect — foydalanuvchi test savoli+javobini (matn yoki rasm)
+     yuboradi, Gemini to'g'ri/noto'g'riligini va xatoni bosqichma-bosqich
+     tushuntiradi; xohlasa, mavzu bo'yicha javoblari bilan test ham tuzib
+     beradi (bot/gemini.py, GEMINI_API_KEY kerak).
 
 Ro'yxatdan o'tish bot ichida emas, Mini App ichida bo'ladi: u yerda ism,
 guruh, rasm va Face ID bor va ma'lumot to'g'ridan-to'g'ri Firebase'ga yoziladi.
@@ -19,10 +23,11 @@ Rejimlar:
     python3 bot.py --broadcast "matn"   # hammaga eslatma
 
 Muhit o'zgaruvchilari:
-    BOT_TOKEN   BotFather bergan token
-    APP_URL     https://<foydalanuvchi>.github.io/OscarTalim/sinf/
-    ADMIN_IDS   muallimning Telegram ID lari, vergul bilan (ixtiyoriy)
-    STATE_FILE  users.json manzili (ixtiyoriy)
+    BOT_TOKEN        BotFather bergan token
+    APP_URL          https://<foydalanuvchi>.github.io/OscarTalim/sinf/
+    ADMIN_IDS        muallimning Telegram ID lari, vergul bilan (ixtiyoriy)
+    STATE_FILE       users.json manzili (ixtiyoriy)
+    GEMINI_API_KEY   TestCorrect uchun (https://aistudio.google.com/apikey)
 """
 
 import json
@@ -33,6 +38,8 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 
+import gemini
+
 TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 APP_URL = os.environ.get("APP_URL", "").strip()
 ADMINS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()}
@@ -40,16 +47,23 @@ STORE = os.environ.get("STATE_FILE") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "users.json")
 API = "https://api.telegram.org/bot%s/" % TOKEN
 
+BTN_DASTUR = "📚 Dasturni ochish"
+BTN_TEKSHIR = "🧪 Javobni tekshirish"
+BTN_YARAT = "🧾 Test yaratish"
+
 SALOM = (
-    "Salom! Bu — *AI kursi · 13 dars* dasturi.\n\n"
-    "Pastdagi tugmani bos:\n"
-    "• ismingni yozasan va rasmga tushasan\n"
-    "• muallim tasdiqlaydi\n"
-    "• o'tilgan darslar, vazifalar va reyting ochiladi\n\n"
-    "Ball o'yindan emas, *ishdan* chiqadi. Jonli o'yin — qo'shimcha."
+    "Salom! Bu — *AI kursi* va *TestCorrect* dasturi.\n\n"
+    "📚 *Dasturni ochish* — ismingni yozasan, muallim tasdiqlaydi, "
+    "o'tilgan darslar va reyting ochiladi.\n\n"
+    "🧪 *Javobni tekshirish* — istalgan fandan test savoli va o'z "
+    "javobingni (rasm yoki matn qilib) yubor — to'g'ri-noto'g'riligini "
+    "va xato bo'lsa, qayerda adashganingni bosqichma-bosqich aytib beraman.\n\n"
+    "🧾 *Test yaratish* — mavzuni yoz, javoblari bilan test tuzib beraman.\n\n"
+    "Qaysi tilda yozsang, o'sha tilda javob beraman."
 )
-TAVSIF = ("AI kursi · 13 dars. O'quvchilar dasturi: darslar, vazifalar, "
-          "jonli duel va reyting. Pastdagi «AI kursi» tugmasini bosing.")
+TAVSIF = ("AI kursi va TestCorrect. Darslar, reyting va jonli duel; "
+          "istalgan fandan test javobini tekshirish va test tuzish — "
+          "rasm yoki matn orqali, har qanday tilda.")
 
 
 # ---------------------------------------------------------------- Telegram API
@@ -76,9 +90,33 @@ def send(chat_id, text, keyboard=None):
                 parse_mode="Markdown", reply_markup=keyboard)
 
 
-def app_button(code=None):
+def keyboard(code=None):
     url = APP_URL + (("?code=" + code) if code else "")
-    return {"inline_keyboard": [[{"text": "📚 Dasturni ochish", "web_app": {"url": url}}]]}
+    return {
+        "keyboard": [
+            [{"text": BTN_DASTUR, "web_app": {"url": url}}],
+            [{"text": BTN_TEKSHIR}, {"text": BTN_YARAT}],
+        ],
+        "resize_keyboard": True,
+    }
+
+
+def fayl_yukla(file_id):
+    """Telegramdagi faylni (masalan, javob rasmi) baytlarga yuklab oladi."""
+    meta = call("getFile", file_id=file_id)
+    yol = (meta.get("result") or {}).get("file_path")
+    if not yol:
+        return None, None
+    try:
+        with urlopen("https://api.telegram.org/file/bot%s/%s" % (TOKEN, yol), timeout=60) as r:
+            data = r.read()
+    except (URLError, HTTPError) as e:
+        print("fayl yuklashda xato:", e, file=sys.stderr)
+        return None, None
+    kengaytma = yol.rsplit(".", 1)[-1].lower() if "." in yol else "jpg"
+    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+            "webp": "image/webp"}.get(kengaytma, "image/jpeg")
+    return data, mime
 
 
 # ---------------------------------------------------------------- saqlash
@@ -102,7 +140,7 @@ def save(db):
 def broadcast(db, body):
     sent = 0
     for uid, u in db.items():
-        if send(uid, body, app_button(u.get("code"))).get("ok"):
+        if send(uid, body, keyboard(u.get("code"))).get("ok"):
             sent += 1
         time.sleep(0.05)          # Telegram cheklovi: ~30 xabar/soniya
     return sent
@@ -110,7 +148,8 @@ def broadcast(db, body):
 
 def handle(msg, db):
     chat = str(msg["chat"]["id"])
-    text = (msg.get("text") or "").strip()
+    text = (msg.get("text") or msg.get("caption") or "").strip()
+    photo = msg.get("photo")
     user = msg.get("from", {})
     if msg["chat"].get("type") != "private":
         return                    # guruhlarda javob bermaymiz
@@ -125,7 +164,7 @@ def handle(msg, db):
             "code": code or "",
             "since": db.get(chat, {}).get("since", int(time.time())),
         }
-        send(chat, SALOM, app_button(code))
+        send(chat, SALOM, keyboard(code))
         return
 
     if text.startswith("/kod"):
@@ -135,7 +174,7 @@ def handle(msg, db):
             return
         code = parts[1].strip().upper()
         db.setdefault(chat, {"id": chat})["code"] = code
-        send(chat, "Sinf kodi saqlandi: *%s*" % code, app_button(code))
+        send(chat, "Sinf kodi saqlandi: *%s*" % code, keyboard(code))
         return
 
     if text.startswith("/men"):
@@ -161,7 +200,41 @@ def handle(msg, db):
         send(chat, "Botga yozilganlar (%d):\n%s" % (len(lines), "\n".join(lines) or "—"))
         return
 
-    send(chat, "Dasturni ochish uchun tugmani bos 👇", app_button(db.get(chat, {}).get("code")))
+    entry = db.setdefault(chat, {"id": chat})
+
+    if text == BTN_YARAT or text.startswith("/yarat"):
+        entry["kutilmoqda"] = "yarat"
+        send(chat, "Qaysi fan/mavzu bo'yicha test kerak? Masalan: "
+                    "\"Biologiya, hujayra, 5 ta savol\". Javoblari bilan tuzib beraman.")
+        return
+
+    if text == BTN_TEKSHIR or text.startswith("/tekshir"):
+        entry["kutilmoqda"] = None
+        send(chat, "Test savoli va o'z javobingizni yuboring — rasm (masalan, "
+                    "daftar surati) yoki matn qilib. Darhol tekshirib beraman.")
+        return
+
+    if entry.get("kutilmoqda") == "yarat":
+        entry["kutilmoqda"] = None
+        if not text:
+            send(chat, "Mavzuni matn qilib yozing, masalan: \"Tarix, Amir Temur, 5 ta savol\".")
+            return
+        natija = gemini.test_yarat(text)
+        send(chat, natija or "Uzr, hozir test tuzib bo'lmadi. Birozdan keyin qayta urinib ko'ring.")
+        return
+
+    if photo or text:
+        rasm = mime = None
+        if photo:
+            rasm, mime = fayl_yukla(photo[-1]["file_id"])
+        natija = gemini.javobni_tekshir(savol_matn=text or None, rasm=rasm,
+                                         rasm_mime=mime or "image/jpeg")
+        send(chat, natija or "Uzr, hozir tekshirib bo'lmadi (rasm noaniq yoki "
+                              "server band). Birozdan keyin qayta yuborib ko'ring.")
+        return
+
+    send(chat, "Dasturni ochish yoki savolingizni yuborish uchun pastdagi "
+                "tugmalardan foydalaning 👇", keyboard(entry.get("code")))
 
 
 def process(updates, db):
@@ -183,11 +256,13 @@ def setup():
                                                 "web_app": {"url": APP_URL}})
     r2 = call("setMyCommands", commands=[
         {"command": "start", "description": "Dasturni ochish"},
+        {"command": "tekshir", "description": "Test javobini tekshirish"},
+        {"command": "yarat", "description": "Test yaratish"},
         {"command": "kod", "description": "Sinf kodini kiritish"},
         {"command": "men", "description": "Mening Telegram ID im"},
     ])
     r3 = call("setMyDescription", description=TAVSIF)
-    r4 = call("setMyShortDescription", short_description="AI kursi · 13 dars — o'quvchilar dasturi")
+    r4 = call("setMyShortDescription", short_description="AI kursi va TestCorrect — o'quvchilar dasturi")
     me = call("getMe").get("result", {})
     print("bot: @%s" % me.get("username", "?"))
     print("menyu tugmasi:", r1.get("ok"), "| buyruqlar:", r2.get("ok"),
