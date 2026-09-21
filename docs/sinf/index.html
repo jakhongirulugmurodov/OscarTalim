@@ -185,6 +185,26 @@ body.proj .bd{padding:26px}
 body.proj .bd .big{font-size:2.1rem}
 body.proj .bd ol li,body.proj .bd ul li{font-size:1.25rem;padding:13px 0 13px 44px}
 body.proj .bd ol li:before{width:30px;height:30px;font-size:1rem}
+/* ---- qiymat o'yini ---- */
+.doms{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.dom{padding:14px 12px;border-radius:14px;border:1px solid var(--line);background:var(--bg2);
+  color:var(--ink);font-size:.95rem;font-weight:600;cursor:pointer;text-align:left}
+.dom:hover{border-color:var(--accent)}
+.dom small{display:block;color:var(--muted);font-weight:400;font-size:.75rem;margin-top:3px}
+.pr{width:100%;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--ink);font-size:.95rem;cursor:pointer;margin-bottom:8px}
+.pr:disabled{cursor:default}
+.pr.win{border-color:var(--ok)}
+.pr.lose{opacity:.6}
+.mt{display:flex;align-items:center;gap:8px;margin-top:8px}
+.mt span{font-size:.7rem;letter-spacing:.06em;color:var(--muted);width:54px;flex:none}
+.dots{display:flex;gap:3px}
+.dots i{width:12px;height:12px;border-radius:3px;background:var(--line);display:block}
+.dots i.on{background:var(--accent)}
+.dots.f i.on{background:var(--ok)}
+body.proj .pr{font-size:1.25rem;padding:20px}
+body.proj .dom{font-size:1.15rem}
+
 /* ---- proyektor ---- */
 body.proj .wrap{max-width:1400px}
 body.proj{font-size:22px}
@@ -561,7 +581,7 @@ const COURSE = {
      a:["Urishib beraman","Muhim shartni qisqa qilib qayta yozaman","Yangi AI'ga o'taman","Tashlab qo'yaman"],c:1,
      w:"Xotira cheklangan. Muhim shartni vaqti-vaqti bilan takrorlash — normal ish usuli."}]},
 
-{ n:7, t:"Prompt emas — vazifa berish",
+{ n:7, t:"Prompt emas — vazifa berish", game:"qiymat",
   learn:"AI'ga vazifani qanday qo'yishni: rol, sharoit, misol, format. Eng ko'p mashq qilinadigan dars.",
   where:"Bu kursning asosiy ko'nikmasi. Undan keyingi hamma ishingda shu turadi.",
   key:["ROL: AI kim bo'lib javob bersin",
@@ -789,6 +809,129 @@ const LEVELS = [
 ];
 function levelOf(p){let i=0;for(let k=0;k<LEVELS.length;k++)if(p>=LEVELS[k].p)i=k;
   return {i:i+1,name:LEVELS[i].n,cur:LEVELS[i].p,next:LEVELS[i+1]?LEVELS[i+1].p:null};}
+
+/* ---------------------------------------------------------------------
+   QIYMAT O'YINI (7-dars)
+   Har muammo: [matn, PUL, FOYDA] — ikkovi ham 1..5.
+   PUL   = buni yechgan odam qancha pul topadi (bozorda qancha turadi)
+   FOYDA = nechta odamga qancha yaxshilik qiladi
+   Ikkovi ataylab alohida: ko'pincha ular mos kelmaydi va darsning
+   asosiy fikri aynan shu. Har sohada ataylab mayda muammolar ham bor.
+   --------------------------------------------------------------------- */
+const VALUE = [
+ {id:"talim", t:"Ta'lim", p:[
+  ["Qishloq maktabida fizika o'qituvchisi yo'q",3,5],
+  ["Kasb tanlashda bolaga hech kim yo'l ko'rsatmaydi",4,5],
+  ["Imtihonga tayyorgarlik uchun repetitor juda qimmat",5,4],
+  ["Bolalar ingliz tilini yozadi, lekin gapira olmaydi",5,4],
+  ["Nogiron bola maktabga bora olmaydi",2,5],
+  ["O'quvchi darsni tushunmay qoldi, so'rashga uyaladi",2,4],
+  ["Ota-ona bolasining bahosini vaqtida bilmaydi",2,3],
+  ["Maktab kutubxonasidagi kitoblar eskirgan",1,3],
+  ["Dars jadvali qog'ozda — o'zgarsa hamma bilmay qoladi",1,2],
+  ["Doska markeri tez tugaydi",1,1]]},
+ {id:"soglik", t:"Sog'liq", p:[
+  ["Dori haqiqiymi yoki soxtami — bilib bo'lmaydi",4,5],
+  ["Qishloqqa shifokor haftada bir kun keladi",3,5],
+  ["Kasalxonagacha yo'l uzoq, tez yordam kech yetadi",3,5],
+  ["Ruhiy holat haqida gapirishdan uyalishadi",2,5],
+  ["Tish shifokori qimmat — shuning uchun kech boriladi",4,4],
+  ["Ko'zi xiralashganini bola o'zi sezmaydi",2,4],
+  ["Sport zali yo'q, bolalar kun bo'yi o'tiradi",2,4],
+  ["Shifokor oldida navbatda uzoq turiladi",3,3],
+  ["Qariyalar dorini qachon ichishni unutadi",2,3],
+  ["Kasalxonada navbat raqami eshitilmaydi",1,1]]},
+ {id:"suv", t:"Suv va tabiat", p:[
+  ["Sug'orish suvi behuda oqib ketadi",4,5],
+  ["Ichimlik suvi hamma uyga yetib bormaydi",3,5],
+  ["Havo changli — bolalar yo'taladi",2,5],
+  ["Plastik butilkalar qayta ishlanmaydi",3,4],
+  ["Chiqindi ko'chaga tashlanadi",2,4],
+  ["Daraxt kesiladi, o'rniga ekilmaydi",1,4],
+  ["Yomg'ir suvi yig'ilmay ketadi",2,3],
+  ["Ariq tozalanmagan, suv sekin oqadi",1,3],
+  ["Ko'chada axlat qutisi kam",1,2],
+  ["Hovlida chivin ko'p",1,1]]},
+ {id:"dehqon", t:"Dehqonchilik", p:[
+  ["Hosilni arzonga oladigan vositachi ko'p",5,5],
+  ["Sabzavot saqlashga joy yo'q — chiriydi",5,5],
+  ["Hosil kasalligini kech payqashadi",4,5],
+  ["Urug' sifatsiz chiqadi, bilib bo'lmaydi",4,4],
+  ["Qachon sug'orishni dehqon taxmin bilan hal qiladi",4,4],
+  ["Ob-havo bashorati aniq emas",3,4],
+  ["Traktor ijaraga olish qiyin",3,3],
+  ["Sut sotish narxi tushib ketgan",3,3],
+  ["Tovuqlar kam tuxum qo'yayotganini payqamaydi",1,1],
+  ["Dala chetida begona o't ko'p",1,1]]},
+ {id:"yol", t:"Transport va yo'l", p:[
+  ["Maktab oldida piyodalar o'tish joyi yo'q",1,5],
+  ["Maktab avtobusi yo'q — bolalar piyoda yuradi",2,5],
+  ["Yo'lda chiroq yo'q, kechasi xavfli",2,5],
+  ["Qishloqdan shaharga transport kam",4,4],
+  ["Yo'l chuqur — mashina tez buziladi",3,4],
+  ["Taksi narxi kelishuv bilan, aldashadi",3,3],
+  ["Avtobus qachon kelishini hech kim bilmaydi",3,3],
+  ["Velosiped uchun xavfsiz yo'l yo'q",2,3],
+  ["Avtobusda o'tirgani joy topilmaydi",1,2],
+  ["Mashinaga to'xtash joyi topilmaydi",1,1]]},
+ {id:"savdo", t:"Savdo va kichik biznes", p:[
+  ["Hunarmand mahsulotini faqat mahallaga sotadi",5,4],
+  ["Onlayn to'lovni hamma bilmaydi",4,4],
+  ["Kichik do'kon hisobni daftarda yuritadi — adashadi",4,3],
+  ["Mijoz qachon kelishi noma'lum, mol qolib ketadi",4,3],
+  ["Reklamaga pul ketadi, natija ko'rinmaydi",4,3],
+  ["Yetkazib berish qimmat, kichik buyurtma foyda bermaydi",4,3],
+  ["Narxni raqobatchi bilan solishtirib bo'lmaydi",3,3],
+  ["Qarzga berilgan pulni eslab qolish qiyin",2,2],
+  ["Do'kon vitrinasi chang bosadi",1,1],
+  ["Chek qog'ozi tez tugaydi",1,1]]},
+ {id:"uy", t:"Uy va kundalik hayot", p:[
+  ["Qishda uy sovuq, isitish qimmat",4,5],
+  ["Elektr tez-tez o'chadi",3,5],
+  ["Gaz bosimi past — ovqat pishmaydi",3,4],
+  ["Eski uskunalar ko'p elektr yeydi",3,3],
+  ["Kommunal to'lovni qayerdan to'lashni bilmaydi",2,3],
+  ["Non tez qotadi va tashlanadi",2,2],
+  ["Kiyim yamashni bilmaydi — tashlab yuboradi",1,2],
+  ["Uyda tinch o'qiydigan joy yo'q",1,2],
+  ["Kalit tez-tez yo'qoladi",1,1],
+  ["Televizor pulti yo'qoladi",1,1]]},
+ {id:"ish", t:"Ish va kasb", p:[
+  ["Diplom bor, ko'nikma yo'q",5,5],
+  ["Ish topish uchun tanish kerak",4,5],
+  ["Yoshlar qanday kasblar borligini bilmaydi",4,5],
+  ["Ayollar uyda o'tiradi, daromadi yo'q",4,5],
+  ["Ota-ona chet elda — bola qarovsiz",2,5],
+  ["Ish haqi kechiktiriladi",2,4],
+  ["Rezyume yozishni bilmaydi",2,3],
+  ["Suhbatdan qo'rqadi",2,3],
+  ["Ishga kechikib qoladi",1,1],
+  ["Ish joyida choy tugab qoladi",1,1]]},
+ {id:"internet", t:"Internet va xavfsizlik", p:[
+  ["Kartadan pul o'g'irlanadi",5,5],
+  ["Firibgarlar telefon qilib pul undiradi",4,5],
+  ["Bolalar internetda zararli narsa ko'radi",3,5],
+  ["Yolg'on yangilik tez tarqaladi",2,5],
+  ["Qishloqda internet sekin",4,4],
+  ["Parolni hamma joyda bir xil qo'yadi",3,4],
+  ["Telefondagi suratlar yo'qolib ketadi",2,2],
+  ["Internet trafigi tez tugaydi",2,2],
+  ["Wi-Fi parolini unutib qo'yadi",1,1],
+  ["Telefon zaryadi tez tugaydi",1,1]]},
+ {id:"mahalla", t:"Mahalla va jamoat", p:[
+  ["To'y xarajati oilani qarzga botiradi",4,5],
+  ["Qariyaga yordam kerak — kim borishini hech kim bilmaydi",1,5],
+  ["Ko'mak kerak oilalarni aniqlash qiyin",2,5],
+  ["Mahalla muammosini kimga aytishni bilmaydi",2,4],
+  ["Bolalar o'ynaydigan joy yo'q",2,4],
+  ["Ko'chada it ko'payib ketgan",1,3],
+  ["Yangi kelganlar hech kimni tanimaydi",1,2],
+  ["Mahalla yig'inidan hamma xabar topmaydi",1,2],
+  ["Mahalla e'lonlar doskasi eskirgan",1,1],
+  ["Ko'chada skameyka kam",1,1]]}
+];
+const VAL_PAIRS = 6;      /* nechta juft savol */
+const VAL_PTS   = 20;     /* o'yin uchun jami ball */
 
 /* ---------------------------------------------------------------------
    3) PLATFORMA: Telegram Mini App / oddiy brauzer
@@ -1411,6 +1554,7 @@ ACT.goLive = ()=>{ S.tab="live"; render(); };
 
 function screenStudent(){
   if (S.tab==="live") return screenLive();
+  if (S.tab==="qiymat") return screenQiymat();
   let body="";
   if (S.tab==="darslar") body = viewLessons();
   else if (S.tab==="bugun") body = S.lesson ? viewLesson(S.lesson) : viewLesson(openCount()||1);
@@ -1465,6 +1609,7 @@ function viewLesson(n){
     </div>
     ${l.board ? boardHtml(l) : `<div class="card"><h2>Asosiy fikrlar</h2>
       <ul class="items">${l.key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul></div>`}
+    ${l.game==="qiymat"?qmCard():""}
     ${tasksOf(l).map(t=>taskCard(l,t)).join("")}
     <div class="card flat"><p class="small">Ball ishdan chiqadi. Jonli o'yin — qo'shimcha, asosiy emas.</p></div>`;
 }
@@ -1496,6 +1641,167 @@ ACT.sub = async (btn)=>{
   await award(ln, tid, +t.pts||10, text);
   toast(`+${t.pts} ball`);
 };
+
+/* ---------------------------------------------------------------------
+   QIYMAT O'YINI — o'quvchi tomoni
+   Bosqich 1: 6 juft. Har juftda bitta savol so'raladi — "qaysi biriga
+   ko'proq PUL to'lashadi?" yoki "qaysi biri ko'proq FOYDA keltiradi?".
+   Javobdan keyin ikkala o'lchov ham ochiladi: bola ularning ko'pincha
+   mos kelmasligini o'z ko'zi bilan ko'radi. Darsning mag'zi shu.
+   Bosqich 2: bola o'sha sohadan BITTA muammoni o'ziga oladi. U sinf
+   devorida ismi bilan turadi va kurs oxirigacha uniki bo'ladi.
+   --------------------------------------------------------------------- */
+const domOf = id => VALUE.find(d=>d.id===id);
+function qmCard(){
+  const mine = S.myProfile && S.myProfile.problem;
+  return `<div class="card accent"><small class="small">QIYMAT O'YINI</small>
+    <h2 style="margin:6px 0">Qaysi muammoni yechish arziydi?</h2>
+    <p class="small">Jamiyatda millionlab muammo bor. Hammasi bir xil emas:
+      biriga ko'p pul to'lashadi, biri ko'p odamga foyda beradi — va bu
+      ikkisi ko'pincha bir joyda turmaydi. O'zingga qiziq sohani tanla.</p>
+    ${mine?`<div class="sep"></div><p class="small">Sening muammong:</p>
+      <b>${esc(mine.t)}</b>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn ghost sm" data-a="qmOpen">Qaytadan o'ynash</button></div>`
+     :`<button class="btn" style="margin-top:10px" data-a="qmOpen">Boshlash</button>`}
+  </div>`;
+}
+ACT.qmOpen = ()=>{ S.qm=null; S.tab="qiymat"; render(); };
+ACT.qmBack = ()=>{ S.qm=null; S.tab="bugun"; S.lesson=7; render(); };
+
+/* Juftlar: faqat farqi aniq bo'lganlari olinadi (kamida 2 ball),
+   shunda "to'g'ri javob" bahsli bo'lmaydi. */
+function qmPairs(id){
+  const list = domOf(id).p.map((x,i)=>({i, t:x[0], pul:x[1], foy:x[2]}));
+  const want = ["foy","pul","foy","pul","foy","pul"].slice(0,VAL_PAIRS);
+  const used = new Set(), out = [];
+  for (const m of want){
+    const sh = list.slice().sort(()=>Math.random()-0.5);
+    let found = null;
+    /* Avval farqi 2+ bo'lgan juftni qidiramiz — javob bahsli bo'lmasin.
+       Topilmasa chegarani 1 ga tushiramiz, chunki o'yin kalta chiqishi
+       (masalan, sohada hamma narsa bir xil bahoda bo'lsa) yomonroq. */
+    for (const need of [2,1]){
+      for (let a=0; a<sh.length && !found; a++)
+        for (let b=a+1; b<sh.length && !found; b++){
+          const k = [sh[a].i, sh[b].i].sort().join("-");
+          if (used.has(k)) continue;
+          if (Math.abs(sh[a][m]-sh[b][m]) >= need){ used.add(k); found = {a:sh[a], b:sh[b], m}; }
+        }
+      if (found) break;
+    }
+    if (found) out.push(found);
+  }
+  return out;
+}
+ACT.qmDom = n => {
+  const id = n.dataset.d;
+  S.qm = {dom:id, i:0, right:0, ans:null, phase:"pair", pairs:qmPairs(id)};
+  render();
+};
+ACT.qmAns = n => {
+  const q = S.qm, pr = q.pairs[q.i];
+  const pickA = n.dataset.i === "0";
+  const win = pr.a[pr.m] >= pr.b[pr.m] ? "a" : "b";
+  q.ans = pickA ? "a" : "b";
+  if (q.ans === win) q.right++;
+  render();
+};
+ACT.qmNext = ()=>{
+  const q = S.qm;
+  q.ans = null; q.i++;
+  if (q.i >= q.pairs.length) q.phase = "pick";
+  render();
+};
+ACT.qmMine = async n => {
+  const q = S.qm, idx = +n.dataset.i, d = domOf(q.dom);
+  const pr = d.p[idx];
+  q.phase = "done"; q.chosen = {dom:q.dom, i:idx, t:pr[0], pul:pr[1], foy:pr[2]};
+  render();
+  try { await DB.setProfile(S.code, S.sid, {problem:{dom:q.dom, t:pr[0], pul:pr[1], foy:pr[2]}}); }
+  catch(e){ console.warn("muammo saqlanmadi", e); }
+  if (!isDone(7,"qiymat")){
+    const pts = Math.round(VAL_PTS * 0.6 * q.right / Math.max(1,q.pairs.length)) + Math.round(VAL_PTS*0.4);
+    await award(7, "qiymat", pts, `Tanlagan muammosi: ${pr[0]}`);
+    toast("+"+pts+" ball");
+  }
+};
+function dots(v, kind){
+  return `<span class="dots ${kind}">${[1,2,3,4,5].map(i=>
+    `<i class="${i<=v?"on":""}"></i>`).join("")}</span>`;
+}
+function meter(o){
+  return `<div class="mt"><span>PUL</span>${dots(o.pul||o[1],"")}</div>
+    <div class="mt"><span>FOYDA</span>${dots(o.foy||o[2],"f")}</div>`;
+}
+function qmInsight(w, m){
+  if (m==="foy" && w.pul<=2) return "Foydasi katta, puli kam. Bunday muammoni bozor o'zi yechmaydi — davlat, maktab yoki ko'ngillilar yechadi.";
+  if (m==="pul" && w.foy<=2) return "Puli ko'p, foydasi kichik. Pul doim eng muhim joyga bormaydi — shuni bilib turish kerak.";
+  if (w.pul>=4 && w.foy>=4) return "Kamdan-kam uchraydigan holat: ham pul, ham foyda. Shunaqasini topgan odam baxtli.";
+  return "";
+}
+function screenQiymat(){
+  const q = S.qm;
+  if (!q) return h(`<div class="wrap">${hud()}
+    <div class="card accent"><small class="small">QIYMAT O'YINI</small>
+      <h2 style="margin:6px 0">Qaysi soha senga qiziq?</h2>
+      <p class="small">Bittasini tanla. Ichida o'sha sohaning 10 ta haqiqiy
+        muammosi bor — kattasi ham, maydasi ham.</p>
+      <div class="doms">${VALUE.map(d=>`<button class="dom" data-a="qmDom" data-d="${d.id}">
+        ${esc(d.t)}<small>${d.p.length} ta muammo</small></button>`).join("")}</div></div>
+    <button class="btn ghost" data-a="qmBack">Darsga qaytish</button></div>${nav()}`);
+
+  const d = domOf(q.dom);
+
+  if (q.phase === "pair"){
+    const pr = q.pairs[q.i];
+    const ask = pr.m==="pul" ? "Qaysi biriga ko'proq PUL to'lashadi?"
+                             : "Qaysi biri ko'proq odamga FOYDA beradi?";
+    const win = pr.a[pr.m] >= pr.b[pr.m] ? "a" : "b";
+    const shown = q.ans !== null;
+    const side = (o, key) => {
+      let c = "pr";
+      if (shown) c += (key===win ? " win" : " lose");
+      return `<button class="${c}" ${shown?"disabled":`data-a="qmAns" data-i="${key==="a"?0:1}"`}>
+        ${esc(o.t)}${shown?meter(o):""}</button>`;
+    };
+    const ins = shown ? qmInsight(pr[win], pr.m) : "";
+    return h(`<div class="wrap">${hud()}
+      <div class="card accent"><small class="small">${esc(d.t.toUpperCase())} · ${q.i+1}/${q.pairs.length}</small>
+        <h2 style="margin:6px 0">${ask}</h2></div>
+      ${side(pr.a,"a")}${side(pr.b,"b")}
+      ${shown?`${ins?`<div class="card"><h3>Diqqat</h3><p class="small">${esc(ins)}</p></div>`:""}
+        <button class="btn" data-a="qmNext">${q.i+1>=q.pairs.length?"Keyingi bosqich":"Keyingi"}</button>`:""}
+    </div>${nav()}`);
+  }
+
+  if (q.phase === "pick"){
+    return h(`<div class="wrap">${hud()}
+      <div class="card accent"><small class="small">${esc(d.t.toUpperCase())}</small>
+        <h2 style="margin:6px 0">Endi bittasini o'zingga ol</h2>
+        <p class="small">${q.right}/${q.pairs.length} to'g'ri topding. Mana shu sohaning
+          hamma muammolari — raqamlari ochiq. Qaysi birini yechishni xohlaysan?
+          Tanlaganing kurs oxirigacha seniki bo'ladi.</p></div>
+      ${d.p.map((x,i)=>`<button class="pr" data-a="qmMine" data-i="${i}">
+        ${esc(x[0])}${meter({pul:x[1],foy:x[2]})}</button>`).join("")}
+    </div>${nav()}`);
+  }
+
+  const ch = q.chosen || {};
+  return h(`<div class="wrap">${hud()}
+    <div class="card accent" style="text-align:center">
+      <small class="small">SENING MUAMMONG</small>
+      <h2 style="margin:8px 0">${esc(ch.t||"")}</h2>
+      <div style="text-align:left;max-width:280px;margin:0 auto">${meter(ch)}</div></div>
+    <div class="card"><h3>Nima bo'ldi</h3>
+      <p class="small">Juftlarda ${q.right}/${q.pairs.length} to'g'ri javob berding.
+        Muammo sinf devoriga isming bilan chiqdi. Keyingi darslarda unga qaytamiz:
+        qanday vosita kerak, kimga vazifa berasan, nimadan boshlaysan.</p></div>
+    <div class="btn-row">
+      <button class="btn ghost" data-a="qmOpen">Boshqa sohani ko'rish</button>
+      <button class="btn ghost" data-a="qmBack">Darsga qaytish</button></div>
+  </div>${nav()}`);
+}
 
 async function award(lesson, task, pts, text){
   const wk = weekNo();
@@ -1939,11 +2245,37 @@ function tJonli(){
         <span class="hint">Jonli o'yinda — PIN. Topshiriq (Assign) qilsangiz — kahoot.it/challenge/... havolasi</span></label>
       <input id="kh-pin" placeholder="1234567 yoki https://kahoot.it/challenge/...">
       <button class="btn" style="margin-top:10px" data-a="khStart">O'quvchilarga yuborish</button></div>
+    ${tDevor()}
     ${tKahoot()}
     <div class="card"><h3>3. Ovoz berish / bahs</h3>
       <p class="small">To'g'ri javobi yo'q savol. Hamma ovoz beradi (+5), keyin bahslashasiz.</p>
       <input id="p-q" placeholder="Savol"><input id="p-a" placeholder="Variantlar, vergul bilan">
       <button class="btn ghost" style="margin-top:8px" data-a="startPoll">Ovoz berishni boshlash</button></div>`;
+}
+/* Sinf devori: qaysi bola qaysi muammoni o'ziga olgan.
+   Proyektorga chiqarib muhokama qilinadi. */
+function tDevor(){
+  const rows = S.students.filter(x=>x.ok)
+    .map(x=>({name:x.name, pr:(S.profiles[x.uid]||{}).problem}))
+    .filter(x=>x.pr)
+    .sort((a,b)=>(b.pr.foy+b.pr.pul)-(a.pr.foy+a.pr.pul));
+  if (!rows.length) return "";
+  const foy = rows.reduce((a,x)=>a+x.pr.foy,0)/rows.length;
+  const pul = rows.reduce((a,x)=>a+x.pr.pul,0)/rows.length;
+  return `<div class="card"><h3>Sinf devori — tanlangan muammolar (${rows.length})</h3>
+    <p class="small">Sinf o'rtacha FOYDA ${foy.toFixed(1)} · PUL ${pul.toFixed(1)}.
+      ${foy-pul>=1 ? "Bolalar foydani puldan ustun qo'yishgan — shuni ayting, bu yaxshi belgi."
+       : pul-foy>=1 ? "Bolalar pulga qarab tanlashgan. So'rang: eng ko'p foyda beradigani qaysi edi?"
+       : "Foyda va pul muvozanatda tanlangan."}</p>
+    ${rows.map(x=>`<div class="bd" style="padding:12px;margin-bottom:8px">
+      <div class="cap">${esc(x.name)}</div>
+      <div style="margin-top:4px">${esc(x.pr.t)}</div>
+      <div class="mt"><span>PUL</span><span class="dots">${[1,2,3,4,5].map(i=>
+        `<i class="${i<=x.pr.pul?"on":""}"></i>`).join("")}</span></div>
+      <div class="mt"><span>FOYDA</span><span class="dots f">${[1,2,3,4,5].map(i=>
+        `<i class="${i<=x.pr.foy?"on":""}"></i>`).join("")}</span></div>
+    </div>`).join("")}
+    <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button></div>`;
 }
 function tKahoot(){
   const I=S.imp;
