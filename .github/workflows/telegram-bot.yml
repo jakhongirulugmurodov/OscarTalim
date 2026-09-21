@@ -5,6 +5,7 @@
 #
 # Kerak: Settings → Secrets and variables → Actions →
 #   secret   TELEGRAM_BOT_TOKEN   — BotFather bergan token
+#   secret   GEMINI_API_KEY       — TestCorrect uchun (https://aistudio.google.com/apikey)
 #   variable TELEGRAM_ADMIN_IDS   — muallim Telegram ID si (ixtiyoriy, /eslatma uchun)
 #
 # Eslatma: GitHub jadval bo'yicha ishga tushirishni faqat asosiy (main)
@@ -40,6 +41,7 @@ jobs:
     timeout-minutes: 5
     env:
       BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       APP_URL: https://jakhongirulugmurodov.github.io/OscarTalim/sinf/
       ADMIN_IDS: ${{ vars.TELEGRAM_ADMIN_IDS }}
       STATE_FILE: ${{ github.workspace }}/state/users.json
