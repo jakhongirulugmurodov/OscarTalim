@@ -2259,7 +2259,15 @@ function tDevor(){
     .map(x=>({name:x.name, pr:(S.profiles[x.uid]||{}).problem}))
     .filter(x=>x.pr)
     .sort((a,b)=>(b.pr.foy+b.pr.pul)-(a.pr.foy+a.pr.pul));
-  if (!rows.length) return "";
+  const link = location.origin + location.pathname + "#qiymat";
+  if (!rows.length) return `<div class="card"><h3>Qiymat o'yini — 7-dars</h3>
+    <p class="small">O'quvchi o'ziga qiziq sohani tanlaydi, 6 juft savolda
+      «qaysi biriga ko'proq pul to'lashadi» va «qaysi biri ko'proq foyda beradi»
+      degan savolga javob beradi, keyin bitta muammoni o'ziga oladi.
+      Hali hech kim tanlamagan — tanlaganlar shu yerda ismi bilan chiqadi.</p>
+    <p class="small">O'quvchida: <b>Darslar → 7-dars → Boshlash</b>.
+      Yoki to'g'ridan-to'g'ri havola:</p>
+    <p class="small mono">${esc(link)}</p></div>`;
   const foy = rows.reduce((a,x)=>a+x.pr.foy,0)/rows.length;
   const pul = rows.reduce((a,x)=>a+x.pr.pul,0)/rows.length;
   return `<div class="card"><h3>Sinf devori — tanlangan muammolar (${rows.length})</h3>
@@ -2275,6 +2283,7 @@ function tDevor(){
       <div class="mt"><span>FOYDA</span><span class="dots f">${[1,2,3,4,5].map(i=>
         `<i class="${i<=x.pr.foy?"on":""}"></i>`).join("")}</span></div>
     </div>`).join("")}
+    <p class="small mono" style="margin-top:10px">${esc(link)}</p>
     <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button></div>`;
 }
 function tKahoot(){
@@ -2645,8 +2654,13 @@ function draw(){
   if (qc) code = qc.toUpperCase();
   if (IN_TG && TG.initDataUnsafe.start_param) code = String(TG.initDataUnsafe.start_param).toUpperCase();
 
+  /* #qiymat — o'yinga to'g'ridan-to'g'ri havola. Kirmagan bo'lsa
+     avval kirish oynasi chiqadi, kirgandan keyin o'yin ochiladi. */
+  const wantGame = (location.hash||"").toLowerCase()==="#qiymat";
+
   if (stu && stu.sid && (!code || code===stu.code)){
-    S.code=stu.code; S.sid=stu.sid; S.role="student"; S.screen="app"; S.tab="darslar";
+    S.code=stu.code; S.sid=stu.sid; S.role="student"; S.screen="app";
+    S.tab = wantGame ? "qiymat" : "darslar";
     await attach(S.code);
   } else if (tea && tea.code && !code){
     S.code=tea.code; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
@@ -2655,6 +2669,14 @@ function draw(){
     S.code = code; S.reg.code = code; S.screen = "gate";
   } else S.screen = "gate";
   render();
+
+  /* Ilova ochiq turganda ham #qiymat havolasi ishlasin: faqat hash
+     o'zgarsa brauzer sahifani qayta yuklamaydi, boot qayta ishlamaydi. */
+  addEventListener("hashchange", ()=>{
+    if ((location.hash||"").toLowerCase()==="#qiymat" && S.role==="student"){
+      S.qm=null; S.tab="qiymat"; render();
+    }
+  });
 
   if ("serviceWorker" in navigator && location.protocol==="https:")
     navigator.serviceWorker.register("sw.js").catch(()=>{});
