@@ -1,0 +1,15 @@
+{
+  "name": "Vocabulary — ingliz tili so‘zlari",
+  "short_name": "Vocabulary",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f4ff",
+  "theme_color": "#6c5ce7",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

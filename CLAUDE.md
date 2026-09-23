@@ -21,6 +21,8 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
 - `docs/sinf/` — AI kursi (13 dars) uchun sinf paneli. Bitta HTML fayl:
   HTML + CSS + JS + kurs mazmuni. PWA, GitHub Pages'da.
 - `docs/anjuman/` — anjuman mashg'uloti dasturi.
+- `docs/vocabulary/` — ingliz tili so'zlarini yodlash ilovasi (flashcard,
+  spaced repetition). Bitta HTML fayl, PWA. Batafsil: `docs/vocabulary/README.md`.
 - `docs/index.html` — transkripsiya sahifasi.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
 - `.github/workflows/` — bot, Firebase sozlash, Pages shoxchasini sinxronlash.
