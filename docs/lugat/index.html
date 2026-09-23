@@ -1,0 +1,2446 @@
+<title>Vocabulary Teacher</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Noto+Sans:wght@400;600&display=swap">
+<style>
+  /* ---------- Tokens: light (default) ---------- */
+  :root {
+    --paper: 243 245 240;      /* sahifa foni */
+    --surface: 255 255 255;    /* kartalar */
+    --sunken: 234 237 231;     /* ichki bloklar */
+    --ink: 24 32 46;           /* asosiy matn */
+    --muted: 88 99 116;        /* ikkinchi darajali matn */
+    --line: 218 223 214;       /* chiziqlar */
+    --primary: 12 118 110;     /* teal — asosiy harakat */
+    --on-primary: 255 255 255;
+    --marker: 255 214 72;      /* marker — ajratilgan so'z */
+    --on-marker: 36 30 6;
+    --good: 22 150 82;
+    --warn: 214 128 22;
+    --bad: 212 66 66;
+    --rule: 205 222 240;       /* daftar chizig'i */
+    --shadow: 24 32 46;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not(.force-light) {
+      --paper: 15 20 26; --surface: 24 31 40; --sunken: 32 41 52; --ink: 232 236 241;
+      --muted: 156 167 182; --line: 44 55 68; --primary: 52 196 181; --on-primary: 6 30 28;
+      --marker: 233 194 63; --on-marker: 28 22 2; --good: 64 204 128; --warn: 240 160 60;
+      --bad: 242 110 110; --rule: 40 56 76; --shadow: 0 0 0;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]:not(.force-light), :root.force-dark {
+    --paper: 15 20 26; --surface: 24 31 40; --sunken: 32 41 52; --ink: 232 236 241;
+    --muted: 156 167 182; --line: 44 55 68; --primary: 52 196 181; --on-primary: 6 30 28;
+    --marker: 233 194 63; --on-marker: 28 22 2; --good: 64 204 128; --warn: 240 160 60;
+    --bad: 242 110 110; --rule: 40 56 76; --shadow: 0 0 0;
+    color-scheme: dark;
+  }
+  :root.force-light { color-scheme: light; }
+
+  html, body { height: 100%; }
+  body {
+    background: rgb(var(--paper));
+    color: rgb(var(--ink));
+    font-family: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .font-display { font-family: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif; letter-spacing: -0.01em; }
+  .ipa { font-family: "Noto Sans", "Segoe UI", "DejaVu Sans", sans-serif; }
+  h1, h2, h3 { text-wrap: balance; }
+  .num { font-variant-numeric: tabular-nums; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--muted)); font-weight: 700; }
+
+  mark.hl { background: rgb(var(--marker)); color: rgb(var(--on-marker)); padding: 0 .15em; border-radius: 3px; }
+
+  /* Daftar chiziqlari — kartaning orqa tomoni */
+  .ruled {
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgb(var(--rule)) 31px, rgb(var(--rule)) 32px);
+    background-position: 0 14px;
+  }
+
+  /* 3D flip */
+  .flip-scene { perspective: 1400px; }
+  .flip-card { position: relative; transform-style: preserve-3d; transition: transform .55s cubic-bezier(.2,.8,.2,1); }
+  .flip-card.is-flipped { transform: rotateY(180deg); }
+  .flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .flip-back { transform: rotateY(180deg); }
+
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0 } 60% { transform: scale(1.12); opacity: 1 } 100% { transform: scale(1) } }
+  @keyframes floatUp { 0% { transform: translate(-50%, 0); opacity: 0 } 15% { opacity: 1 } 100% { transform: translate(-50%, -70px); opacity: 0 } }
+  @keyframes shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+  @keyframes shimmer { 0% { background-position: -300px 0 } 100% { background-position: 300px 0 } }
+  @keyframes slideUp { from { transform: translateY(24px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+  @keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgb(var(--bad) / .5) } 100% { box-shadow: 0 0 0 18px rgb(var(--bad) / 0) } }
+  .anim-pop { animation: pop .35s ease-out both; }
+  .anim-shake { animation: shake .3s ease-in-out 2; }
+  .anim-up { animation: slideUp .3s ease-out both; }
+  .xp-float { position: fixed; left: 50%; bottom: 120px; animation: floatUp 1.1s ease-out forwards; pointer-events: none; z-index: 80; }
+  .rec-pulse { animation: pulseRing 1.2s ease-out infinite; }
+  .skel { background: linear-gradient(90deg, rgb(var(--sunken)) 0, rgb(var(--line)) 50%, rgb(var(--sunken)) 100%); background-size: 600px 100%; animation: shimmer 1.3s linear infinite; border-radius: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+  :focus-visible { outline: 3px solid rgb(var(--primary)); outline-offset: 2px; border-radius: 10px; }
+  button { touch-action: manipulation; }
+  .word-btn { cursor: pointer; border-radius: 4px; }
+  .word-btn:hover { background: rgb(var(--primary) / .12); }
+  .word-known { text-decoration: underline dotted rgb(var(--primary)); text-underline-offset: 4px; text-decoration-thickness: 2px; }
+  .nav-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .top-safe { top: env(safe-area-inset-top, 0px); }
+  .scroll-x { overflow-x: auto; }
+  #boot { display: grid; place-items: center; min-height: 60vh; color: rgb(var(--muted)); font-family: "Bricolage Grotesque", system-ui, sans-serif; }
+</style>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          paper: 'rgb(var(--paper) / <alpha-value>)',
+          surface: 'rgb(var(--surface) / <alpha-value>)',
+          sunken: 'rgb(var(--sunken) / <alpha-value>)',
+          ink: 'rgb(var(--ink) / <alpha-value>)',
+          muted: 'rgb(var(--muted) / <alpha-value>)',
+          line: 'rgb(var(--line) / <alpha-value>)',
+          primary: 'rgb(var(--primary) / <alpha-value>)',
+          onprimary: 'rgb(var(--on-primary) / <alpha-value>)',
+          marker: 'rgb(var(--marker) / <alpha-value>)',
+          onmarker: 'rgb(var(--on-marker) / <alpha-value>)',
+          good: 'rgb(var(--good) / <alpha-value>)',
+          warn: 'rgb(var(--warn) / <alpha-value>)',
+          bad: 'rgb(var(--bad) / <alpha-value>)',
+        },
+        boxShadow: {
+          card: '0 1px 0 rgb(var(--shadow) / .04), 0 8px 24px -12px rgb(var(--shadow) / .25)',
+          lift: '0 18px 40px -18px rgb(var(--shadow) / .45)',
+        },
+      },
+    },
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<div id="root"><div id="boot">Vocabulary Teacher yuklanmoqda…</div></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+/* =====================================================================
+   1. YORDAMCHI FUNKSIYALAR
+   ===================================================================== */
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const DAY = 86400000;
+const pad = (n) => String(n).padStart(2, '0');
+const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+const pick = (a, n) => shuffle(a).slice(0, n);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const norm = (s) => String(s || '').toLowerCase().replace(/[’‘`]/g, "'").replace(/[^a-z0-9' -]/g, ' ').replace(/\s+/g, ' ').trim();
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function levenshtein(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+const similarity = (a, b) => { a = norm(a); b = norm(b); if (!a && !b) return 1; return 1 - levenshtein(a, b) / Math.max(a.length, b.length); };
+const UZ_DAYS = ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
+const LEVELS = [
+  { id: 'A1', t: "Boshlang'ich", d: "Oddiy so'zlar, salomlashish" },
+  { id: 'A2', t: 'Elementar', d: 'Kundalik mavzular' },
+  { id: 'B1', t: "O'rta", d: "Fikr bildira olaman" },
+  { id: 'B2', t: "O'rtadan yuqori", d: "Erkin suhbatlasha olaman" },
+  { id: 'C1', t: 'Yuqori', d: 'Murakkab matnlar' },
+];
+
+/* So'zni gap ichida marker bilan ajratish */
+function HighlightIn({ sentence, word }) {
+  if (!sentence) return null;
+  const w = String(word || '').trim();
+  if (!w) return <>{sentence}</>;
+  let m = sentence.match(new RegExp(`\\b${escRe(w)}\\b`, 'i'));
+  if (!m) {
+    const first = w.split(/\s+/)[0].toLowerCase();
+    const stem = first.length > 4 ? first.slice(0, first.length - (first.endsWith('e') || first.endsWith('y') ? 1 : 2)) : first;
+    m = sentence.match(new RegExp(`\\b${escRe(stem)}[a-z'-]*`, 'i'));
+  }
+  if (!m) return <>{sentence}</>;
+  const i = m.index;
+  return <>{sentence.slice(0, i)}<mark className="hl">{m[0]}</mark>{sentence.slice(i + m[0].length)}</>;
+}
+
+/* =====================================================================
+   2. OVOZ (speechSynthesis) VA KICHIK SIGNALLAR
+   ===================================================================== */
+const TTS = {
+  ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
+  voices: [],
+  load() {
+    if (!this.ok) return;
+    const v = speechSynthesis.getVoices().filter((x) => /^en[-_]/i.test(x.lang));
+    const score = (x) => (/en[-_]US/i.test(x.lang) ? 2 : 0) + (/Google|Natural|Samantha|Microsoft/i.test(x.name) ? 1 : 0);
+    this.voices = v.sort((a, b) => score(b) - score(a));
+  },
+  speak(text, { rate = 1, voiceIndex = 0, pitch = 1, onend, onstart } = {}) {
+    if (!this.ok || !text) { onend && onend(); return; }
+    if (!this.voices.length) this.load();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = rate; u.pitch = pitch;
+    const v = this.voices[voiceIndex % Math.max(1, this.voices.length)];
+    if (v) u.voice = v;
+    if (onend) { u.onend = onend; u.onerror = onend; }
+    if (onstart) u.onstart = onstart;
+    speechSynthesis.speak(u);
+  },
+  say(text, rate = 0.95) { if (!this.ok) return; speechSynthesis.cancel(); this.speak(text, { rate }); },
+  sayMany(parts, rate = 0.95) { if (!this.ok) return; speechSynthesis.cancel(); parts.filter(Boolean).forEach((p) => this.speak(p, { rate })); },
+  stop() { if (this.ok) speechSynthesis.cancel(); },
+};
+if (TTS.ok) { TTS.load(); speechSynthesis.onvoiceschanged = () => TTS.load(); }
+
+let audioCtx = null;
+function beep(good = true, enabled = true) {
+  if (!enabled) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine';
+    const t = audioCtx.currentTime;
+    o.frequency.setValueAtTime(good ? 660 : 220, t);
+    if (good) o.frequency.setValueAtTime(880, t + 0.08);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + (good ? 0.25 : 0.3));
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.32);
+  } catch (e) { /* ovoz ixtiyoriy */ }
+}
+
+/* =====================================================================
+   3. AI QATLAMI
+   claude.ai chat artifact'da: window.claude.complete(prompt) -> matn
+   Nashr qilingan Artifact'da: claude.use("sample") -> sample.json(...)
+   Har doim FAQAT JSON so'raladi va xavfsiz parse qilinadi.
+   ===================================================================== */
+let _samplePromise = null;
+function getSample() {
+  if (!_samplePromise) {
+    _samplePromise = (async () => {
+      try {
+        if (window.claude && typeof window.claude.use === 'function') return await window.claude.use('sample');
+      } catch (e) { /* yo'q */ }
+      return null;
+    })();
+  }
+  return _samplePromise;
+}
+function extractJSON(txt) {
+  const t = String(txt || '').trim();
+  try { return JSON.parse(t); } catch (e) { /* davom */ }
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (f) { try { return JSON.parse(f[1]); } catch (e) { /* davom */ } }
+  const s = t.search(/[\[{]/), e = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
+  if (s >= 0 && e > s) { try { return JSON.parse(t.slice(s, e + 1)); } catch (err) { /* davom */ } }
+  throw { code: 'invalid_json', message: 'JSON topilmadi' };
+}
+async function askAI(prompt, { images, tier = 'default' } = {}) {
+  const full = `${prompt}\n\nIMPORTANT: Reply with ONLY one valid JSON value, exactly in the requested shape. No markdown fences, no comments, no text before or after. All Uzbek text must be in Uzbek Latin script (o', g', sh, ch).`;
+  if (window.claude && typeof window.claude.complete === 'function') {
+    if (images) throw { code: 'images_unavailable' };
+    let t;
+    try { t = await window.claude.complete(full); } catch (e) { throw { code: 'upstream_error', message: String(e && e.message || e) }; }
+    return extractJSON(t);
+  }
+  const s = await getSample();
+  if (!s) throw { code: 'no_ai' };
+  const opts = { modelTier: tier, cache: false };
+  if (images) opts.images = images;
+  return await s.json(full, opts);
+}
+async function aiCanSeeImages() {
+  const s = await getSample();
+  if (!s || typeof s.limits !== 'function') return false;
+  try { const l = await s.limits(); return !!(l && l.images); } catch (e) { return false; }
+}
+const AI_ERR = {
+  no_ai: "AI bu yerda ishlamaydi. Ilovani claude.ai ichida oching — qolgan hamma narsa (kartochkalar, o'yinlar) ishlayveradi.",
+  not_granted: "AI'dan foydalanishga ruxsat berilmadi. Sahifani yangilang va so'ralganda «Ruxsat berish»ni bosing.",
+  sampling_disabled: "Bu hisobda AI o'chirilgan.",
+  rate_limited: "So'rovlar juda ko'p bo'ldi. Bir daqiqa kutib, qayta urinib ko'ring.",
+  session_expired: "Claude hisobiga qayta kiring, keyin qayta urinib ko'ring.",
+  invalid_json: "AI javobini o'qib bo'lmadi. Qayta urinib ko'ring.",
+  images_unavailable: "Bu yerda AI rasmni ko'ra olmaydi — rasm Tesseract bilan o'qiladi.",
+  image_rejected: "Rasm qabul qilinmadi. JPG yoki PNG, 20 MB dan kichik rasm tanlang.",
+  refused: "AI bu so'rovga javob bermadi. Matnni o'zgartirib ko'ring.",
+  prompt_too_large: "Matn juda uzun. Kamroq so'z bilan urinib ko'ring.",
+  cancelled: "To'xtatildi.",
+};
+const aiErrText = (e) => AI_ERR[e && e.code] || "AI bilan bog'lanishda xato bo'ldi. Internetni tekshirib, qayta urinib ko'ring.";
+
+function useAI() {
+  const [st, setSt] = useState({ loading: false, error: null });
+  const last = useRef(null);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+  const run = useCallback(async (fn) => {
+    last.current = fn;
+    setSt({ loading: true, error: null });
+    try {
+      const r = await fn();
+      if (alive.current) setSt({ loading: false, error: null });
+      return r;
+    } catch (e) {
+      console.warn('AI xato', e);
+      const err = e && e.code ? e : { code: 'upstream_error', message: String(e && e.message || e) };
+      if (alive.current) setSt({ loading: false, error: err });
+      return undefined;
+    }
+  }, []);
+  const retry = useCallback(() => last.current && run(last.current), [run]);
+  const clear = useCallback(() => setSt({ loading: false, error: null }), []);
+  return { ...st, run, retry, clear };
+}
+const need = (cond) => { if (!cond) throw { code: 'invalid_json', message: "Javob kutilgan shaklda emas" }; };
+
+/* So'zlarni AI bilan to'ldirish: tarjima, IPA, turkum, misol, izoh */
+async function enrichWords(items, level) {
+  const out = [];
+  for (let i = 0; i < items.length; i += 15) {
+    const chunk = items.slice(i, i + 15);
+    const list = chunk.map((x) => ({ en: x.en, uz: x.uz || '' }));
+    const r = await askAI(
+      `You are an English teacher for Uzbek speakers (learner level ${level}). For each item fill in a vocabulary flashcard.
+Input items (keep "en" exactly; if "uz" is given keep that meaning, otherwise translate): ${JSON.stringify(list)}
+Return ONLY a JSON array, same order and length, each element:
+{"en":"the English word/phrase","uz":"short Uzbek translation (Latin script)","ipa":"/IPA transcription/","pos":"noun|verb|adjective|adverb|phrase|preposition|pronoun|conjunction|interjection","ex":"one short natural English example sentence (6-12 words) that contains the word, suitable for level ${level}","exUz":"Uzbek translation of the example","note":"very short Uzbek explanation or usage tip, max 12 words"}`,
+    );
+    need(Array.isArray(r));
+    chunk.forEach((x, k) => {
+      const a = r[k] && typeof r[k] === 'object' ? r[k] : (r.find((z) => z && norm(z.en) === norm(x.en)) || {});
+      out.push({ ...x, uz: x.uz || a.uz || '', ipa: a.ipa || x.ipa || '', pos: a.pos || x.pos || '', ex: a.ex || x.ex || '', exUz: a.exUz || x.exUz || '', note: a.note || x.note || '' });
+    });
+  }
+  return out;
+}
+
+/* =====================================================================
+   4. SPACED REPETITION (SM-2 ga o'xshash)
+   grade: 0 = Bilmadim, 1 = Qiyin, 2 = Bildim
+   ===================================================================== */
+function schedule(w, g, now = Date.now()) {
+  let ease = w.ease || 2.5, interval = w.interval || 0, reps = w.reps || 0, lapses = w.lapses || 0, due;
+  if (g === 0) {
+    lapses += 1; reps = 0; interval = 0; ease = Math.max(1.3, ease - 0.2);
+    due = now + 10 * 60 * 1000;                           // 10 daqiqadan keyin qaytadi
+  } else if (g === 1) {
+    ease = Math.max(1.3, ease - 0.15);
+    interval = reps === 0 ? 1 : Math.max(1, Math.round(interval * 1.2));
+    reps += 1; due = now + interval * DAY;
+  } else {
+    ease = Math.min(3.0, ease + 0.1);
+    interval = reps === 0 ? 1 : reps === 1 ? 3 : Math.round(interval * ease);
+    reps += 1; due = now + interval * DAY;
+  }
+  return { ...w, ease, interval, reps, lapses, due, seen: true, last: now };
+}
+function nextLabel(w, g) {
+  const s = schedule(w, g);
+  if (g === 0) return '10 daq';
+  return s.interval === 1 ? '1 kun' : s.interval < 30 ? `${s.interval} kun` : `${Math.round(s.interval / 30)} oy`;
+}
+const wordStatus = (w) => (!w.seen ? 'new' : (w.interval || 0) >= 21 ? 'mastered' : 'learning');
+const STATUS_UZ = { new: 'yangi', learning: "o'rganilmoqda", mastered: 'yodlangan' };
+const isDue = (w, now = Date.now()) => w.seen && (w.due || 0) <= now;
+
+/* =====================================================================
+   5. STARTER TO'PLAM (20 so'z, AI'siz tayyor)
+   ===================================================================== */
+const STARTER = [
+  ['journey', 'sayohat, safar', '/ˈdʒɜːni/', 'noun', 'The journey to Samarkand took five hours.', "Samarqandga safar besh soat davom etdi.", "Uzoq safar; qisqa safar uchun «trip» ishlatiladi."],
+  ['improve', 'yaxshilamoq', '/ɪmˈpruːv/', 'verb', 'I read every day to improve my English.', "Ingliz tilimni yaxshilash uchun har kuni o'qiyman.", "improve + narsa: improve my skills."],
+  ['borrow', 'qarzga olmoq', '/ˈbɒrəʊ/', 'verb', 'Can I borrow your pen for a minute?', "Ruchkangizni bir daqiqaga olib tursam bo'ladimi?", "borrow — olish, lend — berish."],
+  ['honest', 'halol, rostgo‘y', '/ˈɒnɪst/', 'adjective', 'She is an honest and kind person.', "U halol va mehribon inson.", "«h» o'qilmaydi: an honest."],
+  ['schedule', 'jadval', '/ˈʃedjuːl/', 'noun', 'My schedule is very busy this week.', "Bu hafta jadvalim juda band.", "AmE: /ˈskedʒuːl/ deb ham aytiladi."],
+  ['neighbour', "qo'shni", '/ˈneɪbə/', 'noun', 'Our neighbour brought us fresh bread.', "Qo'shnimiz bizga yangi non olib keldi.", "AmE yozilishi: neighbor."],
+  ['decide', 'qaror qilmoq', '/dɪˈsaɪd/', 'verb', 'We decided to walk home.', "Biz uyga piyoda borishga qaror qildik.", "decide + to + fe'l."],
+  ['careful', 'ehtiyotkor', '/ˈkeəfl/', 'adjective', 'Be careful, the road is wet.', "Ehtiyot bo'ling, yo'l ho'l.", "Ravishi: carefully."],
+  ['opportunity', 'imkoniyat', '/ˌɒpəˈtjuːnəti/', 'noun', 'This course is a great opportunity for me.', "Bu kurs men uchun ajoyib imkoniyat.", "take an opportunity — imkoniyatdan foydalanmoq."],
+  ['remember', 'eslamoq, esda tutmoq', '/rɪˈmembə/', 'verb', "I can't remember his phone number.", "Uning telefon raqamini eslay olmayapman.", "Qarama-qarshisi: forget."],
+  ['weather', 'ob-havo', '/ˈweðə/', 'noun', 'The weather is sunny today.', "Bugun ob-havo quyoshli.", "«whether» (-mi, yo'qmi) bilan adashtirmang."],
+  ['explain', 'tushuntirmoq', '/ɪkˈspleɪn/', 'verb', 'Can you explain this rule again?', "Bu qoidani yana tushuntirib bera olasizmi?", "explain something to someone."],
+  ['hungry', 'och (qorni och)', '/ˈhʌŋɡri/', 'adjective', "I'm hungry, let's eat plov.", "Qornim och, keling osh yeymiz.", "thirsty — chanqagan."],
+  ['knowledge', 'bilim', '/ˈnɒlɪdʒ/', 'noun', 'Knowledge is power.', "Bilim — kuch.", "«k» o'qilmaydi; sanalmaydi (knowledges emas)."],
+  ['arrive', 'yetib kelmoq', '/əˈraɪv/', 'verb', 'The train arrives at nine o’clock.', "Poyezd soat to'qqizda yetib keladi.", "arrive in (shahar), arrive at (joy)."],
+  ['cheap', 'arzon', '/tʃiːp/', 'adjective', 'Fruit is cheap in summer.', "Yozda meva arzon.", "Qarama-qarshisi: expensive."],
+  ['advice', 'maslahat', '/ədˈvaɪs/', 'noun', 'My teacher gave me good advice.', "Ustozim menga yaxshi maslahat berdi.", "Fe'li: advise /ədˈvaɪz/."],
+  ['quickly', 'tez, tezda', '/ˈkwɪkli/', 'adverb', 'He finished his homework quickly.', "U uy vazifasini tez tugatdi.", "Sifati: quick."],
+  ['healthy', "sog'lom", '/ˈhelθi/', 'adjective', 'Vegetables keep you healthy.', "Sabzavotlar sizni sog'lom saqlaydi.", "Oti: health — salomatlik."],
+  ['grateful', 'minnatdor', '/ˈɡreɪtfl/', 'adjective', 'I am grateful for your help.', "Yordamingiz uchun minnatdorman.", "grateful for + narsa."],
+];
+const starterWords = (deckId) => STARTER.map(([en, uz, ipa, pos, ex, exUz, note]) => newWord({ en, uz, ipa, pos, ex, exUz, note }, deckId));
+function newWord(o, deckId) {
+  return { id: uid(), deckId, en: (o.en || '').trim(), uz: (o.uz || '').trim(), ipa: o.ipa || '', pos: o.pos || '', ex: o.ex || '', exUz: o.exUz || '', note: o.note || '', ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: false, added: Date.now() };
+}
+
+/* =====================================================================
+   6. MA'LUMOTLARNI SAQLASH
+   localStorage (darhol) + Artifact db (doimiy, har foydalanuvchi uchun shaxsiy)
+   ===================================================================== */
+const LS_KEY = 'vocab-teacher-v1';
+const loadLocal = () => { try { const t = localStorage.getItem(LS_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; } };
+const saveLocal = (s) => { try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch (e) { /* xotira yopiq */ } };
+const CHUNK = 350;
+async function openCloud() {
+  try {
+    if (!window.claude || typeof window.claude.use !== 'function') return null;
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db || !user || typeof user.id !== 'function') return null;
+    const id = await user.id();
+    if (!id) return null;
+    const base = `data/users/${id}`;
+    return { meta: db.doc(`${base}/state`), chunk: (i) => db.doc(`${base}/words-${i}`) };
+  } catch (e) { return null; }
+}
+async function cloudLoad(c) {
+  const snap = await c.meta.get();
+  if (!snap.exists) return null;
+  const d = snap.data();
+  const meta = JSON.parse(d.json);
+  const words = [];
+  for (let i = 0; i < (d.chunks || 0); i++) {
+    const s = await c.chunk(i).get();
+    if (s.exists) words.push(...JSON.parse(s.data().json));
+  }
+  return { ...meta, words };
+}
+function makeState({ name, level, goal }) {
+  return {
+    v: 1, updatedAt: Date.now(),
+    profile: { name, level, goal, theme: 'auto', sound: true },
+    decks: [{ id: 'd-main', name: "Mening so'zlarim" }],
+    words: [],
+    stats: { xp: 0, streak: 0, lastDay: null, days: {}, results: [], best: {} },
+  };
+}
+function ensureDay(d) {
+  const k = dayKey();
+  d.stats.days[k] = d.stats.days[k] || { xp: 0, reviewed: 0, ids: [], correct: 0, goalHit: false };
+  // eski kunlardagi id ro'yxatini tozalash, 60 kundan eskisini o'chirish
+  Object.keys(d.stats.days).forEach((key) => {
+    if (key !== k) delete d.stats.days[key].ids;
+    if (Date.now() - new Date(key).getTime() > 60 * DAY) delete d.stats.days[key];
+  });
+  return d.stats.days[k];
+}
+function touchStreak(d) {
+  const k = dayKey(), y = dayKey(Date.now() - DAY);
+  if (d.stats.lastDay === k) return;
+  d.stats.streak = d.stats.lastDay === y ? (d.stats.streak || 0) + 1 : 1;
+  d.stats.lastDay = k;
+}
+function addXP(d, n) {
+  if (!n) return;
+  d.stats.xp += n;
+  ensureDay(d).xp += n;
+  touchStreak(d);
+}
+const levelOf = (xp) => { const l = Math.floor(Math.sqrt(xp / 50)) + 1; return { l, from: 50 * (l - 1) ** 2, to: 50 * l ** 2 }; };
+const liveStreak = (s) => (s.stats.lastDay === dayKey() || s.stats.lastDay === dayKey(Date.now() - DAY) ? s.stats.streak : 0);
+
+/* =====================================================================
+   7. UI BO'LAKLARI
+   ===================================================================== */
+const Icon = ({ d, className = 'w-6 h-6', stroke = 2 }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {d.split('|').map((p, i) => <path key={i} d={p} />)}
+  </svg>
+);
+const I = {
+  cards: 'M4 7h13a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z|M7 3h13a2 2 0 0 1 2 2v10',
+  book: 'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z|M4 19V5|M8 7h7',
+  ear: 'M6 9a6 6 0 1 1 12 0c0 3-2 4-3 5.5S14 18 12 19.5 8 20 8 18|M10 9a2 2 0 1 1 4 0',
+  mic: 'M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z|M5 11a7 7 0 0 0 14 0|M12 18v3',
+  pen: 'M4 20h4L19 9l-4-4L4 16z|M13.5 6.5l4 4',
+  home: 'M3 11l9-7 9 7|M5 10v10h14V10',
+  gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+  speaker: 'M11 5L6 9H3v6h3l5 4z|M15.5 8.5a5 5 0 0 1 0 7|M18.5 5.5a9 9 0 0 1 0 13',
+  plus: 'M12 5v14|M5 12h14',
+  x: 'M6 6l12 12|M18 6L6 18',
+  back: 'M15 18l-6-6 6-6',
+  check: 'M5 12l5 5L20 7',
+  play: 'M7 4l13 8-13 8z',
+  stop: 'M6 6h12v12H6z',
+  camera: 'M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z|M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z|M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z',
+  trash: 'M4 7h16|M9 7V4h6v3|M6 7l1 13h10l1-13',
+  refresh: 'M20 11a8 8 0 0 0-14.9-3M4 5v4h4|M4 13a8 8 0 0 0 14.9 3M20 19v-4h-4',
+  bolt: 'M13 2L4 14h7l-1 8 9-12h-7z',
+  grid: 'M4 4h7v7H4z|M13 4h7v7h-7z|M4 13h7v7H4z|M13 13h7v7h-7z',
+  keyboard: 'M3 6h18v12H3z|M7 10h.01M11 10h.01M15 10h.01M7 14h10',
+  quiz: 'M9 9a3 3 0 1 1 4 2.8c-.6.3-1 .9-1 1.6V14|M12 18h.01|M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z',
+  download: 'M12 4v11|M7 10l5 5 5-5|M5 20h14',
+  upload: 'M12 20V9|M7 14l5-5 5 5|M5 4h14',
+};
+
+function Btn({ children, onClick, kind = 'primary', size = 'md', className = '', disabled, type = 'button', ...rest }) {
+  const base = 'inline-flex items-center justify-center gap-2 font-bold rounded-2xl transition active:scale-[.97] disabled:opacity-45 disabled:pointer-events-none select-none';
+  const sizes = { sm: 'px-3 py-2 text-sm min-h-[40px]', md: 'px-5 py-3 min-h-[48px]', lg: 'px-6 py-4 text-lg min-h-[58px]' };
+  const kinds = {
+    primary: 'bg-primary text-onprimary shadow-card hover:brightness-110',
+    ghost: 'bg-transparent text-ink hover:bg-sunken',
+    soft: 'bg-sunken text-ink hover:bg-line',
+    outline: 'border-2 border-line text-ink hover:border-primary',
+    good: 'bg-good text-white', warn: 'bg-warn text-white', bad: 'bg-bad text-white',
+    marker: 'bg-marker text-onmarker',
+  };
+  return <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${sizes[size]} ${kinds[kind]} ${className}`} {...rest}>{children}</button>;
+}
+const Card = ({ children, className = '', ...rest }) => <div className={`bg-surface rounded-3xl shadow-card ${className}`} {...rest}>{children}</div>;
+function Spinner({ label = 'AI ishlamoqda…' }) {
+  return (
+    <div className="flex items-center gap-3 text-muted" role="status" aria-live="polite">
+      <span className="inline-block w-5 h-5 rounded-full border-[3px] border-line border-t-primary animate-spin" />
+      <span>{label}</span>
+    </div>
+  );
+}
+function Skeleton({ lines = 4 }) {
+  return <div className="space-y-3" aria-hidden="true">{Array.from({ length: lines }).map((_, i) => <div key={i} className="skel h-4" style={{ width: `${95 - (i % 3) * 18}%` }} />)}</div>;
+}
+function AIError({ error, onRetry }) {
+  if (!error) return null;
+  const canRetry = !['no_ai', 'not_granted', 'sampling_disabled'].includes(error.code);
+  return (
+    <div className="rounded-2xl border-2 border-bad/40 bg-bad/10 p-4 anim-up" role="alert">
+      <p className="font-bold text-bad mb-1">Xatolik</p>
+      <p className="text-sm mb-3">{aiErrText(error)}</p>
+      {canRetry && onRetry && <Btn size="sm" kind="outline" onClick={onRetry}><Icon d={I.refresh} className="w-4 h-4" />Qayta urinish</Btn>}
+    </div>
+  );
+}
+function SpeakBtn({ text, parts, rate = 0.95, label = "Tinglash", className = '' }) {
+  if (!TTS.ok) return null;
+  return (
+    <button type="button" aria-label={label} title={label}
+      onClick={(e) => { e.stopPropagation(); parts ? TTS.sayMany(parts, rate) : TTS.say(text, rate); }}
+      className={`inline-flex items-center justify-center w-11 h-11 rounded-full bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 transition ${className}`}>
+      <Icon d={I.speaker} className="w-5 h-5" />
+    </button>
+  );
+}
+function Pill({ children, tone = 'muted' }) {
+  const tones = { muted: 'bg-sunken text-muted', good: 'bg-good/15 text-good', warn: 'bg-warn/15 text-warn', bad: 'bg-bad/15 text-bad', primary: 'bg-primary/15 text-primary', marker: 'bg-marker text-onmarker' };
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${tones[tone]}`}>{children}</span>;
+}
+const statusTone = { new: 'muted', learning: 'warn', mastered: 'good' };
+function Sheet({ open, onClose, title, children, wide }) {
+  useEffect(() => {
+    if (!open) return;
+    const k = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
+      <div className={`relative w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'} max-h-[92vh] overflow-y-auto bg-surface rounded-t-3xl sm:rounded-3xl p-5 pb-8 anim-up`}
+        style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="font-display text-xl font-extrabold">{title}</h2>
+          <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-sunken grid place-items-center" aria-label="Yopish"><Icon d={I.x} /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+function Field({ label, id, children, hint }) {
+  return (
+    <label htmlFor={id} className="block">
+      <span className="block text-sm font-bold mb-1.5">{label}</span>
+      {children}
+      {hint && <span className="block text-xs text-muted mt-1">{hint}</span>}
+    </label>
+  );
+}
+const inputCls = 'w-full rounded-2xl border-2 border-line bg-paper px-4 py-3 text-ink placeholder:text-muted/70 focus:border-primary focus:outline-none';
+function Segmented({ value, onChange, options, id }) {
+  return (
+    <div className="flex flex-wrap gap-2" role="radiogroup" id={id}>
+      {options.map((o) => {
+        const v = typeof o === 'object' ? o.value : o, l = typeof o === 'object' ? o.label : o;
+        const on = v === value;
+        return <button key={v} type="button" role="radio" aria-checked={on} onClick={() => onChange(v)}
+          className={`px-4 py-2 rounded-full font-bold text-sm border-2 transition ${on ? 'bg-primary text-onprimary border-primary' : 'border-line hover:border-primary'}`}>{l}</button>;
+      })}
+    </div>
+  );
+}
+function BackBar({ title, onBack, right }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <button onClick={onBack} className="w-11 h-11 rounded-full hover:bg-sunken grid place-items-center" aria-label="Orqaga"><Icon d={I.back} /></button>
+      <h2 className="font-display text-xl font-extrabold flex-1 truncate">{title}</h2>
+      {right}
+    </div>
+  );
+}
+
+/* Konfetti — oddiy canvas */
+function Confetti({ fire }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!fire) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const c = ref.current; if (!c) return;
+    const ctx = c.getContext('2d');
+    const W = (c.width = window.innerWidth), H = (c.height = window.innerHeight);
+    const cols = ['#0C766E', '#FFD648', '#16A34A', '#F97316', '#3B82F6', '#EC4899'];
+    const ps = Array.from({ length: 160 }, () => ({ x: W / 2 + (Math.random() - 0.5) * 80, y: H * 0.35, vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 14 - 4, r: Math.random() * 6 + 4, c: cols[(Math.random() * cols.length) | 0], a: Math.random() * 6, va: (Math.random() - 0.5) * 0.3 }));
+    let raf, t = 0;
+    const tick = () => {
+      t++; ctx.clearRect(0, 0, W, H);
+      ps.forEach((p) => { p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.a += p.va; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore(); });
+      if (t < 170) raf = requestAnimationFrame(tick); else ctx.clearRect(0, 0, W, H);
+    };
+    tick();
+    return () => cancelAnimationFrame(raf);
+  }, [fire]);
+  return <canvas ref={ref} className="fixed inset-0 pointer-events-none z-[90]" aria-hidden="true" />;
+}
+
+/* =====================================================================
+   8. MIKROFON (Web Speech API)
+   ===================================================================== */
+const SR = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+const MIC_ERR = {
+  unsupported: "Bu brauzer nutqni tanimaydi. Chrome yoki Edge'da oching — yoki javobni yozib yuboring.",
+  'not-allowed': "Mikrofonga ruxsat yo'q. Brauzer sozlamasida ruxsat bering. Artifact oynasi ichida mikrofon bloklangan bo'lishi mumkin — unda javobni yozib yuboring.",
+  'service-not-allowed': "Nutqni tanish xizmati bu yerda ruxsat etilmagan. Javobni yozib yuboring.",
+  'no-speech': "Ovoz eshitilmadi. Mikrofonga yaqinroq gapirib, qayta urinib ko'ring.",
+  'audio-capture': "Mikrofon topilmadi. Qurilmani tekshiring.",
+  network: "Nutqni tanish uchun internet kerak. Aloqani tekshiring.",
+  aborted: '',
+  'start-failed': "Mikrofonni ishga tushirib bo'lmadi. Javobni yozib yuboring.",
+};
+function useRecognizer() {
+  const [listening, setListening] = useState(false);
+  const recRef = useRef(null);
+  useEffect(() => () => { try { recRef.current && recRef.current.abort(); } catch (e) { /* */ } }, []);
+  const start = useCallback(({ continuous = false, onResult, onError, onEnd }) => {
+    if (!SR) { onError && onError('unsupported'); return; }
+    try {
+      const r = new SR();
+      r.lang = 'en-US'; r.interimResults = true; r.continuous = continuous; r.maxAlternatives = 5;
+      r.onresult = (e) => onResult && onResult(e);
+      r.onerror = (e) => onError && onError(e.error || 'start-failed');
+      r.onend = () => { setListening(false); onEnd && onEnd(); };
+      recRef.current = r;
+      r.start();
+      setListening(true);
+    } catch (e) { setListening(false); onError && onError('start-failed'); }
+  }, []);
+  const stop = useCallback(() => { try { recRef.current && recRef.current.stop(); } catch (e) { /* */ } }, []);
+  return { supported: !!SR, listening, start, stop };
+}
+function MicButton({ listening, onClick, disabled, size = 'lg' }) {
+  const s = size === 'lg' ? 'w-20 h-20' : 'w-14 h-14';
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} aria-pressed={listening} aria-label={listening ? "To'xtatish" : 'Gapirish'}
+      className={`${s} rounded-full grid place-items-center text-white shadow-lift transition active:scale-95 disabled:opacity-40 ${listening ? 'bg-bad rec-pulse' : 'bg-primary'}`}>
+      <Icon d={listening ? I.stop : I.mic} className={size === 'lg' ? 'w-9 h-9' : 'w-7 h-7'} />
+    </button>
+  );
+}
+
+/* =====================================================================
+   9. BOSILADIGAN MATN (Reading / Listening)
+   ===================================================================== */
+function sentenceAround(text, idx) {
+  const before = text.slice(0, idx), after = text.slice(idx);
+  const s = Math.max(before.lastIndexOf('. '), before.lastIndexOf('! '), before.lastIndexOf('? '), before.lastIndexOf('\n'));
+  const eRel = after.search(/[.!?](\s|$)/);
+  return text.slice(s < 0 ? 0 : s + 1, eRel < 0 ? text.length : idx + eRel + 1).trim();
+}
+function ClickableText({ text, known, newForms, onWord }) {
+  const parts = [];
+  const re = /[A-Za-z]+(?:['’-][A-Za-z]+)*/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push({ t: text.slice(last, m.index) });
+    parts.push({ w: m[0], i: m.index });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ t: text.slice(last) });
+  return (
+    <>
+      {parts.map((p, k) => {
+        if (p.t !== undefined) return <span key={k}>{p.t}</span>;
+        const low = p.w.toLowerCase();
+        const isNew = newForms.has(low);
+        const isKnown = !isNew && known(low);
+        return (
+          <span key={k} role="button" tabIndex={0}
+            onClick={() => onWord(p.w, sentenceAround(text, p.i))}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onWord(p.w, sentenceAround(text, p.i)))}
+            className={`word-btn ${isNew ? 'hl bg-marker text-onmarker px-0.5' : ''} ${isKnown ? 'word-known' : ''}`}>{p.w}</span>
+        );
+      })}
+    </>
+  );
+}
+function knownMatcher(words) {
+  const set = new Set();
+  words.forEach((w) => { const e = norm(w.en); if (e && !e.includes(' ')) set.add(e); });
+  return (low) => {
+    if (set.has(low)) return true;
+    for (const suf of ['s', 'es', 'ed', 'd', 'ing', 'ly', 'er', 'est', "'s"]) {
+      if (low.endsWith(suf)) { const b = low.slice(0, -suf.length); if (set.has(b) || set.has(b + 'e')) return true; }
+    }
+    if (low.endsWith('ied') || low.endsWith('ies')) return set.has(low.slice(0, -3) + 'y');
+    return false;
+  };
+}
+
+/* So'z haqida oyna: tarjima + lug'atga qo'shish */
+function WordSheet({ req, onClose, state, onAdd, level }) {
+  const ai = useAI();
+  const [info, setInfo] = useState(null);
+  const [added, setAdded] = useState(false);
+  const cache = useRef({});
+  useEffect(() => {
+    if (!req) return;
+    setAdded(false); setInfo(null); ai.clear();
+    const low = req.word.toLowerCase();
+    const inVocab = state.words.find((w) => norm(w.en) === low || knownMatcher([w])(low));
+    if (inVocab) { setInfo({ ...inVocab, inVocab: true }); return; }
+    const g = (req.glossary || []).find((x) => norm(x.form) === low || norm(x.en) === low);
+    if (cache.current[low]) { setInfo(cache.current[low]); return; }
+    if (g && g.uz) setInfo({ en: g.en, uz: g.uz, ipa: g.ipa || '', pos: g.pos || '', partial: true });
+    ai.run(async () => {
+      const r = await askAI(`An Uzbek learner of English (level ${level}) tapped the word "${req.word}" in this sentence: "${req.sentence}".
+Return ONLY JSON: {"en":"dictionary base form","uz":"short Uzbek translation that fits this context","ipa":"/IPA/","pos":"noun|verb|adjective|adverb|phrase|...","ex":"a short natural example sentence using the word (6-12 words)","exUz":"Uzbek translation of that example","note":"very short Uzbek usage note, max 12 words"}`, { tier: 'quick' });
+      need(r && r.uz);
+      cache.current[low] = r;
+      setInfo(r);
+    });
+    // eslint-disable-next-line
+  }, [req]);
+  if (!req) return null;
+  const add = () => {
+    if (!info) return;
+    onAdd({ en: info.en || req.word, uz: info.uz, ipa: info.ipa, pos: info.pos, ex: info.ex || req.sentence, exUz: info.exUz || '', note: info.note || '' }, req.deckName);
+    setAdded(true);
+  };
+  return (
+    <Sheet open={!!req} onClose={onClose} title="So'z">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-3xl font-extrabold break-words">{(info && info.en) || req.word}</p>
+          {info && info.ipa && <p className="ipa text-muted">{info.ipa} {info.pos && <span className="italic">· {info.pos}</span>}</p>}
+        </div>
+        <SpeakBtn text={(info && info.en) || req.word} />
+      </div>
+      {info && <p className="text-xl font-bold mb-2">{info.uz}</p>}
+      {info && info.note && <p className="text-sm text-muted mb-3">{info.note}</p>}
+      {ai.loading && !info && <div className="py-2"><Spinner label="Tarjima qilinmoqda…" /><div className="mt-3"><Skeleton lines={2} /></div></div>}
+      <AIError error={ai.error} onRetry={ai.retry} />
+      <p className="text-sm bg-sunken rounded-2xl p-3 my-3"><HighlightIn sentence={req.sentence} word={req.word} /></p>
+      {info && info.inVocab ? <Pill tone="good">Lug'atingizda bor · {STATUS_UZ[wordStatus(info)]}</Pill>
+        : added ? <p className="text-good font-bold flex items-center gap-2 anim-pop"><Icon d={I.check} />Kartochka qo'shildi</p>
+        : <Btn onClick={add} disabled={!info || !info.uz} className="w-full"><Icon d={I.plus} className="w-5 h-5" />Lug'atga qo'shish</Btn>}
+    </Sheet>
+  );
+}
+
+/* Ko'p tanlovli savollar bloki */
+function Questions({ questions, onChecked }) {
+  const [ans, setAns] = useState({});
+  const [checked, setChecked] = useState(false);
+  const all = questions.every((_, i) => ans[i] !== undefined);
+  const score = questions.filter((q, i) => ans[i] === q.answer).length;
+  return (
+    <div className="space-y-4">
+      {questions.map((q, i) => (
+        <div key={i} className="bg-surface rounded-2xl p-4 shadow-card">
+          <p className="font-bold mb-3"><span className="text-muted num">{i + 1}. </span>{q.q}</p>
+          <div className="grid gap-2">
+            {q.options.map((o, j) => {
+              const picked = ans[i] === j, right = q.answer === j;
+              let cls = 'border-line hover:border-primary';
+              if (checked && right) cls = 'border-good bg-good/10';
+              else if (checked && picked && !right) cls = 'border-bad bg-bad/10';
+              else if (picked) cls = 'border-primary bg-primary/10';
+              return <button key={j} type="button" disabled={checked} onClick={() => setAns({ ...ans, [i]: j })} className={`text-left rounded-xl border-2 px-4 py-3 transition ${cls}`}>{o}</button>;
+            })}
+          </div>
+          {checked && q.explainUz && <p className={`text-sm mt-3 ${ans[i] === q.answer ? 'text-good' : 'text-bad'}`}>{ans[i] === q.answer ? "✓ To'g'ri. " : "✗ "}{q.explainUz}</p>}
+        </div>
+      ))}
+      {!checked ? <Btn className="w-full" disabled={!all} onClick={() => { setChecked(true); onChecked(score, questions.length); }}>Javoblarni tekshirish</Btn>
+        : <div className="rounded-2xl bg-primary/10 p-4 text-center anim-pop"><p className="font-display text-3xl font-extrabold num">{score}/{questions.length}</p><p className="text-muted">to'g'ri javob · +{score * 10} XP</p></div>}
+    </div>
+  );
+}
+
+/* =====================================================================
+   10. ONBOARDING
+   ===================================================================== */
+function Onboarding({ onDone }) {
+  const [name, setName] = useState('');
+  const [level, setLevel] = useState('A2');
+  const [goal, setGoal] = useState(10);
+  const [starter, setStarter] = useState(true);
+  return (
+    <div className="max-w-lg mx-auto px-4 py-8">
+      <div className="mb-6">
+        <p className="eyebrow mb-2">Ingliz so'z boyligi · o'zbek tilida</p>
+        <h1 className="font-display text-4xl font-extrabold leading-tight">Vocabulary <span className="hl bg-marker text-onmarker px-1 rounded">Teacher</span></h1>
+        <p className="text-muted mt-2">So'zlarni kartochka bilan yodlang, keyin o'qish, tinglash, gapirish va yozishda ishlating.</p>
+      </div>
+      <Card className="p-5 space-y-6">
+        <Field label="Ismingiz" id="ob-name">
+          <input id="ob-name" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Madina" autoComplete="given-name" />
+        </Field>
+        <div>
+          <p className="text-sm font-bold mb-2">Ingliz tili darajangiz</p>
+          <div className="grid gap-2">
+            {LEVELS.map((l) => (
+              <button key={l.id} type="button" onClick={() => setLevel(l.id)} aria-pressed={level === l.id}
+                className={`flex items-center gap-3 text-left rounded-2xl border-2 px-4 py-3 transition ${level === l.id ? 'border-primary bg-primary/10' : 'border-line hover:border-primary'}`}>
+                <span className="font-display font-extrabold text-lg w-10">{l.id}</span>
+                <span><span className="font-bold block">{l.t}</span><span className="text-sm text-muted">{l.d}</span></span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="text-sm font-bold mb-2">Kunlik maqsad</p>
+          <Segmented id="ob-goal" value={goal} onChange={setGoal} options={[{ value: 5, label: "5 so'z" }, { value: 10, label: "10 so'z" }, { value: 20, label: "20 so'z" }]} />
+        </div>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input id="ob-starter" type="checkbox" className="w-5 h-5 accent-[rgb(var(--primary))]" checked={starter} onChange={(e) => setStarter(e.target.checked)} />
+          <span>20 ta so'zdan iborat <b>Starter</b> to'plamini qo'shish</span>
+        </label>
+        <Btn size="lg" className="w-full" disabled={!name.trim()} onClick={() => onDone({ name: name.trim(), level, goal, starter })}>Boshlash</Btn>
+      </Card>
+    </div>
+  );
+}
+
+/* =====================================================================
+   11. BOSH SAHIFA
+   ===================================================================== */
+function Home({ S, go, startStudy }) {
+  const now = Date.now();
+  const due = S.words.filter((w) => isDue(w, now)).length;
+  const fresh = S.words.filter((w) => !w.seen).length;
+  const today = S.stats.days[dayKey()] || { reviewed: 0, xp: 0 };
+  const goal = S.profile.goal;
+  const pct = Math.min(1, today.reviewed / goal);
+  const lv = levelOf(S.stats.xp);
+  const counts = { new: 0, learning: 0, mastered: 0 };
+  S.words.forEach((w) => counts[wordStatus(w)]++);
+  const week = Array.from({ length: 7 }, (_, i) => { const t = now - (6 - i) * DAY; const k = dayKey(t); const d = S.stats.days[k]; return { k, label: UZ_DAYS[new Date(t).getDay()], xp: d ? d.xp : 0, rev: d ? d.reviewed : 0 }; });
+  const maxXP = Math.max(50, ...week.map((d) => d.xp));
+  const streak = liveStreak(S);
+  const R = 42, C = 2 * Math.PI * R;
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-muted">Salom, {S.profile.name}!</p>
+        <h1 className="font-display text-3xl font-extrabold">Bugungi reja</h1>
+      </div>
+
+      <Card className="p-5">
+        <div className="flex items-center gap-5">
+          <svg viewBox="0 0 100 100" className="w-28 h-28 shrink-0 -rotate-90" aria-label={`Kunlik maqsad: ${today.reviewed}/${goal}`}>
+            <circle cx="50" cy="50" r={R} fill="none" stroke="rgb(var(--sunken))" strokeWidth="10" />
+            <circle cx="50" cy="50" r={R} fill="none" stroke="rgb(var(--primary))" strokeWidth="10" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} style={{ transition: 'stroke-dashoffset .6s' }} />
+            <text x="50" y="50" transform="rotate(90 50 50)" textAnchor="middle" dominantBaseline="central" fill="rgb(var(--ink))" className="font-display" fontSize="22" fontWeight="800">{Math.min(today.reviewed, 999)}/{goal}</text>
+          </svg>
+          <div className="min-w-0">
+            <p className="font-display text-xl font-extrabold leading-snug">Bugun takrorlash kerak: <span className="text-primary num">{due}</span> ta so'z</p>
+            <p className="text-sm text-muted mt-1">Yangi so'zlar: {fresh} ta · maqsad: kuniga {goal} ta</p>
+            {pct >= 1 && <p className="text-good font-bold text-sm mt-1">Bugungi maqsad bajarildi ✓</p>}
+          </div>
+        </div>
+        <Btn size="lg" className="w-full mt-4" onClick={() => startStudy(null)} disabled={!S.words.length}>
+          <Icon d={I.cards} />{due ? 'Takrorlashni boshlash' : fresh ? "Yangi so'zlarni o'rganish" : 'Erkin mashq'}
+        </Btn>
+      </Card>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-4 text-center"><p className="text-2xl">🔥</p><p className="font-display text-2xl font-extrabold num">{streak}</p><p className="text-xs text-muted">kun ketma-ket</p></Card>
+        <Card className="p-4 text-center"><p className="text-2xl">⚡</p><p className="font-display text-2xl font-extrabold num">{S.stats.xp}</p><p className="text-xs text-muted">XP</p></Card>
+        <Card className="p-4 text-center"><p className="text-2xl">🏅</p><p className="font-display text-2xl font-extrabold num">{lv.l}</p><p className="text-xs text-muted">daraja</p></Card>
+      </div>
+      <div>
+        <div className="flex justify-between text-xs text-muted mb-1"><span>{lv.l}-daraja</span><span className="num">{S.stats.xp - lv.from}/{lv.to - lv.from} XP</span></div>
+        <div className="h-3 rounded-full bg-sunken overflow-hidden"><div className="h-full bg-primary rounded-full transition-all" style={{ width: `${((S.stats.xp - lv.from) / (lv.to - lv.from)) * 100}%` }} /></div>
+      </div>
+
+      <Card className="p-5">
+        <p className="eyebrow mb-3">Statistika</p>
+        <div className="grid grid-cols-4 gap-2 text-center mb-5">
+          <div><p className="font-display text-2xl font-extrabold num">{S.words.length}</p><p className="text-xs text-muted">jami</p></div>
+          <div><p className="font-display text-2xl font-extrabold text-good num">{counts.mastered}</p><p className="text-xs text-muted">yodlangan</p></div>
+          <div><p className="font-display text-2xl font-extrabold text-warn num">{counts.learning}</p><p className="text-xs text-muted">o'rganilmoqda</p></div>
+          <div><p className="font-display text-2xl font-extrabold text-muted num">{counts.new}</p><p className="text-xs text-muted">yangi</p></div>
+        </div>
+        {S.words.length > 0 && (
+          <div className="flex h-2.5 rounded-full overflow-hidden mb-5 bg-sunken" aria-hidden="true">
+            <div className="bg-good" style={{ width: `${(counts.mastered / S.words.length) * 100}%` }} />
+            <div className="bg-warn" style={{ width: `${(counts.learning / S.words.length) * 100}%` }} />
+          </div>
+        )}
+        <p className="text-sm font-bold mb-2">Haftalik XP</p>
+        <svg viewBox="0 0 280 130" className="w-full h-auto" role="img" aria-label="Oxirgi 7 kundagi XP">
+          {[0, 0.5, 1].map((f) => <line key={f} x1="0" x2="280" y1={100 - f * 84} y2={100 - f * 84} stroke="rgb(var(--line))" strokeWidth="1" strokeDasharray={f ? '3 4' : ''} />)}
+          {week.map((d, i) => {
+            const h = (d.xp / maxXP) * 84, x = i * 40 + 8, isToday = i === 6;
+            return (
+              <g key={d.k}>
+                <rect x={x} y={100 - h} width="24" height={Math.max(h, d.xp ? 3 : 0)} rx="6" fill={isToday ? 'rgb(var(--primary))' : 'rgb(var(--primary) / .45)'} />
+                {d.xp > 0 && <text x={x + 12} y={100 - h - 5} textAnchor="middle" fontSize="10" fill="rgb(var(--muted))" className="num">{d.xp}</text>}
+                <text x={x + 12} y="120" textAnchor="middle" fontSize="11" fontWeight={isToday ? 700 : 400} fill={isToday ? 'rgb(var(--ink))' : 'rgb(var(--muted))'}>{d.label}</text>
+              </g>
+            );
+          })}
+        </svg>
+      </Card>
+
+      <Card className="p-5">
+        <p className="eyebrow mb-3">Oxirgi natijalar</p>
+        {S.stats.results.length === 0 ? <p className="text-muted text-sm">Hali natija yo'q. O'yin yoki mashqdan boshlang.</p> : (
+          <ul className="divide-y divide-line">
+            {S.stats.results.slice(0, 6).map((r, i) => (
+              <li key={i} className="py-2.5 flex items-center justify-between gap-3">
+                <span className="font-bold">{r.type}</span>
+                <span className="text-sm text-muted num">{r.detail || `${r.score}/${r.total}`}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3">
+        {[['reading', "O'qish", I.book], ['listening', 'Tinglash', I.ear], ['speaking', 'Gapirish', I.mic], ['writing', 'Yozish', I.pen]].map(([k, l, ic]) => (
+          <button key={k} onClick={() => go(k)} className="bg-surface rounded-2xl shadow-card p-4 flex items-center gap-3 text-left hover:shadow-lift transition">
+            <span className="w-11 h-11 rounded-xl bg-primary/10 text-primary grid place-items-center"><Icon d={ic} /></span>
+            <span className="font-bold">{l}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   12. KARTOCHKALAR (flip + swipe + SRS)
+   ===================================================================== */
+function FlashCard({ w, flipped, onFlip, onSwipe }) {
+  const [dx, setDx] = useState(0);
+  const start = useRef(null);
+  const moved = useRef(false);
+  const down = (e) => {
+    if (e.target.closest && e.target.closest('button')) return; // 🔊 tugmasi kartani aylantirmaydi
+    start.current = { x: e.clientX, y: e.clientY }; moved.current = false;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* */ }
+  };
+  const move = (e) => {
+    if (!start.current) return;
+    const d = e.clientX - start.current.x;
+    if (Math.abs(d) > 8) moved.current = true;
+    setDx(d);
+  };
+  const up = () => {
+    if (!start.current) return;
+    const d = dx; start.current = null; setDx(0);
+    if (d > 90) onSwipe(2); else if (d < -90) onSwipe(0);
+    else if (!moved.current) onFlip();
+  };
+  const tint = dx > 30 ? `rgb(var(--good) / ${Math.min(0.25, dx / 500)})` : dx < -30 ? `rgb(var(--bad) / ${Math.min(0.25, -dx / 500)})` : 'transparent';
+  return (
+    <div className="flip-scene select-none" style={{ touchAction: 'pan-y' }}>
+      <div
+        className={`flip-card h-[400px] cursor-pointer ${flipped ? 'is-flipped' : ''}`}
+        style={{ transform: `translateX(${dx}px) rotate(${dx / 25}deg) ${flipped ? 'rotateY(180deg)' : ''}`, transition: start.current ? 'none' : undefined }}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDx(0); }}
+        role="button" tabIndex={0} aria-label="Kartani aylantirish"
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onFlip(); } }}>
+        {/* OLDI */}
+        <div className="flip-face bg-surface rounded-[28px] shadow-lift p-6 flex flex-col" style={{ background: `linear-gradient(${tint}, ${tint}), rgb(var(--surface))` }}>
+          <div className="flex items-center justify-between">
+            <Pill tone={statusTone[wordStatus(w)]}>{STATUS_UZ[wordStatus(w)]}</Pill>
+            <SpeakBtn parts={[w.en, w.ex]} label="So'z va gapni tinglash" />
+          </div>
+          <div className="flex-1 flex flex-col justify-center text-center">
+            <p className="font-display text-[42px] leading-tight font-extrabold break-words">{w.en}</p>
+            {w.ipa && <p className="ipa text-lg text-muted mt-1">{w.ipa}</p>}
+            {w.ex && <p className="mt-6 text-lg leading-relaxed"><HighlightIn sentence={w.ex} word={w.en} /></p>}
+          </div>
+          <p className="text-center text-xs text-muted">Bosing — tarjima · Chapga: bilmadim · O'ngga: bildim</p>
+        </div>
+        {/* ORQASI */}
+        <div className="flip-face flip-back bg-surface rounded-[28px] shadow-lift p-6 flex flex-col ruled" style={{ backgroundColor: 'rgb(var(--surface))' }}>
+          <div className="flex items-center justify-between">
+            {w.pos ? <Pill tone="primary">{w.pos}</Pill> : <span />}
+            <SpeakBtn text={w.en} />
+          </div>
+          <div className="flex-1 flex flex-col justify-center text-center gap-3">
+            <p className="text-sm text-muted">{w.en}</p>
+            <p className="font-display text-4xl font-extrabold leading-tight break-words">{w.uz || '—'}</p>
+            {w.note && <p className="text-muted">{w.note}</p>}
+            {w.exUz && <p className="text-lg italic mt-2">«{w.exUz}»</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Study({ S, deckId, upd, onExit, reward }) {
+  const build = () => {
+    const now = Date.now();
+    const pool = S.words.filter((w) => !deckId || w.deckId === deckId);
+    const due = pool.filter((w) => isDue(w, now)).sort((a, b) => a.due - b.due);
+    const today = S.stats.days[dayKey()] || { reviewed: 0 };
+    const room = Math.max(S.profile.goal - today.reviewed, 5);
+    const fresh = pool.filter((w) => !w.seen).slice(0, Math.max(0, room - due.length) || (due.length ? 0 : 5));
+    let q = [...due, ...fresh].map((w) => w.id);
+    if (!q.length) q = pick(pool, Math.min(10, pool.length)).map((w) => w.id); // erkin mashq
+    return q.slice(0, 40);
+  };
+  const [queue, setQueue] = useState(build);
+  const [free] = useState(() => { const now = Date.now(); return !S.words.some((w) => (!deckId || w.deckId === deckId) && (isDue(w, now) || !w.seen)); });
+  const [flipped, setFlipped] = useState(false);
+  const [done, setDone] = useState({ n: 0, good: 0, hard: 0, bad: 0 });
+  const [anim, setAnim] = useState(0);
+  const w = S.words.find((x) => x.id === queue[0]);
+
+  const grade = useCallback((g) => {
+    if (!w) return;
+    upd((d) => {
+      const i = d.words.findIndex((x) => x.id === w.id);
+      if (i < 0) return;
+      d.words[i] = schedule(d.words[i], g);
+      const day = ensureDay(d);
+      if (!day.ids) day.ids = [];
+      if (!day.ids.includes(w.id)) { day.ids.push(w.id); day.reviewed += 1; }
+      if (g > 0) day.correct += 1;
+      addXP(d, g === 2 ? 10 : g === 1 ? 5 : 1);
+    });
+    reward(g === 2 ? 10 : g === 1 ? 5 : 1, g > 0);
+    setDone((s) => ({ ...s, n: s.n + 1, good: s.good + (g === 2), hard: s.hard + (g === 1), bad: s.bad + (g === 0) }));
+    setFlipped(false);
+    setAnim((a) => a + 1);
+    setQueue((q) => { const rest = q.slice(1); if (g === 0) rest.splice(Math.min(3, rest.length), 0, w.id); return rest; });
+  }, [w, upd, reward]);
+
+  useEffect(() => {
+    const k = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === ' ') { e.preventDefault(); setFlipped((f) => !f); }
+      if (e.key === '1') grade(0); if (e.key === '2') grade(1); if (e.key === '3') grade(2);
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [grade]);
+
+  useEffect(() => {
+    if (!done.n || queue.length) return;
+    upd((d) => { d.stats.results.unshift({ type: 'Kartochkalar', score: done.good + done.hard, total: done.n, at: Date.now() }); d.stats.results = d.stats.results.slice(0, 20); });
+    // eslint-disable-next-line
+  }, [queue.length]);
+
+  if (!w) {
+    return (
+      <div className="text-center py-10 anim-up">
+        <p className="text-6xl mb-3">🎉</p>
+        <h2 className="font-display text-3xl font-extrabold mb-2">Seans tugadi!</h2>
+        <p className="text-muted mb-6">{done.n} ta javob: <span className="text-good font-bold">{done.good} bildim</span> · <span className="text-warn font-bold">{done.hard} qiyin</span> · <span className="text-bad font-bold">{done.bad} bilmadim</span></p>
+        <div className="flex flex-col gap-3 max-w-xs mx-auto">
+          <Btn onClick={() => { setQueue(build()); setDone({ n: 0, good: 0, hard: 0, bad: 0 }); }}>Yana mashq qilish</Btn>
+          <Btn kind="soft" onClick={onExit}>Lug'atga qaytish</Btn>
+        </div>
+      </div>
+    );
+  }
+  const total = done.n + queue.length;
+  return (
+    <div>
+      <BackBar title={free ? 'Erkin mashq' : 'Takrorlash'} onBack={onExit} right={<span className="text-sm text-muted num">{queue.length} qoldi</span>} />
+      <div className="h-2 rounded-full bg-sunken overflow-hidden mb-5"><div className="h-full bg-primary transition-all" style={{ width: `${(done.n / total) * 100}%` }} /></div>
+      <div key={anim} className="anim-up"><FlashCard w={w} flipped={flipped} onFlip={() => setFlipped((f) => !f)} onSwipe={grade} /></div>
+      <div className="mt-5">
+        {!flipped ? (
+          <Btn size="lg" kind="soft" className="w-full" onClick={() => setFlipped(true)}>Tarjimani ko'rish</Btn>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            <Btn kind="bad" size="lg" className="flex-col !gap-0 !py-2" onClick={() => grade(0)}><span>Bilmadim</span><span className="text-xs font-normal opacity-90">{nextLabel(w, 0)}</span></Btn>
+            <Btn kind="warn" size="lg" className="flex-col !gap-0 !py-2" onClick={() => grade(1)}><span>Qiyin</span><span className="text-xs font-normal opacity-90">{nextLabel(w, 1)}</span></Btn>
+            <Btn kind="good" size="lg" className="flex-col !gap-0 !py-2" onClick={() => grade(2)}><span>Bildim</span><span className="text-xs font-normal opacity-90">{nextLabel(w, 2)}</span></Btn>
+          </div>
+        )}
+        <p className="text-center text-xs text-muted mt-3 hidden sm:block">Klaviatura: Probel — aylantirish · 1 / 2 / 3 — javob</p>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   13. O'YINLAR
+   ===================================================================== */
+function GameEnd({ title, big, sub, onAgain, onExit }) {
+  return (
+    <div className="text-center py-8 anim-up">
+      <p className="eyebrow mb-2">{title}</p>
+      <p className="font-display text-6xl font-extrabold num mb-1">{big}</p>
+      <p className="text-muted mb-6">{sub}</p>
+      <div className="flex flex-col gap-3 max-w-xs mx-auto">
+        <Btn onClick={onAgain}>Yana o'ynash</Btn>
+        <Btn kind="soft" onClick={onExit}>Orqaga</Btn>
+      </div>
+    </div>
+  );
+}
+function makeOptions(pool, w, field) {
+  const others = shuffle(pool.filter((x) => x.id !== w.id && norm(x[field]) !== norm(w[field]))).slice(0, 3).map((x) => x[field]);
+  return shuffle([w[field], ...others]);
+}
+function Quiz({ pool, reward, onExit, saveResult }) {
+  const build = () => pick(pool, Math.min(10, pool.length)).map((w) => { const dir = Math.random() < 0.5 ? 'en' : 'uz'; return { w, dir, opts: makeOptions(pool, w, dir === 'en' ? 'uz' : 'en') }; });
+  const [qs, setQs] = useState(build);
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0);
+  if (i >= qs.length) return <GameEnd title="Quiz" big={`${score}/${qs.length}`} sub="to'g'ri javob" onAgain={() => { setQs(build()); setI(0); setScore(0); setPicked(null); }} onExit={onExit} />;
+  const q = qs[i], answer = q.dir === 'en' ? q.w.uz : q.w.en;
+  const choose = (o) => {
+    if (picked !== null) return;
+    setPicked(o);
+    const ok = o === answer;
+    if (ok) { setScore((s) => s + 1); reward(5, true); } else reward(0, false);
+    setTimeout(() => { setPicked(null); if (i + 1 >= qs.length) saveResult('Quiz', score + (ok ? 1 : 0), qs.length); setI(i + 1); }, ok ? 700 : 1300);
+  };
+  return (
+    <div>
+      <BackBar title="Quiz" onBack={onExit} right={<span className="text-sm text-muted num">{i + 1}/{qs.length}</span>} />
+      <Card className="p-6 text-center mb-4 anim-up" key={i}>
+        <p className="eyebrow mb-2">{q.dir === 'en' ? 'Tarjimasini toping' : 'Inglizchasini toping'}</p>
+        <p className="font-display text-4xl font-extrabold break-words">{q.dir === 'en' ? q.w.en : q.w.uz}</p>
+        {q.dir === 'en' && <div className="mt-3"><SpeakBtn text={q.w.en} /></div>}
+      </Card>
+      <div className="grid gap-3">
+        {q.opts.map((o) => {
+          let cls = 'bg-surface border-line hover:border-primary';
+          if (picked !== null && o === answer) cls = 'bg-good/15 border-good anim-pop';
+          else if (picked === o) cls = 'bg-bad/15 border-bad anim-shake';
+          return <button key={o} type="button" onClick={() => choose(o)} className={`min-h-[56px] rounded-2xl border-2 px-4 py-3 font-bold text-lg transition ${cls}`}>{o}</button>;
+        })}
+      </div>
+    </div>
+  );
+}
+function Match({ pool, reward, onExit, saveResult, best }) {
+  const build = () => { const ws = pick(pool, Math.min(6, pool.length)); return { ws, left: shuffle(ws), right: shuffle(ws) }; };
+  const [g, setG] = useState(build);
+  const [sel, setSel] = useState(null);
+  const [okIds, setOk] = useState([]);
+  const [wrong, setWrong] = useState(null);
+  const [t0, setT0] = useState(Date.now());
+  const [now, setNow] = useState(Date.now());
+  const [penalty, setPenalty] = useState(0);
+  const finished = okIds.length === g.ws.length;
+  useEffect(() => { if (finished) return; const t = setInterval(() => setNow(Date.now()), 100); return () => clearInterval(t); }, [finished]);
+  const time = ((now - t0) / 1000 + penalty).toFixed(1);
+  useEffect(() => { if (finished) saveResult('Match', g.ws.length, g.ws.length, `${time} s`, { key: 'match', value: Number(time), lower: true }); /* eslint-disable-next-line */ }, [finished]);
+  const again = () => { setG(build()); setOk([]); setSel(null); setT0(Date.now()); setNow(Date.now()); setPenalty(0); };
+  if (finished) return <GameEnd title="Match" big={`${time} s`} sub={best ? `Eng yaxshi natija: ${best} s` : 'Birinchi natijangiz!'} onAgain={again} onExit={onExit} />;
+  const clickRight = (w) => {
+    if (!sel || okIds.includes(w.id)) return;
+    if (sel === w.id) { setOk([...okIds, w.id]); setSel(null); reward(3, true); }
+    else { setWrong(w.id); setPenalty((p) => p + 2); reward(0, false); setTimeout(() => setWrong(null), 600); }
+  };
+  const tile = 'min-h-[60px] rounded-2xl border-2 px-3 py-2 font-bold transition text-center break-words';
+  return (
+    <div>
+      <BackBar title="Match" onBack={onExit} right={<span className="font-display text-xl font-extrabold num">{time}s</span>} />
+      <p className="text-sm text-muted mb-4">Chapdan so'zni, o'ngdan tarjimasini tanlang. Xato: +2 soniya.</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3">{g.left.map((w) => <button key={w.id} type="button" disabled={okIds.includes(w.id)} onClick={() => setSel(w.id)} className={`${tile} ${okIds.includes(w.id) ? 'opacity-0' : sel === w.id ? 'border-primary bg-primary/10' : 'border-line bg-surface'}`}>{w.en}</button>)}</div>
+        <div className="grid gap-3">{g.right.map((w) => <button key={w.id} type="button" disabled={okIds.includes(w.id)} onClick={() => clickRight(w)} className={`${tile} ${okIds.includes(w.id) ? 'opacity-0' : wrong === w.id ? 'border-bad bg-bad/10 anim-shake' : 'border-line bg-surface'}`}>{w.uz}</button>)}</div>
+      </div>
+    </div>
+  );
+}
+function Spelling({ pool, reward, onExit, saveResult }) {
+  const build = () => pick(pool.filter((w) => /^[a-zA-Z' -]+$/.test(w.en)), Math.min(10, pool.length));
+  const [qs, setQs] = useState(build);
+  const [i, setI] = useState(0);
+  const [val, setVal] = useState('');
+  const [res, setRes] = useState(null);
+  const [score, setScore] = useState(0);
+  const inp = useRef(null);
+  const w = qs[i];
+  useEffect(() => { if (w) { TTS.say(w.en, 0.85); setTimeout(() => inp.current && inp.current.focus(), 50); } }, [i, qs]);
+  if (!qs.length) return <div><BackBar title="Spelling" onBack={onExit} /><p className="text-muted">Bu o'yin uchun inglizcha so'zlar kerak.</p></div>;
+  if (i >= qs.length) return <GameEnd title="Spelling" big={`${score}/${qs.length}`} sub="to'g'ri yozildi" onAgain={() => { setQs(build()); setI(0); setScore(0); setRes(null); setVal(''); }} onExit={onExit} />;
+  const check = (e) => {
+    e.preventDefault();
+    if (res) { setRes(null); setVal(''); if (i + 1 >= qs.length) saveResult('Spelling', score, qs.length); setI(i + 1); return; }
+    const ok = norm(val) === norm(w.en);
+    if (ok) { setScore((s) => s + 1); reward(5, true); } else reward(0, false);
+    setRes(ok ? 'ok' : 'bad');
+  };
+  const target = w.en, typed = val.trim();
+  return (
+    <div>
+      <BackBar title="Spelling" onBack={onExit} right={<span className="text-sm text-muted num">{i + 1}/{qs.length}</span>} />
+      <Card className="p-6 text-center mb-4">
+        <p className="eyebrow mb-3">Eshiting va yozing</p>
+        <div className="flex justify-center gap-3 mb-3">
+          <Btn kind="soft" onClick={() => TTS.say(w.en, 0.85)}><Icon d={I.speaker} className="w-5 h-5" />Tinglash</Btn>
+          <Btn kind="soft" onClick={() => TTS.say(w.en, 0.55)}>Sekin</Btn>
+        </div>
+        <p className="text-muted text-sm">Yordam: {w.uz}</p>
+        {!TTS.ok && <p className="text-warn text-sm mt-2">Brauzeringizda ovoz yo'q — tarjimaga qarab yozing.</p>}
+      </Card>
+      <form onSubmit={check} className="space-y-3">
+        <input id="spell-input" ref={inp} value={val} onChange={(e) => setVal(e.target.value)} disabled={!!res} autoCapitalize="off" autoCorrect="off" spellCheck="false" autoComplete="off"
+          className={`${inputCls} text-center text-2xl font-bold tracking-wide`} placeholder="so'zni yozing" />
+        {res === 'bad' && (
+          <div className="text-center anim-up">
+            <p className="text-sm text-muted mb-1">To'g'risi:</p>
+            <p className="font-display text-3xl font-extrabold tracking-wide">
+              {target.split('').map((ch, k) => <span key={k} className={typed[k] && typed[k].toLowerCase() === ch.toLowerCase() ? 'text-good' : 'text-bad underline'}>{ch}</span>)}
+            </p>
+          </div>
+        )}
+        {res === 'ok' && <p className="text-center text-good font-bold text-xl anim-pop">✓ To'g'ri!</p>}
+        <Btn type="submit" size="lg" className="w-full" disabled={!res && !val.trim()}>{res ? 'Keyingisi' : 'Tekshirish'}</Btn>
+      </form>
+    </div>
+  );
+}
+function Speed({ pool, reward, onExit, saveResult, best }) {
+  const mk = () => { const w = pool[(Math.random() * pool.length) | 0]; return { w, opts: makeOptions(pool, w, 'uz') }; };
+  const [phase, setPhase] = useState('ready');
+  const [q, setQ] = useState(mk);
+  const [left, setLeft] = useState(60);
+  const [score, setScore] = useState(0);
+  const [miss, setMiss] = useState(0);
+  const [flash, setFlash] = useState(null);
+  useEffect(() => {
+    if (phase !== 'play') return;
+    const t = setInterval(() => setLeft((l) => l - 1), 1000);
+    return () => clearInterval(t);
+  }, [phase]);
+  useEffect(() => { if (phase === 'play' && left <= 0) { setPhase('end'); saveResult('Speed round', score, score + miss, `${score} ta to'g'ri`, { key: 'speed', value: score }); } /* eslint-disable-next-line */ }, [left, phase]);
+  if (phase === 'ready') return (
+    <div><BackBar title="Speed round" onBack={onExit} />
+      <Card className="p-8 text-center"><p className="text-5xl mb-3">⏱️</p><p className="font-display text-2xl font-extrabold mb-2">60 soniya</p><p className="text-muted mb-6">Iloji boricha ko'p to'g'ri tarjima toping.{best ? ` Rekord: ${best}.` : ''}</p><Btn size="lg" onClick={() => { setPhase('play'); setLeft(60); setScore(0); setMiss(0); setQ(mk()); }}>Boshlash</Btn></Card>
+    </div>
+  );
+  if (phase === 'end') return <GameEnd title="Speed round" big={score} sub={`to'g'ri javob · ${miss} xato${best && score > best ? ' · yangi rekord!' : ''}`} onAgain={() => setPhase('ready')} onExit={onExit} />;
+  const choose = (o) => {
+    const ok = o === q.w.uz;
+    if (ok) { setScore((s) => s + 1); reward(2, true); } else { setMiss((m) => m + 1); reward(0, false); }
+    setFlash(ok ? 'good' : 'bad'); setTimeout(() => setFlash(null), 250);
+    setQ(mk());
+  };
+  return (
+    <div>
+      <BackBar title="Speed round" onBack={onExit} right={<span className={`font-display text-2xl font-extrabold num ${left <= 10 ? 'text-bad' : ''}`}>{left}s</span>} />
+      <div className="h-2 rounded-full bg-sunken overflow-hidden mb-4"><div className="h-full bg-primary transition-all duration-1000 ease-linear" style={{ width: `${(left / 60) * 100}%` }} /></div>
+      <Card className={`p-6 text-center mb-4 transition ${flash === 'good' ? 'ring-4 ring-good' : flash === 'bad' ? 'ring-4 ring-bad' : ''}`}>
+        <p className="font-display text-4xl font-extrabold break-words">{q.w.en}</p>
+        <p className="text-muted mt-2 num">To'g'ri: {score}</p>
+      </Card>
+      <div className="grid grid-cols-2 gap-3">
+        {q.opts.map((o) => <button key={o} type="button" onClick={() => choose(o)} className="min-h-[64px] rounded-2xl border-2 border-line bg-surface px-3 py-2 font-bold hover:border-primary active:scale-95 transition">{o}</button>)}
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   14. SO'Z QO'SHISH (3 usul) + TASDIQLASH OYNASI
+   ===================================================================== */
+function parseLines(text) {
+  const seps = ['\t', ' — ', ' – ', ' - ', '—', '–', ' : ', ':', ' = ', '=', ',', ' -', '- ', '-'];
+  return text.split(/\r?\n/).map((l) => l.replace(/^\s*(\d+[.)]|[•*·-])\s+/, '').trim()).filter(Boolean).map((l) => {
+    for (const s of seps) {
+      const i = l.indexOf(s);
+      if (i > 0) return { en: l.slice(0, i).trim(), uz: l.slice(i + s.length).trim() };
+    }
+    return { en: l, uz: '' };
+  }).filter((x) => x.en);
+}
+function ReviewSheet({ items, setItems, onSave, onClose, existing, enriching, aiError, onRetry }) {
+  const [open, setOpen] = useState(null);
+  const set = (i, k, v) => setItems(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const del = (i) => setItems(items.filter((_, j) => j !== i));
+  const exists = (x) => existing.has(norm(x.en));
+  const valid = items.filter((x) => x.en.trim() && x.uz.trim() && !exists(x));
+  return (
+    <Sheet open onClose={onClose} title={`Tekshiring (${items.length})`} wide>
+      <p className="text-sm text-muted mb-3">Saqlashdan oldin har bir kartani tahrirlang yoki o'chiring. Batafsil maydonlar uchun kartani oching.</p>
+      {enriching && <div className="mb-3 rounded-2xl bg-primary/10 p-3"><Spinner label="AI transkripsiya, misol va izohlarni to'ldirmoqda…" /></div>}
+      {aiError && <div className="mb-3"><AIError error={aiError} onRetry={onRetry} /><p className="text-xs text-muted mt-2">AI'siz ham saqlash mumkin — faqat tarjimani to'ldiring.</p></div>}
+      <ul className="space-y-2 mb-4">
+        {items.map((x, i) => (
+          <li key={i} className={`rounded-2xl border-2 ${exists(x) ? 'border-warn/50' : 'border-line'} p-3`}>
+            <div className="flex gap-2 items-center">
+              <input id={`rv-en-${i}`} aria-label="Inglizcha" className={`${inputCls} !py-2 font-bold`} value={x.en} onChange={(e) => set(i, 'en', e.target.value)} />
+              <input id={`rv-uz-${i}`} aria-label="Tarjima" className={`${inputCls} !py-2 ${!x.uz.trim() ? '!border-bad/60' : ''}`} value={x.uz} placeholder="tarjima" onChange={(e) => set(i, 'uz', e.target.value)} />
+              <button type="button" onClick={() => del(i)} className="w-10 h-10 shrink-0 rounded-full hover:bg-bad/10 text-bad grid place-items-center" aria-label="O'chirish"><Icon d={I.trash} className="w-5 h-5" /></button>
+            </div>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {exists(x) && <Pill tone="warn">Lug'atda bor — saqlanmaydi</Pill>}
+              {x.ipa && <span className="ipa text-sm text-muted">{x.ipa}</span>}
+              {x.pos && <Pill>{x.pos}</Pill>}
+              <button type="button" className="text-sm text-primary font-bold ml-auto" onClick={() => setOpen(open === i ? null : i)}>{open === i ? 'Yopish' : 'Batafsil'}</button>
+            </div>
+            {open === i && (
+              <div className="grid gap-2 mt-3 anim-up">
+                {[['ipa', 'Transkripsiya (IPA)'], ['pos', "So'z turkumi"], ['ex', 'Misol gap (EN)'], ['exUz', 'Misol tarjimasi'], ['note', 'Izoh']].map(([k, l]) => (
+                  <Field key={k} label={l} id={`rv-${k}-${i}`}><input id={`rv-${k}-${i}`} className={`${inputCls} !py-2 ${k === 'ipa' ? 'ipa' : ''}`} value={x[k] || ''} onChange={(e) => set(i, k, e.target.value)} /></Field>
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      <Btn size="lg" className="w-full" disabled={!valid.length || enriching} onClick={() => onSave(valid)}><Icon d={I.check} />{valid.length} ta kartani saqlash</Btn>
+    </Sheet>
+  );
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script')); document.head.appendChild(s);
+  });
+}
+
+function AddWords({ S, upd, onExit, reward, initialDeck }) {
+  const [mode, setMode] = useState('manual');
+  const [deck, setDeck] = useState(initialDeck || S.decks[0].id);
+  const [newDeck, setNewDeck] = useState('');
+  const [text, setText] = useState('');
+  const [enList, setEnList] = useState('');
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [ocrStatus, setOcrStatus] = useState('');
+  const [rawText, setRawText] = useState('');
+  const [items, setItems] = useState(null);
+  const [saved, setSaved] = useState(0);
+  const ai = useAI();
+  const existing = useMemo(() => {
+    const did = deck === '__new' ? null : deck;
+    return new Set(S.words.filter((w) => w.deckId === did).map((w) => norm(w.en)));
+  }, [S.words, deck]);
+  const level = S.profile.level;
+
+  const enrich = (list) => {
+    setItems(list);
+    ai.run(async () => {
+      const r = await enrichWords(list, level);
+      setItems((cur) => {
+        // foydalanuvchi o'zgartirgan maydonlarni saqlab qolish
+        const byEn = new Map(r.map((x) => [norm(x.en), x]));
+        return (cur || list).map((x) => { const a = byEn.get(norm(x.en)) || {}; return { ...a, ...Object.fromEntries(Object.entries(x).filter(([, v]) => v)) }; });
+      });
+    });
+  };
+  const fromManual = () => { const l = parseLines(text); if (l.length) enrich(l.slice(0, 120)); };
+  const fromEnglish = () => {
+    const l = enList.split(/[\n,;]+/).map((x) => x.replace(/^\s*(\d+[.)]|[•*·-])\s+/, '').trim()).filter(Boolean).map((en) => ({ en, uz: '' }));
+    if (l.length) enrich(l.slice(0, 120));
+  };
+  const onFile = (f) => {
+    if (!f) return;
+    setFile(f); setRawText(''); setOcrStatus('');
+    const r = new FileReader(); r.onload = () => setPreview(r.result); r.readAsDataURL(f);
+  };
+  const readImage = () => ai.run(async () => {
+    setOcrStatus('');
+    // 1-yo'l: AI rasmni o'zi ko'radi (Artifact imkon bersa)
+    if (await aiCanSeeImages()) {
+      setOcrStatus('AI rasmni o\'qimoqda…');
+      const r = await askAI(`The image is a photo of a vocabulary list from a notebook or textbook (English words with Uzbek or Russian translations, possibly handwritten).
+Extract every English word/phrase with its translation. Translate into Uzbek (Latin) if the translation is missing or in Russian. Ignore page numbers and headers.
+Return ONLY a JSON array: [{"en":"...","uz":"...","ipa":"/IPA/","pos":"noun|verb|adjective|...","ex":"short natural example sentence for level ${level}","exUz":"Uzbek translation","note":"very short Uzbek note"}]`, { images: [file] });
+      need(Array.isArray(r) && r.length);
+      setItems(r.filter((x) => x && x.en).map((x) => ({ en: String(x.en), uz: String(x.uz || ''), ipa: x.ipa || '', pos: x.pos || '', ex: x.ex || '', exUz: x.exUz || '', note: x.note || '' })));
+      setOcrStatus('');
+      return;
+    }
+    // 2-yo'l: Tesseract.js (eng) -> xom matn -> AI juftlarga ajratadi
+    setOcrStatus('Tesseract yuklanmoqda…');
+    let raw = '';
+    try {
+      await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+      const worker = await window.Tesseract.createWorker('eng', 1, { logger: (m) => { if (m.status === 'recognizing text') setOcrStatus(`Matn o'qilmoqda… ${Math.round(m.progress * 100)}%`); } });
+      const { data } = await worker.recognize(file);
+      await worker.terminate();
+      raw = data.text || '';
+    } catch (e) {
+      setOcrStatus('');
+      throw { code: 'ocr_failed' };
+    }
+    setRawText(raw);
+    if (!raw.trim()) { setOcrStatus(''); throw { code: 'ocr_empty' }; }
+    setOcrStatus('AI so\'z va tarjimalarni ajratmoqda…');
+    const r = await askAI(`This is raw OCR text (may contain errors) from a photo of a vocabulary list with English words and translations:
+"""${raw.slice(0, 6000)}"""
+Fix obvious OCR mistakes and extract English word/phrase + Uzbek translation pairs (translate to Uzbek Latin if missing or in another language). Skip junk.
+Return ONLY a JSON array: [{"en":"...","uz":"...","ipa":"/IPA/","pos":"...","ex":"short example sentence for level ${level}","exUz":"Uzbek translation","note":"very short Uzbek note"}]`);
+    need(Array.isArray(r));
+    setItems(r.filter((x) => x && x.en).map((x) => ({ en: String(x.en), uz: String(x.uz || ''), ipa: x.ipa || '', pos: x.pos || '', ex: x.ex || '', exUz: x.exUz || '', note: x.note || '' })));
+    setOcrStatus('');
+  });
+  const save = (valid) => {
+    let did = deck;
+    upd((d) => {
+      if (deck === '__new') { did = 'd-' + uid(); d.decks.push({ id: did, name: newDeck.trim() || "Yangi to'plam" }); }
+      valid.forEach((x) => d.words.push(newWord(x, did)));
+      addXP(d, valid.length * 2);
+    });
+    reward(valid.length * 2, true);
+    setSaved(valid.length); setItems(null); setText(''); setEnList(''); setFile(null); setPreview(null); setRawText('');
+    if (deck === '__new') { setDeck(did); setNewDeck(''); }
+  };
+  const ocrErr = ai.error && (ai.error.code === 'ocr_failed' || ai.error.code === 'ocr_empty');
+  return (
+    <div>
+      <BackBar title="So'z qo'shish" onBack={onExit} />
+      {saved > 0 && <div className="rounded-2xl bg-good/15 text-good font-bold p-3 mb-4 anim-pop flex items-center gap-2"><Icon d={I.check} />{saved} ta yangi kartochka qo'shildi</div>}
+      <div className="space-y-4">
+        <Field label="Qaysi to'plamga?" id="add-deck">
+          <select id="add-deck" className={inputCls} value={deck} onChange={(e) => setDeck(e.target.value)}>
+            {S.decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            <option value="__new">+ Yangi to'plam…</option>
+          </select>
+        </Field>
+        {deck === '__new' && <Field label="Yangi to'plam nomi" id="add-newdeck"><input id="add-newdeck" className={inputCls} value={newDeck} onChange={(e) => setNewDeck(e.target.value)} placeholder="Masalan: Unit 3, Travel" /></Field>}
+        <Segmented value={mode} onChange={(m) => { setMode(m); ai.clear(); }} options={[{ value: 'manual', label: 'Qo\'lda' }, { value: 'photo', label: 'Rasmdan' }, { value: 'english', label: 'Faqat inglizcha' }]} />
+
+        {mode === 'manual' && (
+          <Card className="p-4 space-y-3">
+            <Field label="Har qatorda bitta: so'z - tarjima" id="add-manual" hint="Ajratgich: -  :  —  tab yoki vergul. Ro'yxatni ko'chirib qo'yish ham mumkin.">
+              <textarea id="add-manual" rows={8} className={`${inputCls} font-mono text-sm`} value={text} onChange={(e) => setText(e.target.value)} placeholder={'apple - olma\nborrow: qarzga olmoq\ntravel — sayohat qilmoq'} />
+            </Field>
+            <p className="text-sm text-muted">Topildi: <b className="num">{parseLines(text).length}</b> ta so'z</p>
+            <Btn className="w-full" disabled={!parseLines(text).length} onClick={fromManual}>Davom etish</Btn>
+          </Card>
+        )}
+
+        {mode === 'english' && (
+          <Card className="p-4 space-y-3">
+            <Field label="Faqat inglizcha so'zlar" id="add-en" hint="Har qatorda bittadan yoki vergul bilan. Tarjima, ma'no va misol gapni AI to'ldiradi.">
+              <textarea id="add-en" rows={8} className={`${inputCls} font-mono text-sm`} value={enList} onChange={(e) => setEnList(e.target.value)} placeholder={'curious\nlook forward to\nachieve'} />
+            </Field>
+            <Btn className="w-full" disabled={!enList.trim()} onClick={fromEnglish}><Icon d={I.sparkle} className="w-5 h-5" />AI bilan to'ldirish</Btn>
+          </Card>
+        )}
+
+        {mode === 'photo' && (
+          <Card className="p-4 space-y-3">
+            <label htmlFor="add-photo" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line hover:border-primary p-6 cursor-pointer text-center">
+              {preview ? <img src={preview} alt="Tanlangan rasm" className="max-h-60 rounded-xl" /> : <><Icon d={I.camera} className="w-10 h-10 text-primary" /><span className="font-bold">Lug'at rasmini tanlang</span><span className="text-sm text-muted">Daftar yoki kitob sahifasi, yaxshi yoritilgan</span></>}
+            </label>
+            <input id="add-photo" type="file" accept="image/*" className="sr-only" onChange={(e) => onFile(e.target.files && e.target.files[0])} />
+            {file && <Btn className="w-full" disabled={ai.loading} onClick={readImage}><Icon d={I.sparkle} className="w-5 h-5" />Rasmdagi so'zlarni o'qish</Btn>}
+            {ocrStatus && <Spinner label={ocrStatus} />}
+            {ocrErr && <div className="rounded-2xl border-2 border-bad/40 bg-bad/10 p-4 text-sm">
+              <p className="font-bold text-bad mb-1">Rasmni o'qib bo'lmadi</p>
+              <p className="mb-3">{ai.error.code === 'ocr_empty' ? "Rasmda matn topilmadi. Aniqroq, to'g'ri burchakdan olingan rasm yuklang." : "Tesseract bu muhitda ishga tushmadi (tarmoq cheklovi bo'lishi mumkin). So'zlarni «Qo'lda» bo'limiga ko'chirib yozing."}</p>
+              <Btn size="sm" kind="outline" onClick={ai.retry}>Qayta urinish</Btn>
+            </div>}
+            {rawText && !items && <details className="text-sm"><summary className="cursor-pointer text-muted">O'qilgan xom matn</summary><pre className="whitespace-pre-wrap bg-sunken rounded-xl p-3 mt-2">{rawText}</pre>
+              <Btn size="sm" kind="soft" className="mt-2" onClick={() => { setText(rawText); setMode('manual'); }}>Qo'lda tahrirlash</Btn></details>}
+          </Card>
+        )}
+        {!ocrErr && !items && <AIError error={ai.error} onRetry={ai.retry} />}
+      </div>
+      {items && (
+        <ReviewSheet items={items} setItems={setItems} existing={existing} enriching={ai.loading} aiError={ai.error} onRetry={ai.retry}
+          onClose={() => { setItems(null); ai.clear(); }} onSave={save} />
+      )}
+    </div>
+  );
+}
+
+/* So'zni tahrirlash oynasi */
+function EditWord({ w, S, upd, onClose }) {
+  const [x, setX] = useState(w);
+  const [confirmDel, setConfirmDel] = useState(false);
+  useEffect(() => { setX(w); setConfirmDel(false); }, [w]);
+  if (!w) return null;
+  const save = () => { upd((d) => { const i = d.words.findIndex((z) => z.id === w.id); if (i >= 0) d.words[i] = { ...d.words[i], ...x }; }); onClose(); };
+  return (
+    <Sheet open={!!w} onClose={onClose} title="Kartani tahrirlash">
+      <div className="grid gap-3">
+        {[['en', 'Inglizcha'], ['uz', 'Tarjima'], ['ipa', 'Transkripsiya (IPA)'], ['pos', "So'z turkumi"], ['ex', 'Misol gap'], ['exUz', 'Misol tarjimasi'], ['note', 'Izoh']].map(([k, l]) => (
+          <Field key={k} label={l} id={`ed-${k}`}><input id={`ed-${k}`} className={`${inputCls} !py-2`} value={x[k] || ''} onChange={(e) => setX({ ...x, [k]: e.target.value })} /></Field>
+        ))}
+        <Field label="To'plam" id="ed-deck">
+          <select id="ed-deck" className={inputCls} value={x.deckId} onChange={(e) => setX({ ...x, deckId: e.target.value })}>{S.decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+        </Field>
+        <p className="text-sm text-muted">Holat: {STATUS_UZ[wordStatus(w)]} · takror: {w.reps} · keyingisi: {w.seen ? new Date(w.due).toLocaleDateString('uz-UZ') : '—'}</p>
+        <Btn onClick={save}>Saqlash</Btn>
+        <div className="flex gap-2">
+          <Btn kind="soft" size="sm" className="flex-1" onClick={() => { upd((d) => { const i = d.words.findIndex((z) => z.id === w.id); if (i >= 0) d.words[i] = { ...d.words[i], ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: false }; }); onClose(); }}>Progressni tiklash</Btn>
+          {!confirmDel ? <Btn kind="soft" size="sm" className="flex-1 !text-bad" onClick={() => setConfirmDel(true)}>O'chirish</Btn>
+            : <Btn kind="bad" size="sm" className="flex-1" onClick={() => { upd((d) => { d.words = d.words.filter((z) => z.id !== w.id); }); onClose(); }}>Ha, o'chirilsin</Btn>}
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+/* =====================================================================
+   15. LUG'AT BO'LIMI
+   ===================================================================== */
+function Vocab({ S, upd, reward, sub, setSub, study, setStudy }) {
+  const [deck, setDeck] = useState(null);
+  const [q, setQ] = useState('');
+  const [edit, setEdit] = useState(null);
+  const [deckForm, setDeckForm] = useState(false);
+  const [deckName, setDeckName] = useState('');
+  const [filter, setFilter] = useState('all');
+  const pool = S.words.filter((w) => !deck || w.deckId === deck);
+  const gamePool = pool.filter((w) => w.en && w.uz);
+  const now = Date.now();
+  const due = pool.filter((w) => isDue(w, now)).length;
+  const fresh = pool.filter((w) => !w.seen).length;
+  const saveResult = (type, score, total, detail, bestInfo) => upd((d) => {
+    d.stats.results.unshift({ type, score, total, detail, at: Date.now() });
+    d.stats.results = d.stats.results.slice(0, 20);
+    if (bestInfo) { const b = d.stats.best[bestInfo.key]; if (b == null || (bestInfo.lower ? bestInfo.value < b : bestInfo.value > b)) d.stats.best[bestInfo.key] = bestInfo.value; }
+  });
+  const gameReward = (n, ok) => { if (n) upd((d) => { addXP(d, n); if (ok) ensureDay(d).correct += 1; }); reward(n, ok); };
+
+  if (study) return <Study S={S} deckId={study.deck} upd={upd} reward={reward} onExit={() => setStudy(null)} />;
+  if (sub === 'add') return <AddWords S={S} upd={upd} reward={reward} initialDeck={deck} onExit={() => setSub(null)} />;
+  const gp = { pool: gamePool, reward: gameReward, onExit: () => setSub(null), saveResult };
+  if (sub === 'quiz') return <Quiz {...gp} />;
+  if (sub === 'match') return <Match {...gp} best={S.stats.best.match} />;
+  if (sub === 'spelling') return <Spelling {...gp} />;
+  if (sub === 'speed') return <Speed {...gp} best={S.stats.best.speed} />;
+
+  const addStarter = () => upd((d) => {
+    let dk = d.decks.find((x) => x.name === 'Starter');
+    if (!dk) { dk = { id: 'd-starter', name: 'Starter' }; d.decks.push(dk); }
+    const have = new Set(d.words.map((w) => norm(w.en)));
+    starterWords(dk.id).forEach((w) => { if (!have.has(norm(w.en))) d.words.push(w); });
+  });
+  const list = pool.filter((w) => (filter === 'all' || wordStatus(w) === filter) && (!q || norm(w.en).includes(norm(q)) || String(w.uz).toLowerCase().includes(q.toLowerCase())));
+  const games = [
+    ['quiz', 'Quiz', '4 variantdan tanlang', I.quiz, 4],
+    ['match', 'Match', '6 juftni vaqtga', I.grid, 2],
+    ['spelling', 'Spelling', 'Eshiting va yozing', I.keyboard, 1],
+    ['speed', 'Speed round', '60 soniya', I.bolt, 4],
+  ];
+  return (
+    <div className="space-y-5">
+      <div className="flex items-end justify-between gap-3">
+        <h1 className="font-display text-3xl font-extrabold">Lug'at</h1>
+        <Btn size="sm" onClick={() => setSub('add')}><Icon d={I.plus} className="w-5 h-5" />So'z qo'shish</Btn>
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="To'plamlar">
+        {[{ id: null, name: 'Hammasi' }, ...S.decks].map((d) => {
+          const n = d.id ? S.words.filter((w) => w.deckId === d.id).length : S.words.length;
+          return <button key={d.id || 'all'} role="tab" aria-selected={deck === d.id} onClick={() => setDeck(d.id)}
+            className={`shrink-0 px-4 py-2 rounded-full font-bold text-sm border-2 transition ${deck === d.id ? 'bg-ink text-paper border-ink' : 'border-line bg-surface hover:border-primary'}`}>{d.name} <span className="opacity-60 num">{n}</span></button>;
+        })}
+        <button onClick={() => setDeckForm(true)} className="shrink-0 px-4 py-2 rounded-full font-bold text-sm border-2 border-dashed border-line text-muted hover:border-primary">+ To'plam</button>
+      </div>
+
+      {S.words.length === 0 ? (
+        <Card className="p-6 text-center">
+          <p className="text-5xl mb-3">📒</p>
+          <h2 className="font-display text-2xl font-extrabold mb-2">Lug'atingiz hali bo'sh</h2>
+          <p className="text-muted mb-5">20 ta foydali so'zdan iborat Starter to'plam bilan boshlang yoki o'z so'zlaringizni qo'shing.</p>
+          <div className="flex flex-col gap-3 max-w-xs mx-auto">
+            <Btn onClick={addStarter}>Starter to'plamni qo'shish</Btn>
+            <Btn kind="soft" onClick={() => setSub('add')}>O'z so'zlarimni qo'shaman</Btn>
+          </div>
+        </Card>
+      ) : (
+        <>
+          <Card className="p-5 flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-xl font-extrabold">{due ? `${due} ta so'z takrorlashni kutyapti` : fresh ? `${fresh} ta yangi so'z` : 'Hammasi takrorlangan ✓'}</p>
+              <p className="text-sm text-muted">{deck ? S.decks.find((d) => d.id === deck)?.name : 'Barcha to\'plamlar'} · {pool.length} ta karta</p>
+            </div>
+            <Btn onClick={() => setStudy({ deck })} disabled={!pool.length}><Icon d={I.cards} className="w-5 h-5" />{due || fresh ? 'Boshlash' : 'Mashq'}</Btn>
+          </Card>
+
+          <div>
+            <p className="eyebrow mb-2">Mashq o'yinlari</p>
+            <div className="grid grid-cols-2 gap-3">
+              {games.map(([k, t, d, ic, min]) => {
+                const ok = gamePool.length >= min;
+                return (
+                  <button key={k} disabled={!ok} onClick={() => setSub(k)} className="bg-surface rounded-2xl shadow-card p-4 text-left hover:shadow-lift transition disabled:opacity-50">
+                    <span className="w-10 h-10 rounded-xl bg-marker text-onmarker grid place-items-center mb-2"><Icon d={ic} className="w-5 h-5" /></span>
+                    <span className="font-bold block">{t}</span>
+                    <span className="text-xs text-muted">{ok ? d : `Kamida ${min} ta so'z kerak`}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <input id="vocab-search" className={`${inputCls} !py-2`} placeholder="Qidirish…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <select id="vocab-filter" aria-label="Holat bo'yicha" className={`${inputCls} !py-2 !w-auto`} value={filter} onChange={(e) => setFilter(e.target.value)}>
+                <option value="all">Hammasi</option><option value="new">Yangi</option><option value="learning">O'rganilmoqda</option><option value="mastered">Yodlangan</option>
+              </select>
+            </div>
+            <ul className="bg-surface rounded-2xl shadow-card divide-y divide-line">
+              {list.slice(0, 300).map((w) => (
+                <li key={w.id}>
+                  <button onClick={() => setEdit(w)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-sunken/60">
+                    <span className="flex-1 min-w-0"><span className="font-bold block truncate">{w.en}</span><span className="text-sm text-muted block truncate">{w.uz}</span></span>
+                    <Pill tone={statusTone[wordStatus(w)]}>{STATUS_UZ[wordStatus(w)]}</Pill>
+                  </button>
+                </li>
+              ))}
+              {!list.length && <li className="p-4 text-muted text-sm">Hech narsa topilmadi.</li>}
+            </ul>
+            {!S.decks.some((d) => d.name === 'Starter') && <button className="text-sm text-primary font-bold mt-3" onClick={addStarter}>+ Starter to'plamni qo'shish</button>}
+          </div>
+        </>
+      )}
+      <EditWord w={edit} S={S} upd={upd} onClose={() => setEdit(null)} />
+      <Sheet open={deckForm} onClose={() => setDeckForm(false)} title="Yangi to'plam">
+        <form onSubmit={(e) => { e.preventDefault(); if (!deckName.trim()) return; const id = 'd-' + uid(); upd((d) => { d.decks.push({ id, name: deckName.trim() }); }); setDeck(id); setDeckName(''); setDeckForm(false); }} className="space-y-3">
+          <Field label="Nomi" id="deck-name"><input id="deck-name" className={inputCls} value={deckName} onChange={(e) => setDeckName(e.target.value)} placeholder="Unit 3, Travel, IELTS…" /></Field>
+          <Btn type="submit" className="w-full" disabled={!deckName.trim()}>Qo'shish</Btn>
+        </form>
+      </Sheet>
+    </div>
+  );
+}
+
+/* =====================================================================
+   16. READING
+   ===================================================================== */
+function knownSample(S, n) {
+  const learned = S.words.filter((w) => w.seen && /^[A-Za-z' -]+$/.test(w.en));
+  const base = learned.length >= n ? learned : S.words.filter((w) => /^[A-Za-z' -]+$/.test(w.en));
+  return pick(base, n).map((w) => w.en);
+}
+function LevelTopic({ level, setLevel, topic, setTopic, idp }) {
+  return (
+    <div className="space-y-3">
+      <div><p className="text-sm font-bold mb-1.5">Daraja</p><Segmented id={`${idp}-level`} value={level} onChange={setLevel} options={LEVELS.map((l) => l.id)} /></div>
+      <Field label="Mavzu (ixtiyoriy)" id={`${idp}-topic`}><input id={`${idp}-topic`} className={inputCls} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Masalan: sport, Toshkent, kosmos" /></Field>
+    </div>
+  );
+}
+function Reading({ S, upd, reward, openWord }) {
+  const [level, setLevel] = useState(S.profile.level);
+  const [topic, setTopic] = useState('');
+  const [data, setData] = useState(null);
+  const [qKey, setQKey] = useState(0);
+  const ai = useAI();
+  const known = useMemo(() => knownMatcher(S.words), [S.words]);
+  const gen = () => ai.run(async () => {
+    const kw = knownSample(S, 12);
+    const len = { A1: '80-110', A2: '110-150', B1: '150-200', B2: '200-250', C1: '250-300' }[level];
+    const r = await askAI(`You are an English teacher for Uzbek learners. Write an original, engaging reading text for CEFR level ${level}, ${len} words.
+Topic: ${topic || 'an interesting everyday topic (choose one)'}.
+Naturally use as many as possible of these words the learner is studying: ${kw.join(', ') || '(none yet)'}.
+Also include 3-5 NEW useful words at or slightly above level ${level} that are NOT in that list.
+Then write 4 comprehension questions (multiple choice, 4 options each, exactly one correct), with a short Uzbek explanation.
+Return ONLY JSON:
+{"title":"...","text":"paragraphs separated by \\n\\n","newWords":[{"en":"base form","form":"exact form used in text","uz":"Uzbek translation","ipa":"/IPA/","pos":"noun"}],"questions":[{"q":"...","options":["...","...","...","..."],"answer":0,"explainUz":"..."}]}`);
+    need(r && r.text && Array.isArray(r.questions));
+    r.questions = r.questions.filter((q) => q && Array.isArray(q.options) && q.options.length >= 2 && Number.isInteger(q.answer));
+    r.newWords = Array.isArray(r.newWords) ? r.newWords : [];
+    setData(r); setQKey((k) => k + 1);
+  });
+  const newForms = useMemo(() => new Set((data?.newWords || []).flatMap((w) => [norm(w.form), norm(w.en)]).filter(Boolean)), [data]);
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display text-3xl font-extrabold">Reading</h1>
+      {!data && !ai.loading && (
+        <Card className="p-5 space-y-4">
+          <p className="text-muted">AI darajangizga mos matn yozadi: lug'atingizdagi so'zlar va 3–5 ta yangi so'z bilan. Istalgan so'zni bosing — tarjimasi chiqadi.</p>
+          <LevelTopic level={level} setLevel={setLevel} topic={topic} setTopic={setTopic} idp="rd" />
+          <Btn className="w-full" size="lg" onClick={gen}><Icon d={I.sparkle} className="w-5 h-5" />Matn yasash</Btn>
+        </Card>
+      )}
+      {ai.loading && <Card className="p-5 space-y-4"><Spinner label="AI matn yozmoqda… (10–40 soniya)" /><div className="skel h-7 w-2/3" /><Skeleton lines={7} /></Card>}
+      <AIError error={ai.error} onRetry={ai.retry} />
+      {data && !ai.loading && (
+        <>
+          <Card className="p-5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div><p className="eyebrow">{level} · Reading</p><h2 className="font-display text-2xl font-extrabold">{data.title}</h2></div>
+              <SpeakBtn text={data.text} rate={0.9} label="Matnni tinglash" />
+            </div>
+            <div className="text-lg leading-8 space-y-4">
+              {String(data.text).split(/\n\s*\n/).map((p, i) => (
+                <p key={i}><ClickableText text={p} known={known} newForms={newForms} onWord={(w, s) => openWord({ word: w, sentence: s, glossary: data.newWords, deckName: 'Reading' })} /></p>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3 text-xs text-muted mt-4 pt-3 border-t border-line">
+              <span><span className="bg-marker text-onmarker px-1 rounded">yangi</span> — yangi so'z</span>
+              <span><span className="word-known">so'z</span> — lug'atingizda bor</span>
+              <span>Bosing — tarjima</span>
+            </div>
+          </Card>
+          {data.newWords.length > 0 && (
+            <Card className="p-5">
+              <p className="eyebrow mb-3">Yangi so'zlar</p>
+              <ul className="space-y-2">
+                {data.newWords.map((w, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <button className="flex-1 text-left" onClick={() => openWord({ word: w.form || w.en, sentence: sentenceAround(data.text, Math.max(0, data.text.toLowerCase().indexOf(String(w.form || w.en).toLowerCase()))), glossary: data.newWords, deckName: 'Reading' })}>
+                      <b>{w.en}</b> <span className="ipa text-muted text-sm">{w.ipa}</span> — {w.uz}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          <div>
+            <p className="eyebrow mb-3">Tushunish savollari</p>
+            <Questions key={qKey} questions={data.questions} onChecked={(sc, tot) => { upd((d) => { addXP(d, sc * 10); d.stats.results.unshift({ type: 'Reading', score: sc, total: tot, at: Date.now() }); d.stats.results = d.stats.results.slice(0, 20); }); reward(sc * 10, sc > 0); }} />
+          </div>
+          <Btn kind="soft" className="w-full" onClick={() => { setData(null); ai.clear(); }}>Yangi matn</Btn>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   17. LISTENING
+   ===================================================================== */
+function diffWords(expected, typed) {
+  const clean = (s) => String(s).split(/\s+/).filter(Boolean);
+  const E = clean(expected), T = clean(typed);
+  const n = (w) => w.toLowerCase().replace(/[^a-z0-9']/g, '').replace(/’/g, "'");
+  const m = E.length, k = T.length;
+  const L = Array.from({ length: m + 1 }, () => new Array(k + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) for (let j = k - 1; j >= 0; j--) L[i][j] = n(E[i]) === n(T[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = []; let i = 0, j = 0;
+  while (i < m && j < k) {
+    if (n(E[i]) === n(T[j])) { out.push({ w: E[i], t: 'ok' }); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) { out.push({ w: E[i], t: 'miss' }); i++; }
+    else { out.push({ w: T[j], t: 'extra' }); j++; }
+  }
+  while (i < m) out.push({ w: E[i++], t: 'miss' });
+  while (j < k) out.push({ w: T[j++], t: 'extra' });
+  const ok = out.filter((x) => x.t === 'ok').length;
+  return { out, pct: Math.round((ok / Math.max(1, m)) * 100) };
+}
+function Listening({ S, upd, reward, openWord }) {
+  const [level, setLevel] = useState(S.profile.level);
+  const [topic, setTopic] = useState('');
+  const [kind, setKind] = useState('dialogue');
+  const [data, setData] = useState(null);
+  const [rate, setRate] = useState(1);
+  const [playing, setPlaying] = useState(-1);
+  const [revealed, setRevealed] = useState(false);
+  const [tab, setTab] = useState('questions');
+  const [qKey, setQKey] = useState(0);
+  const ai = useAI();
+  const known = useMemo(() => knownMatcher(S.words), [S.words]);
+  const playGen = useRef(0);
+  useEffect(() => () => { playGen.current++; TTS.stop(); }, []);
+  const gen = () => ai.run(async () => {
+    TTS.stop(); setPlaying(-1);
+    const kw = knownSample(S, 10);
+    const r = await askAI(`Write a short ${kind === 'dialogue' ? 'natural dialogue between two people (speakers "A" and "B")' : 'story told by a narrator (speaker "N")'} in English for a CEFR ${level} listening exercise.
+Topic: ${topic || 'an everyday situation (choose one)'}. Length: 7-10 lines, each line 1-2 sentences.
+Use some of these words the learner studies: ${kw.join(', ') || '(none)'}. Include 3-5 NEW useful words for level ${level}.
+Write 4 multiple-choice comprehension questions (4 options, one correct) with short Uzbek explanations.
+Pick 3 short sentences (5-10 words) copied EXACTLY from the lines for dictation.
+Return ONLY JSON:
+{"title":"...","lines":[{"speaker":"A","text":"..."}],"newWords":[{"en":"base form","form":"exact form in text","uz":"Uzbek translation","ipa":"/IPA/","pos":"..."}],"questions":[{"q":"...","options":["...","...","...","..."],"answer":0,"explainUz":"..."}],"dictation":["...","...","..."]}`);
+    need(r && Array.isArray(r.lines) && r.lines.length && Array.isArray(r.questions));
+    r.lines = r.lines.filter((l) => l && l.text);
+    r.questions = r.questions.filter((q) => q && Array.isArray(q.options) && Number.isInteger(q.answer));
+    r.newWords = Array.isArray(r.newWords) ? r.newWords : [];
+    r.dictation = (Array.isArray(r.dictation) && r.dictation.length ? r.dictation : r.lines.map((l) => l.text).sort((a, b) => a.length - b.length).slice(0, 3)).filter(Boolean);
+    setData(r); setRevealed(false); setTab('questions'); setQKey((k) => k + 1);
+  });
+  const play = (from = 0) => {
+    if (!data) return;
+    const g = ++playGen.current;
+    TTS.stop();
+    const speakers = [...new Set(data.lines.map((l) => l.speaker))];
+    const step = (i) => {
+      if (g !== playGen.current) return;
+      if (i >= data.lines.length) { setPlaying(-1); return; }
+      setPlaying(i);
+      const l = data.lines[i];
+      const si = Math.max(0, speakers.indexOf(l.speaker));
+      TTS.speak(l.text, { rate, voiceIndex: si, pitch: TTS.voices.length > 1 ? 1 : si === 1 ? 0.8 : 1.05, onend: () => setTimeout(() => step(i + 1), 350) });
+    };
+    step(from);
+  };
+  const stop = () => { playGen.current++; TTS.stop(); setPlaying(-1); };
+  const fullText = data ? data.lines.map((l) => l.text).join(' ') : '';
+  const newForms = useMemo(() => new Set((data?.newWords || []).flatMap((w) => [norm(w.form), norm(w.en)]).filter(Boolean)), [data]);
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display text-3xl font-extrabold">Listening</h1>
+      {!data && !ai.loading && (
+        <Card className="p-5 space-y-4">
+          <p className="text-muted">AI qisqa dialog yoki hikoya yozadi, ilova uni ovoz chiqarib o'qiydi. Matn savollarga javob bergandan keyin ochiladi.</p>
+          <div><p className="text-sm font-bold mb-1.5">Turi</p><Segmented id="ls-kind" value={kind} onChange={setKind} options={[{ value: 'dialogue', label: 'Dialog' }, { value: 'story', label: 'Hikoya' }]} /></div>
+          <LevelTopic level={level} setLevel={setLevel} topic={topic} setTopic={setTopic} idp="ls" />
+          {!TTS.ok && <p className="text-warn text-sm">Brauzeringiz matnni o'qib bera olmaydi (speechSynthesis yo'q). Chrome, Edge yoki Safari'da oching.</p>}
+          <Btn className="w-full" size="lg" onClick={gen}><Icon d={I.sparkle} className="w-5 h-5" />Audio mashq yasash</Btn>
+        </Card>
+      )}
+      {ai.loading && <Card className="p-5 space-y-4"><Spinner label="AI dialog yozmoqda…" /><Skeleton lines={5} /></Card>}
+      <AIError error={ai.error} onRetry={ai.retry} />
+      {data && !ai.loading && (
+        <>
+          <Card className="p-5">
+            <p className="eyebrow">{level} · {kind === 'dialogue' ? 'Dialog' : 'Hikoya'}</p>
+            <h2 className="font-display text-2xl font-extrabold mb-4">{data.title}</h2>
+            <div className="flex items-center gap-3 mb-4">
+              {playing < 0
+                ? <button onClick={() => play(0)} aria-label="Ijro etish" className="w-16 h-16 rounded-full bg-primary text-onprimary grid place-items-center shadow-lift active:scale-95"><Icon d={I.play} className="w-7 h-7" /></button>
+                : <button onClick={stop} aria-label="To'xtatish" className="w-16 h-16 rounded-full bg-bad text-white grid place-items-center shadow-lift active:scale-95"><Icon d={I.stop} className="w-7 h-7" /></button>}
+              <div className="flex-1">
+                <p className="text-sm text-muted mb-1">Tezlik</p>
+                <Segmented id="ls-rate" value={rate} onChange={(r) => { setRate(r); if (playing >= 0) { stop(); } }} options={[{ value: 0.75, label: '0.75x' }, { value: 1, label: '1x' }, { value: 1.25, label: '1.25x' }]} />
+              </div>
+            </div>
+            <div className="flex gap-1.5" aria-hidden="true">{data.lines.map((_, i) => <div key={i} className={`h-2 flex-1 rounded-full ${i === playing ? 'bg-primary' : i < playing ? 'bg-primary/40' : 'bg-sunken'}`} />)}</div>
+            {!revealed ? (
+              <div className="mt-4 rounded-2xl bg-sunken p-4 text-center text-muted text-sm">🔒 Matn yashirin. Savollarga javob bering — keyin ochiladi.</div>
+            ) : (
+              <div className="mt-4 space-y-3 anim-up">
+                {data.lines.map((l, i) => (
+                  <div key={i} className={`flex gap-3 rounded-xl p-2 ${i === playing ? 'bg-primary/10' : ''}`}>
+                    <span className={`w-8 h-8 shrink-0 rounded-full grid place-items-center text-sm font-bold ${l.speaker === 'B' ? 'bg-marker text-onmarker' : 'bg-primary/15 text-primary'}`}>{l.speaker}</span>
+                    <p className="text-lg leading-7 flex-1"><ClickableText text={l.text} known={known} newForms={newForms} onWord={(w, s) => openWord({ word: w, sentence: s, glossary: data.newWords, deckName: 'Listening' })} /></p>
+                    <button onClick={() => play(i)} className="text-muted hover:text-primary" aria-label="Shu qatordan tinglash"><Icon d={I.play} className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+          <Segmented id="ls-tab" value={tab} onChange={setTab} options={[{ value: 'questions', label: 'Savollar' }, { value: 'dictation', label: 'Dictation' }]} />
+          {tab === 'questions' && <Questions key={qKey} questions={data.questions} onChecked={(sc, tot) => { setRevealed(true); upd((d) => { addXP(d, sc * 10); d.stats.results.unshift({ type: 'Listening', score: sc, total: tot, at: Date.now() }); d.stats.results = d.stats.results.slice(0, 20); }); reward(sc * 10, sc > 0); }} />}
+          {tab === 'dictation' && <Dictation key={qKey} sentences={data.dictation} rate={rate} upd={upd} reward={reward} />}
+          {revealed && data.newWords.length > 0 && (
+            <Card className="p-5"><p className="eyebrow mb-2">Yangi so'zlar</p>
+              <div className="flex flex-wrap gap-2">{data.newWords.map((w, i) => <button key={i} onClick={() => openWord({ word: w.form || w.en, sentence: sentenceAround(fullText, Math.max(0, fullText.toLowerCase().indexOf(String(w.form || w.en).toLowerCase()))), glossary: data.newWords, deckName: 'Listening' })} className="px-3 py-1.5 rounded-full bg-marker text-onmarker font-bold text-sm">{w.en} · {w.uz}</button>)}</div>
+            </Card>
+          )}
+          <Btn kind="soft" className="w-full" onClick={() => { stop(); setData(null); ai.clear(); }}>Yangi audio</Btn>
+        </>
+      )}
+    </div>
+  );
+}
+function Dictation({ sentences, rate, upd, reward }) {
+  const [i, setI] = useState(0);
+  const [val, setVal] = useState('');
+  const [res, setRes] = useState(null);
+  const [total, setTotal] = useState(0);
+  if (i >= sentences.length) return <Card className="p-6 text-center anim-pop"><p className="eyebrow mb-1">Dictation</p><p className="font-display text-5xl font-extrabold num">{Math.round(total / sentences.length)}%</p><p className="text-muted">o'rtacha aniqlik</p><Btn kind="soft" className="mt-4" onClick={() => { setI(0); setTotal(0); setRes(null); setVal(''); }}>Qaytadan</Btn></Card>;
+  const s = sentences[i];
+  const check = () => {
+    const r = diffWords(s, val); setRes(r); setTotal((t) => t + r.pct);
+    const xp = Math.round(r.pct / 10);
+    upd((d) => { addXP(d, xp); if (i + 1 === sentences.length) { d.stats.results.unshift({ type: 'Dictation', score: Math.round((total + r.pct) / sentences.length), total: 100, detail: `${Math.round((total + r.pct) / sentences.length)}%`, at: Date.now() }); d.stats.results = d.stats.results.slice(0, 20); } });
+    reward(xp, r.pct >= 80);
+  };
+  return (
+    <Card className="p-5 space-y-3">
+      <div className="flex items-center justify-between"><p className="eyebrow">Gap {i + 1}/{sentences.length}</p>
+        <div className="flex gap-2"><Btn size="sm" kind="soft" onClick={() => TTS.say(s, rate)}><Icon d={I.speaker} className="w-4 h-4" />Tinglash</Btn><Btn size="sm" kind="soft" onClick={() => TTS.say(s, 0.6)}>Sekin</Btn></div></div>
+      <textarea id="dict-input" rows={2} className={inputCls} value={val} disabled={!!res} onChange={(e) => setVal(e.target.value)} placeholder="Eshitgan gapingizni yozing…" autoCapitalize="sentences" spellCheck="false" />
+      {res && (
+        <div className="anim-up">
+          <p className="text-lg leading-8">{res.out.map((x, k) => <span key={k} className={`mr-1 px-1 rounded ${x.t === 'ok' ? 'text-good' : x.t === 'miss' ? 'bg-bad/15 text-bad underline' : 'bg-warn/15 text-warn line-through'}`}>{x.w}</span>)}</p>
+          <p className="text-xs text-muted mt-1"><span className="text-good font-bold">yashil</span> — to'g'ri · <span className="text-bad font-bold">qizil</span> — tushib qolgan/xato · <span className="text-warn font-bold">sariq</span> — ortiqcha</p>
+          <p className="font-bold mt-2">Aniqlik: <span className="num">{res.pct}%</span></p>
+        </div>
+      )}
+      {!res ? <Btn className="w-full" disabled={!val.trim()} onClick={check}>Tekshirish</Btn> : <Btn className="w-full" onClick={() => { setI(i + 1); setVal(''); setRes(null); }}>Keyingi gap</Btn>}
+    </Card>
+  );
+}
+
+/* =====================================================================
+   18. SPEAKING
+   ===================================================================== */
+function MicNotice({ code }) {
+  if (!code || !MIC_ERR[code]) return null;
+  return <div className="rounded-2xl bg-warn/15 text-ink p-3 text-sm" role="status"><b className="text-warn">Mikrofon: </b>{MIC_ERR[code]}</div>;
+}
+function Speaking({ S, upd, reward }) {
+  const [mode, setMode] = useState('pron');
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display text-3xl font-extrabold">Speaking</h1>
+      <Segmented id="sp-mode" value={mode} onChange={setMode} options={[{ value: 'pron', label: 'Talaffuz' }, { value: 'talk', label: 'Suhbat' }]} />
+      {mode === 'pron' ? <Pronounce S={S} upd={upd} reward={reward} /> : <Conversation S={S} upd={upd} reward={reward} />}
+    </div>
+  );
+}
+function Pronounce({ S, upd, reward }) {
+  const build = () => { const ws = S.words.filter((w) => /^[A-Za-z' -]+$/.test(w.en)); const pri = ws.filter((w) => w.seen); return pick(pri.length >= 5 ? pri : ws, 10); };
+  const [list, setList] = useState(build);
+  const [i, setI] = useState(0);
+  const [heard, setHeard] = useState('');
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState(null);
+  const [okCount, setOkCount] = useState(0);
+  const rec = useRecognizer();
+  const w = list[i];
+  if (!S.words.length) return <Card className="p-5 text-muted">Avval lug'atga so'z qo'shing.</Card>;
+  if (!w) return <Card className="p-6 text-center anim-pop"><p className="text-5xl mb-2">🎤</p><p className="font-display text-3xl font-extrabold num">{okCount}/{list.length}</p><p className="text-muted mb-4">so'z to'g'ri talaffuz qilindi</p><Btn onClick={() => { setList(build()); setI(0); setOkCount(0); setResult(null); setHeard(''); }}>Yana mashq</Btn></Card>;
+  const listen = () => {
+    if (rec.listening) { rec.stop(); return; }
+    setErr(null); setHeard(''); setResult(null);
+    let alts = [];
+    rec.start({
+      onResult: (e) => {
+        const r = e.results[e.results.length - 1];
+        setHeard(r[0].transcript);
+        if (r.isFinal) { alts = Array.from(r).map((a) => a.transcript); }
+      },
+      onError: (c) => setErr(c),
+      onEnd: () => {
+        if (!alts.length) return;
+        const target = norm(w.en);
+        const ok = alts.some((a) => { const n = norm(a); return n === target || n.split(' ').includes(target) || n.includes(target) || similarity(n, target) >= 0.8; });
+        setResult(ok ? 'ok' : 'bad');
+        if (ok) { setOkCount((c) => c + 1); upd((d) => addXP(d, 5)); reward(5, true); } else reward(0, false);
+      },
+    });
+  };
+  const next = () => { setI(i + 1); setHeard(''); setResult(null); setErr(null); };
+  const micBlocked = !rec.supported || err === 'not-allowed' || err === 'service-not-allowed' || err === 'start-failed';
+  return (
+    <div className="space-y-4">
+      <Card className="p-6 text-center">
+        <p className="eyebrow mb-3">So'zni ayting · {i + 1}/{list.length}</p>
+        <p className="font-display text-5xl font-extrabold break-words">{w.en}</p>
+        {w.ipa && <p className="ipa text-lg text-muted mt-1">{w.ipa}</p>}
+        <p className="text-muted mt-1">{w.uz}</p>
+        <div className="flex justify-center mt-4"><SpeakBtn text={w.en} rate={0.85} label="Namuna talaffuz" /></div>
+      </Card>
+      <div className="flex flex-col items-center gap-3">
+        <MicButton listening={rec.listening} onClick={listen} disabled={!rec.supported} />
+        <p className="text-sm text-muted">{rec.listening ? 'Tinglayapman… gapiring' : 'Bosing va so\'zni ayting'}</p>
+        {heard && <p className="text-lg">Eshitildi: <b>«{heard}»</b></p>}
+        {result === 'ok' && <p className="text-good font-display text-2xl font-extrabold anim-pop">✅ Zo'r!</p>}
+        {result === 'bad' && <p className="text-warn font-bold anim-shake">Yana urinib ko'ring 🙂</p>}
+      </div>
+      <MicNotice code={!rec.supported ? 'unsupported' : err} />
+      {micBlocked && <p className="text-sm text-muted text-center">Mikrofonsiz: namunani tinglang, ovoz chiqarib 3 marta takrorlang va «Keyingisi»ni bosing.</p>}
+      <div className="flex gap-3"><Btn kind="soft" className="flex-1" onClick={next}>{result === 'ok' ? 'Keyingisi' : "O'tkazib yuborish"}</Btn></div>
+    </div>
+  );
+}
+function Conversation({ S, upd, reward }) {
+  const [targets, setTargets] = useState(() => knownSample(S, 4));
+  const [task, setTask] = useState(null);
+  const [answer, setAnswer] = useState('');
+  const [interim, setInterim] = useState('');
+  const [fb, setFb] = useState(null);
+  const [err, setErr] = useState(null);
+  const gen = useAI();
+  const grade = useAI();
+  const rec = useRecognizer();
+  const level = S.profile.level;
+  const newTask = () => gen.run(async () => {
+    const t = knownSample(S, 4); setTargets(t); setFb(null); setAnswer('');
+    const r = await askAI(`Create a speaking prompt for an Uzbek learner of English, level ${level}. The learner must answer aloud in 3-6 sentences and should use these words: ${t.join(', ')}.
+Return ONLY JSON: {"topic":"short English topic","topicUz":"topic in Uzbek","question":"one open question in English that naturally invites those words","questionUz":"Uzbek translation of the question","hintUz":"one short Uzbek tip on how to structure the answer"}`, { tier: 'quick' });
+    need(r && r.question);
+    setTask(r);
+  });
+  const evaluate = () => grade.run(async () => {
+    const r = await askAI(`You are a friendly English speaking coach for Uzbek learners (level ${level}).
+Question: "${task.question}"
+Target words the learner should use: ${targets.join(', ')}
+Learner's spoken answer (speech-to-text, ignore punctuation/capitalisation issues): "${answer.slice(0, 3000)}"
+Evaluate. Return ONLY JSON:
+{"usedWords":["target words actually used (any form)"],"missedWords":["target words not used"],"errors":[{"wrong":"exact wrong fragment","correct":"corrected fragment","explainUz":"short explanation in Uzbek"}],"improved":"an improved natural model answer in English at level ${level}, 3-6 sentences","feedbackUz":"2 short encouraging sentences in Uzbek with the main advice","score":7}
+score is an integer 1-10 (content, grammar, vocabulary use).`);
+    need(r && typeof r.score !== 'undefined');
+    r.score = Math.max(1, Math.min(10, Math.round(Number(r.score) || 1)));
+    r.errors = Array.isArray(r.errors) ? r.errors : [];
+    setFb(r);
+    upd((d) => { addXP(d, r.score * 3); d.stats.results.unshift({ type: 'Speaking', score: r.score, total: 10, detail: `${r.score}/10 ball`, at: Date.now() }); d.stats.results = d.stats.results.slice(0, 20); });
+    reward(r.score * 3, r.score >= 6);
+  });
+  const toggleMic = () => {
+    if (rec.listening) { rec.stop(); return; }
+    setErr(null);
+    rec.start({
+      continuous: true,
+      onResult: (e) => {
+        let fin = '', mid = '';
+        for (let k = e.resultIndex; k < e.results.length; k++) { const r = e.results[k]; if (r.isFinal) fin += r[0].transcript + ' '; else mid += r[0].transcript; }
+        if (fin) setAnswer((a) => (a ? a.trimEnd() + ' ' : '') + fin.trim());
+        setInterim(mid);
+      },
+      onError: (c) => setErr(c),
+      onEnd: () => setInterim(''),
+    });
+  };
+  if (!task && !gen.loading) return (
+    <Card className="p-5 space-y-4">
+      <p className="text-muted">AI mavzu va savol beradi. Siz yodlagan so'zlaringizdan 3–5 tasini ishlatib gapirasiz, AI esa baho beradi.</p>
+      {targets.length === 0 && <p className="text-warn text-sm">Lug'atingiz bo'sh — avval so'z qo'shing.</p>}
+      <Btn className="w-full" size="lg" disabled={!S.words.length} onClick={newTask}><Icon d={I.sparkle} className="w-5 h-5" />Savol olish</Btn>
+      <AIError error={gen.error} onRetry={gen.retry} />
+    </Card>
+  );
+  if (gen.loading) return <Card className="p-5 space-y-3"><Spinner label="Savol tayyorlanmoqda…" /><Skeleton lines={3} /></Card>;
+  const hasWord = (t) => new RegExp(`\\b${escRe(t.split(' ')[0].slice(0, Math.max(3, t.length - 2)))}`, 'i').test(answer);
+  return (
+    <div className="space-y-4">
+      <Card className="p-5">
+        <p className="eyebrow">{task.topic} · {task.topicUz}</p>
+        <div className="flex items-start gap-3 mt-1">
+          <p className="font-display text-2xl font-extrabold flex-1">{task.question}</p>
+          <SpeakBtn text={task.question} />
+        </div>
+        <p className="text-muted mt-1">{task.questionUz}</p>
+        {task.hintUz && <p className="text-sm mt-3 bg-sunken rounded-xl p-3">💡 {task.hintUz}</p>}
+        <p className="text-sm font-bold mt-4 mb-2">Shu so'zlarni ishlating:</p>
+        <div className="flex flex-wrap gap-2">{targets.map((t) => <span key={t} className={`px-3 py-1.5 rounded-full font-bold text-sm border-2 ${hasWord(t) ? 'bg-good/15 border-good text-good' : 'border-line'}`}>{hasWord(t) ? '✓ ' : ''}{t}</span>)}</div>
+      </Card>
+      {!fb && (
+        <Card className="p-5 space-y-3">
+          <div className="flex items-center gap-4">
+            <MicButton size="md" listening={rec.listening} onClick={toggleMic} disabled={!rec.supported} />
+            <p className="text-sm text-muted flex-1">{!rec.supported ? 'Mikrofon mavjud emas — javobni pastga yozing.' : rec.listening ? "Gapiring… tugatgach tugmani bosing." : "Mikrofonni bosib gapiring yoki pastga yozing."}</p>
+          </div>
+          <MicNotice code={!rec.supported ? 'unsupported' : err} />
+          <textarea id="talk-answer" rows={5} className={inputCls} value={answer + (interim ? (answer ? ' ' : '') + interim : '')} onChange={(e) => { setAnswer(e.target.value); setInterim(''); }} placeholder="Javobingiz shu yerda paydo bo'ladi (yoki yozing)…" />
+          <Btn className="w-full" size="lg" disabled={answer.trim().split(/\s+/).length < 3 || grade.loading} onClick={() => { rec.stop(); evaluate(); }}>Baholash</Btn>
+          {grade.loading && <Spinner label="AI javobingizni tekshirmoqda…" />}
+          <AIError error={grade.error} onRetry={grade.retry} />
+        </Card>
+      )}
+      {fb && <Feedback fb={fb} targets={targets} original={answer} onNew={newTask} />}
+    </div>
+  );
+}
+function Feedback({ fb, original, onNew, targets, title = 'Natija' }) {
+  return (
+    <div className="space-y-4 anim-up">
+      <Card className="p-5">
+        <div className="flex items-center gap-4">
+          <div className={`w-20 h-20 rounded-full grid place-items-center font-display text-3xl font-extrabold num ${fb.score >= 8 ? 'bg-good/15 text-good' : fb.score >= 5 ? 'bg-warn/15 text-warn' : 'bg-bad/15 text-bad'}`}>{fb.score}</div>
+          <div className="flex-1"><p className="eyebrow">{title} · 10 balldan</p><p>{fb.feedbackUz}</p></div>
+        </div>
+        {targets && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {(fb.usedWords || []).map((w) => <Pill key={'u' + w} tone="good">✓ {w}</Pill>)}
+            {(fb.missedWords || []).map((w) => <Pill key={'m' + w} tone="bad">✗ {w}</Pill>)}
+          </div>
+        )}
+      </Card>
+      {original && <Card className="p-5"><p className="eyebrow mb-2">Sizning javobingiz</p><p className="leading-7"><Marked text={original} errors={fb.errors} words={fb.usedWords || []} /></p></Card>}
+      {fb.errors.length > 0 && (
+        <Card className="p-5">
+          <p className="eyebrow mb-3">Xatolar va to'g'ri variant</p>
+          <ol className="space-y-3">
+            {fb.errors.map((e, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="w-7 h-7 shrink-0 rounded-full bg-bad text-white text-sm font-bold grid place-items-center num">{i + 1}</span>
+                <div><p><s className="text-bad">{e.wrong}</s> → <b className="text-good">{e.correct}</b></p><p className="text-sm text-muted">{e.explainUz}</p></div>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
+      {(fb.improved || fb.corrected) && (
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-2"><p className="eyebrow">{fb.improved ? 'Yaxshilangan namuna' : 'Tuzatilgan matn'}</p><SpeakBtn text={fb.improved || fb.corrected} rate={0.9} /></div>
+          <p className="text-lg leading-8">{fb.improved || fb.corrected}</p>
+        </Card>
+      )}
+      <Btn className="w-full" kind="soft" onClick={onNew}>Yangi vazifa</Btn>
+    </div>
+  );
+}
+/* Matnda: ishlatilgan so'zlar yashil, xatolar qizil (raqam bilan) */
+function Marked({ text, errors = [], words = [] }) {
+  const ranges = [];
+  const taken = (s, e) => ranges.some((r) => s < r.e && e > r.s);
+  errors.forEach((er, i) => {
+    if (!er || !er.wrong) return;
+    const low = text.toLowerCase(), w = String(er.wrong).toLowerCase();
+    let from = 0, idx;
+    while ((idx = low.indexOf(w, from)) >= 0) { if (!taken(idx, idx + w.length)) { ranges.push({ s: idx, e: idx + w.length, t: 'err', n: i + 1 }); break; } from = idx + 1; }
+  });
+  words.forEach((wd) => {
+    const stem = String(wd).split(' ')[0];
+    const re = new RegExp(`\\b${escRe(stem.length > 4 ? stem.slice(0, stem.length - 2) : stem)}[a-z'-]*`, 'gi');
+    let m; while ((m = re.exec(text))) if (!taken(m.index, m.index + m[0].length)) ranges.push({ s: m.index, e: m.index + m[0].length, t: 'ok' });
+  });
+  ranges.sort((a, b) => a.s - b.s);
+  const out = []; let p = 0;
+  ranges.forEach((r, k) => {
+    if (r.s > p) out.push(<span key={'t' + k}>{text.slice(p, r.s)}</span>);
+    out.push(r.t === 'err'
+      ? <span key={'r' + k} className="bg-bad/15 text-bad underline decoration-wavy rounded px-0.5">{text.slice(r.s, r.e)}<sup className="font-bold ml-0.5 num">{r.n}</sup></span>
+      : <span key={'r' + k} className="bg-good/15 text-good font-bold rounded px-0.5">{text.slice(r.s, r.e)}</span>);
+    p = r.e;
+  });
+  if (p < text.length) out.push(<span key="end">{text.slice(p)}</span>);
+  return <span className="whitespace-pre-wrap">{out}</span>;
+}
+
+/* =====================================================================
+   19. WRITING
+   ===================================================================== */
+function Writing({ S, upd, reward }) {
+  const [targets, setTargets] = useState([]);
+  const [task, setTask] = useState(null);
+  const [text, setText] = useState('');
+  const [fb, setFb] = useState(null);
+  const gen = useAI();
+  const check = useAI();
+  const level = S.profile.level;
+  const newTask = () => gen.run(async () => {
+    const t = knownSample(S, 5); setTargets(t); setFb(null); setText('');
+    const r = await askAI(`Create a short writing task for an Uzbek learner of English (level ${level}). The learner must use these words: ${t.join(', ')}.
+Return ONLY JSON: {"taskUz":"the task in Uzbek, e.g. 'Dam olish kuningiz haqida 5–7 gap yozing.' (do not list the words)","taskEn":"same task in simple English","minSentences":5,"maxSentences":7}`, { tier: 'quick' });
+    need(r && r.taskUz);
+    setTask(r);
+  });
+  const doCheck = () => check.run(async () => {
+    const r = await askAI(`You are an English writing teacher for Uzbek learners (level ${level}).
+Task: "${task.taskEn}". Required words: ${targets.join(', ')}.
+Learner's text:
+"""${text.slice(0, 4000)}"""
+Find grammar, spelling, word-choice and punctuation mistakes. For each, "wrong" MUST be copied EXACTLY (same characters) from the learner's text, as short as possible.
+Return ONLY JSON:
+{"errors":[{"wrong":"exact fragment","correct":"corrected fragment","explainUz":"clear short explanation in Uzbek"}],"usedWords":["required words that were used (any form)"],"missedWords":["required words not used"],"corrected":"the full corrected text","feedbackUz":"2 short encouraging sentences in Uzbek","score":7}
+score is an integer 1-10.`);
+    need(r && typeof r.corrected === 'string');
+    r.score = Math.max(1, Math.min(10, Math.round(Number(r.score) || 1)));
+    r.errors = Array.isArray(r.errors) ? r.errors : [];
+    setFb(r);
+    upd((d) => { addXP(d, r.score * 3); d.stats.results.unshift({ type: 'Writing', score: r.score, total: 10, detail: `${r.score}/10 ball`, at: Date.now() }); d.stats.results = d.stats.results.slice(0, 20); });
+    reward(r.score * 3, r.score >= 6);
+  });
+  const sentences = text.split(/[.!?]+(\s|$)/).filter((s) => s && s.trim().length > 2).length;
+  const hasWord = (t) => new RegExp(`\\b${escRe(t.split(' ')[0].slice(0, Math.max(3, t.length - 2)))}`, 'i').test(text);
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display text-3xl font-extrabold">Writing</h1>
+      {!task && !gen.loading && (
+        <Card className="p-5 space-y-4">
+          <p className="text-muted">AI lug'atingizdagi so'zlar bilan vazifa beradi. Tekshiruvda ishlatilgan so'zlar yashil, xatolar qizil bo'ladi va har biri o'zbekcha tushuntiriladi.</p>
+          <Btn className="w-full" size="lg" disabled={!S.words.length} onClick={newTask}><Icon d={I.sparkle} className="w-5 h-5" />Vazifa olish</Btn>
+          {!S.words.length && <p className="text-warn text-sm">Avval lug'atga so'z qo'shing.</p>}
+          <AIError error={gen.error} onRetry={gen.retry} />
+        </Card>
+      )}
+      {gen.loading && <Card className="p-5 space-y-3"><Spinner label="Vazifa tayyorlanmoqda…" /><Skeleton lines={3} /></Card>}
+      {task && !gen.loading && (
+        <>
+          <Card className="p-5">
+            <p className="eyebrow mb-1">Vazifa</p>
+            <p className="font-display text-xl font-extrabold">{task.taskUz}</p>
+            <p className="text-sm text-muted mt-1">{task.taskEn}</p>
+            <p className="text-sm font-bold mt-4 mb-2">Bu so'zlarni ishlating:</p>
+            <div className="flex flex-wrap gap-2">{targets.map((t) => <span key={t} className={`px-3 py-1.5 rounded-full font-bold text-sm border-2 ${hasWord(t) ? 'bg-good/15 border-good text-good' : 'border-line'}`}>{hasWord(t) ? '✓ ' : ''}{t}</span>)}</div>
+          </Card>
+          {!fb && (
+            <Card className="p-5 space-y-3">
+              <textarea id="write-text" rows={9} className={`${inputCls} text-lg leading-7`} value={text} onChange={(e) => setText(e.target.value)} placeholder="Matningizni inglizcha yozing…" />
+              <p className="text-sm text-muted num">{sentences} ta gap · {text.trim() ? text.trim().split(/\s+/).length : 0} ta so'z {task.minSentences ? `· kerak: ${task.minSentences}–${task.maxSentences} gap` : ''}</p>
+              <Btn className="w-full" size="lg" disabled={text.trim().split(/\s+/).length < 5 || check.loading} onClick={doCheck}>Tekshirish</Btn>
+              {check.loading && <Spinner label="AI matningizni tekshirmoqda…" />}
+              <AIError error={check.error} onRetry={check.retry} />
+            </Card>
+          )}
+          {fb && <Feedback fb={fb} original={text} targets={targets} onNew={newTask} title="Yozish" />}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   20. SOZLAMALAR, EKSPORT / IMPORT
+   ===================================================================== */
+function Settings({ open, onClose, S, upd, replace, cloudOn }) {
+  const [p, setP] = useState(S.profile);
+  const [msg, setMsg] = useState('');
+  const [jsonOut, setJsonOut] = useState('');
+  const [pendingImport, setPendingImport] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  useEffect(() => { if (open) { setP(S.profile); setMsg(''); setJsonOut(''); setPendingImport(null); setConfirmReset(false); } }, [open]); // eslint-disable-line
+  const save = () => { upd((d) => { d.profile = { ...d.profile, ...p }; }); onClose(); };
+  const exportJSON = async () => {
+    const data = JSON.stringify({ app: 'vocabulary-teacher', exportedAt: new Date().toISOString(), ...S }, null, 1);
+    try {
+      const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+      if (dl) { await dl.save({ filename: `vocabulary-${dayKey()}.json`, data }); setMsg('Fayl saqlandi.'); return; }
+    } catch (e) { if (e && e.code === 'declined') { setMsg('Saqlash bekor qilindi.'); return; } }
+    try {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+      a.download = `vocabulary-${dayKey()}.json`; a.click();
+    } catch (e) { /* */ }
+    setJsonOut(data);
+    setMsg("Agar fayl yuklanmagan bo'lsa, pastdagi matnni nusxalab saqlang.");
+  };
+  const copy = async () => { try { await navigator.clipboard.writeText(jsonOut); setMsg('Nusxalandi.'); } catch (e) { const t = document.getElementById('set-json'); t && t.select(); setMsg("Matn belgilandi — Ctrl+C / Nusxalash."); } };
+  const onImport = (f) => {
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (!d || !Array.isArray(d.words) || !d.profile) throw new Error('bad');
+        setPendingImport(d); setMsg(`Faylda ${d.words.length} ta so'z bor. Qanday qo'shamiz?`);
+      } catch (e) { setMsg("Bu fayl Vocabulary Teacher eksporti emas."); }
+    };
+    r.readAsText(f);
+  };
+  const applyImport = (mode) => {
+    const d = pendingImport; if (!d) return;
+    if (mode === 'replace') { const { app, exportedAt, ...rest } = d; replace({ ...rest, updatedAt: Date.now() }); }
+    else upd((s) => {
+      const have = new Set(s.words.map((w) => norm(w.en) + '|' + w.deckId));
+      (d.decks || []).forEach((dk) => { if (!s.decks.some((x) => x.id === dk.id)) s.decks.push(dk); });
+      d.words.forEach((w) => { if (!have.has(norm(w.en) + '|' + w.deckId)) s.words.push({ ...w, deckId: s.decks.some((x) => x.id === w.deckId) ? w.deckId : s.decks[0].id }); });
+    });
+    setPendingImport(null); setMsg('Import qilindi ✓');
+  };
+  return (
+    <Sheet open={open} onClose={onClose} title="Sozlamalar">
+      <div className="space-y-5">
+        <Field label="Ism" id="set-name"><input id="set-name" className={inputCls} value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></Field>
+        <div><p className="text-sm font-bold mb-1.5">Daraja</p><Segmented id="set-level" value={p.level} onChange={(v) => setP({ ...p, level: v })} options={LEVELS.map((l) => l.id)} /></div>
+        <div><p className="text-sm font-bold mb-1.5">Kunlik maqsad</p><Segmented id="set-goal" value={p.goal} onChange={(v) => setP({ ...p, goal: v })} options={[{ value: 5, label: '5' }, { value: 10, label: '10' }, { value: 20, label: '20' }]} /></div>
+        <div><p className="text-sm font-bold mb-1.5">Mavzu</p><Segmented id="set-theme" value={p.theme || 'auto'} onChange={(v) => setP({ ...p, theme: v })} options={[{ value: 'auto', label: 'Avto' }, { value: 'light', label: "Yorug'" }, { value: 'dark', label: "Qorong'i" }]} /></div>
+        <label className="flex items-center gap-3"><input id="set-sound" type="checkbox" className="w-5 h-5" checked={p.sound !== false} onChange={(e) => setP({ ...p, sound: e.target.checked })} />To'g'ri/xato javob ovozi</label>
+        <Btn className="w-full" onClick={save}>Saqlash</Btn>
+        <div className="border-t border-line pt-4 space-y-3">
+          <p className="eyebrow">Ma'lumotlar</p>
+          <p className="text-sm text-muted">{cloudOn ? "✓ Progress Claude hisobingizda saqlanmoqda (faqat sizga ko'rinadi) va shu brauzerda." : "Progress shu brauzerda saqlanmoqda. Boshqa qurilmaga o'tkazish uchun eksport qiling."}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Btn kind="outline" size="sm" onClick={exportJSON}><Icon d={I.download} className="w-4 h-4" />Eksport (JSON)</Btn>
+            <label htmlFor="set-import" className="inline-flex items-center justify-center gap-2 font-bold rounded-2xl border-2 border-line hover:border-primary px-3 py-2 text-sm min-h-[40px] cursor-pointer"><Icon d={I.upload} className="w-4 h-4" />Import (JSON)</label>
+            <input id="set-import" type="file" accept="application/json,.json" className="sr-only" onChange={(e) => onImport(e.target.files && e.target.files[0])} />
+          </div>
+          {msg && <p className="text-sm font-bold">{msg}</p>}
+          {pendingImport && <div className="grid grid-cols-2 gap-2"><Btn size="sm" onClick={() => applyImport('merge')}>Qo'shib olish</Btn><Btn size="sm" kind="bad" onClick={() => applyImport('replace')}>Hammasini almashtirish</Btn></div>}
+          {jsonOut && <div className="space-y-2"><textarea id="set-json" readOnly rows={5} className={`${inputCls} font-mono text-xs`} value={jsonOut} /><Btn size="sm" kind="soft" onClick={copy}>Nusxalash</Btn></div>}
+          {!confirmReset ? <button className="text-sm text-bad font-bold" onClick={() => setConfirmReset(true)}>Barcha ma'lumotni o'chirish…</button>
+            : <div className="rounded-2xl bg-bad/10 p-3 space-y-2"><p className="text-sm">Hamma so'z va progress o'chadi. Avval eksport qilishni tavsiya qilamiz.</p><Btn size="sm" kind="bad" onClick={() => { replace(null); onClose(); }}>Ha, hammasini o'chir</Btn></div>}
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+/* =====================================================================
+   21. ASOSIY ILOVA
+   ===================================================================== */
+const TABS = [
+  ['vocab', "Lug'at", I.cards],
+  ['reading', 'Reading', I.book],
+  ['listening', 'Listening', I.ear],
+  ['speaking', 'Speaking', I.mic],
+  ['writing', 'Writing', I.pen],
+];
+function App() {
+  const [S, setS] = useState(() => loadLocal());
+  const [tab, setTab] = useState('home');
+  const [sub, setSub] = useState(null);
+  const [study, setStudy] = useState(null);
+  const [settings, setSettings] = useState(false);
+  const [wordReq, setWordReq] = useState(null);
+  const [xpPop, setXpPop] = useState(null);
+  const [confetti, setConfetti] = useState(0);
+  const [cloudOn, setCloudOn] = useState(false);
+  const cloud = useRef(null);
+  const written = useRef({});
+  const writing = useRef(false);
+  const again = useRef(false);
+  const latest = useRef(S);
+  latest.current = S;
+
+  // Artifact doimiy xotirasi (bo'lsa) — yangiroq ma'lumotni olish
+  useEffect(() => {
+    let off = false;
+    openCloud().then(async (c) => {
+      if (!c || off) return;
+      cloud.current = c;
+      try {
+        const remote = await cloudLoad(c);
+        const local = latest.current;
+        if (remote && (!local || (remote.updatedAt || 0) > (local.updatedAt || 0))) setS(remote);
+        setCloudOn(true);
+      } catch (e) { console.warn('cloud load', e); setCloudOn(true); }
+    });
+    return () => { off = true; };
+  }, []);
+
+  const flush = useCallback(async () => {
+    const c = cloud.current, s = latest.current;
+    if (!c || !s) return;
+    if (writing.current) { again.current = true; return; }
+    writing.current = true;
+    try {
+      const { words, ...meta } = s;
+      const chunks = Math.max(1, Math.ceil(words.length / CHUNK));
+      for (let i = 0; i < chunks; i++) {
+        const json = JSON.stringify(words.slice(i * CHUNK, (i + 1) * CHUNK));
+        if (written.current['w' + i] !== json) { await c.chunk(i).set({ json }); written.current['w' + i] = json; }
+      }
+      const mj = JSON.stringify(meta);
+      if (written.current.meta !== mj + chunks) { await c.meta.set({ json: mj, chunks, updatedAt: s.updatedAt || Date.now() }); written.current.meta = mj + chunks; }
+    } catch (e) { console.warn('cloud save', e); }
+    writing.current = false;
+    if (again.current) { again.current = false; flush(); }
+  }, []);
+
+  useEffect(() => {
+    if (!S) return;
+    saveLocal(S);
+    if (!cloudOn) return;
+    const t = setTimeout(flush, 1500);
+    return () => clearTimeout(t);
+  }, [S, cloudOn, flush]);
+
+  // Mavzu (yorug'/qorong'i)
+  useEffect(() => {
+    const r = document.documentElement, th = S && S.profile.theme;
+    r.classList.toggle('force-dark', th === 'dark');
+    r.classList.toggle('force-light', th === 'light');
+  }, [S && S.profile.theme]);
+
+  const upd = useCallback((fn) => setS((s) => { if (!s) return s; const d = clone(s); fn(d); d.updatedAt = Date.now(); return d; }), []);
+  const reward = useCallback((n, ok) => {
+    beep(ok, !latest.current || latest.current.profile.sound !== false);
+    if (n > 0) setXpPop({ n, k: Date.now() });
+  }, []);
+
+  // Kunlik maqsad bajarilganda konfetti
+  useEffect(() => {
+    if (!S) return;
+    const day = S.stats.days[dayKey()];
+    if (day && !day.goalHit && day.reviewed >= S.profile.goal) {
+      upd((d) => { const dd = ensureDay(d); dd.goalHit = true; addXP(d, 20); });
+      setConfetti((c) => c + 1);
+      setXpPop({ n: 20, k: Date.now(), goal: true });
+    }
+  }, [S, upd]);
+
+  useEffect(() => { if (!xpPop) return; const t = setTimeout(() => setXpPop(null), 1200); return () => clearTimeout(t); }, [xpPop]);
+
+  const addFromText = useCallback((w, deckName) => {
+    upd((d) => {
+      let dk = d.decks.find((x) => x.name === deckName);
+      if (!dk) { dk = { id: 'd-' + uid(), name: deckName }; d.decks.push(dk); }
+      if (!d.words.some((x) => norm(x.en) === norm(w.en))) d.words.push(newWord(w, dk.id));
+      addXP(d, 2);
+    });
+    reward(2, true);
+  }, [upd, reward]);
+
+  if (!S) {
+    return <Onboarding onDone={({ name, level, goal, starter }) => {
+      const s = makeState({ name, level, goal });
+      if (starter) { s.decks.push({ id: 'd-starter', name: 'Starter' }); s.words = starterWords('d-starter'); }
+      setS(s); setTab('home');
+    }} />;
+  }
+
+  const go = (t) => { setTab(t); setSub(null); setStudy(null); window.scrollTo(0, 0); };
+  const startStudy = (deck) => { setTab('vocab'); setSub(null); setStudy({ deck }); window.scrollTo(0, 0); };
+  const streak = liveStreak(S);
+  return (
+    <div className="min-h-full">
+      <header className="sticky top-safe z-30 bg-paper/90 backdrop-blur border-b border-line/70">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
+          <button onClick={() => go('home')} className={`flex items-center gap-2 rounded-xl px-2 py-1 min-w-0 ${tab === 'home' ? 'text-primary' : ''}`} aria-label="Bosh sahifa">
+            <span className="w-8 h-8 rounded-lg bg-marker text-onmarker grid place-items-center font-display font-extrabold">V</span>
+            <span className="font-display font-extrabold text-base whitespace-nowrap truncate hidden min-[360px]:inline">Vocabulary Teacher</span>
+          </button>
+          <div className="flex-1" />
+          <span className="flex items-center whitespace-nowrap shrink-0 gap-1 font-bold text-sm num" title="Kunlar ketma-ketligi">🔥 {streak}</span>
+          <span className="flex items-center whitespace-nowrap shrink-0 gap-1 font-bold text-sm num ml-2" title="XP">⚡ {S.stats.xp}</span>
+          <button onClick={() => setSettings(true)} className="w-10 h-10 rounded-full hover:bg-sunken grid place-items-center ml-1" aria-label="Sozlamalar"><Icon d={I.gear} className="w-5 h-5" /></button>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 pt-5 pb-32">
+        {tab === 'home' && <Home S={S} go={go} startStudy={startStudy} />}
+        {tab === 'vocab' && <Vocab S={S} upd={upd} reward={reward} sub={sub} setSub={setSub} study={study} setStudy={setStudy} />}
+        {tab === 'reading' && <Reading S={S} upd={upd} reward={reward} openWord={setWordReq} />}
+        {tab === 'listening' && <Listening S={S} upd={upd} reward={reward} openWord={setWordReq} />}
+        {tab === 'speaking' && <Speaking S={S} upd={upd} reward={reward} />}
+        {tab === 'writing' && <Writing S={S} upd={upd} reward={reward} />}
+      </main>
+
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur border-t border-line nav-safe" aria-label="Bo'limlar">
+        <div className="max-w-2xl mx-auto grid grid-cols-5">
+          {TABS.map(([k, l, ic]) => {
+            const on = tab === k;
+            return (
+              <button key={k} onClick={() => go(k)} aria-current={on ? 'page' : undefined}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-[62px] text-[11px] font-bold transition ${on ? 'text-primary' : 'text-muted hover:text-ink'}`}>
+                <span className={`w-12 h-8 rounded-full grid place-items-center transition ${on ? 'bg-primary/15' : ''}`}><Icon d={ic} className="w-[22px] h-[22px]" /></span>
+                {l}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {xpPop && <div key={xpPop.k} className="xp-float"><span className={`px-4 py-2 rounded-full font-display font-extrabold shadow-lift ${xpPop.goal ? 'bg-marker text-onmarker' : 'bg-primary text-onprimary'}`}>{xpPop.goal ? '🎯 Maqsad bajarildi! ' : ''}+{xpPop.n} XP</span></div>}
+      <Confetti fire={confetti} />
+      <WordSheet req={wordReq} onClose={() => setWordReq(null)} state={S} onAdd={addFromText} level={S.profile.level} />
+      <Settings open={settings} onClose={() => setSettings(false)} S={S} upd={upd} replace={(n) => {
+        written.current = {};
+        setS(n);
+        if (!n) {
+          try { localStorage.removeItem(LS_KEY); } catch (e) { /* */ }
+          if (cloud.current) cloud.current.meta.delete().catch(() => {});
+        }
+      }} cloudOn={cloudOn} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
