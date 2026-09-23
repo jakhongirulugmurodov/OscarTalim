@@ -1,0 +1,142 @@
+{
+  "dokon": {
+    "nomi": "Sehrli Javon",
+    "tolov": "Kitobni qabul qilganda — naqd yoki karta orqali",
+    "yetkazish": "Toshkent bo'ylab 1–2 kun, viloyatlarga 3–5 kun",
+    "olib_ketish": "Do'kondan o'zingiz olib ketishingiz mumkin",
+    "aloqa": "Savollar bo'lsa — shu botga yozing, admin javob beradi",
+    "xush_promo": "SALOM15"
+  },
+
+  "janrlar": {
+    "uzbek":      "🇺🇿 O'zbek adabiyoti",
+    "jahon":      "🌍 Jahon adabiyoti",
+    "bolalar":    "🧸 Bolalar uchun",
+    "rivoj":      "🚀 Biznes va o'zini rivojlantirish",
+    "fantastika": "🪐 Fantastika va sarguzasht",
+    "ilm":        "🔬 Ilmiy-ommabop"
+  },
+
+  "sovgalar": {
+    "summa": [
+      {"dan": 150000, "sovga": "☕ Kitobxon krujkasi"},
+      {"dan": 300000, "sovga": "🎒 Kitob sumkasi + ☕ kitobxon krujkasi"}
+    ],
+    "soni": {"dan": 3, "sovga": "🔖 Xatcho'plar to'plami"}
+  },
+
+  "promokodlar": [
+    {"kod": "SALOM15", "foiz": 15, "qoldi": null, "muddat": null},
+    {"kod": "KITOB10", "foiz": 10, "qoldi": null, "muddat": null},
+    {"kod": "DOST20",  "foiz": 20, "qoldi": 100,  "muddat": null},
+    {"kod": "OMBOR50", "foiz": 50, "qoldi": 20,   "muddat": null}
+  ],
+
+  "kitoblar": [
+    {
+      "id": "b01", "nomi": "O'tkan kunlar", "muallif": "Abdulla Qodiriy",
+      "janr": "uzbek", "narx": 55000, "soni": 24, "yosh": 12,
+      "aksiya": 0, "sovga": null,
+      "tavsif": "Otabek va Kumushning muhabbati — XIX asr Toshkenti va Marg'ilonidagi siyosiy fitnalar fonida.",
+      "qiziq": "O'zbek adabiyotidagi birinchi roman — o'zbek romanchiligini aynan shu asar boshlab bergan."
+    },
+    {
+      "id": "b02", "nomi": "Kecha va kunduz", "muallif": "Cho'lpon",
+      "janr": "uzbek", "narx": 48000, "soni": 15, "yosh": 14,
+      "aksiya": 15, "sovga": null,
+      "tavsif": "Zebining taqdiri orqali mustamlaka davri hayoti ko'rsatilgan roman.",
+      "qiziq": "Roman ikki qismli bo'lishi kerak edi, ammo bizgacha faqat «Kecha» qismi yetib kelgan."
+    },
+    {
+      "id": "b03", "nomi": "Sariq devni minib", "muallif": "Xudoyberdi To'xtaboyev",
+      "janr": "bolalar", "narx": 38000, "soni": 30, "yosh": 7,
+      "aksiya": 20, "sovga": "🔖 Xatcho'p",
+      "tavsif": "Sehrli qalpoqcha topib olgan dangasa Hoshimjonning kulgili sarguzashtlari.",
+      "qiziq": "O'zbek bolalar adabiyotining eng sevimli asarlaridan biri — bir necha avlod shu kitobni o'qib ulg'aygan."
+    },
+    {
+      "id": "b04", "nomi": "Shaytanat (1-kitob)", "muallif": "Tohir Malik",
+      "janr": "uzbek", "narx": 65000, "soni": 18, "yosh": 18,
+      "aksiya": 0, "sovga": null,
+      "tavsif": "Jinoyat olami, qasos va inson qalbidagi kurash haqida detektiv roman.",
+      "qiziq": "Besh kitobdan iborat turkum — o'zbek detektivining eng mashhur namunasi."
+    },
+    {
+      "id": "b05", "nomi": "Alkimyogar", "muallif": "Paulo Koelo",
+      "janr": "jahon", "narx": 42000, "soni": 40, "yosh": 12,
+      "aksiya": 25, "sovga": null,
+      "tavsif": "Cho'pon Santyagoning xazina izlab qilgan safari va o'z orzusiga ergashish haqida masal.",
+      "qiziq": "80 dan ortiq tilga tarjima qilingan — dunyoda eng ko'p tarjima qilingan zamonaviy kitoblardan biri."
+    },
+    {
+      "id": "b06", "nomi": "1984", "muallif": "Jorj Oruell",
+      "janr": "jahon", "narx": 52000, "soni": 12, "yosh": 16,
+      "aksiya": 0, "sovga": null,
+      "tavsif": "«Katta Og'a» hamma narsani kuzatib turadigan jamiyat haqidagi antiutopiya.",
+      "qiziq": "«Big Brother» iborasi aynan shu romandan butun dunyoga tarqalgan."
+    },
+    {
+      "id": "b07", "nomi": "Kichkina shahzoda", "muallif": "Antuan de Sent-Ekzyuperi",
+      "janr": "bolalar", "narx": 35000, "soni": 50, "yosh": 6,
+      "aksiya": 30, "sovga": "🎨 Bo'yash kitobchasi",
+      "tavsif": "Boshqa sayyoradan kelgan bola va uchuvchining do'stlik haqidagi ertagi — kattalar uchun ham.",
+      "qiziq": "Kitobdagi rasmlarni muallifning o'zi chizgan."
+    },
+    {
+      "id": "b08", "nomi": "Garri Potter va falsafa toshi", "muallif": "Joan Rouling",
+      "janr": "fantastika", "narx": 79000, "soni": 20, "yosh": 10,
+      "aksiya": 0, "sovga": null,
+      "tavsif": "Yetim bola Garri 11 yoshida sehrgarlar maktabi — Xogvartsga taklif oladi.",
+      "qiziq": "Qo'lyozmani 12 ta nashriyot rad etgan, faqat 13-si qabul qilgan."
+    },
+    {
+      "id": "b09", "nomi": "Boy ota, kambag'al ota", "muallif": "Robert Kiyosaki",
+      "janr": "rivoj", "narx": 58000, "soni": 35, "yosh": 14,
+      "aksiya": 20, "sovga": "📒 Moliyaviy kundalik",
+      "tavsif": "Ikki ota — ikki xil pul falsafasi: pul uchun ishlash emas, pulni o'zingiz uchun ishlatish haqida.",
+      "qiziq": "Kitobni dastlab muallifning o'zi chop ettirgan — nashriyotlar qiziqmagan edi."
+    },
+    {
+      "id": "b10", "nomi": "Atom odatlar", "muallif": "Jeyms Klir",
+      "janr": "rivoj", "narx": 69000, "soni": 22, "yosh": 14,
+      "aksiya": 0, "sovga": null,
+      "tavsif": "Kichik odatlar qanday qilib katta natijalarga olib kelishi haqida amaliy qo'llanma.",
+      "qiziq": "Har kuni atigi 1% yaxshilansangiz, bir yilda qariyb 37 barobar o'sasiz (1,01³⁶⁵ ≈ 37,8)."
+    },
+    {
+      "id": "b11", "nomi": "Sapiens: Insoniyatning qisqacha tarixi", "muallif": "Yuval Noy Harari",
+      "janr": "ilm", "narx": 89000, "soni": 10, "yosh": 16,
+      "aksiya": 0, "sovga": null,
+      "tavsif": "Tosh davridan bugungi kungacha — Homo sapiens qanday qilib dunyoni egalladi.",
+      "qiziq": "Kitob 65 dan ortiq tilga tarjima qilingan."
+    },
+    {
+      "id": "b12", "nomi": "Vaqtning qisqacha tarixi", "muallif": "Stiven Xoking",
+      "janr": "ilm", "narx": 62000, "soni": 8, "yosh": 14,
+      "aksiya": 15, "sovga": null,
+      "tavsif": "Katta portlash, qora tuynuklar va vaqtning tabiati — sodda tilda.",
+      "qiziq": "Xokingga «har bir formula o'quvchilarni ikki barobar kamaytiradi» deyishgan — shuning uchun kitobda bitta formula bor: E=mc²."
+    },
+    {
+      "id": "b13", "nomi": "Dyuna", "muallif": "Frenk Gerbert",
+      "janr": "fantastika", "narx": 95000, "soni": 9, "yosh": 14,
+      "aksiya": 10, "sovga": null,
+      "tavsif": "Cho'l sayyorasi Arrakis, eng qimmatbaho ziravor va taxt uchun kurash.",
+      "qiziq": "Dunyoda eng ko'p sotilgan ilmiy-fantastik romanlardan biri."
+    },
+    {
+      "id": "b14", "nomi": "Martin Iden", "muallif": "Jek London",
+      "janr": "jahon", "narx": 46000, "soni": 28, "yosh": 14,
+      "aksiya": 35, "sovga": "🔖 Xatcho'p",
+      "tavsif": "Oddiy dengizchining yozuvchi bo'lish yo'lidagi qaysar kurashi.",
+      "qiziq": "Roman ko'p jihatdan muallifning o'z hayotiga asoslangan."
+    },
+    {
+      "id": "b15", "nomi": "Ufq", "muallif": "Said Ahmad",
+      "janr": "uzbek", "narx": 50000, "soni": 16, "yosh": 14,
+      "aksiya": 0, "sovga": null,
+      "tavsif": "Urush yillari va undan keyingi o'zbek qishlog'i hayoti haqida trilogiya.",
+      "qiziq": "Said Ahmad — O'zbekiston xalq yozuvchisi, «Ufq» uning eng yirik asari."
+    }
+  ]
+}

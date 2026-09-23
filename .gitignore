@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+kitob-bot/holat.json
+kitob-bot/holat.json.tmp
