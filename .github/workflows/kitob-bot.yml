@@ -1,0 +1,81 @@
+# Kitob.uz — Juma aksiyasi boti. GitHub Actions'da ishlaydi (server kerak emas).
+#
+# Har 5 daqiqada: botga kelgan xabarlarga javob beradi va vaqti kelgan
+# bo'lsa aksiya eslatmasini yuboradi.
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   KITOB_BOT_TOKEN   — BotFather bergan token
+#   secret   KITOB_XODIM_KODI  — xodim botga `/xodim KOD` yozib panelga kiradi
+#   variable KITOB_ADMIN_IDS   — egalarning Telegram ID lari, vergul bilan
+#   variable KITOB_DOKON_NOMI  — do'kon nomi (ixtiyoriy, standart: Kitob.uz)
+#
+# Batafsil: kitob_bot/README.md
+
+name: Kitob boti
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      rejim:
+        description: "Nima qilsin"
+        type: choice
+        options: [xabarlar, sozlash]
+        default: xabarlar
+
+concurrency:
+  group: kitob-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BOT_TOKEN: ${{ secrets.KITOB_BOT_TOKEN }}
+      XODIM_KODI: ${{ secrets.KITOB_XODIM_KODI }}
+      ADMIN_IDS: ${{ vars.KITOB_ADMIN_IDS }}
+      DOKON_NOMI: ${{ vars.KITOB_DOKON_NOMI }}
+      STATE_FILE: ${{ github.workspace }}/kitob_state/kitob.json
+      REJIM: ${{ github.event.inputs.rejim || 'xabarlar' }}
+    steps:
+      - name: Token bormi
+        id: token
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "KITOB_BOT_TOKEN kiritilmagan — o'tkazib yuboriladi."
+            echo "bor=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "bor=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.bor == '1'
+
+      - name: Ma'lumotlarni tiklash
+        if: steps.token.outputs.bor == '1'
+        uses: actions/cache/restore@v4
+        with:
+          path: kitob_state
+          key: kitob-state-${{ github.run_id }}
+          restore-keys: kitob-state-
+
+      - name: Bot
+        if: steps.token.outputs.bor == '1'
+        run: |
+          mkdir -p kitob_state
+          case "$REJIM" in
+            sozlash) python3 kitob_bot/bot.py --setup ;;
+            *)       python3 kitob_bot/bot.py --once ;;
+          esac
+
+      - name: Ma'lumotlarni saqlash
+        if: always() && steps.token.outputs.bor == '1'
+        uses: actions/cache/save@v4
+        with:
+          path: kitob_state
+          key: kitob-state-${{ github.run_id }}
