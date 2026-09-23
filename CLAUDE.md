@@ -23,6 +23,10 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
 - `docs/anjuman/` — anjuman mashg'uloti dasturi.
 - `docs/index.html` — transkripsiya sahifasi.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
+- `mutolaa_bot/` — «Mutolaa» kitob do'koni boti: ro'yxat + so'rovnoma, katalog
+  (sotildi/qoldi), juma aksiyasi, sovg'alar, admin paneli. SQLite, standart
+  kutubxona. `.github/workflows/mutolaa-bot.yml` orqali ishlaydi. Batafsil:
+  `mutolaa_bot/README.md`.
 - `.github/workflows/` — bot, Firebase sozlash, Pages shoxchasini sinxronlash.
 
 Batafsil: `docs/sinf/README.md`.
