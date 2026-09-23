@@ -1,0 +1,74 @@
+# Zumar kitob do'koni — Telegram bot GitHub Actions'da ishlaydi (server kerak emas).
+#
+# Har 5 daqiqada botga kelgan xabarlarni oladi va javob beradi. Har juma
+# soat 10:00 dan keyin haftalik aksiyani hammaga o'zi yuboradi.
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   ZUMAR_BOT_TOKEN   — BotFather bergan token
+#   variable ZUMAR_ADMIN_IDS   — do'kon egasi/sotuvchi Telegram ID lari (vergul bilan)
+#   variable ZUMAR_INSTAGRAM   — https://instagram.com/... (ixtiyoriy)
+#   variable ZUMAR_KANAL       — https://t.me/... (ixtiyoriy)
+#   variable ZUMAR_MANZIL      — do'kon manzili (ixtiyoriy)
+
+name: Zumar bot
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      rejim:
+        description: "Nima qilsin"
+        type: choice
+        options: [xabarlar, sozlash, aksiya]
+        default: xabarlar
+      matn:
+        description: "Aksiya matni (bo'sh qolsa — navbatdagi tayyor aksiya)"
+        required: false
+        default: ""
+
+concurrency:
+  group: zumar-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BOT_TOKEN: ${{ secrets.ZUMAR_BOT_TOKEN }}
+      ADMIN_IDS: ${{ vars.ZUMAR_ADMIN_IDS }}
+      INSTAGRAM_URL: ${{ vars.ZUMAR_INSTAGRAM }}
+      KANAL_URL: ${{ vars.ZUMAR_KANAL }}
+      MANZIL: ${{ vars.ZUMAR_MANZIL }}
+      STATE_FILE: ${{ github.workspace }}/state/zumar.json
+      REJIM: ${{ github.event.inputs.rejim || 'xabarlar' }}
+      MATN: ${{ github.event.inputs.matn }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ma'lumotlarni tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: zumar-state-${{ github.run_id }}
+          restore-keys: zumar-state-
+
+      - name: Bot
+        run: |
+          mkdir -p state
+          case "$REJIM" in
+            sozlash) python3 zumar/bot.py --setup ;;
+            aksiya)  python3 zumar/bot.py --aksiya "$MATN" ;;
+            *)       python3 zumar/bot.py --once ;;
+          esac
+
+      - name: Ma'lumotlarni saqlash
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: zumar-state-${{ github.run_id }}
