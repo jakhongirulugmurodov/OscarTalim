@@ -1,0 +1,62 @@
+# Juma aksiyasi — kitob boti GitHub Actions'da ishlaydi (server kerak emas).
+#
+# Har ishga tushishda bot ~55 daqiqa uzluksiz ishlaydi (xabarlarga darhol
+# javob beradi), keyin ma'lumotlarni saqlab chiqadi. Har 15 daqiqada navbatdagi
+# ishga tushish qo'yiladi — oldingisi tugashi bilan boshlanadi, shuning uchun
+# bot deyarli to'xtovsiz ishlaydi.
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   KITOB_BOT_TOKEN   — BotFather bergan token
+#   variable KITOB_ADMIN_IDS   — adminlarning Telegram ID lari, vergul bilan
+#                                (botga /men deb yozsangiz aytadi)
+#   variable NARX_ESKI / NARX_YANGI / SONI — ixtiyoriy (standart 300000 / 239000 / 100)
+#
+# Eslatma: GitHub jadval bo'yicha ishga tushirishni faqat asosiy (main)
+# shoxchadagi workflow uchun qiladi va 60 kun harakat bo'lmasa o'chiradi.
+
+name: Kitob bot
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: kitob-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      BOT_TOKEN: ${{ secrets.KITOB_BOT_TOKEN }}
+      ADMIN_IDS: ${{ vars.KITOB_ADMIN_IDS }}
+      NARX_ESKI: ${{ vars.NARX_ESKI }}
+      NARX_YANGI: ${{ vars.NARX_YANGI }}
+      SONI: ${{ vars.SONI }}
+      STATE_FILE: ${{ github.workspace }}/state/data.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ma'lumotlarni tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: kitob-state-${{ github.run_id }}
+          restore-keys: kitob-state-
+
+      - name: Bot
+        run: |
+          mkdir -p state
+          python3 kitob_bot/bot.py --muddat 3300
+
+      - name: Ma'lumotlarni saqlash
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: kitob-state-${{ github.run_id }}
