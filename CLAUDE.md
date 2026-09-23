@@ -23,6 +23,8 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
 - `docs/anjuman/` — anjuman mashg'uloti dasturi.
 - `docs/index.html` — transkripsiya sahifasi.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
+- `kitoblar_olami/` — «Kitoblar olami» do'kon boti: ro'yxat, tavsiya, onlayn
+  buyurtma, juma aksiyasi e'loni.
 - `.github/workflows/` — bot, Firebase sozlash, Pages shoxchasini sinxronlash.
 
 Batafsil: `docs/sinf/README.md`.
