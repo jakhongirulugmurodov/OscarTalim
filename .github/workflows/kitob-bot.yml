@@ -1,0 +1,76 @@
+# Kitob do'koni — Telegram bot GitHub Actions'da ishlaydi (server kerak emas).
+#
+# Har 5 daqiqada botga kelgan xabarlarni oladi va javob beradi.
+# Har juma soat 09:00 da (Toshkent) hamma mijozga aksiya xabari boradi.
+# "Run workflow" tugmasi orqali: sozlash, hammaga xabar, katalogni qayta yuklash.
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   KITOB_BOT_TOKEN   — BotFather bergan token
+#   variable KITOB_ADMIN_IDS   — do'kon egasi/sotuvchilar Telegram ID lari, vergul bilan
+#
+# Eslatma: GitHub jadval bo'yicha ishga tushirishni faqat asosiy (main)
+# shoxchadagi workflow uchun qiladi va 60 kun harakat bo'lmasa o'chiradi.
+# Mijozlar bazasi actions/cache ichida saqlanadi.
+
+name: Kitob do'koni bot
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+    - cron: "0 4 * * 5"          # juma, 09:00 Toshkent vaqti
+  workflow_dispatch:
+    inputs:
+      rejim:
+        description: "Nima qilsin"
+        type: choice
+        options: [xabarlar, sozlash, juma, eslatma, katalog]
+        default: xabarlar
+      matn:
+        description: "Xabar matni (faqat 'eslatma' rejimi uchun)"
+        required: false
+        default: ""
+
+concurrency:
+  group: kitob-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BOT_TOKEN: ${{ secrets.KITOB_BOT_TOKEN }}
+      ADMIN_IDS: ${{ vars.KITOB_ADMIN_IDS }}
+      STATE_FILE: ${{ github.workspace }}/state/baza.json
+      REJIM: ${{ github.event.inputs.rejim || (github.event.schedule == '0 4 * * 5' && 'juma') || 'xabarlar' }}
+      MATN: ${{ github.event.inputs.matn }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bazani tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: kitob-state-${{ github.run_id }}
+          restore-keys: kitob-state-
+
+      - name: Bot
+        run: |
+          mkdir -p state
+          case "$REJIM" in
+            sozlash) python3 kitob_bot/bot.py --setup ;;
+            juma)    python3 kitob_bot/bot.py --juma ;;
+            eslatma) python3 kitob_bot/bot.py --broadcast "$MATN" ;;
+            katalog) python3 kitob_bot/bot.py --katalog ;;
+            *)       python3 kitob_bot/bot.py --once ;;
+          esac
+
+      - name: Bazani saqlash
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: kitob-state-${{ github.run_id }}
