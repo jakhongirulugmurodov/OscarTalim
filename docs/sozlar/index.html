@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f6f7c">
+<meta name="description" content="So'zdon — ingliz tilida so'z yodlash o'yini: har raundda 5 ta so'z, test, ochko va darajalar.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>So'zdon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --ground:#eef3f4; --surface:#ffffff; --sunk:#e3ebed; --line:#cbd8db;
+  --ink:#122a31; --muted:#56717a;
+  --tile:#0f6f7c; --tile-ink:#ffffff; --tile-soft:#d3eaec;
+  --gold:#c98a0c; --gold-soft:#fbefd2;
+  --ok:#1f8a4c; --ok-soft:#dcf2e4; --err:#c2413a; --err-soft:#f9e0de;
+  --key:#f6e7c1; --key-ink:#3b2a06; --key-edge:#d9bf7c;
+  --r:14px;
+  --display:'Bricolage Grotesque','Segoe UI',Roboto,sans-serif;
+  --body:'Nunito Sans','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0c1a1e; --surface:#132629; --sunk:#0f2124; --line:#24403f;
+    --ink:#e4efef; --muted:#8fb0b3;
+    --tile:#3bb3c1; --tile-ink:#06262b; --tile-soft:#173a3f;
+    --gold:#f0b43c; --gold-soft:#3a2d10;
+    --ok:#5fd08d; --ok-soft:#133426; --err:#f0877f; --err-soft:#3b1a18;
+    --key:#e9d49a; --key-ink:#2c1f03; --key-edge:#a88c45;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0c1a1e; --surface:#132629; --sunk:#0f2124; --line:#24403f;
+  --ink:#e4efef; --muted:#8fb0b3;
+  --tile:#3bb3c1; --tile-ink:#06262b; --tile-soft:#173a3f;
+  --gold:#f0b43c; --gold-soft:#3a2d10;
+  --ok:#5fd08d; --ok-soft:#133426; --err:#f0877f; --err-soft:#3b1a18;
+  --key:#e9d49a; --key-ink:#2c1f03; --key-edge:#a88c45;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:var(--body); font-size:16px; line-height:1.5;
+  background:var(--ground); color:var(--ink); min-height:100%;
+}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--tile);outline-offset:2px}
+.muted{color:var(--muted)}
+[hidden]{display:none!important}
+.label{font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+
+/* ---- yuqori panel ---- */
+.bar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:5;
+  background:var(--ground); padding-block:12px 10px;
+  display:flex; align-items:center; gap:10px;
+  border-bottom:1px solid var(--line);
+}
+.logo{display:flex;align-items:center;gap:9px;background:none;border:0;padding:0}
+.logo b{font-family:var(--display);font-size:1.3rem;font-weight:800;letter-spacing:-.03em}
+.logo .t{width:32px;height:32px;border-radius:8px;background:var(--tile);color:var(--tile-ink);
+  font-family:var(--mono);font-weight:700;display:grid;place-items:center;font-size:1.05rem;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+.bar .sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;
+  font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums;background:var(--surface);border:1px solid var(--line)}
+.pill.gold{background:var(--gold-soft);border-color:transparent;color:var(--ink)}
+.pill.fire{background:var(--err-soft);border-color:transparent}
+.bump{animation:bump .45s ease}
+@keyframes bump{40%{transform:scale(1.18)}}
+
+/* ---- umumiy ---- */
+.screen{display:flex;flex-direction:column;gap:18px;padding-top:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:0;border-radius:12px;padding:14px 18px;font-weight:800;font-size:1rem;
+  background:var(--tile);color:var(--tile-ink);box-shadow:inset 0 -4px 0 rgba(0,0,0,.2);
+  transition:transform .08s;
+}
+.btn:active{transform:translateY(2px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.gold{background:var(--gold);color:#2b1c00}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn.wide{width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>.btn{flex:1 1 150px}
+
+/* ---- bosh sahifa ---- */
+.hero{display:flex;flex-direction:column;gap:10px}
+.hero h1{font-size:clamp(1.9rem,7vw,2.5rem);font-weight:800}
+.hero p{color:var(--muted);max-width:44ch}
+.tiles-word{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.key{
+  width:42px;height:46px;border-radius:8px;display:grid;place-items:center;
+  background:var(--key);color:var(--key-ink);font-family:var(--mono);font-weight:700;font-size:1.25rem;
+  box-shadow:inset 0 -4px 0 var(--key-edge);text-transform:uppercase;position:relative;
+}
+.key sub{position:absolute;right:4px;bottom:5px;font-size:.55rem;opacity:.7}
+.rank{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.rank .medal{font-size:2.3rem;grid-row:span 2;line-height:1}
+.rank h2{font-size:1.25rem}
+.meter{grid-column:1/-1;height:10px;border-radius:99px;background:var(--sunk);overflow:hidden;margin-top:10px}
+.meter i{display:block;height:100%;background:var(--gold);border-radius:99px;transition:width .5s}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stats3 div{background:var(--sunk);border-radius:10px;padding:10px;text-align:center}
+.stats3 b{display:block;font-family:var(--display);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.stats3 span{font-size:.75rem;color:var(--muted);font-weight:600}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:.92rem}
+.chip[aria-pressed="true"]{background:var(--tile);color:var(--tile-ink);border-color:var(--tile)}
+.field{display:flex;flex-direction:column;gap:8px}
+
+/* ---- so'z kartochkalari ---- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:6px}
+.card .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card .en{font-family:var(--display);font-size:1.55rem;font-weight:800;letter-spacing:-.02em}
+.card .pr{font-family:var(--mono);font-size:.88rem;color:var(--tile);background:var(--tile-soft);padding:2px 8px;border-radius:6px}
+.card .uz{font-weight:800;font-size:1.05rem}
+.card .ex{border-left:3px solid var(--key-edge);padding-left:10px;font-size:.95rem}
+.card .ex i{display:block;color:var(--muted);font-style:normal;font-size:.88rem}
+.say{margin-left:auto;border:1px solid var(--line);background:var(--sunk);border-radius:10px;width:40px;height:40px;font-size:1.1rem}
+.num{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+
+/* ---- savol ---- */
+.progress{display:flex;gap:5px}
+.progress i{flex:1;height:6px;border-radius:9px;background:var(--line)}
+.progress i.ok{background:var(--ok)} .progress i.half{background:var(--gold)} .progress i.bad{background:var(--err)} .progress i.now{background:var(--tile)}
+.qtype{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{font-size:.78rem;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--tile-soft);color:var(--ink)}
+.tag.rev{background:var(--gold-soft)}
+.prompt{font-family:var(--display);font-size:clamp(1.5rem,6vw,2rem);font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.prompt.sentence{font-family:var(--body);font-size:1.3rem;font-weight:700;letter-spacing:0}
+.blank{display:inline-block;min-width:4.5em;border-bottom:3px solid var(--tile);text-align:center;color:var(--tile)}
+.sub{color:var(--muted);font-size:.95rem}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.opts{grid-template-columns:1fr}}
+.opt{
+  text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:12px;
+  padding:13px 14px;font-weight:700;font-size:1.02rem;display:flex;gap:10px;align-items:center;
+}
+.opt kbd{font-family:var(--mono);font-size:.75rem;background:var(--sunk);border-radius:5px;padding:2px 7px;color:var(--muted)}
+.opt:hover{border-color:var(--tile)}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft)}
+.opt.bad{border-color:var(--err);background:var(--err-soft);text-decoration:line-through;pointer-events:none}
+.opt.gone{opacity:.28;pointer-events:none}
+.opt[disabled]{pointer-events:none}
+.input{
+  width:100%;padding:14px 16px;border-radius:12px;border:2px solid var(--line);background:var(--surface);
+  font-family:var(--mono);font-size:1.2rem;color:var(--ink);
+}
+.input:focus{border-color:var(--tile);outline:none}
+.slots{display:flex;gap:6px;flex-wrap:wrap;min-height:50px;padding:6px;border-radius:12px;border:2px dashed var(--line)}
+.bank{display:flex;gap:6px;flex-wrap:wrap}
+.bank .key{border:0;cursor:pointer}
+.bank .key[disabled]{opacity:.18;cursor:default}
+.slots .key{width:36px;height:40px;font-size:1.05rem}
+.play{width:84px;height:84px;border-radius:50%;border:0;background:var(--tile);color:var(--tile-ink);font-size:2rem;box-shadow:inset 0 -5px 0 rgba(0,0,0,.2)}
+.fb{border-radius:12px;padding:14px 16px;font-weight:600;display:grid;gap:6px}
+.fb.ok{background:var(--ok-soft)} .fb.bad{background:var(--err-soft)} .fb.hint{background:var(--gold-soft)}
+.fb b.big{font-family:var(--display);font-size:1.15rem}
+.fb .ex{font-weight:400;font-size:.93rem}
+.tools{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.link{background:none;border:0;padding:6px 2px;font-weight:800;color:var(--tile);font-size:.92rem}
+.link.stop{color:var(--err)}
+
+/* ---- natija ---- */
+.big-score{font-family:var(--display);font-size:3.2rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.list li{display:flex;justify-content:space-between;gap:10px;background:var(--sunk);border-radius:9px;padding:9px 12px}
+.list li b{font-family:var(--mono)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:8px 12px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* ---- tabrik ---- */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);
+  background:var(--ink);color:var(--ground);padding:12px 18px;border-radius:12px;font-weight:800;opacity:0;
+  transition:.3s;z-index:20;max-width:calc(100% - 32px);text-align:center;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.burst{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:15}
+.burst span{position:absolute;top:-40px;font-size:1.6rem;animation:fall 1.8s ease-in forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <button class="logo" id="goHome" aria-label="Bosh sahifa"><span class="t">S</span><b>So'zdon</b></button>
+    <span class="sp"></span>
+    <span class="pill fire" id="streakPill" hidden>🔥 <span id="streakN">0</span></span>
+    <span class="pill gold" id="scorePill">⭐ <span id="scoreN">0</span></span>
+    <span class="pill" id="rankPill" title="Daraja">🥉</span>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ============ SO'ZLAR BAZASI ============
+   [inglizcha, o'qilishi, o'zbekcha, misol, misol tarjimasi, daraja, mavzu, (boshqa yozilishi)] */
+const RAW = [
+  // --- 1: boshlang'ich ---
+  ["window","uindou","deraza","Please open the window.","Iltimos, derazani oching.",1,"kun"],
+  ["friend","frend","do'st","He is my best friend.","U mening eng yaqin do'stim.",1,"kun"],
+  ["tired","tayrd","charchagan","I am very tired today.","Men bugun juda charchaganman.",1,"kun"],
+  ["morning","morning","tong, ertalab","I drink tea every morning.","Men har tong choy ichaman.",1,"kun"],
+  ["house","xaus","uy","Our house is big.","Bizning uyimiz katta.",1,"kun"],
+  ["happy","xepi","xursand","She is happy today.","U bugun xursand.",1,"kun"],
+  ["breakfast","brekfast","nonushta","I have breakfast at 8 o'clock.","Men soat 8 da nonushta qilaman.",1,"ovqat"],
+  ["apple","epl","olma","I eat an apple every day.","Men har kuni bitta olma yeyman.",1,"ovqat"],
+  ["bread","bred","non","We buy fresh bread.","Biz yangi non sotib olamiz.",1,"ovqat"],
+  ["water","uotar","suv","Can I have some water?","Menga suv bera olasizmi?",1,"ovqat"],
+  ["hungry","xangri","och (qorni och)","I am hungry.","Qornim och.",1,"ovqat"],
+  ["kitchen","kichin","oshxona","Mom is in the kitchen.","Oyim oshxonada.",1,"ovqat"],
+  ["ticket","tikit","chipta","I bought a ticket to Tashkent.","Men Toshkentga chipta sotib oldim.",1,"sayohat"],
+  ["train","treyn","poyezd","The train is late.","Poyezd kechikyapti.",1,"sayohat"],
+  ["map","mep","xarita","Look at the map.","Xaritaga qarang.",1,"sayohat"],
+  ["bag","beg","sumka","My bag is heavy.","Sumkam og'ir.",1,"sayohat"],
+  ["airport","eaport","aeroport","We are at the airport.","Biz aeroportdamiz.",1,"sayohat"],
+  ["street","strit","ko'cha","This street is quiet.","Bu ko'cha tinch.",1,"sayohat"],
+  ["computer","kompyutar","kompyuter","My computer is new.","Kompyuterim yangi.",1,"it"],
+  ["phone","foun","telefon","Where is my phone?","Telefonim qayerda?",1,"it"],
+  ["screen","skrin","ekran","The screen is dark.","Ekran qorong'i.",1,"it"],
+  ["key","ki","tugma, kalit","Press any key.","Istalgan tugmani bosing.",1,"it"],
+  ["password","pasuord","parol","Don't share your password.","Parolingizni hech kimga bermang.",1,"it"],
+  ["file","fayl","fayl","Save the file.","Faylni saqlang.",1,"it"],
+  ["teacher","ticher","o'qituvchi","Our teacher is kind.","O'qituvchimiz mehribon.",1,"ish"],
+  ["book","buk","kitob","This book is interesting.","Bu kitob qiziqarli.",1,"ish"],
+  ["lesson","lesn","dars","The lesson starts at nine.","Dars soat to'qqizda boshlanadi.",1,"ish"],
+  ["work","uork","ish","I go to work by bus.","Men ishga avtobusda boraman.",1,"ish"],
+  ["pen","pen","ruchka","Can I use your pen?","Ruchkangizdan foydalansam bo'ladimi?",1,"ish"],
+  ["question","kueschn","savol","I have a question.","Mening bitta savolim bor.",1,"ish"],
+  // --- 2: o'rta ---
+  ["neighbour","neybar","qo'shni","Our neighbour is very friendly.","Qo'shnimiz juda xushmuomala.",2,"kun",["neighbor"]],
+  ["weather","uedar","ob-havo","The weather is nice today.","Bugun ob-havo yaxshi.",2,"kun"],
+  ["busy","bizi","band","I am busy now.","Hozir bandman.",2,"kun"],
+  ["careful","kerful","ehtiyotkor","Be careful on the road.","Yo'lda ehtiyot bo'ling.",2,"kun"],
+  ["remember","rimembar","eslamoq","I remember your name.","Ismingizni eslayman.",2,"kun"],
+  ["borrow","borou","qarzga olmoq","Can I borrow your book?","Kitobingizni olib tursam maylimi?",2,"kun"],
+  ["delicious","dilishas","mazali","This soup is delicious.","Bu sho'rva mazali.",2,"ovqat"],
+  ["recipe","resipi","retsept","My grandma's recipe is the best.","Buvimning retsepti eng zo'ri.",2,"ovqat"],
+  ["spicy","spaysi","achchiq (ziravorli)","I like spicy food.","Men achchiq taomni yaxshi ko'raman.",2,"ovqat"],
+  ["bill","bil","hisob (restoranda)","Can we have the bill, please?","Hisobni olib kela olasizmi?",2,"ovqat"],
+  ["fresh","fresh","yangi uzilgan","These vegetables are fresh.","Bu sabzavotlar yangi uzilgan.",2,"ovqat"],
+  ["boil","boyl","qaynatmoq","Boil the water first.","Avval suvni qaynating.",2,"ovqat"],
+  ["luggage","lagij","yuk, bagaj","My luggage is lost.","Yukim yo'qolib qoldi.",2,"sayohat"],
+  ["journey","jorni","safar","Have a nice journey!","Safaringiz bexatar bo'lsin!",2,"sayohat"],
+  ["passport","pasport","pasport","Show me your passport, please.","Pasportingizni ko'rsating.",2,"sayohat"],
+  ["abroad","ebrod","chet elda","She works abroad.","U chet elda ishlaydi.",2,"sayohat"],
+  ["delay","diley","kechikish","There is a two-hour delay.","Ikki soatlik kechikish bor.",2,"sayohat"],
+  ["booking","buking","bron","I made a hotel booking.","Mehmonxonaga bron qildim.",2,"sayohat"],
+  ["download","daunloud","yuklab olmoq","Download the app.","Ilovani yuklab oling.",2,"it"],
+  ["update","apdeyt","yangilamoq","Update your phone.","Telefoningizni yangilang.",2,"it"],
+  ["browser","brauzar","brauzer","Open the browser.","Brauzerni oching.",2,"it"],
+  ["account","ekaunt","akkaunt, hisob","I have a new account.","Mening yangi akkauntim bor.",2,"it"],
+  ["error","erar","xato","The program shows an error.","Dastur xato ko'rsatyapti.",2,"it"],
+  ["search","sorch","qidirmoq","Search for it online.","Buni internetdan qidiring.",2,"it"],
+  ["meeting","miting","yig'ilish","The meeting is at 3 pm.","Yig'ilish soat 15:00 da.",2,"ish"],
+  ["deadline","dedlayn","oxirgi muddat","The deadline is Friday.","Oxirgi muddat — juma.",2,"ish"],
+  ["salary","seleri","maosh","He got a higher salary.","U yuqoriroq maosh oldi.",2,"ish"],
+  ["skill","skil","ko'nikma","Reading is an important skill.","O'qish — muhim ko'nikma.",2,"ish"],
+  ["exam","igzem","imtihon","I passed the exam!","Imtihondan o'tdim!",2,"ish"],
+  ["colleague","kolig","hamkasb","My colleague helped me.","Hamkasbim menga yordam berdi.",2,"ish"],
+  // --- 3: yuqori ---
+  ["reliable","rilayabl","ishonchli","He is a reliable friend.","U ishonchli do'st.",3,"kun"],
+  ["grateful","greytful","minnatdor","I am grateful for your help.","Yordamingiz uchun minnatdorman.",3,"kun"],
+  ["patience","peyshns","sabr","Learning needs patience.","O'rganish sabr talab qiladi.",3,"kun"],
+  ["achieve","achiv","erishmoq","You can achieve your goals.","Maqsadlaringizga erisha olasiz.",3,"kun"],
+  ["curious","kyurias","qiziquvchan","Children are curious.","Bolalar qiziquvchan bo'ladi.",3,"kun"],
+  ["habit","xebit","odat","Reading is a good habit.","Kitob o'qish — yaxshi odat.",3,"kun"],
+  ["ingredient","ingridiyent","masalliq","Sugar is the main ingredient.","Shakar — asosiy masalliq.",3,"ovqat"],
+  ["nutritious","nyutrishas","to'yimli","Nuts are very nutritious.","Yong'oq juda to'yimli.",3,"ovqat"],
+  ["appetite","epetayt","ishtaha","I have no appetite today.","Bugun ishtaham yo'q.",3,"ovqat"],
+  ["flavour","fleyvar","ta'm","This tea has a nice flavour.","Bu choyning ta'mi yoqimli.",3,"ovqat",["flavor"]],
+  ["portion","porshn","porsiya","This portion is too big.","Bu porsiya juda katta.",3,"ovqat"],
+  ["leftovers","leftouvarz","qolgan ovqat","We ate the leftovers for lunch.","Tushlikda qolgan ovqatni yedik.",3,"ovqat"],
+  ["destination","destineyshn","borar manzil","Samarkand is a popular destination.","Samarqand — mashhur sayohat manzili.",3,"sayohat"],
+  ["itinerary","aytinereri","sayohat rejasi","Check the itinerary.","Sayohat rejasini tekshiring.",3,"sayohat"],
+  ["accommodation","ekomodeyshn","turar joy","The accommodation was comfortable.","Turar joy qulay edi.",3,"sayohat"],
+  ["landmark","lendmark","diqqatga sazovor joy","Registan is a famous landmark.","Registon — mashhur diqqatga sazovor joy.",3,"sayohat"],
+  ["customs","kastamz","bojxona","We went through customs.","Bojxonadan o'tdik.",3,"sayohat"],
+  ["departure","dipachar","jo'nash","Departure is at 6 am.","Jo'nash ertalab soat 6 da.",3,"sayohat"],
+  ["algorithm","elgoridm","algoritm","This algorithm is fast.","Bu algoritm tez ishlaydi.",3,"it"],
+  ["database","deytabeys","ma'lumotlar bazasi","Users are saved in the database.","Foydalanuvchilar bazada saqlanadi.",3,"it"],
+  ["encrypt","inkript","shifrlamoq","Encrypt your data.","Ma'lumotlaringizni shifrlang.",3,"it"],
+  ["feature","fichar","funksiya","The app has a new feature.","Ilovada yangi funksiya bor.",3,"it"],
+  ["deploy","diploy","ishga tushirmoq (serverda)","We deploy the website on Friday.","Saytni juma kuni ishga tushiramiz.",3,"it"],
+  ["bug","bag","dasturdagi xato","I found a bug in the code.","Kodda xato topdim.",3,"it"],
+  ["negotiate","nigoushieyt","muzokara qilmoq","We need to negotiate the price.","Narx bo'yicha kelishib olishimiz kerak.",3,"ish"],
+  ["responsibility","risponsibiliti","mas'uliyat","It is my responsibility.","Bu mening mas'uliyatim.",3,"ish"],
+  ["opportunity","opartyuniti","imkoniyat","This is a great opportunity.","Bu ajoyib imkoniyat.",3,"ish"],
+  ["improve","impruv","yaxshilamoq","I want to improve my English.","Ingliz tilimni yaxshilamoqchiman.",3,"ish"],
+  ["experience","ikspiriens","tajriba","She has a lot of experience.","Uning tajribasi katta.",3,"ish"],
+  ["confident","konfident","o'ziga ishongan","Be confident!","O'zingizga ishoning!",3,"ish"],
+];
+const W = RAW.map(r => ({en:r[0],pr:r[1],uz:r[2],ex:r[3],exUz:r[4],lv:r[5],tp:r[6],alt:r[7]||[]}));
+const BY = Object.fromEntries(W.map(w => [w.en, w]));
+
+const LEVELS = {1:"Boshlang'ich", 2:"O'rta", 3:"Yuqori"};
+const TOPICS = {all:"Aralash", kun:"Kundalik hayot", ovqat:"Ovqat", sayohat:"Sayohat", it:"IT", ish:"Ish va o'qish"};
+const RANKS = [
+  {min:0,   icon:"🥉", name:"Boshlovchi"},
+  {min:100, icon:"🥈", name:"Bilimdon"},
+  {min:250, icon:"🥇", name:"So'z ustasi"},
+];
+const NEW_PER_ROUND = 5, REVIEW_PER_ROUND = 2, REVIEW_MAX = 7;
+
+/* ============ HOLAT ============ */
+const KEY = "sozdon-v1";
+const blank = () => ({score:0, rounds:0, first:0, second:0, wrong:0, best:0, seen:[], miss:{}, level:1, topic:"all"});
+let S = blank();
+try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) S = Object.assign(blank(), s); } catch(e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
+
+let sess = {start:S.score, first:0, second:0, wrong:0};
+let streak = 0;
+let R = null;      // joriy raund
+let view = "home";
+
+/* ============ YORDAMCHILAR ============ */
+const $ = s => document.querySelector(s);
+const app = $("#app");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
+const norm = s => String(s).toLowerCase().trim().replace(/[.,!?;:"'’]/g,"").replace(/\s+/g," ");
+const rankOf = sc => RANKS.reduce((r,x) => sc >= x.min ? x : r, RANKS[0]);
+const canSpeak = "speechSynthesis" in window && typeof SpeechSynthesisUtterance === "function";
+
+function say(text){
+  if (!canSpeak) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US"; u.rate = .85;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+let toastT;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600);
+}
+function burst(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const b = document.createElement("div"); b.className = "burst";
+  const set = ["⭐","🎉","✨","🏅","🔤"];
+  for (let i = 0; i < 28; i++){
+    const s = document.createElement("span");
+    s.textContent = set[i % set.length];
+    s.style.left = Math.random()*100 + "%";
+    s.style.animationDelay = Math.random()*.6 + "s";
+    b.appendChild(s);
+  }
+  document.body.appendChild(b); setTimeout(() => b.remove(), 2800);
+}
+function bump(el){ el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+
+function renderBar(){
+  $("#scoreN").textContent = S.score;
+  const r = rankOf(S.score);
+  $("#rankPill").textContent = r.icon;
+  $("#rankPill").title = r.name;
+  $("#streakPill").hidden = streak < 2;
+  $("#streakN").textContent = streak;
+}
+function addPoints(n){
+  const before = rankOf(S.score);
+  S.score += n;
+  const after = rankOf(S.score);
+  renderBar(); bump($("#scorePill"));
+  if (after !== before){
+    setTimeout(() => { burst(); toast(`Tabriklayman! Yangi daraja: ${after.icon} ${after.name}`); }, 350);
+  }
+}
+
+/* ============ RAUND TUZISH ============ */
+function pool(){
+  return W.filter(w => w.lv === S.level && (S.topic === "all" || w.tp === S.topic));
+}
+function pickNew(){
+  const p = pool();
+  let fresh = shuffle(p.filter(w => !S.seen.includes(w.en)));
+  // Yangi so'z tugasa — ko'rilganlardan aralashtirib to'ldiramiz
+  if (fresh.length < NEW_PER_ROUND) fresh = fresh.concat(shuffle(p.filter(w => !fresh.includes(w))));
+  return fresh.slice(0, NEW_PER_ROUND);
+}
+function reviewWords(exclude, n){
+  return Object.entries(S.miss)
+    .filter(([en]) => BY[en] && !exclude.includes(en))
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([en]) => BY[en]);
+}
+function distractors(w, field, n){
+  const same = shuffle(W.filter(x => x.en !== w.en && x[field] !== w[field] && x.lv === w.lv));
+  const other = shuffle(W.filter(x => x.en !== w.en && x[field] !== w[field] && x.lv !== w.lv));
+  return same.concat(other).slice(0, n).map(x => x[field]);
+}
+function scramble(word){
+  const letters = word.split("");
+  for (let i = 0; i < 12; i++){
+    const s = shuffle(letters);
+    if (s.join("") !== word) return s;
+  }
+  return letters.reverse();
+}
+function blankRe(w){ return new RegExp("\\b" + w.en + "\\b", "i"); }
+
+const TYPES = {
+  uz2en:  {tag:"🇺🇿 → 🇬🇧 Tarjima qiling"},
+  en2uz:  {tag:"🇬🇧 → 🇺🇿 Tarjima qiling"},
+  scram:  {tag:"🔤 Harflardan so'z tering"},
+  blank:  {tag:"✏️ Bo'sh joyni to'ldiring"},
+  choose: {tag:"🔘 To'g'ri variantni tanlang"},
+  listen: {tag:"🔊 Tinglang va tanlang"},
+};
+function fits(type, w){
+  if (type === "blank") return blankRe(w).test(w.ex);
+  if (type === "scram") return w.en.length >= 3;
+  if (type === "listen") return canSpeak;
+  return true;
+}
+function makeQuestion(w, type, review){
+  const q = {w, type, review, attempt:1, done:false, result:null};
+  if (type === "en2uz" || type === "listen") q.opts = shuffle([w.uz, ...distractors(w, "uz", 3)]);
+  if (type === "choose" || type === "blank") q.opts = shuffle([w.en, ...distractors(w, "en", 3)]);
+  if (type === "scram"){ q.letters = scramble(w.en); q.built = []; }
+  return q;
+}
+function buildQuestions(words, reviewSet){
+  // Savol turlarini aralashtiramiz, lekin ketma-ket bir xil tur kam chiqsin
+  let order = shuffle(Object.keys(TYPES));
+  return words.map((w, i) => {
+    if (i % order.length === 0 && i) order = shuffle(Object.keys(TYPES));
+    let type = order[i % order.length];
+    if (!fits(type, w)) type = ["uz2en","en2uz","choose"][i % 3];
+    return makeQuestion(w, type, reviewSet.has(w.en));
+  });
+}
+function startRound(){
+  const fresh = pickNew();
+  const rev = reviewWords(fresh.map(w => w.en), REVIEW_PER_ROUND);
+  const qs = buildQuestions(shuffle(fresh).concat(rev), new Set(rev.map(w => w.en)));
+  R = {kind:"new", learn:fresh, qs, i:0};
+  fresh.forEach(w => { if (!S.seen.includes(w.en)) S.seen.push(w.en); });
+  save();
+  show("learn");
+}
+function startReview(){
+  const rev = reviewWords([], REVIEW_MAX);
+  if (!rev.length){ toast("Takrorlanadigan so'z yo'q — hammasi yodda! 🎯"); return; }
+  R = {kind:"review", learn:rev, qs:buildQuestions(shuffle(rev), new Set(rev.map(w => w.en))), i:0};
+  show("quiz");
+}
+
+/* ============ JAVOBNI TEKSHIRISH ============ */
+function correctAnswer(q){
+  return (q.type === "en2uz" || q.type === "listen") ? q.w.uz : q.w.en;
+}
+function isRight(q, ans){
+  const a = norm(ans);
+  if (q.type === "en2uz" || q.type === "listen") return ans === q.w.uz;
+  return a === norm(q.w.en) || q.w.alt.some(x => a === norm(x));
+}
+function hintText(q){
+  const w = q.w, n = w.en.length;
+  if (q.type === "uz2en" || q.type === "scram")
+    return `Birinchi harfi <b>${esc(w.en[0].toUpperCase())}</b>, jami ${n} ta harf: <span style="font-family:var(--mono)">${esc(w.en[0])}${" _".repeat(n-1)}</span>` +
+      (q.type === "scram" ? `<br>Ma'nosi: «${esc(w.uz)}»` : "");
+  if (q.type === "blank") return `Gapning tarjimasiga qarang: «${esc(w.exUz)}». Ikkita noto'g'ri variant olib tashlandi.`;
+  if (q.type === "listen") return `Yana bir marta tinglang. Ikkita noto'g'ri variant olib tashlandi.`;
+  return `Ikkita noto'g'ri variant olib tashlandi — endi 50/50.`;
+}
+function trimOptions(q, wrongPicked){
+  if (!q.opts) return;
+  const right = correctAnswer(q);
+  const wrong = q.opts.filter(o => o !== right && o !== wrongPicked);
+  q.gone = new Set([wrongPicked, ...shuffle(wrong).slice(0, wrong.length - 1)].filter(Boolean));
+  // Natijada: to'g'ri + bitta noto'g'ri qoladi
+}
+function answer(ans){
+  const q = R.qs[R.i];
+  if (q.done) return;
+  if (isRight(q, ans)){
+    q.done = true;
+    let pts, bonus = 0;
+    if (q.attempt === 1){
+      pts = 10; q.result = "ok"; S.first++; sess.first++;
+      streak++; S.best = Math.max(S.best, streak);
+      if (streak % 3 === 0) bonus = 15;
+      delete S.miss[q.w.en];
+    } else {
+      pts = 5; q.result = "half"; S.second++; sess.second++;
+      streak = 0;
+      S.miss[q.w.en] = (S.miss[q.w.en] || 0) + 1;
+    }
+    q.fb = {kind:"ok", pts, bonus};
+    addPoints(pts + bonus);
+    if (bonus) setTimeout(() => toast(`🔥 Ketma-ket ${streak} ta to'g'ri! +15 bonus`), 150);
+  } else if (q.attempt === 1){
+    q.attempt = 2; q.wrongPick = ans;
+    streak = 0;
+    trimOptions(q, ans);
+    if (q.type === "scram") q.built = [];
+    q.fb = {kind:"hint"};
+  } else {
+    q.done = true; q.result = "bad"; S.wrong++; sess.wrong++;
+    streak = 0;
+    S.miss[q.w.en] = (S.miss[q.w.en] || 0) + 1;
+    q.wrongPick2 = ans;
+    q.fb = {kind:"bad"};
+  }
+  save(); renderBar(); renderQuiz();
+}
+function askHint(){
+  const q = R.qs[R.i];
+  if (q.done || q.attempt === 2) return;
+  q.attempt = 2; streak = 0;
+  trimOptions(q, null);
+  q.fb = {kind:"hint", asked:true};
+  renderBar(); renderQuiz();
+}
+function next(){
+  if (R.i < R.qs.length - 1){ R.i++; renderQuiz(); }
+  else { if (R.kind === "new") S.rounds++; save(); show("roundEnd"); }
+}
+
+/* ============ EKRANLAR ============ */
+function show(v){ view = v; ({home:renderHome, learn:renderLearn, quiz:renderQuiz, roundEnd:renderRoundEnd, stats:renderStats, final:renderFinal})[v](); window.scrollTo(0,0); }
+
+function renderHome(){
+  const r = rankOf(S.score);
+  const nextR = RANKS.find(x => x.min > S.score);
+  const pct = nextR ? Math.round((S.score - r.min) / (nextR.min - r.min) * 100) : 100;
+  const missN = Object.keys(S.miss).length;
+  app.innerHTML = `
+  <section class="screen">
+    <div class="hero">
+      <div class="tiles-word" aria-hidden="true">
+        ${[["W",4],["O",1],["R",1],["D",2],["S",1]].map(([l,p]) => `<span class="key">${l}<sub>${p}</sub></span>`).join("")}
+      </div>
+      <h1>Ingliz tilida so'z yodlash o'yini</h1>
+      <p>Har raundda 5 ta yangi so'z: avval o'qiysiz, keyin test. To'g'ri javob — <b>+10</b>, ketma-ket 3 ta to'g'ri — <b>+15 bonus</b> 🔥. Xato qilsangiz, avval ishora beriladi.</p>
+    </div>
+
+    <div class="panel">
+      <div class="rank">
+        <span class="medal">${r.icon}</span>
+        <h2>${esc(r.name)}</h2>
+        <span class="muted">${nextR ? `Keyingi daraja ${nextR.icon} ${esc(nextR.name)} — yana ${nextR.min - S.score} ochko` : "Eng yuqori daraja! 👑"}</span>
+        <div class="meter"><i style="width:${pct}%"></i></div>
+      </div>
+      <div class="stats3">
+        <div><b>${S.score}</b><span>ochko</span></div>
+        <div><b>${S.seen.length}</b><span>o'rganilgan so'z</span></div>
+        <div><b>${missN}</b><span>takrorlash kerak</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label">Daraja</span>
+      <div class="chips">${Object.entries(LEVELS).map(([k,v]) => `<button class="chip" data-level="${k}" aria-pressed="${S.level == k}">${v}</button>`).join("")}</div>
+    </div>
+    <div class="field">
+      <span class="label">Mavzu</span>
+      <div class="chips">${Object.entries(TOPICS).map(([k,v]) => `<button class="chip" data-topic="${k}" aria-pressed="${S.topic === k}">${v}</button>`).join("")}</div>
+    </div>
+
+    <button class="btn wide" id="bNew">▶ Yangi raund</button>
+    <div class="row">
+      <button class="btn ghost" id="bRev" ${missN ? "" : "disabled"}>🔁 Takrorlash (${missN})</button>
+      <button class="btn ghost" id="bStats">📊 Natija</button>
+    </div>
+  </section>`;
+  app.querySelectorAll("[data-level]").forEach(b => b.onclick = () => { S.level = +b.dataset.level; save(); renderHome(); });
+  app.querySelectorAll("[data-topic]").forEach(b => b.onclick = () => { S.topic = b.dataset.topic; save(); renderHome(); });
+  $("#bNew").onclick = startRound;
+  $("#bRev").onclick = startReview;
+  $("#bStats").onclick = () => show("stats");
+}
+
+function wordCard(w, i){
+  return `<article class="card">
+    <div class="top">
+      ${i != null ? `<span class="num">${i+1}/${NEW_PER_ROUND}</span>` : ""}
+      <span class="en">${esc(w.en)}</span>
+      <span class="pr" title="O'qilishi">${esc(w.pr)}</span>
+      ${canSpeak ? `<button class="say" data-say="${esc(w.en)}" aria-label="${esc(w.en)} so'zini tinglash">🔊</button>` : ""}
+    </div>
+    <div class="uz">${esc(w.uz)}</div>
+    <div class="ex">${esc(w.ex)}<i>${esc(w.exUz)}</i></div>
+  </article>`;
+}
+function bindSay(root){ root.querySelectorAll("[data-say]").forEach(b => b.onclick = () => say(b.dataset.say)); }
+
+function renderLearn(){
+  const revN = R.qs.filter(q => q.review).length;
+  app.innerHTML = `
+  <section class="screen">
+    <div>
+      <span class="label">${esc(LEVELS[S.level])} · ${esc(TOPICS[S.topic])}</span>
+      <h2 style="font-size:1.6rem;margin-top:4px">${S.rounds + 1}-raund: yangi so'zlar</h2>
+      <p class="muted" style="margin-top:6px">Yaxshilab o'qib chiqing${canSpeak ? " va 🔊 tugmasi bilan tinglang" : ""}. Keyin ${R.qs.length} ta savol bo'ladi${revN ? ` (shundan ${revN} tasi — avvalgi xatolaringizdan takrorlash)` : ""}.</p>
+    </div>
+    <div class="cards">${R.learn.map((w,i) => wordCard(w,i)).join("")}</div>
+    <button class="btn wide" id="bGo">Testni boshlash →</button>
+    <button class="link" id="bBack">← Bosh sahifa</button>
+  </section>`;
+  bindSay(app);
+  $("#bGo").onclick = () => show("quiz");
+  $("#bBack").onclick = () => show("home");
+}
+
+function renderQuiz(){
+  const q = R.qs[R.i], w = q.w, t = TYPES[q.type];
+  const prog = R.qs.map((x, i) => `<i class="${x.result || (i === R.i ? "now" : "")}"></i>`).join("");
+  let prompt = "", body = "";
+
+  if (q.type === "uz2en"){
+    prompt = `<div class="prompt">«${esc(w.uz)}» = ?</div><p class="sub">Inglizcha yozing</p>`;
+  } else if (q.type === "en2uz"){
+    prompt = `<div class="prompt">${esc(w.en)} <span class="sub" style="font-family:var(--mono);font-size:1rem">[${esc(w.pr)}]</span></div>`;
+  } else if (q.type === "choose"){
+    prompt = `<div class="prompt">«${esc(w.uz)}»</div><p class="sub">inglizchada qaysi so'z?</p>`;
+  } else if (q.type === "blank"){
+    const parts = w.ex.split(blankRe(w));
+    const filled = q.done ? `<span class="blank">${esc(w.en)}</span>` : `<span class="blank">___</span>`;
+    prompt = `<div class="prompt sentence">${esc(parts[0])}${filled}${esc(parts.slice(1).join(w.en))}</div>`;
+  } else if (q.type === "scram"){
+    prompt = `<div class="tiles-word" aria-label="Aralash harflar">${q.letters.map(l => `<span class="key">${esc(l)}</span>`).join("")}</div>
+              <p class="sub">Harflarni to'g'ri tartibda bosing</p>`;
+  } else if (q.type === "listen"){
+    prompt = `<div class="row" style="align-items:center"><button class="play" id="bPlay" aria-label="So'zni tinglash">🔊</button>
+              <p class="sub" style="flex:1">So'zni tinglang va ma'nosini tanlang</p></div>`;
+  }
+
+  if (q.opts){
+    const right = correctAnswer(q);
+    body = `<div class="opts">${q.opts.map((o, i) => {
+      let cls = "opt";
+      if (q.done && o === right) cls += " ok";
+      else if (o === q.wrongPick || o === q.wrongPick2) cls += " bad";
+      else if (q.gone && q.gone.has(o)) cls += " gone";
+      return `<button class="${cls}" data-opt="${i}" ${q.done ? "disabled" : ""}><kbd>${i+1}</kbd>${esc(o)}</button>`;
+    }).join("")}</div>`;
+  } else if (q.type === "uz2en"){
+    body = `<form id="fType" class="row" autocomplete="off">
+      <input class="input" id="inp" style="flex:1 1 200px" placeholder="inglizcha so'z…" autocapitalize="off" autocorrect="off" spellcheck="false" ${q.done ? "disabled" : ""}>
+      <button class="btn" ${q.done ? "disabled" : ""}>Tekshirish</button></form>`;
+  } else if (q.type === "scram"){
+    const used = new Set(q.built);
+    body = `<div class="slots" aria-label="Terilgan so'z">${q.built.map(i => `<span class="key">${esc(q.letters[i])}</span>`).join("")}</div>
+      <div class="bank">${q.letters.map((l, i) => `<button class="key" data-l="${i}" ${used.has(i) || q.done ? "disabled" : ""}>${esc(l)}</button>`).join("")}</div>
+      <div class="row">
+        <button class="btn ghost" id="bDel" ${q.done || !q.built.length ? "disabled" : ""}>⌫ O'chirish</button>
+        <button class="btn" id="bCheck" ${q.done || q.built.length !== q.letters.length ? "disabled" : ""}>Tekshirish</button>
+      </div>`;
+  }
+
+  let fb = "";
+  if (q.fb){
+    if (q.fb.kind === "ok"){
+      fb = `<div class="fb ok"><b class="big">✅ To'g'ri! +${q.fb.pts}${q.fb.bonus ? ` · 🔥 +${q.fb.bonus} bonus` : ""}</b>
+            <span>${esc(w.en)} — ${esc(w.uz)} · Jami: <b>${S.score}</b> ochko</span></div>`;
+    } else if (q.fb.kind === "hint"){
+      fb = `<div class="fb hint"><b class="big">${q.fb.asked ? "💡 Ishora" : "❌ Unchalik emas — yana urinib ko'ring"}</b>
+            <span>${hintText(q)}</span><span class="sub">To'g'ri topsangiz: +5 ochko</span></div>`;
+    } else {
+      fb = `<div class="fb bad"><b class="big">To'g'ri javob: ${esc(w.en)} — ${esc(w.uz)}</b>
+            <span class="ex">${esc(w.ex)}<br><span class="muted">${esc(w.exUz)}</span></span>
+            <span class="sub">Bu so'zni keyingi raundlarda yana so'rayman 🔁 · Jami: <b>${S.score}</b> ochko</span></div>`;
+    }
+  }
+
+  app.innerHTML = `
+  <section class="screen">
+    <div class="progress" aria-label="${R.i+1}/${R.qs.length}-savol">${prog}</div>
+    <div class="qtype">
+      <span class="tag">${t.tag}</span>
+      ${q.review ? `<span class="tag rev">🔁 Takrorlash</span>` : ""}
+      <span class="num" style="margin-left:auto">${R.i+1} / ${R.qs.length}</span>
+    </div>
+    <div class="panel" style="display:grid;gap:14px">${prompt}${body}</div>
+    ${fb}
+    ${q.done ? `<button class="btn wide" id="bNext">${R.i < R.qs.length-1 ? "Keyingi savol →" : "Natijani ko'rish →"}</button>` : ""}
+    <div class="tools">
+      <button class="link" id="bHint" ${q.done || q.attempt === 2 ? "hidden" : ""}>💡 Ishora</button>
+      <button class="link stop" id="bStop">■ To'xtatish</button>
+    </div>
+  </section>`;
+
+  app.querySelectorAll("[data-opt]").forEach(b => b.onclick = () => answer(q.opts[+b.dataset.opt]));
+  const f = $("#fType");
+  if (f){
+    f.onsubmit = e => { e.preventDefault(); const v = $("#inp").value; if (v.trim()) answer(v); };
+    if (!q.done) setTimeout(() => $("#inp") && $("#inp").focus(), 30);
+  }
+  app.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { q.built.push(+b.dataset.l); renderQuiz(); });
+  if ($("#bDel")) $("#bDel").onclick = () => { q.built.pop(); renderQuiz(); };
+  if ($("#bCheck")) $("#bCheck").onclick = () => answer(q.built.map(i => q.letters[i]).join(""));
+  if ($("#bPlay")) $("#bPlay").onclick = () => say(w.en);
+  if ($("#bNext")) { $("#bNext").onclick = next; $("#bNext").focus(); }
+  $("#bHint").onclick = askHint;
+  $("#bStop").onclick = () => show("final");
+  if (q.type === "listen" && !q.played && !q.done){ q.played = true; setTimeout(() => say(w.en), 250); }
+  if (q.done && q.fb && q.fb.kind !== "hint" && canSpeak && !q.spoken){ q.spoken = true; say(w.en); }
+}
+
+function renderRoundEnd(){
+  const ok = R.qs.filter(q => q.result === "ok").length;
+  const half = R.qs.filter(q => q.result === "half").length;
+  const bad = R.qs.filter(q => q.result === "bad").length;
+  const rep = R.qs.filter(q => q.result !== "ok").map(q => q.w);
+  const missN = Object.keys(S.miss).length;
+  const perfect = ok === R.qs.length;
+  if (perfect) setTimeout(burst, 200);
+  app.innerHTML = `
+  <section class="screen">
+    <div>
+      <span class="label">${R.kind === "review" ? "Takrorlash tugadi" : `${S.rounds}-raund tugadi`}</span>
+      <h2 style="font-size:1.7rem;margin-top:4px">${perfect ? "Mukammal! Hammasi to'g'ri 🏆" : ok >= R.qs.length/2 ? "Yaxshi natija! 👏" : "Davom eting, yodlab olasiz 💪"}</h2>
+    </div>
+    <div class="panel">
+      <div class="stats3" style="margin-top:0">
+        <div><b style="color:var(--ok)">${ok}</b><span>birinchi urinishda</span></div>
+        <div><b style="color:var(--gold)">${half}</b><span>ikkinchi urinishda</span></div>
+        <div><b style="color:var(--err)">${bad}</b><span>xato</span></div>
+      </div>
+      <p style="margin-top:14px">Jami ochko: <b>${S.score}</b> · ${rankOf(S.score).icon} ${esc(rankOf(S.score).name)}</p>
+    </div>
+    ${rep.length ? `<div class="field"><span class="label">Takrorlash kerak</span>
+      <ul class="list">${rep.map(w => `<li><b>${esc(w.en)}</b><span>${esc(w.uz)}</span></li>`).join("")}</ul></div>` : ""}
+    <button class="btn wide" id="bNew">▶ Yangi raund</button>
+    <div class="row">
+      <button class="btn ghost" id="bRev" ${missN ? "" : "disabled"}>🔁 Takrorlash (${missN})</button>
+      <button class="btn ghost" id="bHome">Bosh sahifa</button>
+    </div>
+  </section>`;
+  $("#bNew").onclick = startRound;
+  $("#bRev").onclick = startReview;
+  $("#bHome").onclick = () => show("home");
+}
+
+function statsBlock(){
+  const total = S.first + S.second + S.wrong;
+  const acc = total ? Math.round(S.first / total * 100) : 0;
+  return `<dl class="kv">
+    <dt>Jami ochko</dt><dd>${S.score}</dd>
+    <dt>Tugatilgan raundlar</dt><dd>${S.rounds}</dd>
+    <dt>O'rganilgan so'zlar</dt><dd>${S.seen.length} / ${W.length}</dd>
+    <dt>Birinchi urinishda to'g'ri</dt><dd>${S.first}</dd>
+    <dt>Ikkinchi urinishda to'g'ri</dt><dd>${S.second}</dd>
+    <dt>Xato</dt><dd>${S.wrong}</dd>
+    <dt>Aniqlik</dt><dd>${acc}%</dd>
+    <dt>Eng uzun 🔥 seriya</dt><dd>${S.best}</dd>
+  </dl>`;
+}
+function missList(){
+  const m = Object.entries(S.miss).filter(([en]) => BY[en]).sort((a,b) => b[1]-a[1]);
+  return m.length
+    ? `<ul class="list">${m.map(([en,c]) => `<li><b>${esc(en)}</b><span>${esc(BY[en].uz)} · ${c}×</span></li>`).join("")}</ul>`
+    : `<p class="muted">Takrorlanadigan so'z yo'q — zo'r! 🎯</p>`;
+}
+function renderStats(){
+  const r = rankOf(S.score);
+  app.innerHTML = `
+  <section class="screen">
+    <div>
+      <span class="label">Umumiy statistika</span>
+      <div class="big-score" style="margin-top:6px">${S.score}</div>
+      <p class="muted">ochko · ${r.icon} ${esc(r.name)}</p>
+    </div>
+    <div class="panel">${statsBlock()}</div>
+    <div class="field"><span class="label">Xato qilgan so'zlar</span>${missList()}</div>
+    <div class="row">
+      <button class="btn" id="bNew">▶ Yangi raund</button>
+      <button class="btn ghost" id="bHome">Bosh sahifa</button>
+    </div>
+    <div class="confirm" id="resetBox"><button class="link stop" id="bReset">Natijani noldan boshlash</button></div>
+  </section>`;
+  $("#bNew").onclick = startRound;
+  $("#bHome").onclick = () => show("home");
+  $("#bReset").onclick = () => {
+    $("#resetBox").innerHTML = `<span>Barcha ochko va tarix o'chadi. Ishonchingiz komilmi?</span>
+      <button class="btn ghost" id="bNo">Yo'q</button><button class="btn" style="background:var(--err);color:#fff" id="bYes">Ha, o'chirish</button>`;
+    $("#bNo").onclick = renderStats;
+    $("#bYes").onclick = () => {
+      const keep = {level:S.level, topic:S.topic};
+      S = Object.assign(blank(), keep); streak = 0; sess = {start:0, first:0, second:0, wrong:0};
+      save(); renderBar(); toast("Natija tozalandi"); show("home");
+    };
+  };
+}
+function renderFinal(){
+  const gained = S.score - sess.start;
+  app.innerHTML = `
+  <section class="screen">
+    <div>
+      <span class="label">O'yin to'xtatildi</span>
+      <h2 style="font-size:1.7rem;margin-top:4px">Bugungi natija</h2>
+    </div>
+    <div class="panel">
+      <div class="big-score">+${gained}</div>
+      <p class="muted" style="margin-top:4px">shu safar yig'ilgan ochko</p>
+      <div class="stats3">
+        <div><b style="color:var(--ok)">${sess.first}</b><span>birinchi urinishda</span></div>
+        <div><b style="color:var(--gold)">${sess.second}</b><span>ikkinchi urinishda</span></div>
+        <div><b style="color:var(--err)">${sess.wrong}</b><span>xato</span></div>
+      </div>
+    </div>
+    <div class="panel">${statsBlock()}</div>
+    <div class="field"><span class="label">Takrorlash kerak</span>${missList()}</div>
+    <button class="btn wide" id="bHome">Bosh sahifa</button>
+  </section>`;
+  $("#bHome").onclick = () => show("home");
+}
+
+/* ============ KLAVIATURA ============ */
+document.addEventListener("keydown", e => {
+  if (view !== "quiz" || !R) return;
+  const q = R.qs[R.i];
+  if (e.target.tagName === "INPUT" || (e.key === "Enter" && e.target.tagName === "BUTTON")) return;
+  if (q.done && e.key === "Enter"){ e.preventDefault(); next(); return; }
+  if (!q.done && q.opts && /^[1-4]$/.test(e.key)){
+    const o = q.opts[+e.key - 1];
+    if (o && !(q.gone && q.gone.has(o)) && o !== q.wrongPick) answer(o);
+  }
+  if (!q.done && q.type === "scram"){
+    if (e.key === "Backspace"){ q.built.pop(); renderQuiz(); return; }
+    if (e.key === "Enter" && q.built.length === q.letters.length){ answer(q.built.map(i => q.letters[i]).join("")); return; }
+    const k = e.key.toLowerCase();
+    const idx = q.letters.findIndex((l, i) => l === k && !q.built.includes(i));
+    if (idx >= 0){ q.built.push(idx); renderQuiz(); }
+  }
+});
+
+$("#goHome").onclick = () => show("home");
+renderBar();
+show("home");
+
+if ("serviceWorker" in navigator && location.protocol === "https:")
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>

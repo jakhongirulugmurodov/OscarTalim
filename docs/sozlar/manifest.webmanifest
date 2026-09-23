@@ -1,0 +1,15 @@
+{
+  "name": "So'zdon — ingliz tili so'z o'yini",
+  "short_name": "So'zdon",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3f4",
+  "theme_color": "#0f6f7c",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
