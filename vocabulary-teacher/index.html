@@ -1,0 +1,1408 @@
+<title>Vocabulary Teacher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Onest:wght@400;500;600;700&family=Noto+Sans:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F3F4EF; --surface:#FFFFFF; --surface2:#E9EBE3; --ink:#1B2230; --muted:#5E6675; --line:#D9DCD2;
+  --accent:#2F55D4; --accent-ink:#FFFFFF; --accent-soft:#E2E8FB; --hl:rgba(255,206,50,.62);
+  --good:#1B8A57; --good-soft:#DDF3E8; --bad:#C93A32; --bad-soft:#FBE3E1; --warn:#A36F00; --warn-soft:#FFF1CC;
+  --shadow:0 1px 2px rgba(27,34,48,.06),0 10px 28px rgba(27,34,48,.09);
+  --display:"Bricolage Grotesque","Onest",system-ui,sans-serif;
+  --body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --ipa:"Noto Sans","Segoe UI","Lucida Sans Unicode",sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#11141B; --surface:#1A1F2A; --surface2:#242B39; --ink:#E9ECF2; --muted:#9AA3B5; --line:#2F3748;
+    --accent:#7F9CFF; --accent-ink:#0E1330; --accent-soft:#222C4D; --hl:rgba(255,196,50,.30);
+    --good:#4CC98D; --good-soft:#15332A; --bad:#FF7F75; --bad-soft:#3B1F1F; --warn:#F2C14E; --warn-soft:#3A2F12;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#11141B; --surface:#1A1F2A; --surface2:#242B39; --ink:#E9ECF2; --muted:#9AA3B5; --line:#2F3748;
+  --accent:#7F9CFF; --accent-ink:#0E1330; --accent-soft:#222C4D; --hl:rgba(255,196,50,.30);
+  --good:#4CC98D; --good-soft:#15332A; --bad:#FF7F75; --bad-soft:#3B1F1F; --warn:#F2C14E; --warn-soft:#3A2F12;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:1.45rem;font-weight:800}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+.wrap{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:8px 110px;display:flex;flex-direction:column;gap:16px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-in{max-width:680px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:.95rem;line-height:1.05}
+.logo{width:38px;height:38px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:1rem;transform:rotate(-6deg);box-shadow:3px 3px 0 var(--hl)}
+.top-stats{display:flex;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:.85rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip .bar{width:40px;height:6px;border-radius:9px;background:var(--surface2);overflow:hidden;display:inline-block}
+.chip .bar i{display:block;height:100%;background:var(--accent);border-radius:9px}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.icon-btn svg{width:20px;height:20px}
+
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-in{max-width:680px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.nav button{border:0;background:none;padding:9px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;font-weight:600;color:var(--muted)}
+.nav button svg{width:24px;height:24px}
+.nav button[aria-current="page"]{color:var(--accent)}
+.nav button[aria-current="page"] .ni{background:var(--accent-soft)}
+.ni{padding:3px 14px;border-radius:999px;display:grid;place-items:center}
+
+/* surfaces */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel.lift{box-shadow:var(--shadow);border-color:transparent}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 16px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;transition:transform .12s ease,background .15s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.big{min-height:56px;font-size:1.05rem;border-radius:14px;width:100%}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--accent);padding-inline:8px}
+.btn.good{background:var(--good);border-color:var(--good);color:#fff}
+.btn.bad{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.btn.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn svg{width:20px;height:20px}
+.back{align-self:flex-start}
+
+.seg{display:flex;background:var(--surface2);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:9px 8px;font-weight:600;font-size:.9rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+input[type=text],input[type=search],textarea,select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 12px;font-size:1rem}
+textarea{min-height:130px;resize:vertical;line-height:1.55}
+label.fld{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.9rem}
+
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:.75rem;font-weight:700;letter-spacing:.02em}
+.pill.new{background:var(--accent-soft);color:var(--accent)}
+.pill.learning{background:var(--warn-soft);color:var(--warn)}
+.pill.mastered{background:var(--good-soft);color:var(--good)}
+.tag{display:inline-flex;padding:3px 10px;border-radius:999px;background:var(--surface2);font-size:.8rem;font-weight:600}
+.tag.good{background:var(--good-soft);color:var(--good)}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag.btnlike{border:0;cursor:pointer}
+
+mark.hl{background:linear-gradient(transparent 52%,var(--hl) 52%);color:inherit;padding:0 1px;font-weight:700}
+.ipa{font-family:var(--ipa);color:var(--muted)}
+
+/* home */
+.hero{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+.hero h2{font-size:1.6rem}
+.ring{width:92px;height:92px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:1.25rem;font-variant-numeric:tabular-nums;text-align:center;line-height:1}
+.ring b small{display:block;font-family:var(--body);font-size:.66rem;color:var(--muted);font-weight:600;margin-top:2px}
+.plan{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.plan div{background:var(--surface2);border-radius:12px;padding:10px;display:flex;flex-direction:column}
+.plan b{font-family:var(--display);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.plan span{font-size:.78rem;color:var(--muted);font-weight:600}
+.games{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.game{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:14px;text-align:left;display:flex;flex-direction:column;gap:4px;min-height:104px;transition:transform .12s,border-color .15s}
+.game:hover{border-color:var(--accent)}
+.game:active{transform:scale(.98)}
+.game .gi{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.game .gd{font-size:.83rem;color:var(--muted)}
+.game:disabled{opacity:.5}
+.decks{display:flex;flex-direction:column}
+.deck{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 2px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left}
+.deck:last-child{border-bottom:0}
+.deck .dn{font-weight:600}
+.deck .dm{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-size:10px;font-family:var(--body)}
+.chart .val{fill:var(--ink);font-weight:600}
+
+/* flashcard */
+.cardzone{perspective:1400px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.fc{position:relative;height:min(420px,62vh);min-height:320px;cursor:pointer;outline:none}
+.fc-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.fc.flipped .fc-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;background:var(--surface);box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;gap:12px;overflow:auto;
+  background-image:repeating-linear-gradient(transparent 0 31px,color-mix(in srgb,var(--accent) 9%,transparent) 31px 32px);background-position:0 70px}
+.face.back{transform:rotateY(180deg);background-color:var(--surface)}
+.face .word{font-family:var(--display);font-weight:800;font-size:clamp(2rem,9vw,2.9rem);line-height:1.05;word-break:break-word}
+.face .ex{font-size:1.08rem}
+.face .spacer{flex:1}
+.face .hint{font-size:.8rem;color:var(--muted);text-align:center}
+.fc:focus-visible .face{outline:3px solid var(--accent);outline-offset:3px}
+.tint{position:absolute;inset:0;border-radius:20px;pointer-events:none;z-index:3;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.6rem;opacity:0;transition:opacity .1s}
+.grades{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grades .btn{flex-direction:column;gap:0;min-height:58px}
+.grades .btn small{font-weight:500;font-size:.72rem;opacity:.85}
+.progress{height:8px;border-radius:9px;background:var(--surface2);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:9px;transition:width .3s}
+.speak{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);display:grid;place-items:center;flex:none}
+.speak svg{width:20px;height:20px}
+
+/* games */
+.opts{display:grid;grid-template-columns:1fr;gap:8px}
+.opt{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:13px 14px;text-align:left;font-weight:600;min-height:52px}
+.opt.right{border-color:var(--good);background:var(--good-soft);color:var(--good)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.q-word{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1.1;word-break:break-word}
+.match{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.match .opt{text-align:center;padding:12px 8px;font-size:.95rem}
+.match .opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.match .opt.gone{visibility:hidden}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.timer{font-family:var(--display);font-weight:800;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.bigscore{font-family:var(--display);font-weight:800;font-size:3.4rem;line-height:1;font-variant-numeric:tabular-nums}
+
+/* reading */
+.passage{font-size:1.08rem;line-height:1.75;max-width:65ch}
+.passage p+p{margin-top:12px}
+.w{border:0;background:none;padding:0 1px;border-radius:4px;font:inherit;color:inherit;cursor:pointer}
+.w:hover{background:var(--accent-soft)}
+.w.known{text-decoration:underline dotted var(--good);text-underline-offset:4px}
+.w.newword{background:linear-gradient(transparent 55%,var(--hl) 55%)}
+.qblock{display:flex;flex-direction:column;gap:8px}
+.qblock+.qblock{border-top:1px solid var(--line);padding-top:12px}
+.hiddenText{border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted)}
+.line{display:flex;gap:10px;padding:6px 8px;border-radius:10px}
+.line.now{background:var(--accent-soft)}
+.line .sp{font-weight:700;min-width:74px;color:var(--accent)}
+.diff .ok{color:var(--good)}
+.diff .miss{color:var(--bad);text-decoration:underline wavy;text-underline-offset:4px}
+.diff .extra{color:var(--bad);text-decoration:line-through;opacity:.8}
+
+/* speaking & writing */
+.mic{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:999px;padding:12px 20px 12px 14px;background:var(--accent);color:var(--accent-ink);font-weight:700;min-height:52px}
+.mic .dot{width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--accent-ink) 22%,transparent);display:grid;place-items:center}
+.mic svg{width:18px;height:18px}
+.mic.on{background:var(--bad);color:#fff}
+.mic.on .dot{animation:pulse 1.1s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.6)}100%{box-shadow:0 0 0 14px rgba(255,255,255,0)}}
+.note{border-radius:12px;padding:10px 12px;font-size:.9rem}
+.note.warn{background:var(--warn-soft);color:var(--ink)}
+.note.bad{background:var(--bad-soft)}
+.note.good{background:var(--good-soft)}
+.note.info{background:var(--accent-soft)}
+.err{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:var(--surface2)}
+.err s{color:var(--bad)}
+.err b{color:var(--good)}
+.marked{font-size:1.05rem;line-height:1.8;white-space:pre-wrap}
+.marked .good{background:var(--good-soft);color:var(--good);border-radius:4px;padding:0 2px;font-weight:600}
+.marked .bad{background:var(--bad-soft);color:var(--bad);border-radius:4px;padding:0 2px;text-decoration:underline wavy;text-underline-offset:4px}
+.score{display:flex;align-items:baseline;gap:4px;font-family:var(--display);font-weight:800}
+.score b{font-size:2.6rem;line-height:1}
+
+/* word list */
+.wl{display:flex;flex-direction:column}
+.wrow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.wrow button.wmain{border:0;background:none;text-align:left;padding:0;display:flex;flex-direction:column}
+.wrow .en{font-weight:700}
+.wrow .uz{color:var(--muted);font-size:.92rem}
+.edit{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;padding:10px;background:var(--surface2);border-radius:12px}
+
+/* add */
+.prev{display:flex;flex-direction:column;gap:6px;max-height:48vh;overflow:auto;padding-right:2px}
+.prow{display:grid;grid-template-columns:1fr 1fr 40px;gap:6px;align-items:center}
+.prow input{padding:9px 10px;font-size:.95rem}
+.prow .x{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.dup{grid-column:1/-1;font-size:.78rem;color:var(--warn);margin-top:-4px}
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--surface)}
+.drop img{max-height:220px;border-radius:10px}
+
+/* loading */
+.skel{display:flex;flex-direction:column;gap:9px}
+.skel i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--surface2),var(--line),var(--surface2));background-size:200% 100%;animation:sk 1.3s infinite linear}
+@keyframes sk{to{background-position:-200% 0}}
+
+/* sheet / modal */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(10,14,22,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:680px;max-height:88vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;animation:up .25s ease}
+.sheet .grip{width:44px;height:5px;border-radius:9px;background:var(--line);align-self:center}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+@media (min-width:720px){.scrim{align-items:center}.sheet{border-radius:22px;max-width:520px}}
+
+.toasts{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));left:0;right:0;z-index:60;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:600;font-size:.92rem;box-shadow:var(--shadow);animation:tin .25s ease}
+.toast.xp{background:var(--accent);color:var(--accent-ink)}
+@keyframes tin{from{transform:translateY(-10px);opacity:0}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:70;width:100%;height:100%}
+
+.pop{animation:pop .35s ease}
+@keyframes pop{40%{transform:scale(1.06)}}
+.center{text-align:center;align-items:center}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:430px){.top-in{padding-inline:12px}.brand{font-size:.82rem;gap:8px}.top-stats{gap:6px}.chip{padding:5px 8px}.chip .bar{width:24px}}
+@media (max-width:360px){.brand span:last-child{display:none}}
+@media (max-width:380px){.plan b{font-size:1.15rem}.hero h2{font-size:1.35rem}.ring{width:78px;height:78px}}
+</style>
+
+<div id="root"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+"use strict";
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const html = htm.bind(React.createElement);
+const DAY = 86400000;
+const LS_KEY = "vocab-teacher-v1";
+const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
+const XP_PER_LEVEL = 250;
+
+/* ---------- helpers ---------- */
+const use = (name) => (window.claude && typeof window.claude.use === "function")
+  ? window.claude.use(name).catch(() => null) : Promise.resolve(null);
+const todayKey = (t = Date.now()) => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const newId = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-5);
+const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const norm = (s) => String(s || "").toLowerCase().replace(/[’‘`´]/g, "'").replace(/[^a-z0-9'\s-]/g, " ").replace(/\s+/g, " ").trim();
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const clone = (o) => (typeof structuredClone === "function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
+const stem = (w) => { const s = norm(w); if (s.length > 4 && /e$/.test(s)) return s.slice(0, -1); if (s.length > 3 && /y$/.test(s)) return s.slice(0, -1); return s; };
+const usesWord = (text, w) => new RegExp("(^|[^a-z])" + esc(stem(w)) + "[a-z]*", "i").test(norm(text));
+const status = (w) => (!w.last ? "new" : w.interval >= 21 ? "mastered" : "learning");
+const STATUS_UZ = { new: "yangi", learning: "o'rganilmoqda", mastered: "yodlangan" };
+const pickTargets = (words, n) => { const seen = words.filter((w) => w.last); const pool = seen.length >= n ? seen : words; return shuffle(pool).slice(0, n); };
+
+const emptyData = () => ({ v: 1, profile: null, words: [], stats: { xp: 0, streak: 0, lastDay: null, days: {}, best: {} }, updatedAt: 0 });
+const makeWord = (p, deck) => ({
+  id: newId(), en: String(p.en || "").trim(), uz: String(p.uz || "").trim(), ipa: String(p.ipa || "").replace(/^\/|\/$/g, ""),
+  pos: String(p.pos || ""), ex: String(p.ex || ""), exUz: String(p.exUz || ""), note: String(p.note || ""),
+  deck: deck || "Umumiy", ease: 2.5, interval: 0, reps: 0, lapses: 0, due: Date.now(), added: Date.now(), last: 0,
+});
+
+/* spaced repetition (SM-2 ga o'xshash) */
+function schedule(w, g) {
+  const n = { ...w }; const now = Date.now();
+  if (g === 0) { n.reps = 0; n.lapses = (n.lapses || 0) + 1; n.interval = 0; n.ease = Math.max(1.3, n.ease - 0.2); n.due = now + 10 * 60000; }
+  else if (g === 1) { n.interval = n.reps === 0 ? 1 : Math.max(1, Math.round(n.interval * 1.2)); n.reps += 1; n.ease = Math.max(1.3, n.ease - 0.15); n.due = now + n.interval * DAY; }
+  else { n.interval = n.reps === 0 ? 2 : n.reps === 1 ? 4 : Math.round(n.interval * n.ease); n.reps += 1; n.ease = Math.min(3, n.ease + 0.1); n.due = now + n.interval * DAY; }
+  n.last = now; return n;
+}
+
+/* ---------- storage ---------- */
+function loadLocal() { try { const s = localStorage.getItem(LS_KEY); if (!s) return null; const d = JSON.parse(s); if (!d || !Array.isArray(d.words)) return null; return { ...emptyData(), ...d, stats: { ...emptyData().stats, ...d.stats } }; } catch (e) { return null; } }
+function saveLocal(d) { try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch (e) { /* bo'sh */ } }
+
+const Cloud = {
+  ready: false, col: null, last: {}, prevChunks: 0, busy: false, pending: null, t: null, onStatus: () => {},
+  async init() {
+    try {
+      const [db, user] = await Promise.all([use("db"), use("user")]);
+      if (!db || !user) return null;
+      const uid = await user.id();
+      if (!uid) return null;
+      this.col = db.collection("data/users/" + uid);
+      const m = await this.col.doc("meta").get();
+      this.ready = true;
+      if (!m.exists) return null;
+      const meta = m.data() || {};
+      const n = Number(meta.chunks) || 0; const words = [];
+      for (let i = 0; i < n; i++) {
+        const c = await this.col.doc("words" + i).get();
+        const items = c.exists ? ((c.data() || {}).items || []) : [];
+        this.last["words" + i] = JSON.stringify(items); words.push(...items);
+      }
+      this.prevChunks = n;
+      const body = meta.body || {};
+      return { ...emptyData(), ...body, stats: { ...emptyData().stats, ...(body.stats || {}) }, words, updatedAt: Number(meta.updatedAt) || 0 };
+    } catch (e) { this.ready = false; return null; }
+  },
+  schedule(d) { this.pending = d; clearTimeout(this.t); this.t = setTimeout(() => this.flush(), 1200); },
+  async flush() {
+    if (!this.ready || this.busy || !this.pending) return;
+    this.busy = true; const d = this.pending; this.pending = null; this.onStatus("syncing");
+    try {
+      const size = 250; const chunks = [];
+      for (let i = 0; i < d.words.length; i += size) chunks.push(d.words.slice(i, i + size));
+      for (let i = 0; i < chunks.length; i++) {
+        const s = JSON.stringify(chunks[i]);
+        if (this.last["words" + i] !== s) { await this.col.doc("words" + i).set({ items: chunks[i] }); this.last["words" + i] = s; }
+      }
+      for (let i = chunks.length; i < this.prevChunks; i++) { await this.col.doc("words" + i).delete(); delete this.last["words" + i]; }
+      this.prevChunks = chunks.length;
+      const { words, ...body } = d;
+      await this.col.doc("meta").set({ chunks: chunks.length, updatedAt: d.updatedAt, body });
+      this.onStatus("saved");
+    } catch (e) { this.onStatus("error"); }
+    finally { this.busy = false; if (this.pending) this.flush(); }
+  },
+};
+
+/* ---------- AI ---------- */
+let samplePromise = null;
+const getSample = () => samplePromise || (samplePromise = use("sample"));
+async function askJSON(prompt, opts = {}) {
+  const s = await getSample();
+  if (!s) throw { code: "unavailable" };
+  const o = { modelTier: opts.tier || "default", cache: opts.cache === undefined ? false : opts.cache };
+  if (opts.images) o.images = opts.images;
+  return s.json(prompt, o);
+}
+function errMsg(e) {
+  const c = e && e.code;
+  if (c === "cancelled") return null;
+  if (["unavailable", "not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(c))
+    return "AI bu oynada ishlamayapti. Ilovani claude.ai ichida oching va AI'dan foydalanishga ruxsat so'ralganda «Ruxsat berish»ni bosing.";
+  if (c === "rate_limited") return "So'rovlar juda ko'payib ketdi. Bir daqiqadan so'ng qayta urinib ko'ring.";
+  if (c === "session_expired") return "Claude hisobingizga qaytadan kiring, keyin qayta urinib ko'ring.";
+  if (c === "image_rejected") return "Rasm qabul qilinmadi. 20 MB dan kichik JPG yoki PNG rasm tanlang.";
+  if (c === "images_unavailable") return "Bu oynada rasm yuborib bo'lmaydi. So'zlarni «Yozish» usuli bilan kiriting.";
+  if (c === "prompt_too_large") return "Matn juda uzun. Uni bo'lib-bo'lib yuboring.";
+  if (c === "refused") return "AI bu so'rovni bajarmadi. Matnni o'zgartirib ko'ring.";
+  return "AI javobi kelmadi yoki tushunarsiz keldi. «Qayta urinish»ni bosing.";
+}
+function useAsync() {
+  const [st, setSt] = useState({ loading: false, error: null });
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+  const run = useCallback(async (fn) => {
+    setSt({ loading: true, error: null });
+    try { const r = await fn(); if (alive.current) setSt({ loading: false, error: null }); return r; }
+    catch (e) { if (alive.current) setSt({ loading: false, error: errMsg(e) }); return undefined; }
+  }, []);
+  return [st, run];
+}
+const arr = (x) => (Array.isArray(x) ? x : []);
+const str = (x) => (x === undefined || x === null ? "" : String(x));
+function cleanQuestions(qs) {
+  return arr(qs).map((q) => ({ q: str(q.q), options: arr(q.options).map(str).slice(0, 4), answer: Number(q.answer) }))
+    .filter((q) => q.q && q.options.length >= 2 && q.answer >= 0 && q.answer < q.options.length);
+}
+
+async function enrichWords(items, level, onProgress) {
+  const out = [];
+  for (let i = 0; i < items.length; i += 20) {
+    const part = items.slice(i, i + 20);
+    const list = part.map((p, k) => (k + 1) + ". " + p.en + (p.uz ? " = " + p.uz : " = ?")).join("\n");
+    const res = await askJSON(
+      "You build vocabulary flashcards for an Uzbek speaker learning English (CEFR level " + level + ").\n" +
+      "For each numbered item (English = Uzbek translation, '?' means missing) return one object, in the same order:\n" +
+      '{"en": the English word/phrase exactly as given (fix only obvious spelling mistakes), "uz": the Uzbek (Latin script) translation — keep the given one unless it is clearly wrong, otherwise give the most common 1–4 word translation, "ipa": IPA transcription without slashes, "pos": one of noun|verb|adj|adv|phrase|prep|conj|pron|other, "ex": one short natural English example sentence (max 12 words, level ' + level + ') that contains the word, "exUz": Uzbek Latin translation of ex, "note": a very short Uzbek explanation of meaning or usage (max 12 words)}\n' +
+      "If the translation is Russian, translate it into Uzbek. Reply with only a JSON array.\n\n" + list,
+      { tier: "default", cache: { gcTime: 3600000 } });
+    const got = arr(res);
+    part.forEach((p, k) => { const r = got[k] || {}; out.push({ ...p, ...r, en: str(r.en) || p.en, uz: str(r.uz) || p.uz }); });
+    onProgress && onProgress(Math.min(items.length, i + 20), items.length);
+  }
+  return out;
+}
+
+/* ---------- speech ---------- */
+let voicesCache = [];
+function englishVoices() {
+  try { const v = window.speechSynthesis ? speechSynthesis.getVoices() : []; if (v.length) voicesCache = v; } catch (e) { }
+  const en = voicesCache.filter((v) => /^en[-_]/i.test(v.lang));
+  const us = en.filter((v) => /en[-_]US/i.test(v.lang));
+  return us.length ? [...us, ...en.filter((v) => !us.includes(v))] : en;
+}
+if (window.speechSynthesis) { try { speechSynthesis.onvoiceschanged = () => englishVoices(); englishVoices(); } catch (e) { } }
+function speak(text, opts = {}) {
+  if (!window.speechSynthesis || !text) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; u.rate = opts.rate || 0.95;
+    const v = englishVoices()[0]; if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) { }
+}
+function stopSpeak() { try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) { } }
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const MIC_MSG = {
+  "not-allowed": "Mikrofonga ruxsat berilmadi — claude.ai oynasida mikrofon ko'pincha bloklangan. Telefon klaviaturasidagi 🎤 (ovozli yozish) tugmasini bosib, pastdagi maydonga gapiring: javob baribir tekshiriladi.",
+  "service-not-allowed": "Mikrofonga ruxsat berilmadi — claude.ai oynasida mikrofon ko'pincha bloklangan. Telefon klaviaturasidagi 🎤 (ovozli yozish) tugmasini bosib, pastdagi maydonga gapiring: javob baribir tekshiriladi.",
+  unsupported: "Bu brauzer nutqni matnga aylantira olmaydi (Chrome yoki Edge kerak). Klaviaturadagi 🎤 tugmasi bilan gapiring yoki javobni yozing.",
+  "no-speech": "Ovoz eshitilmadi. Mikrofonga yaqinroq gapirib, qayta urinib ko'ring.",
+  "audio-capture": "Mikrofon topilmadi. Qurilmada mikrofon ulanganini tekshiring.",
+  network: "Nutqni tanish uchun internet kerak. Aloqani tekshirib, qayta urinib ko'ring.",
+  other: "Mikrofon ishlamadi. Javobni yozib yuboring.",
+};
+
+/* ---------- text tools ---------- */
+function parseLines(text, withUz) {
+  const SEPS = ["\t", " — ", "—", " – ", "–", " - ", " = ", "=", ":", ",", " -", "- ", "-"];
+  return text.split(/\r?\n/).map((l) => l.replace(/^\s*(\d+\s*[.)]\s*|[•*·]\s*)/, "").trim()).filter(Boolean).map((l) => {
+    if (!withUz) return { en: l, uz: "" };
+    for (const s of SEPS) { const i = l.indexOf(s); if (i > 0) return { en: l.slice(0, i).trim(), uz: l.slice(i + s.length).trim() }; }
+    return { en: l, uz: "" };
+  }).filter((p) => p.en);
+}
+function wordDiff(expected, typed) {
+  const a = expected.split(/\s+/).filter(Boolean), b = typed.split(/\s+/).filter(Boolean);
+  const na = a.map(norm), nb = b.map(norm); const m = a.length, n = b.length;
+  const L = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) for (let j = n - 1; j >= 0; j--) L[i][j] = na[i] === nb[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = []; let i = 0, j = 0;
+  while (i < m && j < n) {
+    if (na[i] === nb[j]) { out.push({ t: a[i], k: "ok" }); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) { out.push({ t: a[i], k: "miss" }); i++; }
+    else { out.push({ t: b[j], k: "extra" }); j++; }
+  }
+  while (i < m) out.push({ t: a[i++], k: "miss" });
+  while (j < n) out.push({ t: b[j++], k: "extra" });
+  return { out, ok: out.every((x) => x.k === "ok") };
+}
+function markText(text, errors, words) {
+  const marks = []; const lower = text.toLowerCase();
+  errors.forEach((er) => { const w = str(er.wrong).trim(); if (!w) return; const at = lower.indexOf(w.toLowerCase()); if (at >= 0) marks.push({ s: at, e: at + w.length, k: "bad" }); });
+  words.forEach((w) => { const s = stem(w); if (!s) return; const re = new RegExp("(^|[^a-z])(" + esc(s) + "[a-z]*)", "g"); let m; while ((m = re.exec(lower))) { const st = m.index + m[1].length; marks.push({ s: st, e: st + m[2].length, k: "good" }); } });
+  marks.sort((a, b) => a.s - b.s || (a.k === "bad" ? -1 : 1));
+  const segs = []; let pos = 0;
+  for (const mk of marks) { if (mk.s < pos) continue; if (mk.s > pos) segs.push({ t: text.slice(pos, mk.s) }); segs.push({ t: text.slice(mk.s, mk.e), k: mk.k }); pos = mk.e; }
+  if (pos < text.length) segs.push({ t: text.slice(pos) });
+  return segs;
+}
+function highlightIn(sentence, word) {
+  if (!sentence) return null;
+  const s = stem(word); if (!s) return sentence;
+  const re = new RegExp("(" + s.split(" ").map(esc).join("\\s+") + "[a-z]*)", "i");
+  const m = sentence.match(re);
+  if (!m) return sentence;
+  const i = m.index;
+  return html`${sentence.slice(0, i)}<mark className="hl">${m[0]}</mark>${sentence.slice(i + m[0].length)}`;
+}
+
+/* ---------- confetti ---------- */
+function confetti() {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = document.getElementById("confetti"); const ctx = c.getContext("2d");
+  const W = (c.width = innerWidth), H = (c.height = innerHeight);
+  const cols = ["#2F55D4", "#FFCE32", "#1B8A57", "#FF7F75", "#7F9CFF"];
+  const ps = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * 120, y: H * .35, vx: (Math.random() - .5) * 12, vy: -Math.random() * 13 - 4, s: 5 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .3, c: cols[Math.floor(Math.random() * cols.length)] }));
+  const t0 = performance.now();
+  (function f(t) {
+    ctx.clearRect(0, 0, W, H);
+    ps.forEach((p) => { p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+    if (t - t0 < 2600) requestAnimationFrame(f); else ctx.clearRect(0, 0, W, H);
+  })(t0);
+}
+
+/* ---------- starter & samples ---------- */
+const STARTER = [
+  ["achieve", "erishmoq", "əˈtʃiːv", "verb", "She worked hard to achieve her goal.", "U maqsadiga erishish uchun qattiq mehnat qildi.", "Mehnat bilan natijaga yetmoq"],
+  ["improve", "yaxshilamoq", "ɪmˈpruːv", "verb", "Reading every day will improve your English.", "Har kuni o'qish ingliz tilingizni yaxshilaydi.", "Biror narsani avvalgidan yaxshiroq qilmoq"],
+  ["journey", "safar, sayohat", "ˈdʒɜːni", "noun", "The journey to Samarkand took four hours.", "Samarqandga safar to'rt soat davom etdi.", "Bir joydan boshqa joyga borish"],
+  ["borrow", "qarzga olmoq", "ˈbɒrəʊ", "verb", "Can I borrow your pen for a minute?", "Ruchkangizni bir daqiqaga olib tursam bo'ladimi?", "Qaytarish sharti bilan olmoq"],
+  ["confident", "o'ziga ishongan", "ˈkɒnfɪdənt", "adj", "He felt confident before the exam.", "U imtihon oldidan o'ziga ishonardi.", "Qo'rqmaydigan, ishonchi bor"],
+  ["decide", "qaror qilmoq", "dɪˈsaɪd", "verb", "We decided to stay at home.", "Biz uyda qolishga qaror qildik.", "Bir nechta variantdan birini tanlamoq"],
+  ["environment", "atrof-muhit", "ɪnˈvaɪrənmənt", "noun", "We must protect the environment.", "Biz atrof-muhitni himoya qilishimiz kerak.", "Tabiat, havo, suv — bizni o'rab turgan dunyo"],
+  ["honest", "halol, rostgo'y", "ˈɒnɪst", "adj", "Thank you for your honest answer.", "Rostgo'y javobingiz uchun rahmat.", "Yolg'on gapirmaydigan"],
+  ["opportunity", "imkoniyat", "ˌɒpəˈtjuːnəti", "noun", "This job is a great opportunity for me.", "Bu ish men uchun ajoyib imkoniyat.", "Biror narsa qilish uchun qulay vaziyat"],
+  ["remember", "eslamoq", "rɪˈmembə", "verb", "I remember my first day at school.", "Maktabdagi birinchi kunimni eslayman.", "Xotirada saqlamoq yoki yodga olmoq"],
+  ["neighbour", "qo'shni", "ˈneɪbə", "noun", "Our neighbour helped us carry the boxes.", "Qo'shnimiz qutilarni ko'tarishga yordam berdi.", "Yoningizda yashaydigan odam"],
+  ["prefer", "afzal ko'rmoq", "prɪˈfɜː", "verb", "I prefer tea to coffee.", "Men choyni qahvadan afzal ko'raman.", "«prefer A to B» — A ni B dan ko'proq yoqtirmoq"],
+  ["describe", "tasvirlamoq", "dɪˈskraɪb", "verb", "Can you describe your house?", "Uyingizni tasvirlab bera olasizmi?", "Qanday ekanini so'z bilan aytib bermoq"],
+  ["enough", "yetarli", "ɪˈnʌf", "adj", "We have enough time to finish.", "Tugatish uchun yetarli vaqtimiz bor.", "Kerakli miqdorda"],
+  ["advice", "maslahat", "ədˈvaɪs", "noun", "My teacher gave me good advice.", "Ustozim menga yaxshi maslahat berdi.", "Sanalmaydi: «an advice» deyilmaydi"],
+  ["careful", "ehtiyotkor", "ˈkeəfl", "adj", "Be careful when you cross the road.", "Yo'ldan o'tayotganda ehtiyot bo'ling.", "Xatodan yoki xavfdan saqlanadigan"],
+  ["explain", "tushuntirmoq", "ɪkˈspleɪn", "verb", "Could you explain this rule again?", "Bu qoidani yana tushuntirib bera olasizmi?", "Tushunarli qilib aytib bermoq"],
+  ["healthy", "sog'lom", "ˈhelθi", "adj", "Fruit is a healthy snack.", "Meva — sog'lom yegulik.", "Salomatlikka foydali"],
+  ["invite", "taklif qilmoq", "ɪnˈvaɪt", "verb", "They invited us to their wedding.", "Ular bizni to'ylariga taklif qilishdi.", "Mehmonga chaqirmoq"],
+  ["surprise", "kutilmagan voqea, syurpriz", "səˈpraɪz", "noun", "The party was a big surprise for her.", "Bazm u uchun katta syurpriz bo'ldi.", "Oldindan bilinmagan narsa"],
+].map(([en, uz, ipa, pos, ex, exUz, note]) => ({ en, uz, ipa, pos, ex, exUz, note }));
+
+const SAMPLE_READING = {
+  sample: true, level: "A2", title: "A Weekend in Samarkand",
+  text: "Last weekend, Aziz and his sister went on a short journey to Samarkand. They left Tashkent early in the morning by the fast train. Aziz was excited because he wanted to see the famous Registan square with his own eyes.\n\nWhen they arrived, the weather was warm and sunny. They walked around the old city and took many photos. A friendly guide explained the history of the buildings and described how people lived there hundreds of years ago. Aziz was amazed by the beautiful blue tiles.\n\nIn the afternoon, they tried plov at a small café. His sister said it was the most delicious plov she had ever eaten. Before going home, they bought souvenirs for their parents. On the train, Aziz decided to learn more about the history of his country.",
+  newWords: [{ en: "amazed", uz: "hayratda qolgan" }, { en: "tiles", uz: "koshinlar" }, { en: "souvenirs", uz: "esdalik sovg'alar" }, { en: "guide", uz: "gid, yo'lboshlovchi" }],
+  questions: [
+    { q: "How did Aziz and his sister travel to Samarkand?", options: ["By car", "By fast train", "By plane", "By bus"], answer: 1 },
+    { q: "What did the guide do?", options: ["He sold souvenirs", "He cooked plov", "He explained the history of the buildings", "He took photos"], answer: 2 },
+    { q: "What amazed Aziz?", options: ["The weather", "The blue tiles", "The train", "The price of plov"], answer: 1 },
+    { q: "What did Aziz decide on the train?", options: ["To visit Bukhara", "To become a guide", "To learn more about his country's history", "To buy more souvenirs"], answer: 2 },
+  ],
+};
+const SAMPLE_LISTENING = {
+  sample: true, level: "A2", title: "At the library",
+  lines: [
+    { speaker: "Malika", text: "Excuse me, can I borrow this book about space?" },
+    { speaker: "Librarian", text: "Of course. Do you have a library card?" },
+    { speaker: "Malika", text: "No, I don't. How can I get one?" },
+    { speaker: "Librarian", text: "It's easy. Just fill in this form and show me your student ID." },
+    { speaker: "Malika", text: "Here you are. How long can I keep the book?" },
+    { speaker: "Librarian", text: "Two weeks. If you need more time, you can renew it online." },
+    { speaker: "Malika", text: "Great, thank you for your advice!" },
+  ],
+  newWords: [{ en: "renew", uz: "muddatini uzaytirmoq" }, { en: "fill in", uz: "to'ldirmoq (anketa)" }, { en: "library card", uz: "kutubxona kartasi" }],
+  questions: [
+    { q: "What does Malika want to borrow?", options: ["A book about animals", "A book about space", "A dictionary", "A magazine"], answer: 1 },
+    { q: "What does she need to show?", options: ["Her passport", "Her student ID", "Her phone", "Her ticket"], answer: 1 },
+    { q: "How long can she keep the book?", options: ["One week", "Two weeks", "One month", "Three days"], answer: 1 },
+  ],
+  dictation: ["Can I borrow this book about space?", "Just fill in this form.", "You can renew it online."],
+};
+const TOPICS = ["Sayohat", "Maktab va o'qish", "Texnologiya", "Sport", "Oila", "Tabiat", "Ovqat", "Kasb-hunar"];
+
+/* ---------- icons ---------- */
+const I = {
+  cards: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/></svg>`,
+  book: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5a2 2 0 0 1 2-2h5v17H5a2 2 0 0 0-2 2z"/><path d="M21 5a2 2 0 0 0-2-2h-5v17h5a2 2 0 0 1 2 2z"/></svg>`,
+  ear: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="5" height="7" rx="2"/><rect x="16" y="14" width="5" height="7" rx="2"/></svg>`,
+  mic: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>`,
+  pen: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>`,
+  sound: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>`,
+  gear: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,
+  play: html`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>`,
+  stop: html`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`,
+};
+
+/* ---------- small components ---------- */
+function Speak({ text, rate, label }) {
+  return html`<button className="speak" type="button" aria-label=${label || "Tinglash"} title=${label || "Tinglash"}
+    onPointerDown=${(e) => e.stopPropagation()} onClick=${(e) => { e.stopPropagation(); speak(text, { rate }); }}>${I.sound}</button>`;
+}
+function Loading({ text }) {
+  return html`<div className="panel" role="status"><p className="muted small">${text || "AI o'ylayapti… odatda 10–40 soniya."}</p><div className="skel"><i style=${{ width: "92%" }}></i><i style=${{ width: "78%" }}></i><i style=${{ width: "85%" }}></i><i style=${{ width: "60%" }}></i></div></div>`;
+}
+function ErrorBox({ msg, onRetry }) {
+  if (!msg) return null;
+  return html`<div className="note bad stack" role="alert"><span>${msg}</span>${onRetry && html`<button className="btn" onClick=${onRetry}>Qayta urinish</button>`}</div>`;
+}
+function Back({ onClick, children }) {
+  return html`<button className="btn ghost back" onClick=${onClick}>← ${children || "Orqaga"}</button>`;
+}
+function Ring({ value, max }) {
+  const r = 40, c = 2 * Math.PI * r, p = Math.min(1, max ? value / max : 0);
+  return html`<div className="ring" aria-label=${"Kunlik maqsad: " + value + " / " + max}>
+    <svg viewBox="0 0 92 92"><circle cx="46" cy="46" r=${r} fill="none" stroke="var(--surface2)" strokeWidth="9"/>
+    <circle cx="46" cy="46" r=${r} fill="none" stroke=${p >= 1 ? "var(--good)" : "var(--accent)"} strokeWidth="9" strokeLinecap="round" strokeDasharray=${c} strokeDashoffset=${c * (1 - p)} style=${{ transition: "stroke-dashoffset .6s" }}/></svg>
+    <b>${Math.min(value, 999)}/${max}<small>bugun</small></b></div>`;
+}
+function WeekChart({ days, goal }) {
+  const names = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"];
+  const items = Array.from({ length: 7 }, (_, i) => { const t = Date.now() - (6 - i) * DAY; const k = todayKey(t); return { k, n: (days[k] && days[k].words) || 0, lbl: names[new Date(t).getDay()], today: i === 6 }; });
+  const max = Math.max(goal, ...items.map((x) => x.n), 1);
+  const W = 320, H = 130, top = 18, base = 108, bw = 28, gap = (W - 7 * bw) / 8;
+  const y = (v) => base - (v / max) * (base - top);
+  return html`<svg className="chart" viewBox=${"0 0 " + W + " " + H} role="img" aria-label="Oxirgi 7 kundagi mashqlar">
+    <line x1="0" x2=${W} y1=${base} y2=${base} stroke="var(--line)" strokeWidth="1"/>
+    <line x1="0" x2=${W} y1=${y(goal)} y2=${y(goal)} stroke="var(--good)" strokeWidth="1" strokeDasharray="4 4"/>
+    <text x=${W - 2} y=${y(goal) - 4} textAnchor="end">maqsad ${goal}</text>
+    ${items.map((it, i) => { const x = gap + i * (bw + gap); const h = base - y(it.n); return html`<g key=${it.k}>
+      <rect x=${x} y=${y(it.n)} width=${bw} height=${Math.max(h, it.n ? 2 : 0)} rx="5" fill=${it.today ? "var(--accent)" : "color-mix(in srgb, var(--accent) 38%, var(--surface2))"}/>
+      ${it.n > 0 && html`<text className="val" x=${x + bw / 2} y=${y(it.n) - 5} textAnchor="middle">${it.n}</text>`}
+      <text x=${x + bw / 2} y=${H - 6} textAnchor="middle" style=${it.today ? { fill: "var(--ink)", fontWeight: 700 } : null}>${it.lbl}</text></g>`; })}
+  </svg>`;
+}
+
+function MicButton({ onFinal, onInterim, label, continuous }) {
+  const [on, setOn] = useState(false); const [err, setErr] = useState(null); const rec = useRef(null);
+  useEffect(() => () => { try { rec.current && rec.current.abort(); } catch (e) { } }, []);
+  const start = () => {
+    setErr(null); stopSpeak();
+    if (!SR) { setErr(MIC_MSG.unsupported); return; }
+    let r; try { r = new SR(); } catch (e) { setErr(MIC_MSG.other); return; }
+    r.lang = "en-US"; r.interimResults = true; r.maxAlternatives = 3; r.continuous = !!continuous;
+    let finalText = ""; let alts = [];
+    r.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) { const res = e.results[i]; if (res.isFinal) { finalText += (finalText ? " " : "") + res[0].transcript.trim(); alts = Array.from(res).map((a) => a.transcript); } else interim += res[0].transcript; }
+      onInterim && onInterim((finalText + " " + interim).trim());
+    };
+    r.onerror = (e) => { setErr(MIC_MSG[e.error] || MIC_MSG.other); setOn(false); };
+    r.onend = () => { setOn(false); if (finalText.trim()) onFinal(finalText.trim(), alts); };
+    try { r.start(); rec.current = r; setOn(true); } catch (e) { setErr(MIC_MSG.other); }
+  };
+  const stop = () => { try { rec.current && rec.current.stop(); } catch (e) { } };
+  return html`<div className="stack" style=${{ alignItems: "flex-start" }}>
+    <button type="button" className=${"mic" + (on ? " on" : "")} onClick=${on ? stop : start} aria-pressed=${on}>
+      <span className="dot">${I.mic}</span><span>${on ? "Tinglayapman… to'xtatish" : (label || "Gapirish")}</span></button>
+    ${err && html`<p className="note warn small" role="status">${err}</p>`}</div>`;
+}
+
+/* ---------- tappable text & word popup ---------- */
+function TapText({ text, onWord, userSet, newSet }) {
+  const paras = String(text || "").split(/\n\s*\n/);
+  return html`<div className="passage">${paras.map((p, pi) => {
+    const sentences = p.match(/[^.!?]+[.!?]*["”']?\s*/g) || [p];
+    return html`<p key=${pi}>${sentences.map((s, si) => s.split(/(\s+|[^A-Za-z'’-]+)/).map((tok, ti) => {
+      if (!tok || !/[A-Za-z]/.test(tok)) return tok;
+      const n = norm(tok); const cls = "w" + (userSet && userSet.has(n) ? " known" : newSet && newSet.has(n) ? " newword" : "");
+      return html`<button key=${si + "-" + ti} className=${cls} type="button" onClick=${() => onWord(tok, s.trim())}>${tok}</button>`;
+    }))}</p>`;
+  })}</div>`;
+}
+
+const lookupCache = new Map();
+function WordSheet({ token, sentence, hints, data, level, onAdd, onClose }) {
+  const n = norm(token);
+  const existing = data.words.find((w) => norm(w.en) === n);
+  const hint = (hints || []).find((h) => norm(h.en) === n);
+  const [entry, setEntry] = useState(lookupCache.get(n + "|" + sentence) || null);
+  const [st, run] = useAsync();
+  const load = useCallback(() => {
+    run(async () => {
+      const r = await askJSON(
+        'An Uzbek learner of English (level ' + level + ') tapped the word "' + token + '" in this sentence: "' + sentence + '".\n' +
+        'Reply with only a JSON object: {"en": dictionary form of the word (lowercase unless a proper noun; keep a phrasal verb if it is one here), "uz": Uzbek (Latin) translation that fits this context (1–4 words), "ipa": IPA without slashes, "pos": noun|verb|adj|adv|phrase|prep|conj|pron|other, "ex": a NEW short example sentence (max 12 words) with the word, "exUz": Uzbek Latin translation of ex, "note": very short Uzbek note on meaning or usage (max 12 words)}',
+        { tier: "quick", cache: { gcTime: 3600000 } });
+      if (!r || !r.uz) throw { code: "invalid_json" };
+      const e = { en: str(r.en) || token, uz: str(r.uz), ipa: str(r.ipa), pos: str(r.pos), ex: str(r.ex), exUz: str(r.exUz), note: str(r.note) };
+      lookupCache.set(n + "|" + sentence, e); setEntry(e);
+    });
+  }, [token, sentence, level]);
+  useEffect(() => { if (!existing && !entry) load(); }, []);
+  const show = existing || entry;
+  const inList = show && data.words.some((w) => norm(w.en) === norm(show.en));
+  return html`<div className="scrim" onClick=${onClose}><div className="sheet" role="dialog" aria-label="So'z tarjimasi" onClick=${(e) => e.stopPropagation()}>
+    <div className="grip"></div>
+    <div className="row between"><div><div className="q-word">${show ? show.en : token}</div>${show && show.ipa && html`<div className="ipa">/${show.ipa}/</div>`}</div><${Speak} text=${show ? show.en : token}/></div>
+    ${show ? html`<div className="stack">
+        <div style=${{ fontSize: "1.3rem", fontWeight: 700 }}>${show.uz}</div>
+        ${show.pos && html`<span className="tag" style=${{ alignSelf: "flex-start" }}>${show.pos}</span>`}
+        ${show.note && html`<p className="muted">${show.note}</p>`}
+        ${show.ex && html`<p><i>${highlightIn(show.ex, show.en)}</i><br/><span className="muted small">${show.exUz}</span></p>`}
+      </div>`
+      : html`<div className="stack">${hint && html`<div style=${{ fontSize: "1.3rem", fontWeight: 700 }}>${hint.uz}</div>`}${st.loading && html`<div className="skel"><i style=${{ width: "70%" }}></i><i style=${{ width: "50%" }}></i></div>`}<${ErrorBox} msg=${st.error} onRetry=${load}/></div>`}
+    ${inList ? html`<p className="note good">Bu so'z lug'atingizda bor ✓</p>`
+      : html`<button className="btn primary big" disabled=${!show} onClick=${() => { onAdd(show); onClose(); }}>+ Lug'atga qo'shish</button>`}
+    <button className="btn" onClick=${onClose}>Yopish</button>
+  </div></div>`;
+}
+
+/* ---------- MCQ block ---------- */
+function Questions({ questions, answers, setAnswers, checked }) {
+  return html`<div className="stack">${questions.map((q, qi) => html`<div className="qblock" key=${qi}>
+    <b>${qi + 1}. ${q.q}</b>
+    <div className="opts">${q.options.map((o, oi) => {
+      const picked = answers[qi] === oi; let cls = "opt";
+      if (checked) { if (oi === q.answer) cls += " right"; else if (picked) cls += " wrong"; } else if (picked) cls += " sel";
+      return html`<button key=${oi} className=${cls} disabled=${checked} aria-pressed=${picked} onClick=${() => setAnswers({ ...answers, [qi]: oi })}>${o}</button>`;
+    })}</div></div>`)}</div>`;
+}
+
+/* ================= VOCABULARY ================= */
+function buildQueue(data, deck) {
+  const now = Date.now(); const goal = (data.profile && data.profile.goal) || 10;
+  const ws = deck ? data.words.filter((w) => w.deck === deck) : data.words;
+  const due = ws.filter((w) => w.last && w.due <= now).sort((a, b) => a.due - b.due);
+  const fresh = ws.filter((w) => !w.last).slice(0, Math.max(goal, 5));
+  const q = [...due, ...fresh].map((w) => w.id);
+  if (q.length) return { ids: q, practice: false };
+  return { ids: shuffle(ws).slice(0, 15).map((w) => w.id), practice: true };
+}
+
+function VocabHome({ data, go, addStarter }) {
+  const now = Date.now(); const words = data.words; const goal = (data.profile && data.profile.goal) || 10;
+  const due = words.filter((w) => w.last && w.due <= now).length;
+  const fresh = Math.min(words.filter((w) => !w.last).length, Math.max(goal, 5));
+  const today = data.stats.days[todayKey()] || { words: 0 };
+  const counts = { new: 0, learning: 0, mastered: 0 }; words.forEach((w) => counts[status(w)]++);
+  const decks = useMemo(() => { const m = {}; words.forEach((w) => { const d = m[w.deck] || (m[w.deck] = { n: 0, due: 0 }); d.n++; if (!w.last || w.due <= now) d.due++; }); return Object.entries(m).sort((a, b) => b[1].n - a[1].n); }, [words]);
+  const name = (data.profile && data.profile.name) || "";
+  const games = [
+    { id: "quiz", t: "Quiz", d: "4 variantdan to'g'ri tarjima", min: 4 },
+    { id: "match", t: "Match", d: "6 juftni tezroq juftlang", min: 6 },
+    { id: "spell", t: "Spelling", d: "Eshiting va to'g'ri yozing", min: 1 },
+    { id: "speed", t: "Speed round", d: "60 soniyada iloji boricha ko'p", min: 4 },
+  ];
+  return html`<div className="stack" style=${{ gap: "16px" }}>
+    <section className="panel lift">
+      <div className="hero"><div className="stack" style=${{ gap: "6px" }}>
+        <span className="eyebrow">Bugungi reja</span>
+        <h2>${name ? "Salom, " + name + "!" : "Salom!"}</h2>
+        <p className="muted">${words.length === 0 ? "Boshlash uchun lug'atga so'z qo'shing." : due > 0 ? "Bugun takrorlash kerak: " + due + " ta so'z." : fresh > 0 ? "Takrorlanadigan so'z yo'q — yangi so'zlarni o'rganamiz." : "Bugungi takrorlash tugadi. Zo'r!"}</p>
+      </div><${Ring} value=${today.words} max=${goal}/></div>
+      <div className="plan"><div><b>${due}</b><span>takrorlash</span></div><div><b>${fresh}</b><span>yangi so'z</span></div><div><b>${words.length}</b><span>lug'atda</span></div></div>
+      <button className="btn primary big" disabled=${!words.length} onClick=${() => go("review")}>${due + fresh > 0 ? "Kartochkalarni boshlash" : "Erkin takrorlash"}</button>
+      <button className="btn" onClick=${() => go("add")}>+ So'z qo'shish (yozib, rasmdan yoki ro'yxatdan)</button>
+    </section>
+
+    ${words.length === 0 && html`<section className="panel" style=${{ borderStyle: "dashed" }}>
+      <h3>Lug'atingiz hozircha bo'sh</h3>
+      <p className="muted">Ilovani sinab ko'rish uchun 20 ta foydali so'zdan iborat «Starter» to'plamni qo'shing yoki o'z lug'atingizni kiriting.</p>
+      <div className="row"><button className="btn primary" onClick=${addStarter}>Starter to'plamni qo'shish</button><button className="btn" onClick=${() => go("add")}>O'z so'zlarim</button></div>
+    </section>`}
+
+    <section className="stack">
+      <div className="row between"><h3>Mashq o'yinlari</h3><span className="muted small">har to'g'ri javob = XP</span></div>
+      <div className="games">${games.map((g) => html`<button key=${g.id} className="game" disabled=${words.length < g.min} onClick=${() => go(g.id)}>
+        <span className="gi">${g.t}</span><span className="gd">${words.length < g.min ? "Kamida " + g.min + " ta so'z kerak" : g.d}</span>
+        ${data.stats.best[g.id] ? html`<span className="small" style=${{ marginTop: "auto", fontWeight: 600 }}>Rekord: ${g.id === "match" ? data.stats.best[g.id] + " s" : data.stats.best[g.id]}</span>` : null}</button>`)}</div>
+    </section>
+
+    ${decks.length > 0 && html`<section className="panel">
+      <div className="row between"><h3>To'plamlar</h3><button className="btn ghost" onClick=${() => go("list")}>Barcha so'zlar →</button></div>
+      <div className="decks">${decks.map(([d, v]) => html`<button key=${d} className="deck" onClick=${() => go("review", d)}>
+        <span className="dn">${d}</span><span className="dm">${v.n} ta so'z${v.due ? " · " + v.due + " tasi kutmoqda" : ""} →</span></button>`)}</div>
+    </section>`}
+
+    ${words.length > 0 && html`<section className="panel">
+      <h3>Statistika</h3>
+      <div className="plan"><div><b>${counts.mastered}</b><span className="pill mastered" style=${{ alignSelf: "flex-start" }}>yodlangan</span></div><div><b>${counts.learning}</b><span className="pill learning" style=${{ alignSelf: "flex-start" }}>o'rganilmoqda</span></div><div><b>${counts.new}</b><span className="pill new" style=${{ alignSelf: "flex-start" }}>yangi</span></div></div>
+      <div className="stack" style=${{ gap: "4px" }}><span className="eyebrow">Oxirgi 7 kun · mashq qilingan so'zlar</span><${WeekChart} days=${data.stats.days} goal=${goal}/></div>
+      <p className="muted small">«Yodlangan» — takrorlash oralig'i 21 kundan oshgan so'zlar.</p>
+    </section>`}
+  </div>`;
+}
+
+function FlashCard({ w, flipped, onFlip, onSwipe }) {
+  const [dx, setDx] = useState(0); const start = useRef(null);
+  const down = (e) => { start.current = { x: e.clientX, moved: false }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) { } };
+  const move = (e) => { if (!start.current) return; const d = e.clientX - start.current.x; if (Math.abs(d) > 8) start.current.moved = true; if (start.current.moved) setDx(d); };
+  const up = () => { if (!start.current) return; const moved = start.current.moved; const d = dx; start.current = null; setDx(0); if (Math.abs(d) > 90) onSwipe(d > 0 ? 2 : 0); else if (!moved) onFlip(); };
+  const tint = Math.min(1, Math.abs(dx) / 120);
+  return html`<div className="cardzone" style=${{ transform: "translateX(" + dx + "px) rotate(" + dx / 22 + "deg)", transition: dx ? "none" : "transform .25s" }}
+    onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${() => { start.current = null; setDx(0); }}>
+    <div className=${"fc" + (flipped ? " flipped" : "")} role="button" tabIndex="0" aria-label=${flipped ? "Kartaning orqasi. Old tomoniga qaytarish" : "Kartani aylantirish"}
+      onKeyDown=${(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onFlip(); } }}>
+      <div className="tint" style=${{ opacity: tint * .9, background: dx > 0 ? "var(--good-soft)" : "var(--bad-soft)", color: dx > 0 ? "var(--good)" : "var(--bad)" }}>${dx > 0 ? "Bildim" : "Bilmadim"}</div>
+      <div className="fc-inner">
+        <div className="face front">
+          <div className="row between"><span className="tag">${w.deck}</span><${Speak} text=${w.en + (w.ex ? ". " + w.ex : "")} label="So'z va gapni tinglash"/></div>
+          <div className="stack" style=${{ gap: "4px" }}><div className="word">${w.en}</div>${w.ipa && html`<div className="ipa">/${w.ipa}/</div>`}</div>
+          ${w.ex && html`<p className="ex">${highlightIn(w.ex, w.en)}</p>`}
+          <div className="spacer"></div><p className="hint">Bosing — tarjimasi ochiladi</p>
+        </div>
+        <div className="face back">
+          <div className="row between"><span className="row" style=${{ gap: "6px" }}>${w.pos && html`<span className="tag">${w.pos}</span>`}<span className=${"pill " + status(w)}>${STATUS_UZ[status(w)]}</span></span><${Speak} text=${w.en}/></div>
+          <div className="stack" style=${{ gap: "4px" }}><div className="word" style=${{ fontSize: "clamp(1.7rem,7vw,2.4rem)" }}>${w.uz || "—"}</div><div className="muted">${w.en}</div></div>
+          ${w.note && html`<p>${w.note}</p>`}
+          ${w.ex && html`<p className="ex"><i>${highlightIn(w.ex, w.en)}</i><br/><span className="muted">${w.exUz}</span></p>`}
+          <div className="spacer"></div><p className="hint">O'ngga suring — bildim · chapga — bilmadim</p>
+        </div>
+      </div>
+    </div></div>`;
+}
+
+function Review({ data, deck, mutate, award, back }) {
+  const [q, setQ] = useState(() => buildQueue(data, deck));
+  const total = useRef(q.ids.length);
+  const [flipped, setFlipped] = useState(false);
+  const [res, setRes] = useState({ 0: 0, 1: 0, 2: 0 });
+  const retried = useRef(new Set());
+  const cur = q.ids.length ? data.words.find((w) => w.id === q.ids[0]) : null;
+  const grade = useCallback((g) => {
+    if (!cur) return;
+    if (!q.practice) mutate((n) => { const i = n.words.findIndex((w) => w.id === cur.id); if (i >= 0) n.words[i] = schedule(n.words[i], g); });
+    award(g === 2 ? 5 : g === 1 ? 3 : 1, g > 0 ? 1 : 0);
+    setRes((r) => ({ ...r, [g]: r[g] + 1 })); setFlipped(false);
+    setQ((s) => { const ids = s.ids.slice(1); if (g === 0 && !retried.current.has(cur.id)) { retried.current.add(cur.id); ids.push(cur.id); total.current++; } return { ...s, ids }; });
+  }, [cur, q.practice]);
+  useEffect(() => {
+    const k = (e) => { if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return; if (e.key === "1") grade(0); if (e.key === "2") grade(1); if (e.key === "3") grade(2); };
+    addEventListener("keydown", k); return () => removeEventListener("keydown", k);
+  }, [grade]);
+  if (!cur) {
+    return html`<div className="stack"><${Back} onClick=${back}/>
+      <section className="panel lift center stack pop"><span className="eyebrow">Sessiya tugadi</span><div className="bigscore">${res[2] + res[1]}</div><p className="muted">ta so'z takrorlandi</p>
+      <div className="row" style=${{ justifyContent: "center" }}><span className="tag good">Bildim: ${res[2]}</span><span className="tag">Qiyin: ${res[1]}</span><span className="tag bad">Bilmadim: ${res[0]}</span></div>
+      <button className="btn primary big" onClick=${back}>Bosh sahifaga</button></section></div>`;
+  }
+  const doneN = total.current - q.ids.length;
+  return html`<div className="stack">
+    <div className="row between"><${Back} onClick=${back}/><span className="muted small">${deck ? deck + " · " : ""}${doneN + 1} / ${total.current}</span></div>
+    <div className="progress"><i style=${{ width: (doneN / total.current) * 100 + "%" }}></i></div>
+    ${q.practice && html`<p className="note info small">Bugun takrorlanadigan so'z qolmadi — bu erkin mashq, jadval o'zgarmaydi.</p>`}
+    <${FlashCard} key=${cur.id + "-" + doneN} w=${cur} flipped=${flipped} onFlip=${() => setFlipped((f) => !f)} onSwipe=${grade}/>
+    <div className="grades">
+      <button className="btn bad" onClick=${() => grade(0)}>Bilmadim<small>yana ko'rsat</small></button>
+      <button className="btn warn" onClick=${() => grade(1)}>Qiyin<small>tezroq qaytadi</small></button>
+      <button className="btn good" onClick=${() => grade(2)}>Bildim<small>keyinroq</small></button>
+    </div>
+    <p className="muted small center" style=${{ textAlign: "center" }}>Klaviatura: 1 · 2 · 3, Enter — aylantirish</p>
+  </div>`;
+}
+
+function makeOptions(words, w, dir) {
+  const key = dir === "en" ? "uz" : "en";
+  const others = shuffle(words.filter((x) => x.id !== w.id && x[key] && norm(x[key]) !== norm(w[key]))).slice(0, 3).map((x) => x[key]);
+  return shuffle([w[key], ...others]);
+}
+function EndCard({ title, score, sub, again, back }) {
+  return html`<section className="panel lift center stack pop"><span className="eyebrow">${title}</span><div className="bigscore">${score}</div><p className="muted">${sub}</p>
+    <div className="row" style=${{ justifyContent: "center" }}><button className="btn primary" onClick=${again}>Yana o'ynash</button><button className="btn" onClick=${back}>Bosh sahifa</button></div></section>`;
+}
+
+function Quiz({ data, award, back }) {
+  const make = () => shuffle(data.words.filter((w) => w.uz)).slice(0, 10).map((w) => { const dir = Math.random() < .5 ? "en" : "uz"; return { w, dir, options: makeOptions(data.words, w, dir) }; });
+  const [qs, setQs] = useState(make); const [i, setI] = useState(0); const [pick, setPick] = useState(null); const [score, setScore] = useState(0);
+  if (i >= qs.length) return html`<div className="stack"><${Back} onClick=${back}/><${EndCard} title="Quiz natijasi" score=${score + "/" + qs.length} sub="to'g'ri javob" again=${() => { setQs(make()); setI(0); setScore(0); setPick(null); }} back=${back}/></div>`;
+  const cur = qs[i]; const answer = cur.dir === "en" ? cur.w.uz : cur.w.en;
+  const choose = (o) => { if (pick !== null) return; setPick(o); if (o === answer) { setScore((s) => s + 1); award(5, 1); } };
+  return html`<div className="stack"><div className="row between"><${Back} onClick=${back}/><span className="muted small">${i + 1} / ${qs.length} · ${score} to'g'ri</span></div>
+    <div className="progress"><i style=${{ width: (i / qs.length) * 100 + "%" }}></i></div>
+    <section className="panel lift"><span className="eyebrow">${cur.dir === "en" ? "Tarjimasini tanlang" : "Inglizchasini tanlang"}</span>
+      <div className="row between"><div className="q-word">${cur.dir === "en" ? cur.w.en : cur.w.uz}</div>${cur.dir === "en" && html`<${Speak} text=${cur.w.en}/>`}</div>
+      <div className="opts">${cur.options.map((o) => html`<button key=${o} className=${"opt" + (pick !== null && o === answer ? " right" : pick === o ? " wrong" : "")} onClick=${() => choose(o)}>${o}</button>`)}</div>
+      ${pick !== null && html`<button className="btn primary big" onClick=${() => { setI(i + 1); setPick(null); }}>Keyingisi →</button>`}
+    </section></div>`;
+}
+
+function Match({ data, mutate, award, back }) {
+  const make = () => { const ws = shuffle(data.words.filter((w) => w.uz)).slice(0, 6); return { ws, left: shuffle(ws), right: shuffle(ws) }; };
+  const [g, setG] = useState(make); const [sel, setSel] = useState({ l: null, r: null }); const [done, setDone] = useState([]); const [bad, setBad] = useState(null);
+  const [t0, setT0] = useState(Date.now()); const [now, setNow] = useState(Date.now()); const [final, setFinal] = useState(null);
+  useEffect(() => { if (final !== null) return; const id = setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, [final]);
+  const tryPair = (l, r) => {
+    if (l === null || r === null) return;
+    if (l === r) {
+      const nd = [...done, l]; setDone(nd); setSel({ l: null, r: null }); award(3, 1);
+      if (nd.length === g.ws.length) { const secs = Math.round((Date.now() - t0) / 1000); setFinal(secs); const best = data.stats.best.match; if (!best || secs < best) mutate((n) => { n.stats.best.match = secs; }); }
+    } else { setBad(l + "|" + r); setTimeout(() => { setBad(null); setSel({ l: null, r: null }); }, 380); }
+  };
+  const again = () => { setG(make()); setDone([]); setSel({ l: null, r: null }); setT0(Date.now()); setFinal(null); };
+  if (final !== null) return html`<div className="stack"><${Back} onClick=${back}/><${EndCard} title="Match tugadi" score=${final + " s"} sub=${data.stats.best.match === final ? "Yangi rekord!" : "Rekord: " + (data.stats.best.match || final) + " s"} again=${again} back=${back}/></div>`;
+  const cls = (side, id) => "opt" + (done.includes(id) ? " gone" : "") + (sel[side] === id ? " sel" : "") + (bad && bad.split("|")[side === "l" ? 0 : 1] === id ? " wrong shake" : "");
+  return html`<div className="stack"><div className="row between"><${Back} onClick=${back}/><span className="timer">${Math.floor((now - t0) / 1000)} s</span></div>
+    <p className="muted">Inglizcha so'zni va uning tarjimasini bosing.</p>
+    <div className="match">
+      <div className="stack" style=${{ gap: "8px" }}>${g.left.map((w) => html`<button key=${w.id} className=${cls("l", w.id)} onClick=${() => { const s = { ...sel, l: w.id }; setSel(s); tryPair(s.l, s.r); }}>${w.en}</button>`)}</div>
+      <div className="stack" style=${{ gap: "8px" }}>${g.right.map((w) => html`<button key=${w.id} className=${cls("r", w.id)} onClick=${() => { const s = { ...sel, r: w.id }; setSel(s); tryPair(s.l, s.r); }}>${w.uz}</button>`)}</div>
+    </div></div>`;
+}
+
+function Spell({ data, award, back }) {
+  const make = () => shuffle(data.words).slice(0, 10);
+  const [ws, setWs] = useState(make); const [i, setI] = useState(0); const [val, setVal] = useState(""); const [res, setRes] = useState(null); const [score, setScore] = useState(0);
+  const cur = ws[i];
+  useEffect(() => { if (cur) speak(cur.en, { rate: .85 }); }, [i, ws]);
+  if (!cur) return html`<div className="stack"><${Back} onClick=${back}/><${EndCard} title="Spelling natijasi" score=${score + "/" + ws.length} sub="to'g'ri yozildi" again=${() => { setWs(make()); setI(0); setScore(0); setRes(null); setVal(""); }} back=${back}/></div>`;
+  const check = (e) => { e.preventDefault(); if (res) { setI(i + 1); setVal(""); setRes(null); return; } const ok = norm(val) === norm(cur.en); setRes(ok ? "ok" : "no"); if (ok) { setScore((s) => s + 1); award(8, 1); } };
+  return html`<div className="stack"><div className="row between"><${Back} onClick=${back}/><span className="muted small">${i + 1} / ${ws.length}</span></div>
+    <form className="panel lift" onSubmit=${check}>
+      <span className="eyebrow">Eshiting va yozing</span>
+      <div className="row"><button type="button" className="btn primary" onClick=${() => speak(cur.en, { rate: .85 })}>${I.sound} Tinglash</button><button type="button" className="btn" onClick=${() => speak(cur.en, { rate: .55 })}>Sekin</button></div>
+      <p className="muted">Yordam: <b>${cur.uz}</b></p>
+      <input id="spell-input" type="text" autoComplete="off" autoCapitalize="off" spellCheck="false" placeholder="So'zni shu yerga yozing" value=${val} disabled=${!!res} onInput=${(e) => setVal(e.target.value)} autoFocus/>
+      ${res === "ok" && html`<p className="note good pop">To'g'ri! <b>${cur.en}</b> +8 XP</p>`}
+      ${res === "no" && html`<p className="note bad">To'g'risi: <b>${cur.en}</b>${cur.ipa ? " /" + cur.ipa + "/" : ""}. Siz yozdingiz: <s>${val || "—"}</s></p>`}
+      <button className="btn primary big" type="submit" disabled=${!res && !val.trim()}>${res ? "Keyingisi →" : "Tekshirish"}</button>
+    </form></div>`;
+}
+
+function Speed({ data, mutate, award, back }) {
+  const pool = data.words.filter((w) => w.uz);
+  const next = () => { const w = pool[Math.floor(Math.random() * pool.length)]; return { w, options: makeOptions(data.words, w, "en") }; };
+  const [phase, setPhase] = useState("ready"); const [left, setLeft] = useState(60); const [cur, setCur] = useState(next); const [score, setScore] = useState(0); const [flash, setFlash] = useState(null);
+  const scoreRef = useRef(0);
+  useEffect(() => {
+    if (phase !== "play") return;
+    const end = Date.now() + 60000;
+    const id = setInterval(() => { const l = Math.max(0, Math.ceil((end - Date.now()) / 1000)); setLeft(l); if (l <= 0) { clearInterval(id); setPhase("end"); const s = scoreRef.current; if (!data.stats.best.speed || s > data.stats.best.speed) mutate((n) => { n.stats.best.speed = s; }); } }, 200);
+    return () => clearInterval(id);
+  }, [phase]);
+  const choose = (o) => { if (phase !== "play") return; if (o === cur.w.uz) { scoreRef.current++; setScore(scoreRef.current); award(2, 1); setFlash("ok"); } else setFlash("no"); setTimeout(() => setFlash(null), 180); setCur(next()); };
+  if (phase === "ready") return html`<div className="stack"><${Back} onClick=${back}/><section className="panel lift center stack"><span className="eyebrow">Speed round</span><div className="bigscore">60 s</div><p className="muted">Inglizcha so'zning tarjimasini tez tanlang. Xato uchun jarima yo'q — tezlik muhim.</p>${data.stats.best.speed ? html`<p>Rekordingiz: <b>${data.stats.best.speed}</b></p>` : null}<button className="btn primary big" onClick=${() => { scoreRef.current = 0; setScore(0); setLeft(60); setPhase("play"); }}>Boshlash</button></section></div>`;
+  if (phase === "end") return html`<div className="stack"><${Back} onClick=${back}/><${EndCard} title="Vaqt tugadi" score=${score} sub=${"to'g'ri javob · rekord: " + (data.stats.best.speed || score)} again=${() => { scoreRef.current = 0; setScore(0); setLeft(60); setCur(next()); setPhase("play"); }} back=${back}/></div>`;
+  return html`<div className="stack"><div className="row between"><span className="timer" style=${{ color: left <= 10 ? "var(--bad)" : "inherit" }}>${left} s</span><span className="timer">${score} ✓</span></div>
+    <div className="progress"><i style=${{ width: (left / 60) * 100 + "%" }}></i></div>
+    <section className="panel lift" style=${{ outline: flash ? "3px solid " + (flash === "ok" ? "var(--good)" : "var(--bad)") : "none" }}>
+      <div className="q-word">${cur.w.en}</div>
+      <div className="opts">${cur.options.map((o) => html`<button key=${o} className="opt" onClick=${() => choose(o)}>${o}</button>`)}</div>
+    </section></div>`;
+}
+
+function WordList({ data, mutate, back, toast }) {
+  const [qv, setQv] = useState(""); const [deck, setDeck] = useState(""); const [open, setOpen] = useState(null); const [confirmDel, setConfirmDel] = useState(null); const [draft, setDraft] = useState({});
+  const decks = [...new Set(data.words.map((w) => w.deck))];
+  const list = data.words.filter((w) => (!deck || w.deck === deck) && (!qv || norm(w.en + " " + w.uz).includes(norm(qv)))).sort((a, b) => a.en.localeCompare(b.en));
+  const save = (id) => { mutate((n) => { const w = n.words.find((x) => x.id === id); if (w) Object.assign(w, draft); }); setOpen(null); toast("Saqlandi"); };
+  return html`<div className="stack"><${Back} onClick=${back}/>
+    <div className="row between"><h2>Barcha so'zlar</h2><span className="muted small">${list.length} ta</span></div>
+    <div className="row" style=${{ flexWrap: "nowrap" }}><input id="wl-search" type="search" placeholder="Qidirish…" value=${qv} onInput=${(e) => setQv(e.target.value)}/>
+      <select id="wl-deck" value=${deck} onChange=${(e) => setDeck(e.target.value)} style=${{ maxWidth: "42%" }}><option value="">Barcha to'plamlar</option>${decks.map((d) => html`<option key=${d} value=${d}>${d}</option>`)}</select></div>
+    <div className="panel" style=${{ paddingBlock: "4px" }}><div className="wl">${list.length === 0 ? html`<p className="muted" style=${{ padding: "12px 0" }}>Hech narsa topilmadi.</p>` : list.map((w) => html`<div className="wrow" key=${w.id}>
+      <button className="wmain" onClick=${() => { setOpen(open === w.id ? null : w.id); setDraft({ en: w.en, uz: w.uz, ex: w.ex, exUz: w.exUz, note: w.note, deck: w.deck }); setConfirmDel(null); }}>
+        <span className="en">${w.en} <span className=${"pill " + status(w)}>${STATUS_UZ[status(w)]}</span></span><span className="uz">${w.uz}</span></button>
+      <${Speak} text=${w.en}/>
+      ${open === w.id && html`<div className="edit">
+        ${["en", "uz", "ex", "exUz", "note", "deck"].map((f) => html`<label key=${f} className="fld">${{ en: "Inglizcha", uz: "Tarjima", ex: "Misol gap", exUz: "Misol tarjimasi", note: "Izoh", deck: "To'plam" }[f]}<input id=${"ed-" + f} type="text" value=${draft[f] || ""} onInput=${(e) => setDraft({ ...draft, [f]: e.target.value })}/></label>`)}
+        <div className="row"><button className="btn primary" onClick=${() => save(w.id)}>Saqlash</button>
+        ${confirmDel === w.id ? html`<button className="btn bad" onClick=${() => { mutate((n) => { n.words = n.words.filter((x) => x.id !== w.id); }); setOpen(null); toast("O'chirildi"); }}>Ha, o'chirish</button>` : html`<button className="btn" onClick=${() => setConfirmDel(w.id)}>O'chirish</button>`}</div>
+      </div>`}
+    </div>`)}</div></div></div>`;
+}
+
+function AddWords({ data, mutate, award, back, toast }) {
+  const [mode, setMode] = useState("text");
+  const decks = [...new Set(data.words.map((w) => w.deck))];
+  const [deck, setDeck] = useState(decks[0] || "Umumiy");
+  const [text, setText] = useState(""); const [items, setItems] = useState(null);
+  const [img, setImg] = useState(null); const [imgUrl, setImgUrl] = useState(null); const [imgOk, setImgOk] = useState(null);
+  const [st, run] = useAsync(); const [prog, setProg] = useState(null);
+  const level = (data.profile && data.profile.level) || "A2";
+  useEffect(() => { getSample().then((s) => s ? s.limits().then((l) => setImgOk(!!(l && l.images))).catch(() => setImgOk(false)) : setImgOk(false)); }, []);
+  useEffect(() => () => { if (imgUrl) URL.revokeObjectURL(imgUrl); }, [imgUrl]);
+  const existing = new Set(data.words.map((w) => norm(w.en)));
+  const parse = () => { const p = parseLines(text, mode === "text"); setItems(p.map((x) => ({ ...x, k: newId() }))); };
+  const readImage = () => run(async () => {
+    const r = await askJSON("The image is a photo of a student's vocabulary list (a notebook page or a book). Extract every English word or phrase together with its translation. Translations are usually Uzbek; if they are Russian, translate them into Uzbek (Latin). If a word has no translation, use an empty string. Ignore page numbers and headings. Reply with only a JSON array of objects {\"en\": string, \"uz\": string}. If there are no English words, reply [].", { tier: "default", images: img });
+    const list = arr(r).map((x) => ({ en: str(x.en).trim(), uz: str(x.uz).trim(), k: newId() })).filter((x) => x.en);
+    if (!list.length) throw { code: "empty_completion" };
+    setItems(list);
+  });
+  const saveAll = async (withAI) => {
+    const clean = items.map((x) => ({ en: x.en.trim(), uz: x.uz.trim() })).filter((x) => x.en && !existing.has(norm(x.en)));
+    if (!clean.length) { toast("Yangi so'z yo'q — hammasi lug'atda bor"); return; }
+    let full = clean;
+    if (withAI) {
+      setProg([0, clean.length]);
+      const r = await run(() => enrichWords(clean, level, (a, b) => setProg([a, b])));
+      setProg(null);
+      if (!r) return;
+      full = r;
+    }
+    const d = deck.trim() || "Umumiy";
+    mutate((n) => { const have = new Set(n.words.map((w) => norm(w.en))); full.forEach((p) => { if (!have.has(norm(p.en))) { n.words.push(makeWord(p, d)); have.add(norm(p.en)); } }); });
+    award(full.length, 0); toast(full.length + " ta kartochka yasaldi"); back();
+  };
+  const dupCount = items ? items.filter((x) => existing.has(norm(x.en))).length : 0;
+  const upd = (k, f, v) => setItems(items.map((x) => (x.k === k ? { ...x, [f]: v } : x)));
+
+  return html`<div className="stack"><${Back} onClick=${back}/>
+    <h2>So'z qo'shish</h2>
+    ${!items && html`<div className="seg" role="group" aria-label="Kiritish usuli">
+      ${[["text", "Yozish"], ["photo", "Rasmdan"], ["en", "Faqat inglizcha"]].map(([id, t]) => html`<button key=${id} aria-pressed=${mode === id} onClick=${() => setMode(id)}>${t}</button>`)}</div>`}
+    <label className="fld">To'plam nomi<input id="add-deck" type="text" list="deck-list" value=${deck} onInput=${(e) => setDeck(e.target.value)} placeholder="masalan: Unit 3"/>
+      <datalist id="deck-list">${decks.map((d) => html`<option key=${d} value=${d}/>`)}</datalist></label>
+
+    ${!items && mode !== "photo" && html`<div className="panel">
+      <p className="muted small">${mode === "text" ? "Har qatorga bitta: «word - tarjima». Ajratgich -, :, —, tab, = yoki vergul bo'lishi mumkin. Ro'yxatni ko'chirib qo'yish ham mumkin." : "Har qatorga bitta inglizcha so'z. Tarjima, ma'no va misol gapni AI o'zi to'ldiradi."}</p>
+      <textarea id="add-text" value=${text} onInput=${(e) => setText(e.target.value)} placeholder=${mode === "text" ? "apple - olma\nbeautiful — chiroyli\nto borrow: qarzga olmoq\nlook after, g'amxo'rlik qilmoq" : "apple\nbeautiful\nlook after\nthrough"}></textarea>
+      <button className="btn primary big" disabled=${!text.trim()} onClick=${parse}>Ajratish (${parseLines(text, mode === "text").length})</button>
+    </div>`}
+
+    ${!items && mode === "photo" && html`<div className="stack">
+      ${imgOk === false && html`<p className="note warn">Bu oynada AI rasmni ko'ra olmaydi. Rasmdan o'qish uchun ilovani claude.ai ichida oching (va ruxsat bering) yoki so'zlarni «Yozish» usuli bilan kiriting.</p>`}
+      <label className="drop" htmlFor="add-photo">
+        ${imgUrl ? html`<img src=${imgUrl} alt="Yuklangan lug'at rasmi"/>` : html`<b>Daftar yoki kitobdagi lug'at rasmini tanlang</b>`}
+        <span className="muted small">JPG, PNG yoki WebP · yorug' joyda, tekis suratga oling</span>
+        <span className="btn">${imgUrl ? "Boshqa rasm tanlash" : "Rasm tanlash"}</span>
+        <input id="add-photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange=${(e) => { const f = e.target.files && e.target.files[0]; if (f) { setImg(f); setImgUrl(URL.createObjectURL(f)); } }}/>
+      </label>
+      ${st.loading ? html`<${Loading} text="Rasmdagi so'zlar o'qilmoqda…"/>` : html`<button className="btn primary big" disabled=${!img || imgOk === false} onClick=${readImage}>Rasmdagi so'zlarni o'qish</button>`}
+      <${ErrorBox} msg=${st.error} onRetry=${img ? readImage : null}/>
+    </div>`}
+
+    ${items && html`<section className="panel lift">
+      <div className="row between"><h3>Tekshirib chiqing</h3><span className="muted small">${items.length} ta${dupCount ? " · " + dupCount + " tasi lug'atda bor" : ""}</span></div>
+      <p className="muted small">Xatolarni tuzating yoki keraksiz qatorni ✕ bilan o'chiring. Bo'sh tarjimani AI to'ldiradi.</p>
+      <div className="prev">${items.map((x) => html`<div className="prow" key=${x.k}>
+        <input id=${"en-" + x.k} type="text" value=${x.en} aria-label="Inglizcha" onInput=${(e) => upd(x.k, "en", e.target.value)}/>
+        <input id=${"uz-" + x.k} type="text" value=${x.uz} aria-label="Tarjima" placeholder="AI to'ldiradi" onInput=${(e) => upd(x.k, "uz", e.target.value)}/>
+        <button className="x" aria-label="O'chirish" onClick=${() => setItems(items.filter((y) => y.k !== x.k))}>✕</button>
+        ${existing.has(norm(x.en)) && html`<span className="dup">Bu so'z lug'atda bor — qayta qo'shilmaydi</span>`}
+      </div>`)}</div>
+      <button className="btn" onClick=${() => setItems([...items, { en: "", uz: "", k: newId() }])}>+ Qator qo'shish</button>
+      ${st.loading && prog ? html`<${Loading} text=${"Kartochkalar tayyorlanmoqda: " + prog[0] + " / " + prog[1] + " (transkripsiya, misol gap, izoh)"}/>` : html`
+        <button className="btn primary big" disabled=${!items.some((x) => x.en.trim())} onClick=${() => saveAll(true)}>Kartochka yasash (${items.filter((x) => x.en.trim() && !existing.has(norm(x.en))).length})</button>
+        ${st.error && html`<div className="stack"><${ErrorBox} msg=${st.error} onRetry=${() => saveAll(true)}/><button className="btn" onClick=${() => saveAll(false)}>AI'siz saqlash (faqat so'z va tarjima)</button></div>`}
+        <button className="btn ghost" onClick=${() => setItems(null)}>← Tahrirga qaytish</button>`}
+    </section>`}
+  </div>`;
+}
+
+function Vocabulary(props) {
+  const { data, mutate, award, toast, view, setView } = props;
+  const [deck, setDeck] = useState(null);
+  const go = (v, d) => { setDeck(d || null); setView(v); scrollTo(0, 0); };
+  const back = () => { stopSpeak(); setView("home"); scrollTo(0, 0); };
+  const addStarter = () => { mutate((n) => { const have = new Set(n.words.map((w) => norm(w.en))); STARTER.forEach((p) => { if (!have.has(norm(p.en))) n.words.push(makeWord(p, "Starter")); }); }); toast("20 ta kartochka qo'shildi"); };
+  const p = { data, mutate, award, toast, back };
+  if (view === "review") return html`<${Review} ...${p} deck=${deck}/>`;
+  if (view === "add") return html`<${AddWords} ...${p}/>`;
+  if (view === "list") return html`<${WordList} ...${p}/>`;
+  if (view === "quiz") return html`<${Quiz} ...${p}/>`;
+  if (view === "match") return html`<${Match} ...${p}/>`;
+  if (view === "spell") return html`<${Spell} ...${p}/>`;
+  if (view === "speed") return html`<${Speed} ...${p}/>`;
+  return html`<${VocabHome} data=${data} go=${go} addStarter=${addStarter}/>`;
+}
+
+/* ================= READING ================= */
+function useWordAdder(mutate, award, toast, deckName) {
+  return useCallback((e) => { mutate((n) => { if (!n.words.some((w) => norm(w.en) === norm(e.en))) n.words.push(makeWord(e, deckName)); }); award(2, 0); toast("«" + e.en + "» lug'atga qo'shildi"); }, [deckName]);
+}
+function NewWordChips({ words, onTap }) {
+  if (!words.length) return null;
+  return html`<div className="stack" style=${{ gap: "6px" }}><span className="eyebrow">Yangi so'zlar</span><div className="row" style=${{ gap: "6px" }}>${words.map((w) => html`<button key=${w.en} className="tag btnlike" style=${{ background: "var(--hl)" }} onClick=${() => onTap(w.en)}>${w.en} — ${w.uz}</button>`)}</div></div>`;
+}
+
+function Reading({ data, mutate, award, toast }) {
+  const level = (data.profile && data.profile.level) || "A2";
+  const [item, setItem] = useState(SAMPLE_READING); const [topic, setTopic] = useState("");
+  const [answers, setAnswers] = useState({}); const [checked, setChecked] = useState(false);
+  const [pop, setPop] = useState(null); const [st, run] = useAsync();
+  const addWord = useWordAdder(mutate, award, toast, "Reading");
+  const userSet = useMemo(() => new Set(data.words.map((w) => norm(w.en))), [data.words]);
+  const newSet = useMemo(() => new Set(arr(item.newWords).map((w) => norm(w.en))), [item]);
+  const generate = () => run(async () => {
+    const known = pickTargets(data.words, 8).map((w) => w.en);
+    const avoid = data.words.slice(-150).map((w) => w.en).join(", ");
+    const r = await askJSON(
+      "Write a short reading text for an Uzbek learner of English at CEFR level " + level + ".\n" +
+      "Topic: " + (topic.trim() || "any interesting everyday topic, preferably connected to Uzbekistan or teenage/adult life") + ".\n" +
+      "Length: " + ({ A1: "80-110", A2: "120-160", B1: "160-210", B2: "200-260", C1: "240-300" }[level] || "150") + " words, 2-3 paragraphs separated by a blank line.\n" +
+      (known.length ? "Naturally use these words the learner already studies: " + known.join(", ") + ".\n" : "") +
+      "Include 3-5 words that are probably NEW for this level (not in this list: " + (avoid || "none") + ").\n" +
+      'Reply with only a JSON object: {"title": string, "text": string, "newWords": [{"en": word exactly as in the text, "uz": Uzbek Latin translation}], "questions": [{"q": comprehension question in English, "options": [4 short answers], "answer": index 0-3 of the correct option}] } with 4 questions.',
+      { tier: "default" });
+    const it = { title: str(r && r.title), text: str(r && r.text), newWords: arr(r && r.newWords).map((w) => ({ en: str(w.en), uz: str(w.uz) })).filter((w) => w.en), questions: cleanQuestions(r && r.questions), level };
+    if (!it.text) throw { code: "invalid_json" };
+    setItem(it); setAnswers({}); setChecked(false);
+  });
+  const score = checked ? item.questions.filter((q, i) => answers[i] === q.answer).length : 0;
+  const check = () => { setChecked(true); const s = item.questions.filter((q, i) => answers[i] === q.answer).length; if (s) award(s * 4, 0); toast(s + " / " + item.questions.length + " to'g'ri"); };
+  return html`<div className="stack">
+    <div className="stack" style=${{ gap: "4px" }}><span className="eyebrow">Reading · ${level}</span><h2>O'qing, so'zni bosing, lug'atga qo'shing</h2></div>
+    <section className="panel">
+      <label className="fld">Mavzu (ixtiyoriy)<input id="rd-topic" type="text" value=${topic} onInput=${(e) => setTopic(e.target.value)} placeholder="masalan: futbol, kosmos, bozor"/></label>
+      <div className="row" style=${{ gap: "6px" }}>${TOPICS.map((t) => html`<button key=${t} className="tag btnlike" onClick=${() => setTopic(t)}>${t}</button>`)}</div>
+      <button className="btn primary big" disabled=${st.loading} onClick=${generate}>Yangi matn</button>
+    </section>
+    ${st.loading ? html`<${Loading}/>` : html`<${ErrorBox} msg=${st.error} onRetry=${generate}/>`}
+    ${!st.loading && html`<section className="panel lift">
+      ${item.sample && html`<p className="note info small">Bu namuna matn. «Yangi matn» tugmasi darajangizga mos yangisini tuzadi.</p>`}
+      <div className="row between"><h3 style=${{ fontSize: "1.35rem" }}>${item.title}</h3><${Speak} text=${item.text} label="Matnni tinglash"/></div>
+      <${TapText} text=${item.text} userSet=${userSet} newSet=${newSet} onWord=${(t, s) => setPop({ t, s })}/>
+      <p className="muted small"><span style=${{ background: "var(--hl)", padding: "0 4px" }}>sariq</span> — yangi so'z, <span style=${{ textDecoration: "underline dotted var(--good)", textUnderlineOffset: "4px" }}>nuqta chiziq</span> — lug'atingizda bor. Istalgan so'zni bosing.</p>
+      <${NewWordChips} words=${arr(item.newWords)} onTap=${(w) => setPop({ t: w, s: (item.text.match(new RegExp("[^.!?]*\\b" + esc(w) + "\\b[^.!?]*[.!?]?", "i")) || [w])[0].trim() })}/>
+    </section>`}
+    ${!st.loading && item.questions.length > 0 && html`<section className="panel">
+      <h3>Tushunish savollari</h3>
+      <${Questions} questions=${item.questions} answers=${answers} setAnswers=${setAnswers} checked=${checked}/>
+      ${checked ? html`<p className=${"note " + (score === item.questions.length ? "good" : "info")}>${score} / ${item.questions.length} to'g'ri${score ? " · +" + score * 4 + " XP" : ""}</p>`
+        : html`<button className="btn primary big" disabled=${Object.keys(answers).length < item.questions.length} onClick=${check}>Tekshirish</button>`}
+    </section>`}
+    ${pop && html`<${WordSheet} token=${pop.t} sentence=${pop.s} hints=${item.newWords} data=${data} level=${level} onAdd=${addWord} onClose=${() => setPop(null)}/>`}
+  </div>`;
+}
+
+/* ================= LISTENING ================= */
+function Listening({ data, mutate, award, toast }) {
+  const level = (data.profile && data.profile.level) || "A2";
+  const [item, setItem] = useState(SAMPLE_LISTENING); const [rate, setRate] = useState(1);
+  const [playing, setPlaying] = useState(false); const [lineIdx, setLineIdx] = useState(-1);
+  const [answers, setAnswers] = useState({}); const [checked, setChecked] = useState(false); const [reveal, setReveal] = useState(false);
+  const [dict, setDict] = useState({}); const [dres, setDres] = useState({});
+  const [pop, setPop] = useState(null); const [st, run] = useAsync(); const [topic, setTopic] = useState("");
+  const addWord = useWordAdder(mutate, award, toast, "Listening");
+  const userSet = useMemo(() => new Set(data.words.map((w) => norm(w.en))), [data.words]);
+  const newSet = useMemo(() => new Set(arr(item.newWords).map((w) => norm(w.en))), [item]);
+  const token = useRef(0);
+  useEffect(() => () => { token.current++; stopSpeak(); }, []);
+  const play = () => {
+    if (!window.speechSynthesis) { toast("Bu brauzerda ovozli o'qish yo'q"); return; }
+    stopSpeak(); const my = ++token.current; setPlaying(true);
+    const voices = englishVoices(); const speakers = [...new Set(item.lines.map((l) => l.speaker))];
+    item.lines.forEach((l, i) => {
+      const u = new SpeechSynthesisUtterance(l.text); u.lang = "en-US"; u.rate = rate * 0.95;
+      const si = speakers.indexOf(l.speaker);
+      if (voices.length > 1) u.voice = voices[si % voices.length]; else { if (voices[0]) u.voice = voices[0]; u.pitch = si % 2 ? 1.3 : 0.9; }
+      u.onstart = () => { if (token.current === my) setLineIdx(i); };
+      if (i === item.lines.length - 1) u.onend = () => { if (token.current === my) { setPlaying(false); setLineIdx(-1); } };
+      speechSynthesis.speak(u);
+    });
+  };
+  const stop = () => { token.current++; stopSpeak(); setPlaying(false); setLineIdx(-1); };
+  const generate = () => { stop(); run(async () => {
+    const known = pickTargets(data.words, 6).map((w) => w.en);
+    const r = await askJSON(
+      "Write a short listening script for an Uzbek learner of English at CEFR level " + level + ". Either a natural dialogue between 2 people with names, or a short monologue story told by one narrator.\n" +
+      "Topic: " + (topic.trim() || "an everyday situation (shop, school, travel, doctor, phone call, weekend plans)") + ". " + ({ A1: "6-8", A2: "7-10", B1: "8-12", B2: "10-14", C1: "12-16" }[level] || "8") + " lines, each one or two sentences.\n" +
+      (known.length ? "Naturally use some of these words: " + known.join(", ") + ".\n" : "") +
+      'Reply with only a JSON object: {"title": string, "lines": [{"speaker": name, "text": string}], "newWords": [{"en": word or phrase exactly as in the script, "uz": Uzbek Latin translation}] (3-4 items), "questions": [{"q": string, "options": [4 strings], "answer": 0-3}] (3 questions), "dictation": [3 short sentences copied exactly from the script]}',
+      { tier: "default" });
+    const it = { title: str(r && r.title), lines: arr(r && r.lines).map((l) => ({ speaker: str(l.speaker) || "Narrator", text: str(l.text) })).filter((l) => l.text), newWords: arr(r && r.newWords).map((w) => ({ en: str(w.en), uz: str(w.uz) })).filter((w) => w.en), questions: cleanQuestions(r && r.questions), dictation: arr(r && r.dictation).map(str).filter(Boolean).slice(0, 4), level };
+    if (!it.lines.length) throw { code: "invalid_json" };
+    setItem(it); setAnswers({}); setChecked(false); setReveal(false); setDict({}); setDres({});
+  }); };
+  const fullText = item.lines.map((l) => l.text).join(" ");
+  const check = () => { setChecked(true); setReveal(true); const s = item.questions.filter((q, i) => answers[i] === q.answer).length; if (s) award(s * 4, 0); toast(s + " / " + item.questions.length + " to'g'ri"); };
+  const checkDict = (i) => { const r = wordDiff(item.dictation[i], dict[i] || ""); setDres({ ...dres, [i]: r }); if (r.ok) award(5, 1); };
+  return html`<div className="stack">
+    <div className="stack" style=${{ gap: "4px" }}><span className="eyebrow">Listening · ${level}</span><h2>Tinglang, javob bering, keyin matnni oching</h2></div>
+    <section className="panel">
+      <label className="fld">Mavzu (ixtiyoriy)<input id="ls-topic" type="text" value=${topic} onInput=${(e) => setTopic(e.target.value)} placeholder="masalan: aeroportda, shifokorda"/></label>
+      <button className="btn primary big" disabled=${st.loading} onClick=${generate}>Yangi audio-mashq</button>
+    </section>
+    ${st.loading ? html`<${Loading}/>` : html`<${ErrorBox} msg=${st.error} onRetry=${generate}/>`}
+    ${!st.loading && html`<section className="panel lift">
+      ${item.sample && html`<p className="note info small">Bu namuna dialog. «Yangi audio-mashq» darajangizga mos yangisini tuzadi.</p>`}
+      <h3 style=${{ fontSize: "1.3rem" }}>${item.title}</h3>
+      <div className="row"><button className=${"btn " + (playing ? "" : "primary")} onClick=${playing ? stop : play}>${playing ? I.stop : I.play} ${playing ? "To'xtatish" : "Tinglash"}</button>
+        <div className="seg" role="group" aria-label="Tezlik" style=${{ flex: 1, minWidth: "180px" }}>${[0.75, 1, 1.25].map((r) => html`<button key=${r} aria-pressed=${rate === r} onClick=${() => { setRate(r); if (playing) stop(); }}>${r}x</button>`)}</div></div>
+      ${reveal ? html`<div className="stack" style=${{ gap: "2px" }}>${item.lines.map((l, i) => html`<div key=${i} className=${"line" + (lineIdx === i ? " now" : "")}><span className="sp">${l.speaker}</span><${TapText} text=${l.text} userSet=${userSet} newSet=${newSet} onWord=${(t) => setPop({ t, s: l.text })}/></div>`)}</div>`
+        : html`<div className="hiddenText">${playing && lineIdx >= 0 ? html`<b>${item.lines[lineIdx].speaker}</b> gapiryapti… (${lineIdx + 1}/${item.lines.length})` : "Matn yashirin. Savollarga javob bergach ochiladi."}<br/><button className="btn ghost small" onClick=${() => setReveal(true)}>Baribir ko'rsatish</button></div>`}
+      ${reveal && html`<${NewWordChips} words=${arr(item.newWords)} onTap=${(w) => setPop({ t: w, s: (item.lines.find((l) => norm(l.text).includes(norm(w))) || { text: w }).text })}/>`}
+    </section>`}
+    ${!st.loading && item.questions.length > 0 && html`<section className="panel"><h3>Savollar</h3>
+      <${Questions} questions=${item.questions} answers=${answers} setAnswers=${setAnswers} checked=${checked}/>
+      ${checked ? html`<p className="note info">${item.questions.filter((q, i) => answers[i] === q.answer).length} / ${item.questions.length} to'g'ri. Matn ochildi — yangi so'zlarni bosib lug'atga qo'shing.</p>`
+        : html`<button className="btn primary big" disabled=${Object.keys(answers).length < item.questions.length} onClick=${check}>Tekshirish</button>`}</section>`}
+    ${!st.loading && item.dictation && item.dictation.length > 0 && html`<section className="panel"><h3>Dictation</h3><p className="muted small">Gapni tinglang va eshitganingizni aynan yozing.</p>
+      ${item.dictation.map((s, i) => html`<div key=${i} className="qblock">
+        <div className="row" style=${{ flexWrap: "nowrap" }}><${Speak} text=${s} rate=${rate * 0.9} label=${(i + 1) + "-gapni tinglash"}/><input id=${"dict-" + i} type="text" autoComplete="off" autoCapitalize="off" spellCheck="false" value=${dict[i] || ""} onInput=${(e) => setDict({ ...dict, [i]: e.target.value })} placeholder=${(i + 1) + "-gap"}/><button className="btn" disabled=${!(dict[i] || "").trim()} onClick=${() => checkDict(i)}>✓</button></div>
+        ${dres[i] && html`<p className="diff">${dres[i].ok ? html`<span className="ok"><b>To'g'ri!</b> ${s}</span>` : dres[i].out.map((x, k) => html`<span key=${k} className=${x.k}>${x.t} </span>`)}</p>`}
+        ${dres[i] && !dres[i].ok && html`<p className="muted small">Qizil to'lqinli — tushib qolgan so'z, ustidan chizilgan — ortiqcha so'z.</p>`}
+      </div>`)}</section>`}
+    ${pop && html`<${WordSheet} token=${pop.t} sentence=${pop.s} hints=${item.newWords} data=${data} level=${level} onAdd=${addWord} onClose=${() => setPop(null)}/>`}
+  </div>`;
+}
+
+/* ================= SPEAKING ================= */
+function NeedWords({ n }) {
+  return html`<section className="panel center stack"><h3>Avval so'z kerak</h3><p className="muted">Bu mashq yodlagan so'zlaringizni ishlatadi. Lug'atga kamida ${n} ta so'z qo'shing (masalan, Starter to'plam).</p></section>`;
+}
+function Speaking({ data, award, toast }) {
+  const [mode, setMode] = useState("talk");
+  if (data.words.length < 3) return html`<div className="stack"><h2>Speaking</h2><${NeedWords} n=${3}/></div>`;
+  return html`<div className="stack">
+    <div className="stack" style=${{ gap: "4px" }}><span className="eyebrow">Speaking</span><h2>Gapiring — yodlagan so'zlaringiz bilan</h2></div>
+    <div className="seg" role="group" aria-label="Mashq turi"><button aria-pressed=${mode === "talk"} onClick=${() => setMode("talk")}>Suhbat</button><button aria-pressed=${mode === "pron"} onClick=${() => setMode("pron")}>Talaffuz</button></div>
+    ${mode === "pron" ? html`<${Pronounce} data=${data} award=${award}/>` : html`<${Talk} data=${data} award=${award} toast=${toast}/>`}
+  </div>`;
+}
+function Pronounce({ data, award }) {
+  const [list, setList] = useState(() => { const seen = data.words.filter((w) => w.last); return shuffle(seen.length >= 5 ? seen : data.words).slice(0, 10); });
+  const [i, setI] = useState(0); const [heard, setHeard] = useState(""); const [ok, setOk] = useState(null); const [typed, setTyped] = useState("");
+  const w = list[i % list.length];
+  const judge = (text, alts) => {
+    const target = norm(w.en); const cands = [text, ...(alts || [])].map(norm);
+    const good = cands.some((c) => c === target || (" " + c + " ").includes(" " + target + " "));
+    setHeard(text); setOk(good); if (good) award(4, 1);
+  };
+  const next = () => { setI(i + 1); setHeard(""); setOk(null); setTyped(""); };
+  return html`<section className="panel lift">
+    <div className="row between"><span className="eyebrow">${(i % list.length) + 1} / ${list.length}</span><span className="muted small">${w.uz}</span></div>
+    <div className="row between"><div><div className="q-word">${w.en}</div>${w.ipa && html`<div className="ipa">/${w.ipa}/</div>`}</div><${Speak} text=${w.en} rate=${.85}/></div>
+    ${w.ex && html`<p className="muted">${highlightIn(w.ex, w.en)}</p>`}
+    <p className="small">1) 🔊 bilan tinglang. 2) Mikrofonni bosib so'zni ayting.</p>
+    <${MicButton} key=${i} label="So'zni aytish" onFinal=${judge}/>
+    <form className="row" style=${{ flexWrap: "nowrap" }} onSubmit=${(e) => { e.preventDefault(); if (typed.trim()) judge(typed.trim(), []); }}>
+      <input id="pron-typed" type="text" autoComplete="off" value=${typed} onInput=${(e) => setTyped(e.target.value)} placeholder="yoki klaviatura 🎤 orqali shu yerga ayting"/><button className="btn" type="submit" disabled=${!typed.trim()}>✓</button></form>
+    ${ok === true && html`<p className="note good pop">✅ Zo'r! To'g'ri talaffuz. Eshitildi: «${heard}» · +4 XP</p>`}
+    ${ok === false && html`<p className="note warn">Yana urinib ko'ring. Eshitildi: «${heard}». Avval 🔊 bilan tinglab, sekinroq ayting.</p>`}
+    <button className="btn primary big" onClick=${next}>Keyingi so'z →</button>
+  </section>`;
+}
+function Talk({ data, award, toast }) {
+  const level = (data.profile && data.profile.level) || "A2";
+  const [task, setTask] = useState(() => ({ topic: "Dam olish kuni", question: "What do you usually do at the weekend? Tell me about your last weekend.", hint: "O'tgan dam olish kuningiz haqida 3–5 gap ayting.", targets: pickTargets(data.words, 4).map((w) => w.en), sample: true }));
+  const [answer, setAnswer] = useState(""); const [interim, setInterim] = useState(null); const [result, setResult] = useState(null);
+  const [st, run] = useAsync(); const [st2, run2] = useAsync();
+  const newTask = () => run(async () => {
+    const targets = pickTargets(data.words, 4).map((w) => w.en);
+    const r = await askJSON("You are a friendly English speaking coach for an Uzbek learner (CEFR " + level + "). Invent one speaking prompt that naturally invites the learner to use these target words: " + targets.join(", ") + ".\n" +
+      'Reply with only JSON: {"topic": short topic in Uzbek, "question": 1-2 questions in simple English for level ' + level + ', "hint": one Uzbek sentence telling what to talk about and how long (3-6 sentences)}', { tier: "quick", cache: false });
+    if (!r || !r.question) throw { code: "invalid_json" };
+    setTask({ topic: str(r.topic), question: str(r.question), hint: str(r.hint), targets }); setAnswer(""); setResult(null);
+  });
+  const evaluate = () => run2(async () => {
+    const r = await askJSON("You are an encouraging English speaking coach for an Uzbek learner (CEFR " + level + ").\n" +
+      "Question: " + task.question + "\nTarget words: " + task.targets.join(", ") + "\n" +
+      "Learner's spoken answer (automatic speech-to-text, so ignore punctuation and capitalisation, and do not count likely transcription glitches as errors):\n\"\"\"" + answer.slice(0, 3000) + "\"\"\"\n" +
+      'Reply with only JSON: {"usedWords": [target words the learner used, any form], "errors": [{"wrong": exact fragment from the answer, "right": corrected fragment, "explain": short explanation in Uzbek Latin}] (max 5, most important grammar/vocabulary errors), "improved": a natural improved version of the whole answer at level ' + level + ' that uses all target words, "score": integer 1-10 (fluency, grammar, vocabulary, use of target words), "feedback": 1-2 warm Uzbek sentences: what was good and one thing to practise}', { tier: "default", cache: false });
+    const res = { used: arr(r && r.usedWords).map(str), errors: arr(r && r.errors).map((e) => ({ wrong: str(e.wrong), right: str(e.right), explain: str(e.explain) })).filter((e) => e.right), improved: str(r && r.improved), score: Math.max(1, Math.min(10, Math.round(Number(r && r.score) || 0))), feedback: str(r && r.feedback) };
+    if (!r || !(Number(r.score) > 0)) throw { code: "invalid_json" };
+    setResult(res); award(res.score * 2, res.used.length); toast("Baho: " + res.score + " / 10");
+  });
+  const shown = interim !== null ? interim : answer;
+  const usedLive = task.targets.filter((t) => usesWord(shown, t));
+  return html`<div className="stack">
+    <section className="panel lift">
+      <div className="row between"><span className="eyebrow">${task.topic}</span><button className="btn ghost" disabled=${st.loading} onClick=${newTask}>Boshqa savol ↻</button></div>
+      ${st.loading ? html`<div className="skel"><i style=${{ width: "90%" }}></i><i style=${{ width: "70%" }}></i></div>` : html`<div className="row between" style=${{ flexWrap: "nowrap", alignItems: "flex-start" }}><h3 style=${{ fontSize: "1.3rem" }}>${task.question}</h3><${Speak} text=${task.question}/></div>`}
+      <${ErrorBox} msg=${st.error} onRetry=${newTask}/>
+      <p className="muted small">${task.hint}</p>
+      <div className="stack" style=${{ gap: "6px" }}><span className="eyebrow">Shu so'zlarni ishlating</span><div className="row" style=${{ gap: "6px" }}>${task.targets.map((t) => html`<span key=${t} className=${"tag" + (usedLive.includes(t) ? " good" : "")}>${usedLive.includes(t) ? "✓ " : ""}${t}</span>`)}</div></div>
+    </section>
+    <section className="panel">
+      <${MicButton} continuous=${true} label="Javobni gapirish" onInterim=${(t) => setInterim((answer ? answer + " " : "") + t)} onFinal=${(t) => { setAnswer((a) => (a ? a + " " : "") + t); setInterim(null); }}/>
+      <label className="fld">Sizning javobingiz<textarea id="talk-answer" value=${shown} onInput=${(e) => { setInterim(null); setAnswer(e.target.value); }} placeholder="Mikrofon bilan gapiring — matn shu yerda paydo bo'ladi. Klaviaturadagi 🎤 ham ishlaydi."></textarea></label>
+      ${st2.loading ? html`<${Loading} text="Javobingiz baholanmoqda…"/>` : html`<button className="btn primary big" disabled=${answer.trim().split(/\s+/).length < 3} onClick=${evaluate}>Baholash</button>`}
+      <${ErrorBox} msg=${st2.error} onRetry=${evaluate}/>
+    </section>
+    ${result && !st2.loading && html`<${Feedback} result=${result} targets=${task.targets} text=${answer}/>`}
+  </div>`;
+}
+function Feedback({ result, targets, text, correctedLabel }) {
+  const segs = markText(text, result.errors, result.used.length ? result.used : targets.filter((t) => usesWord(text, t)));
+  return html`<section className="panel lift pop">
+    <div className="row between"><div className="score"><b>${result.score}</b><span className="muted">/ 10</span></div>
+      <div className="row" style=${{ gap: "6px", justifyContent: "flex-end" }}>${targets.map((t) => { const u = result.used.some((x) => norm(x).includes(stem(t))) || usesWord(text, t); return html`<span key=${t} className=${"tag " + (u ? "good" : "bad")}>${u ? "✓" : "✗"} ${t}</span>`; })}</div></div>
+    ${result.feedback && html`<p>${result.feedback}</p>`}
+    <div className="stack" style=${{ gap: "6px" }}><span className="eyebrow">Sizning matningiz</span><p className="marked">${segs.map((s, i) => (s.k ? html`<span key=${i} className=${s.k}>${s.t}</span>` : s.t))}</p>
+      <p className="muted small"><span className="tag good">yashil</span> — ishlatilgan so'z · <span className="tag bad">qizil</span> — xato</p></div>
+    ${result.errors.length > 0 && html`<div className="stack" style=${{ gap: "8px" }}><span className="eyebrow">Xatolar</span>${result.errors.map((e, i) => html`<div key=${i} className="err"><span>${e.wrong && html`<s>${e.wrong}</s>`} → <b>${e.right}</b></span><span className="small muted">${e.explain}</span></div>`)}</div>`}
+    ${result.improved && html`<div className="stack" style=${{ gap: "6px" }}><div className="row between"><span className="eyebrow">${correctedLabel || "Yaxshilangan namuna"}</span><${Speak} text=${result.improved}/></div><p style=${{ lineHeight: 1.7 }}>${result.improved}</p></div>`}
+  </section>`;
+}
+
+/* ================= WRITING ================= */
+function Writing({ data, award, toast }) {
+  const level = (data.profile && data.profile.level) || "A2";
+  const [task, setTask] = useState(() => ({ task: "Kechagi kuningiz haqida 5–7 gap yozing: nima qildingiz, kim bilan uchrashdingiz, nimani yoqtirdingiz?", targets: pickTargets(data.words, 5).map((w) => w.en), sample: true }));
+  const [text, setText] = useState(""); const [result, setResult] = useState(null);
+  const [st, run] = useAsync(); const [st2, run2] = useAsync();
+  if (data.words.length < 3) return html`<div className="stack"><h2>Writing</h2><${NeedWords} n=${3}/></div>`;
+  const newTask = () => run(async () => {
+    const targets = pickTargets(data.words, 5).map((w) => w.en);
+    const r = await askJSON("Create one short writing task for an Uzbek learner of English (CEFR " + level + ") that naturally requires these words: " + targets.join(", ") + ".\n" +
+      'Reply with only JSON: {"task": the instruction in Uzbek Latin (what to write about, e.g. a short story, message, opinion, and how many sentences: 5-8)}', { tier: "quick", cache: false });
+    if (!r || !r.task) throw { code: "invalid_json" };
+    setTask({ task: str(r.task), targets }); setText(""); setResult(null);
+  });
+  const check = () => run2(async () => {
+    const r = await askJSON("You are a kind English writing teacher for an Uzbek learner (CEFR " + level + ").\nTask: " + task.task + "\nTarget words: " + task.targets.join(", ") + "\n" +
+      "Learner's text:\n\"\"\"" + text.slice(0, 4000) + "\"\"\"\n" +
+      'Reply with only JSON: {"usedWords": [target words used correctly, any form], "errors": [{"wrong": exact fragment copied from the learner text, "right": corrected fragment, "explain": short explanation in Uzbek Latin}] (all real mistakes, max 10), "improved": the full corrected text (keep the learner\'s ideas, fix mistakes, minimal changes), "score": integer 1-10, "feedback": 1-2 warm Uzbek sentences}', { tier: "default", cache: false });
+    const res = { used: arr(r && r.usedWords).map(str), errors: arr(r && r.errors).map((e) => ({ wrong: str(e.wrong), right: str(e.right), explain: str(e.explain) })).filter((e) => e.right), improved: str(r && r.improved), score: Math.max(1, Math.min(10, Math.round(Number(r && r.score) || 0))), feedback: str(r && r.feedback) };
+    if (!r || !(Number(r.score) > 0)) throw { code: "invalid_json" };
+    setResult(res); award(res.score * 2, res.used.length); toast("Baho: " + res.score + " / 10");
+  });
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const sentences = (text.match(/[^.!?]+[.!?]+/g) || []).length;
+  return html`<div className="stack">
+    <div className="stack" style=${{ gap: "4px" }}><span className="eyebrow">Writing · ${level}</span><h2>Yozing — AI tekshiradi va tushuntiradi</h2></div>
+    <section className="panel lift">
+      <div className="row between"><span className="eyebrow">Vazifa</span><button className="btn ghost" disabled=${st.loading} onClick=${newTask}>Yangi vazifa ↻</button></div>
+      ${st.loading ? html`<div className="skel"><i style=${{ width: "90%" }}></i><i style=${{ width: "60%" }}></i></div>` : html`<p style=${{ fontSize: "1.08rem", fontWeight: 600 }}>${task.task}</p>`}
+      <${ErrorBox} msg=${st.error} onRetry=${newTask}/>
+      <div className="row" style=${{ gap: "6px" }}>${task.targets.map((t) => { const u = usesWord(text, t); return html`<span key=${t} className=${"tag" + (u ? " good" : "")}>${u ? "✓ " : ""}${t}</span>`; })}</div>
+    </section>
+    <section className="panel">
+      <textarea id="wr-text" style=${{ minHeight: "190px" }} value=${text} onInput=${(e) => setText(e.target.value)} placeholder="Shu yerga inglizcha yozing…" spellCheck="false"></textarea>
+      <div className="row between small muted"><span>${words} so'z · ${sentences} gap</span><span>${task.targets.filter((t) => usesWord(text, t)).length} / ${task.targets.length} so'z ishlatildi</span></div>
+      ${st2.loading ? html`<${Loading} text="Matningiz tekshirilmoqda…"/>` : html`<button className="btn primary big" disabled=${words < 5} onClick=${check}>Tekshirish</button>`}
+      <${ErrorBox} msg=${st2.error} onRetry=${check}/>
+    </section>
+    ${result && !st2.loading && html`<${Feedback} result=${result} targets=${task.targets} text=${text} correctedLabel="Tuzatilgan matn"/>`}
+  </div>`;
+}
+
+/* ================= SETTINGS / ONBOARDING ================= */
+function ProfileForm({ initial, onSave, submitLabel }) {
+  const [name, setName] = useState((initial && initial.name) || ""); const [level, setLevel] = useState((initial && initial.level) || "A2"); const [goal, setGoal] = useState((initial && initial.goal) || 10);
+  return html`<form className="stack" style=${{ gap: "14px" }} onSubmit=${(e) => { e.preventDefault(); onSave({ name: name.trim(), level, goal }); }}>
+    <label className="fld">Ismingiz<input id="pf-name" type="text" value=${name} onInput=${(e) => setName(e.target.value)} placeholder="masalan: Aziza" autoComplete="given-name"/></label>
+    <div className="fld"><span>Ingliz tili darajangiz</span><div className="seg" role="group" aria-label="Daraja">${LEVELS.map((l) => html`<button type="button" key=${l} aria-pressed=${level === l} onClick=${() => setLevel(l)}>${l}</button>`)}</div>
+      <span className="muted small" style=${{ fontWeight: 400 }}>${{ A1: "Boshlang'ich — oddiy so'z va gaplar", A2: "Elementar — kundalik mavzular", B1: "O'rta — erkinroq suhbat", B2: "O'rtadan yuqori — murakkab matnlar", C1: "Yuqori — deyarli erkin" }[level]}</span></div>
+    <div className="fld"><span>Kunlik maqsad</span><div className="seg" role="group" aria-label="Kunlik maqsad">${[5, 10, 20].map((g) => html`<button type="button" key=${g} aria-pressed=${goal === g} onClick=${() => setGoal(g)}>${g} ta so'z</button>`)}</div></div>
+    <button className="btn primary big" type="submit">${submitLabel}</button>
+  </form>`;
+}
+function Onboarding({ onSave }) {
+  return html`<div className="scrim"><div className="sheet" role="dialog" aria-label="Xush kelibsiz">
+    <div className="grip"></div>
+    <div className="row" style=${{ gap: "12px" }}><span className="logo" style=${{ width: "48px", height: "48px", fontFamily: "var(--display)", fontWeight: 800 }}>Vt</span><div><h2>Vocabulary Teacher</h2><p className="muted small">So'z yodlang · o'qing · tinglang · gapiring · yozing</p></div></div>
+    <p>Keling, tanishib olaylik. Matnlar va vazifalar darajangizga moslanadi.</p>
+    <${ProfileForm} onSave=${onSave} submitLabel="Boshlash"/>
+  </div></div>`;
+}
+function Settings({ data, mutate, setData, onClose, cloud, toast }) {
+  const [confirm, setConfirm] = useState(false); const [exportText, setExportText] = useState(null); const [imp, setImp] = useState(null);
+  const doExport = async () => {
+    const json = JSON.stringify(data);
+    const dl = await use("downloads");
+    if (dl) { try { await dl.save({ filename: "vocabulary-teacher-" + todayKey() + ".json", data: json }); return; } catch (e) { if (e && e.code === "cancelled") return; } }
+    setExportText(json);
+  };
+  const onFile = (f) => { const r = new FileReader(); r.onload = () => { try { const d = JSON.parse(r.result); if (!d || !Array.isArray(d.words)) throw 0; setImp(d); } catch (e) { toast("Fayl tushunarsiz. Ilovadan eksport qilingan JSON faylni tanlang."); } }; r.readAsText(f); };
+  const cloudTxt = { saved: "Hisobingizda saqlanadi — boshqa qurilmada ham ochiladi.", syncing: "Saqlanmoqda…", error: "Saqlashda xato. Ma'lumotlar shu brauzerda turibdi; keyinroq yana urinadi.", local: "Faqat shu brauzerda saqlanadi. Zaxira uchun eksport qiling." }[cloud];
+  return html`<div className="scrim" onClick=${onClose}><div className="sheet" role="dialog" aria-label="Sozlamalar" onClick=${(e) => e.stopPropagation()}>
+    <div className="grip"></div><h2>Sozlamalar</h2>
+    <${ProfileForm} initial=${data.profile} submitLabel="Saqlash" onSave=${(p) => { mutate((n) => { n.profile = p; }); toast("Saqlandi"); onClose(); }}/>
+    <div className="panel" style=${{ background: "var(--surface2)", border: 0 }}>
+      <h3>Ma'lumotlar</h3><p className="small">${cloudTxt}</p>
+      <p className="small muted">${data.words.length} ta so'z · ${data.stats.xp} XP</p>
+      <div className="row"><button className="btn" onClick=${doExport}>Eksport (JSON)</button><label className="btn" htmlFor="imp-file">Import (JSON)<input id="imp-file" type="file" accept="application/json,.json" hidden onChange=${(e) => e.target.files[0] && onFile(e.target.files[0])}/></label></div>
+      ${exportText && html`<div className="stack"><p className="small">Fayl saqlash bu oynada ishlamadi. Matnni nusxalab, xavfsiz joyga saqlang:</p><textarea id="exp-text" readOnly value=${exportText} onFocus=${(e) => e.target.select()}></textarea>
+        <button className="btn" onClick=${() => { navigator.clipboard && navigator.clipboard.writeText(exportText).then(() => toast("Nusxalandi"), () => { document.getElementById("exp-text").select(); toast("Belgilandi — Ctrl+C bosing"); }); }}>Nusxalash</button></div>`}
+      ${imp && html`<div className="note info stack"><span>Faylda ${imp.words.length} ta so'z bor. Qanday qo'shamiz?</span>
+        <div className="row"><button className="btn primary" onClick=${() => { mutate((n) => { const have = new Set(n.words.map((w) => norm(w.en))); imp.words.forEach((w) => { if (w && w.en && !have.has(norm(w.en))) { n.words.push({ ...makeWord(w, w.deck), ...w }); have.add(norm(w.en)); } }); }); setImp(null); toast("Qo'shildi"); }}>Mavjudlariga qo'shish</button>
+        <button className="btn" onClick=${() => { setData({ ...emptyData(), ...imp, stats: { ...emptyData().stats, ...(imp.stats || {}) }, updatedAt: Date.now() }); setImp(null); toast("Tiklandi"); onClose(); }}>Hammasini almashtirish</button></div></div>`}
+    </div>
+    ${confirm ? html`<div className="note bad stack"><span>Barcha so'zlar, XP va statistika o'chadi. Bu amalni qaytarib bo'lmaydi.</span><div className="row"><button className="btn bad" style=${{ background: "var(--bad)", color: "#fff" }} onClick=${() => { setData({ ...emptyData(), profile: data.profile, updatedAt: Date.now() }); setConfirm(false); toast("Tozalandi"); onClose(); }}>Ha, hammasini o'chirish</button><button className="btn" onClick=${() => setConfirm(false)}>Bekor qilish</button></div></div>`
+      : html`<button className="btn ghost" style=${{ color: "var(--bad)" }} onClick=${() => setConfirm(true)}>Hamma ma'lumotni o'chirish…</button>`}
+    <button className="btn" onClick=${onClose}>Yopish</button>
+  </div></div>`;
+}
+
+/* ================= APP ================= */
+const TABS = [
+  { id: "vocab", t: "Lug'at", i: I.cards }, { id: "reading", t: "Reading", i: I.book }, { id: "listening", t: "Listening", i: I.ear },
+  { id: "speaking", t: "Speaking", i: I.mic }, { id: "writing", t: "Writing", i: I.pen },
+];
+function App() {
+  const [data, setData] = useState(() => loadLocal() || emptyData());
+  const [tab, setTab] = useState(() => { const h = (location.hash || "").slice(1); return TABS.some((t) => t.id === h) ? h : "vocab"; });
+  const [view, setView] = useState("home");
+  const [toasts, setToasts] = useState([]); const [cloud, setCloud] = useState("local"); const [settings, setSettings] = useState(false);
+  const dataRef = useRef(data); dataRef.current = data;
+  const mutate = useCallback((fn) => setData((d) => { const n = clone(d); fn(n); n.updatedAt = Date.now(); return n; }), []);
+  const toast = useCallback((msg, kind) => { const id = newId(); setToasts((t) => [...t.slice(-2), { id, msg, kind }]); setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2300); }, []);
+  const award = useCallback((xp, words) => {
+    const k = todayKey(); const cur = dataRef.current; const goal = (cur.profile && cur.profile.goal) || 10;
+    const before = (cur.stats.days[k] && cur.stats.days[k].words) || 0; const hit = words > 0 && before < goal && before + words >= goal && !(cur.stats.days[k] && cur.stats.days[k].goalDone);
+    mutate((n) => {
+      const day = n.stats.days[k] || (n.stats.days[k] = { xp: 0, words: 0 });
+      day.xp += xp; day.words += words; n.stats.xp += xp;
+      if (n.stats.lastDay !== k) { n.stats.streak = n.stats.lastDay === todayKey(Date.now() - DAY) ? n.stats.streak + 1 : 1; n.stats.lastDay = k; }
+      if (day.words >= goal && !day.goalDone) { day.goalDone = true; day.xp += 20; n.stats.xp += 20; }
+      const keys = Object.keys(n.stats.days).sort(); while (keys.length > 60) delete n.stats.days[keys.shift()];
+    });
+    if (xp > 0) toast("+" + xp + " XP", "xp");
+    if (hit) { setTimeout(() => { confetti(); toast("Kunlik maqsad bajarildi! +20 XP", "xp"); }, 250); }
+  }, [mutate, toast]);
+
+  useEffect(() => {
+    let alive = true; Cloud.onStatus = (s) => alive && setCloud(s);
+    Cloud.init().then((remote) => {
+      if (!alive) return;
+      if (!Cloud.ready) { setCloud("local"); return; }
+      setCloud("saved");
+      if (remote && remote.updatedAt > (dataRef.current.updatedAt || 0)) setData(remote);
+      else if (dataRef.current.profile) Cloud.schedule(dataRef.current);
+    });
+    return () => { alive = false; };
+  }, []);
+  const first = useRef(true);
+  useEffect(() => { saveLocal(data); if (first.current) { first.current = false; return; } if (Cloud.ready) Cloud.schedule(data); }, [data]);
+
+  const switchTab = (id) => { stopSpeak(); setTab(id); if (id === "vocab" && tab === "vocab") setView("home"); scrollTo(0, 0); };
+  const st = data.stats; const k = todayKey();
+  const streak = st.lastDay === k || st.lastDay === todayKey(Date.now() - DAY) ? st.streak : 0;
+  const lvl = Math.floor(st.xp / XP_PER_LEVEL) + 1; const pct = ((st.xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100;
+  const common = { data, mutate, award, toast };
+  return html`<${React.Fragment}>
+    <header className="top"><div className="top-in">
+      <div className="brand"><span className="logo" aria-hidden="true">Vt</span><span>Vocabulary<br/>Teacher</span></div>
+      <div className="top-stats">
+        <span className="chip" title="Ketma-ket kunlar">🔥 ${streak}</span>
+        <span className="chip" title=${st.xp + " XP · keyingi darajagacha " + (XP_PER_LEVEL - (st.xp % XP_PER_LEVEL)) + " XP"}>${lvl}-daraja <span className="bar"><i style=${{ width: pct + "%" }}></i></span></span>
+        <button className="icon-btn" onClick=${() => setSettings(true)} aria-label="Sozlamalar">${I.gear}</button>
+      </div></div></header>
+    <main className="wrap">
+      ${tab === "vocab" && html`<${Vocabulary} ...${common} view=${view} setView=${setView}/>`}
+      ${tab === "reading" && html`<${Reading} ...${common}/>`}
+      ${tab === "listening" && html`<${Listening} ...${common}/>`}
+      ${tab === "speaking" && html`<${Speaking} ...${common}/>`}
+      ${tab === "writing" && html`<${Writing} ...${common}/>`}
+    </main>
+    <nav className="nav" aria-label="Bo'limlar"><div className="nav-in">${TABS.map((t) => html`<button key=${t.id} aria-current=${tab === t.id ? "page" : undefined} onClick=${() => switchTab(t.id)}><span className="ni">${t.i}</span>${t.t}</button>`)}</div></nav>
+    <div className="toasts" aria-live="polite">${toasts.map((t) => html`<div key=${t.id} className=${"toast" + (t.kind === "xp" ? " xp" : "")}>${t.msg}</div>`)}</div>
+    ${!data.profile && html`<${Onboarding} onSave=${(p) => { mutate((n) => { n.profile = p; }); toast("Xush kelibsiz, " + (p.name || "do'stim") + "!"); }}/>`}
+    ${settings && data.profile && html`<${Settings} data=${data} mutate=${mutate} setData=${setData} cloud=${cloud} toast=${toast} onClose=${() => setSettings(false)}/>`}
+  <//>`;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App}/>`);
+</script>
