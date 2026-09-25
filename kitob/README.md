@@ -1,5 +1,7 @@
 # Kitob olami — Telegram bot
 
+Telegram'da: **Mybooks** — [@My_books_07bot](https://t.me/My_books_07bot).
+
 Kitob do'koni uchun bot: mijozlar ro'yxatdan o'tadi, har juma bitta kitob
 **odatiy narxidan arzonga** sotiladi — lekin tannarxdan arzon emas, do'kon
 zarar ko'rmaydi, bot esa hammaga
