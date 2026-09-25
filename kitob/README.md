@@ -43,8 +43,9 @@ Band qilganlarga **shaxsiy eslatma** boradi — payshanba (1 kun oldin) va
 juma ertalab: qaysi kitob, nechta, qancha oldindan to'langan va olganda
 qancha to'lanadi. Ular umumiy aksiya e'lonini qayta olmaydi.
 
-100 ta kitob band qilinsa, e'londa «tugadi» deb yoziladi va payshanba/juma
-umumiy eslatmasi yuborilmaydi.
+100 ta kitob band qilinsa, bot «😔 Kitob qolmadi — keyingi juma aksiyasida
+(9-oktabr) kitob olasiz!» deb yozadi, band qilish tugmasi yo'qoladi va
+payshanba/juma umumiy eslatmasi yuborilmaydi.
 
 ## Eslatmalar jadvali
 

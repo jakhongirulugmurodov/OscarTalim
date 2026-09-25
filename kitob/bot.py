@@ -302,12 +302,20 @@ def korinadi(p):
     return 0 <= (date.fromisoformat(p["sana"]) - bugun()).days <= MIJOZ_OLDIN
 
 
+def tugadi_matn(p):
+    """Aksiya kitoblari tugaganda mijozga: keyingi juma aksiyasiga taklif."""
+    keyingi = date.fromisoformat(p["sana"]) + timedelta(weeks=1)
+    return ("😔 <b>Kitob qolmadi</b> — bu aksiyadagi %d ta kitobning hammasi band qilindi.\n\n"
+            "📅 Keyingi juma aksiyasida (%s) kitob olasiz! Qaysi kitob bo'lishini "
+            "bir hafta oldin shu yerga yozamiz 📚" % (p.get("soni") or 0, sana_matn(keyingi)))
+
+
 def aksiya_yubor(db, chat, p, u=None):
     """Aksiyani mijozga yuboradi: rasm (bo'lsa), matn, qoldiq va «Band qilish» tugmasi."""
     matn = aksiya_matn(p, u)
     q = qolgan(db, p)
     if q == 0:
-        matn += "\n\n😔 Bu aksiya kitoblari tugadi."
+        matn += "\n\n" + tugadi_matn(p)
         tugma = None
     else:
         if q is not None:
@@ -659,7 +667,7 @@ def buyurtma_boshla(chat, u, pid, db):
         return
     q = qolgan(db, p)
     if q == 0:
-        send(chat, "😔 Bu aksiya kitoblari tugadi.", menyu(chat, db))
+        send(chat, tugadi_matn(p), menyu(chat, db))
         return
     eng_kop = min(BIR_KISHIGA, q) if q is not None else BIR_KISHIGA
     u["qadam"] = "b_soni"
@@ -722,7 +730,8 @@ def buyurtma_qadam(chat, u, msg, text, db):
         u.pop("vaqtincha", None)
         qol = qolgan(db, p)
         if qol is not None and q["soni"] > qol:
-            send(chat, "😔 Kechirasiz, shu orada kitoblar tugab qoldi (qoldi: %d)." % qol,
+            send(chat, ("😔 Kechirasiz, shu orada %d ta kitob qoldi, siz %d ta so'radingiz. "
+                        "Kamroq band qiling." % (qol, q["soni"])) if qol else tugadi_matn(p),
                  menyu(chat, db))
             return
         db["oseq"] += 1
