@@ -1,0 +1,67 @@
+# Kitoblar olami — Telegram bot GitHub Actions'da ishlaydi (server kerak emas).
+#
+# Har 5 daqiqada botga kelgan xabarlarni oladi, javob beradi va juma
+# aksiyasini tekshiradi (1 hafta oldin e'lon, aksiya kuni eslatma).
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   KITOBLAR_BOT_TOKEN      — BotFather bergan token
+#   secret   KITOBLAR_PAYMENT_TOKEN  — BotFather → Payments (Click/Payme), ixtiyoriy
+#   variable KITOBLAR_ADMIN_IDS      — adminlarning Telegram ID lari, vergul bilan
+#
+# Eslatma: GitHub jadval bo'yicha ishga tushirishni faqat asosiy (main)
+# shoxchadagi workflow uchun qiladi va 60 kun harakat bo'lmasa o'chiradi.
+
+name: Kitoblar olami bot
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      rejim:
+        description: "Nima qilsin"
+        type: choice
+        options: [xabarlar, sozlash]
+        default: xabarlar
+
+concurrency:
+  group: kitoblar-olami-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BOT_TOKEN: ${{ secrets.KITOBLAR_BOT_TOKEN }}
+      PAYMENT_TOKEN: ${{ secrets.KITOBLAR_PAYMENT_TOKEN }}
+      ADMIN_IDS: ${{ vars.KITOBLAR_ADMIN_IDS }}
+      STATE_FILE: ${{ github.workspace }}/state/kitoblar.json
+      REJIM: ${{ github.event.inputs.rejim || 'xabarlar' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Holatni tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: kitoblar-state-${{ github.run_id }}
+          restore-keys: kitoblar-state-
+
+      - name: Bot
+        run: |
+          mkdir -p state
+          case "$REJIM" in
+            sozlash) python3 kitoblar_olami/bot.py --setup ;;
+            *)       python3 kitoblar_olami/bot.py --once ;;
+          esac
+
+      - name: Holatni saqlash
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: kitoblar-state-${{ github.run_id }}
