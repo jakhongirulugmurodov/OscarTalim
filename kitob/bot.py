@@ -61,6 +61,7 @@ ESLATMA_SOAT = int(os.environ.get("ESLATMA_SOAT") or 10)
 TOLOV_KARTA = os.environ.get("TOLOV_KARTA", "").strip()
 API = "https://api.telegram.org/bot%s/" % TOKEN
 TOSHKENT = timezone(timedelta(hours=5))
+SALOM_RASM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rasmlar", "salom.png")
 
 EGA_OLDIN = 28          # do'kon egasi aksiyani necha kun oldin bilishi kerak
 MIJOZ_OLDIN = 7         # mijozlar necha kun oldin biladi
@@ -104,7 +105,7 @@ OYLAR = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul",
          "avgust", "sentabr", "oktabr", "noyabr", "dekabr"]
 
 SALOM = (
-    "Assalomu alaykum! <b>Kitob olami</b>ga xush kelibsiz 📚\n\n"
+    "Assalomu alaykum! <b>Kitoblar olamiga xush kelibsiz</b> 📚\n\n"
     "Har <b>juma</b> kuni bitta kitobni tannarxidan ham arzonga sotamiz — "
     "masalan, «Muqaddima» yoki «Saodat asri qissalari».\n\n"
     "Ro'yxatdan o'ting — juma aksiyasini bir hafta oldin sizga "
@@ -141,6 +142,46 @@ def send(chat_id, text, keyboard=None):
 def send_photo(chat_id, photo, caption, keyboard=None):
     return call("sendPhoto", chat_id=chat_id, photo=photo, caption=caption,
                 parse_mode="HTML", reply_markup=keyboard)
+
+
+def upload_photo(chat_id, path, caption, keyboard=None):
+    """Rasmni fayldan yuklaydi (multipart/form-data) — birinchi marta uchun."""
+    chegara = "----kitobolami%d" % int(time.time() * 1000)
+    qismlar = []
+    for k, v in (("chat_id", chat_id), ("caption", caption), ("parse_mode", "HTML"),
+                 ("reply_markup", json.dumps(keyboard) if keyboard else None)):
+        if v is not None:
+            qismlar.append(('--%s\r\nContent-Disposition: form-data; name="%s"\r\n\r\n%s\r\n'
+                            % (chegara, k, v)).encode())
+    with open(path, "rb") as f:
+        qismlar.append(('--%s\r\nContent-Disposition: form-data; name="photo"; '
+                        'filename="%s"\r\nContent-Type: image/png\r\n\r\n'
+                        % (chegara, os.path.basename(path))).encode() + f.read() + b"\r\n")
+    qismlar.append(("--%s--\r\n" % chegara).encode())
+    req = Request(API + "sendPhoto", data=b"".join(qismlar),
+                  headers={"Content-Type": "multipart/form-data; boundary=" + chegara})
+    try:
+        with urlopen(req, timeout=70) as r:
+            return json.load(r)
+    except (HTTPError, URLError) as e:
+        print("rasm yuklashda xato:", e, file=sys.stderr)
+        return {"ok": False}
+
+
+def salom_yubor(chat, text, keyboard, db):
+    """Salomlashish rasmi bilan. Telegram bergan file_id saqlanadi — qayta yuklanmaydi."""
+    fid = db.get("salom_rasm")
+    if fid:
+        r = send_photo(chat, fid, text, keyboard)
+    elif os.path.exists(SALOM_RASM):
+        r = upload_photo(chat, SALOM_RASM, text, keyboard)
+        if r.get("ok"):
+            db["salom_rasm"] = r["result"]["photo"][-1]["file_id"]
+    else:
+        r = {"ok": False}
+    if not r.get("ok") and r.get("error_code") != 403:
+        r = send(chat, text, keyboard)
+    return r
 
 
 def inline(rows):
@@ -957,10 +998,11 @@ def handle(msg, db):
         u.pop("qadam", None)
         u.pop("vaqtincha", None)
         if text.startswith("/start") and royxatda(db, chat):
-            send(chat, "Assalomu alaykum, %s! Juma aksiyasini bir hafta oldin "
-                       "shu yerga yozamiz 📚" % escape(u.get("ism", "")), menyu(chat, db))
+            salom_yubor(chat, "Assalomu alaykum, %s! <b>Kitoblar olamiga xush kelibsiz</b> 📚\n\n"
+                              "Juma aksiyasini bir hafta oldin shu yerga yozamiz."
+                        % escape(u.get("ism", "")), menyu(chat, db), db)
         elif text.startswith("/start"):
-            send(chat, SALOM, menyu(chat, db))
+            salom_yubor(chat, SALOM, menyu(chat, db), db)
         else:
             send(chat, "Bekor qilindi.", menyu(chat, db))
         return
