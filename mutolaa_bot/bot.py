@@ -1564,7 +1564,12 @@ def csv_import_jim(data):
 
 def sozla():
     global BOT
-    BOT = (tg.call("getMe").get("result") or {}).get("username", "")
+    me = tg.call("getMe")
+    if not me.get("ok"):
+        sys.exit("❌ Token noto'g'ri: Telegram «%s» dedi. BotFather → /mybots → bot → "
+                 "API Token dan tokenni qayta nusxalab, MUTOLAA_BOT_TOKEN ga qo'ying."
+                 % (me.get("description") or "javob yo'q"))
+    BOT = me["result"].get("username", "")
     tg.call("deleteWebhook")
     foydalanuvchi = [
         {"command": "start", "description": "Bosh menyu"},
@@ -1592,6 +1597,13 @@ def sozla():
     tg.call("setMyShortDescription", short_description=(
         "%s kitob uyi: juma aksiyalari, top kitoblar, har xaridga sovg'a 🎁" % DOKON))
     print("bot: @%s | adminlar: %s | baza: %s" % (BOT or "?", ADMINS or "yo'q", DB_PATH))
+    if env("ISHGA_TUSHDI_XABARI"):
+        for a in ADMINS:
+            r = tg.send(a, "✅ <b>@%s ishga tushdi!</b>\nKitobxonlar: %d · kitoblar: %d\nAdmin panel: /admin"
+                        % (BOT, db.one("SELECT COUNT(*) n FROM users")["n"],
+                           db.one("SELECT COUNT(*) n FROM books WHERE active=1")["n"]))
+            print("admin %s ga xabar: %s" % (a, "yuborildi" if r.get("ok") else
+                  "yuborilmadi — admin @%s ga /start bosmagan bo'lishi mumkin" % BOT))
 
 
 def main(argv):

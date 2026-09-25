@@ -2,13 +2,18 @@
 
 import json
 import os
+import re
 import sys
 import time
 import uuid
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-TOKEN = os.environ.get("BOT_TOKEN", "").strip()
+# Token ko'chirilganda ortiqcha so'z yoki bo'sh qator qo'shilib ketsa ham,
+# undan faqat tokenning o'zini (123456:ABC...) ajratib olamiz.
+_xom = os.environ.get("BOT_TOKEN", "")
+_top = re.search(r"\d{5,}:[A-Za-z0-9_-]{30,}", _xom)
+TOKEN = _top.group(0) if _top else _xom.strip()
 API = "https://api.telegram.org/bot%s/" % TOKEN
 
 # Bu xatolar odatiy holat — logni to'ldirmaymiz.
