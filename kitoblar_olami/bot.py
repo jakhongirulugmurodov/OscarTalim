@@ -505,6 +505,28 @@ def keyingi_juma(d, ichida=False):
     return d + timedelta(days=kun)
 
 
+def aksiya_royxati(a):
+    """Aksiyadagi kitoblar narxi bilan (mijozga ham, adminga ham ko'rsatiladi)."""
+    if not a.get("kitoblar"):
+        return "• barcha kitoblar"
+    foiz = int(a.get("foiz") or 0)
+    lines = []
+    for k in a["kitoblar"]:
+        if k not in BOOKS:
+            continue
+        b = BOOKS[k]
+        if birga_bir(a) or not foiz:
+            lines.append("• %s — %s" % (escape(b["nomi"]), som(b["narx"])))
+        else:
+            lines.append("• %s — <s>%s</s> → <b>%s</b>" % (
+                escape(b["nomi"]), som(b["narx"]), som(b["narx"] * (100 - foiz) // 100)))
+    return "\n".join(lines)
+
+
+def aksiya_tugma(kun):
+    return inline([[("📚 Aksiyadagi kitoblarni ko'rish", "akv:%s:0" % kun)]])
+
+
 def aksiya_matni(kun, a, tur):
     d = date.fromisoformat(kun)
     kimga = "Tanlangan kitoblarga" if a.get("kitoblar") else "Barcha kitoblarga"
@@ -520,7 +542,8 @@ def aksiya_matni(kun, a, tur):
     else:
         bosh = "🎉 <b>Bugun juma aksiyasi!</b>"
         oxir = "\n\nChegirma faqat bugun amal qiladi. «%s» tugmasini bosing 👇" % BTN_TAVSIYA
-    return "%s\n\n%s%s%s" % (bosh, escape(a.get("matn", "")), foiz, oxir)
+    royxat = "\n\n📚 <b>Aksiyadagi kitoblar:</b>\n" + aksiya_royxati(a) if a.get("kitoblar") else ""
+    return "%s\n\n%s%s%s%s" % (bosh, escape(a.get("matn", "")), foiz, royxat, oxir)
 
 
 def aksiya_tekshir(db):
@@ -535,11 +558,11 @@ def aksiya_tekshir(db):
             continue
         if not a.get("elon") and today >= d - timedelta(days=7):
             a["elon"] = True
-            n = broadcast(db, aksiya_matni(kun, a, "elon"))
+            n = broadcast(db, aksiya_matni(kun, a, "elon"), aksiya_tugma(kun))
             adminlarga("📣 %s aksiyasi e'lon qilindi: %d kishiga." % (sana(d), n))
         if not a.get("bugun") and today == d:
             a["bugun"] = True
-            broadcast(db, aksiya_matni(kun, a, "bugun"), menu())
+            broadcast(db, aksiya_matni(kun, a, "bugun"), aksiya_tugma(kun))
     # E'lon vaqti yaqinlashgan, lekin aksiya kiritilmagan juma — adminlarga eslatma
     juma = keyingi_juma(today + timedelta(days=7), ichida=True)
     if (juma - today).days <= 9 and juma.isoformat() not in db["aksiyalar"] \
@@ -559,7 +582,7 @@ def aksiya_korsat(chat, db):
                    "Keyingi aksiya haqida bir hafta oldin shu yerda xabar beraman.")
         return
     kun, a = kelasi[0]
-    send(chat, aksiya_matni(kun, a, "bugun" if kun == today.isoformat() else "elon"))
+    send(chat, aksiya_matni(kun, a, "bugun" if kun == today.isoformat() else "elon"), aksiya_tugma(kun))
 
 
 def aksiya_qosh(chat, db, args):
@@ -639,17 +662,7 @@ def juma_panel(chat, db):
         return
     for kun, a in kelasi:
         d = date.fromisoformat(kun)
-        foiz = int(a.get("foiz") or 0)
-        if a.get("kitoblar") and birga_bir(a):
-            royxat = "\n".join("• %s — %s" % (escape(BOOKS[k]["nomi"]), som(BOOKS[k]["narx"]))
-                               for k in a["kitoblar"] if k in BOOKS)
-        elif a.get("kitoblar"):
-            lines = ["• %s — <s>%s</s> → %s" % (escape(BOOKS[k]["nomi"]), som(BOOKS[k]["narx"]),
-                                                som(BOOKS[k]["narx"] * (100 - foiz) // 100))
-                     for k in a["kitoblar"] if k in BOOKS]
-            royxat = "\n".join(lines)
-        else:
-            royxat = "• barcha kitoblar"
+        royxat = aksiya_royxati(a)
         holat = "e'lon qilingan ✅" if a.get("elon") else "e'lon: %s" % sana(d - timedelta(days=7))
         send(chat, "🏷 <b>%s (juma)</b> — %s, %s\n%s\n\n%s" % (
             sana(d), aksiya_nomi(a), holat, escape(a.get("matn", "")), royxat),
@@ -765,8 +778,9 @@ def admin_callback(chat, mid, data, db):
             return "Bu aksiya o'chirilgan"
         if data.startswith("akk:"):
             send(chat, "🏷 <b>%s</b> — qaysi kitoblar %s aksiyasiga tushadi? Hech biri "
-                       "tanlanmasa — hammasi aksiyada.\n\nBu ro'yxatni faqat adminlar ko'radi." % (
-                           sana(date.fromisoformat(kun)), aksiya_nomi(a)),
+                       "tanlanmasa — hammasi aksiyada.\n\nRo'yxat mijozlarga ham ko'rinadi: e'londa va "
+                       "«%s» bo'limida." % (
+                           sana(date.fromisoformat(kun)), aksiya_nomi(a), BTN_AKSIYA),
                  kitob_tanlash_klaviatura(kun, a))
             return None
         if data.startswith("akt:") and bid in BOOKS:
@@ -918,6 +932,14 @@ def handle_callback(cq, db):
         call("editMessageText", chat_id=chat, message_id=mid, text="🗑 Savatcha tozalandi.")
     elif data == "savat_ok":
         buyurtma_boshla(chat, u, db)
+    elif data.startswith("akv:"):
+        _, kun, off = data.split(":")
+        a = db["aksiyalar"].get(kun)
+        if not a or not a.get("elon"):
+            javob = "Bu aksiya hozir yo'q"
+        else:
+            books = [BOOKS[k] for k in a.get("kitoblar") or [] if k in BOOKS] or list(BOOKS.values())
+            royxat_yubor(chat, books, db, int(off), "akv:%s:%%d" % kun)
     elif data.startswith("tavsiya:"):
         royxat_yubor(chat, mos_kitoblar(u), db, int(data[8:]), "tavsiya:%d")
     elif data.startswith("kat:"):
