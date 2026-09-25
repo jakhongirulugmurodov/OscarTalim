@@ -906,6 +906,29 @@ def main(argv):
         print("qayta ishlandi: %d ta, mijozlar: %d" % (len(r.get("result", [])), len(db["users"])))
         return
 
+    if "--minutes" in argv:
+        # GitHub Actions: N daqiqa davomida long polling — mijoz javobni
+        # darhol oladi. Workflow navbatdagi ishga tushishni kutib turadi.
+        i = argv.index("--minutes")
+        tugash = time.time() + 60 * float(argv[i + 1])
+        offset, n = None, 0
+        while time.time() < tugash - 5:
+            kut = int(min(50, max(1, tugash - time.time() - 5)))
+            r = call("getUpdates", offset=offset, timeout=kut, allowed_updates=upd_turlari)
+            if not r.get("ok"):
+                time.sleep(5)
+                continue
+            last = process(r.get("result", []), db)
+            if last is not None:
+                offset = last + 1
+                n += len(r["result"])
+                save(db)
+        if offset is not None:
+            call("getUpdates", offset=offset, timeout=0)   # ko'rilganlarni tasdiqlash
+        save(db)
+        print("qayta ishlandi: %d ta, mijozlar: %d" % (n, len(db["users"])))
+        return
+
     # doimiy rejim (o'z serveringiz bo'lsa)
     setup()
     offset = 0
