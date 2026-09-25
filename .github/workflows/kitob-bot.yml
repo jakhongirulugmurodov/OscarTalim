@@ -17,10 +17,11 @@
 
 name: Kitob do'koni bot
 
+# O'CHIRILGAN: do'kon uchun endi «Mutolaa» boti ishlatiladi
+# (mutolaa_bot/, .github/workflows/mutolaa-bot.yml). Ikki bot bitta token bilan
+# birga ishlasa, Telegram ularni to'xtatadi. Jadval olib tashlandi — faqat
+# qo'lda ("Run workflow") ishga tushadi.
 on:
-  schedule:
-    - cron: "*/10 * * * *"
-    - cron: "0 4 * * 5"        # juma, 09:00 Toshkent vaqti
   workflow_dispatch:
     inputs:
       rejim:
