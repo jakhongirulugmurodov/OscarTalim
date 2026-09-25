@@ -22,13 +22,17 @@
     --bad: 212 66 66;
     --rule: 205 222 240;       /* daftar chizig'i */
     --shadow: 24 32 46;
+    --glow-a: 12 118 110 / .20;    /* teal nur */
+    --glow-b: 255 200 60 / .30;    /* marker nur */
+    --glow-c: 90 120 230 / .12;    /* sovuq ko'k nur */
+    --dots: 24 32 46 / .08;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]):not(.force-light) {
       --paper: 15 20 26; --surface: 24 31 40; --sunken: 32 41 52; --ink: 232 236 241;
       --muted: 156 167 182; --line: 44 55 68; --primary: 52 196 181; --on-primary: 6 30 28;
       --marker: 233 194 63; --on-marker: 28 22 2; --good: 64 204 128; --warn: 240 160 60;
-      --bad: 242 110 110; --rule: 40 56 76; --shadow: 0 0 0;
+      --bad: 242 110 110; --rule: 40 56 76; --shadow: 0 0 0; --glow-a: 52 196 181 / .16; --glow-b: 233 194 63 / .10; --glow-c: 110 130 255 / .14; --dots: 232 236 241 / .06;
       color-scheme: dark;
     }
   }
@@ -36,7 +40,7 @@
     --paper: 15 20 26; --surface: 24 31 40; --sunken: 32 41 52; --ink: 232 236 241;
     --muted: 156 167 182; --line: 44 55 68; --primary: 52 196 181; --on-primary: 6 30 28;
     --marker: 233 194 63; --on-marker: 28 22 2; --good: 64 204 128; --warn: 240 160 60;
-    --bad: 242 110 110; --rule: 40 56 76; --shadow: 0 0 0;
+    --bad: 242 110 110; --rule: 40 56 76; --shadow: 0 0 0; --glow-a: 52 196 181 / .16; --glow-b: 233 194 63 / .10; --glow-c: 110 130 255 / .14; --dots: 232 236 241 / .06;
     color-scheme: dark;
   }
   :root.force-light { color-scheme: light; }
@@ -51,6 +55,32 @@
     -webkit-tap-highlight-color: transparent;
   }
   .font-display { font-family: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif; letter-spacing: -0.01em; }
+  /* Fon: yumshoq rangli nurlar + daftar nuqtalari + suzuvchi harflar */
+  .app-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .app-bg::before {
+    content: ""; position: absolute; inset: -20%;
+    background:
+      radial-gradient(38% 32% at 18% 16%, rgb(var(--glow-a)), transparent 70%),
+      radial-gradient(34% 30% at 86% 22%, rgb(var(--glow-b)), transparent 70%),
+      radial-gradient(40% 36% at 70% 88%, rgb(var(--glow-c)), transparent 70%),
+      radial-gradient(30% 28% at 10% 80%, rgb(var(--glow-b)), transparent 70%);
+    filter: blur(10px);
+    animation: drift 28s ease-in-out infinite alternate;
+  }
+  .app-bg::after {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgb(var(--dots)) 1.2px, transparent 1.6px);
+    background-size: 22px 22px;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.55) 60%, rgba(0,0,0,.25) 100%);
+            mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.55) 60%, rgba(0,0,0,.25) 100%);
+  }
+  .app-bg span {
+    position: absolute; font-family: "Bricolage Grotesque", Georgia, serif; font-weight: 800;
+    color: rgb(var(--primary) / .09); line-height: 1; user-select: none;
+    animation: bob 14s ease-in-out infinite alternate;
+  }
+  @keyframes drift { 0% { transform: translate3d(0,0,0) scale(1) } 100% { transform: translate3d(3%, -2%, 0) scale(1.06) } }
+  @keyframes bob { 0% { transform: translateY(0) rotate(var(--r, 0deg)) } 100% { transform: translateY(-18px) rotate(var(--r, 0deg)) } }
   .ipa { font-family: "Noto Sans", "Segoe UI", "DejaVu Sans", sans-serif; }
   h1, h2, h3 { text-wrap: balance; }
   .num { font-variant-numeric: tabular-nums; }
@@ -185,31 +215,118 @@ function HighlightIn({ sentence, word }) {
 /* =====================================================================
    2. OVOZ (speechSynthesis) VA KICHIK SIGNALLAR
    ===================================================================== */
+/* Brauzerdagi "o'yinchoq" ovozlar (macOS/iOS) — talaffuzni buzadi, tanlanmaydi */
+const NOVELTY_VOICES = /\b(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Wobble|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Zarvox|Fred|Junior|Ralph|Kathy|Hysterical|Deranged|Pipe Organ|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)\b/i;
+function voiceScore(v, accent) {
+  if (!/^en[-_]/i.test(v.lang)) return -1000;
+  if (NOVELTY_VOICES.test(v.name)) return -500;
+  let s = 0;
+  const wantUS = accent !== 'uk';
+  if (wantUS ? /en[-_]US/i.test(v.lang) : /en[-_]GB/i.test(v.lang)) s += 30;
+  else if (/en[-_](US|GB)/i.test(v.lang)) s += 15;
+  else s += 5; // en-IN, en-AU va h.k.
+  if (/Natural|Neural|Online|Premium|Enhanced|Siri/i.test(v.name)) s += 20;
+  if (/Google/i.test(v.name)) s += 16;
+  if (/Samantha|Alex|Ava|Allison|Susan|Tom|Aria|Jenny|Guy|Zira|David|Mark|Daniel|Serena|Kate|Oliver|Libby|Sonia|Ryan|Karen|Moira/i.test(v.name)) s += 10;
+  if (v.localService === false) s += 2; // bulutdagi ovozlar odatda tabiiyroq
+  return s;
+}
+/* Uzun matnni gaplarga bo'lish: Chrome ~15 soniyadan uzun gapni kesib qo'yadi */
+function speechChunks(text) {
+  const out = [];
+  (String(text || '').replace(/\s+/g, ' ').trim().match(/[^.!?…]+[.!?…]*["'”’)\]]*\s*/g) || []).map((x) => x.trim()).forEach((sent) => {
+    if (sent.length <= 180) { if (sent) out.push(sent); return; }
+    let cur = '';
+    (sent.match(/[^,;:]+[,;:]?\s*/g) || [sent]).map((x) => x.trim()).filter(Boolean).forEach((part) => {
+      if ((cur + ' ' + part).length > 180 && cur) { out.push(cur); cur = part; } else cur = cur ? cur + ' ' + part : part;
+    });
+    if (cur) out.push(cur);
+  });
+  return out;
+}
 const TTS = {
-  ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
-  voices: [],
+  ok: typeof window !== 'undefined' && 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function',
+  voices: [],        // yaxshi ingliz ovozlari, eng yaxshisi birinchi
+  preferred: '',     // foydalanuvchi tanlagan ovoz (voiceURI)
+  accent: 'us',
+  gen: 0,            // har stop() da oshadi — eski navbatdagi gaplar davom etmaydi
+  active: false,
+  listeners: new Set(),
   load() {
     if (!this.ok) return;
-    const v = speechSynthesis.getVoices().filter((x) => /^en[-_]/i.test(x.lang));
-    const score = (x) => (/en[-_]US/i.test(x.lang) ? 2 : 0) + (/Google|Natural|Samantha|Microsoft/i.test(x.name) ? 1 : 0);
-    this.voices = v.sort((a, b) => score(b) - score(a));
+    const all = speechSynthesis.getVoices() || [];
+    this.voices = all.filter((v) => voiceScore(v, this.accent) > 0).sort((a, b) => voiceScore(b, this.accent) - voiceScore(a, this.accent));
+    this.emit();
   },
-  speak(text, { rate = 1, voiceIndex = 0, pitch = 1, onend, onstart } = {}) {
-    if (!this.ok || !text) { onend && onend(); return; }
+  pick(i = 0) {
     if (!this.voices.length) this.load();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US'; u.rate = rate; u.pitch = pitch;
-    const v = this.voices[voiceIndex % Math.max(1, this.voices.length)];
-    if (v) u.voice = v;
-    if (onend) { u.onend = onend; u.onerror = onend; }
-    if (onstart) u.onstart = onstart;
-    speechSynthesis.speak(u);
+    const pref = this.preferred && this.voices.find((v) => v.voiceURI === this.preferred);
+    const list = pref ? [pref, ...this.voices.filter((v) => v !== pref)] : this.voices;
+    if (!list.length) return null;
+    if (i === 0) return list[0];
+    // ikkinchi so'zlovchi uchun: boshqa yaxshi ovoz (bo'lsa)
+    const good = list.filter((v) => voiceScore(v, this.accent) >= 25 && v.name !== list[0].name);
+    return good[i - 1] || null;
   },
-  say(text, rate = 0.95) { if (!this.ok) return; speechSynthesis.cancel(); this.speak(text, { rate }); },
-  sayMany(parts, rate = 0.95) { if (!this.ok) return; speechSynthesis.cancel(); parts.filter(Boolean).forEach((p) => this.speak(p, { rate })); },
-  stop() { if (this.ok) speechSynthesis.cancel(); },
+  setActive(on) { if (this.active !== on) { this.active = on; this.emit(); } },
+  emit() { this.listeners.forEach((f) => f()); },
+  /* Bitta matnni (gaplarga bo'lib) aytish. onend hammasi tugaganda chaqiriladi. */
+  speak(text, { rate = 1, voiceIndex = 0, pitch = 1, onend } = {}) {
+    const parts = speechChunks(text);
+    if (!this.ok || !parts.length) { onend && onend(); return; }
+    const g = this.gen;
+    if (speechSynthesis.paused) speechSynthesis.resume();
+    const voice = this.pick(voiceIndex);
+    const samePitch = voiceIndex > 0 && !voice ? 0.82 : pitch; // ovoz bitta bo'lsa, ohang bilan farqlash
+    parts.forEach((p, k) => {
+      const u = new SpeechSynthesisUtterance(p);
+      u.lang = voice ? voice.lang.replace('_', '-') : (this.accent === 'uk' ? 'en-GB' : 'en-US');
+      if (voice) u.voice = voice;
+      u.rate = rate; u.pitch = samePitch; u.volume = 1;
+      u.onstart = () => { if (g === this.gen) this.setActive(true); };
+      if (k === parts.length - 1) {
+        const done = () => { if (g !== this.gen) return; this.watch(); onend && onend(); };
+        u.onend = done; u.onerror = done;
+      }
+      speechSynthesis.speak(u);
+    });
+    this.setActive(true);
+    this.watch();
+  },
+  /* "Aktiv" holatni kuzatib turish (ba'zi brauzerlar onend yubormaydi) */
+  watch() {
+    clearTimeout(this._t);
+    this._t = setTimeout(() => {
+      if (!this.ok) return;
+      if (speechSynthesis.speaking || speechSynthesis.pending) this.watch();
+      else this.setActive(false);
+    }, 400);
+  },
+  say(text, rate = 0.95) { this.stop(); this.speak(text, { rate }); },
+  sayMany(parts, rate = 0.95) { this.stop(); parts.filter(Boolean).forEach((p) => this.speak(p, { rate })); },
+  stop() {
+    this.gen += 1;
+    if (!this.ok) return;
+    try { speechSynthesis.cancel(); if (speechSynthesis.paused) speechSynthesis.resume(); } catch (e) { /* */ }
+    // Chrome ba'zan birinchi cancel'ni "yutib yuboradi" — yana bir marta
+    const g = this.gen;
+    setTimeout(() => { try { if (g === this.gen && !this.active && speechSynthesis.speaking) speechSynthesis.cancel(); } catch (e) { /* */ } }, 60);
+    this.active = false;
+    this.emit();
+  },
 };
-if (TTS.ok) { TTS.load(); speechSynthesis.onvoiceschanged = () => TTS.load(); }
+if (TTS.ok) {
+  TTS.load();
+  if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', () => TTS.load());
+  else speechSynthesis.onvoiceschanged = () => TTS.load();
+  window.addEventListener('pagehide', () => TTS.stop());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) TTS.stop(); });
+}
+function useTTS() {
+  const [, force] = useState(0);
+  useEffect(() => { const f = () => force((n) => n + 1); TTS.listeners.add(f); return () => TTS.listeners.delete(f); }, []);
+  return TTS;
+}
 
 let audioCtx = null;
 function beep(good = true, enabled = true) {
@@ -531,12 +648,35 @@ function AIError({ error, onRetry }) {
   );
 }
 function SpeakBtn({ text, parts, rate = 0.95, label = "Tinglash", className = '' }) {
+  const tts = useTTS();
+  const [mine, setMine] = useState(false);
+  useEffect(() => { if (!tts.active) setMine(false); }, [tts.active]);
   if (!TTS.ok) return null;
+  const playing = mine && tts.active;
   return (
-    <button type="button" aria-label={label} title={label}
-      onClick={(e) => { e.stopPropagation(); parts ? TTS.sayMany(parts, rate) : TTS.say(text, rate); }}
-      className={`inline-flex items-center justify-center w-11 h-11 rounded-full bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 transition ${className}`}>
-      <Icon d={I.speaker} className="w-5 h-5" />
+    <button type="button" aria-label={playing ? "Ovozni to'xtatish" : label} title={playing ? "To'xtatish" : label} aria-pressed={playing}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (playing) { TTS.stop(); setMine(false); return; }
+        parts ? TTS.sayMany(parts, rate) : TTS.say(text, rate);
+        setMine(true);
+      }}
+      className={`inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-full transition active:scale-95 ${playing ? 'bg-primary text-onprimary' : 'bg-primary/10 text-primary hover:bg-primary/20'} ${className}`}>
+      <Icon d={playing ? I.stop : I.speaker} className="w-5 h-5" />
+    </button>
+  );
+}
+/* Ovoz ketayotganda har doim ko'rinadigan "To'xtatish" tugmasi */
+function StopSpeechBar() {
+  const tts = useTTS();
+  if (!tts.active) return null;
+  return (
+    <button type="button" onClick={() => TTS.stop()}
+      className="fixed left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-full bg-ink text-paper pl-3 pr-4 py-2.5 font-bold shadow-lift anim-up"
+      style={{ bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))' }}>
+      <span className="w-7 h-7 rounded-full bg-bad text-white grid place-items-center"><Icon d={I.stop} className="w-4 h-4" /></span>
+      Ovozni to'xtatish
     </button>
   );
 }
@@ -592,9 +732,22 @@ function Segmented({ value, onChange, options, id }) {
 function BackBar({ title, onBack, right }) {
   return (
     <div className="flex items-center gap-2 mb-4">
-      <button onClick={onBack} className="w-11 h-11 rounded-full hover:bg-sunken grid place-items-center" aria-label="Orqaga"><Icon d={I.back} /></button>
+      <button onClick={() => { TTS.stop(); onBack(); }} className="w-11 h-11 rounded-full hover:bg-sunken grid place-items-center" aria-label="Orqaga"><Icon d={I.back} /></button>
       <h2 className="font-display text-xl font-extrabold flex-1 truncate">{title}</h2>
       {right}
+    </div>
+  );
+}
+
+/* Sahifa foni: nurlar, nuqtali daftar va suzuvchi harflar */
+const BG_GLYPHS = [
+  ['Aa', '6%', '12%', 120, '-8deg', '0s'], ['/ə/', '78%', '8%', 84, '10deg', '-3s'], ['Hello', '58%', '44%', 70, '-6deg', '-6s'],
+  ['?', '12%', '58%', 150, '12deg', '-2s'], ['abc', '72%', '72%', 96, '-4deg', '-8s'], ['ʃ', '30%', '86%', 110, '6deg', '-5s'], ['!', '90%', '46%', 120, '-10deg', '-1s'],
+];
+function AppBg() {
+  return (
+    <div className="app-bg" aria-hidden="true">
+      {BG_GLYPHS.map(([t, x, y, sz, r, d]) => <span key={t} style={{ left: x, top: y, fontSize: sz, '--r': r, animationDelay: d }}>{t}</span>)}
     </div>
   );
 }
@@ -1034,6 +1187,7 @@ function Study({ S, deckId, upd, onExit, reward }) {
 
   const grade = useCallback((g) => {
     if (!w) return;
+    TTS.stop();
     upd((d) => {
       const i = d.words.findIndex((x) => x.id === w.id);
       if (i < 0) return;
@@ -1770,8 +1924,11 @@ function Listening({ S, upd, reward, openWord }) {
   const [qKey, setQKey] = useState(0);
   const ai = useAI();
   const known = useMemo(() => knownMatcher(S.words), [S.words]);
-  const playGen = useRef(0);
-  useEffect(() => () => { playGen.current++; TTS.stop(); }, []);
+  const playGen = useRef(-1);
+  useTTS();
+  useEffect(() => () => { TTS.stop(); }, []);
+  // Boshqa joydan (masalan, «Ovozni to'xtatish») to'xtatilsa, pleyer ham to'xtaydi
+  useEffect(() => { if (playing >= 0 && TTS.gen !== playGen.current) setPlaying(-1); });
   const gen = () => ai.run(async () => {
     TTS.stop(); setPlaying(-1);
     const kw = knownSample(S, 10);
@@ -1791,20 +1948,21 @@ Return ONLY JSON:
   });
   const play = (from = 0) => {
     if (!data) return;
-    const g = ++playGen.current;
     TTS.stop();
+    const g = TTS.gen;
+    playGen.current = g;
     const speakers = [...new Set(data.lines.map((l) => l.speaker))];
     const step = (i) => {
-      if (g !== playGen.current) return;
+      if (g !== TTS.gen) return;
       if (i >= data.lines.length) { setPlaying(-1); return; }
       setPlaying(i);
       const l = data.lines[i];
       const si = Math.max(0, speakers.indexOf(l.speaker));
-      TTS.speak(l.text, { rate, voiceIndex: si, pitch: TTS.voices.length > 1 ? 1 : si === 1 ? 0.8 : 1.05, onend: () => setTimeout(() => step(i + 1), 350) });
+      TTS.speak(l.text, { rate, voiceIndex: si, onend: () => setTimeout(() => step(i + 1), 250) });
     };
     step(from);
   };
-  const stop = () => { playGen.current++; TTS.stop(); setPlaying(-1); };
+  const stop = () => { TTS.stop(); setPlaying(-1); };
   const fullText = data ? data.lines.map((l) => l.text).join(' ') : '';
   const newForms = useMemo(() => new Set((data?.newWords || []).flatMap((w) => [norm(w.form), norm(w.en)]).filter(Boolean)), [data]);
   return (
@@ -2195,6 +2353,35 @@ score is an integer 1-10.`);
   );
 }
 
+/* Ovoz tanlash: talaffuz (US/UK) va aniq ovoz */
+function VoicePicker({ p, setP }) {
+  const tts = useTTS();
+  if (!TTS.ok) return <p className="text-sm text-warn">Bu brauzerda ovoz chiqarish (speechSynthesis) yo'q.</p>;
+  const accent = p.accent || 'us';
+  const opts = speechSynthesis.getVoices().filter((v) => voiceScore(v, accent) > 0).sort((a, b) => voiceScore(b, accent) - voiceScore(a, accent));
+  const test = () => {
+    const prevA = TTS.accent, prevV = TTS.preferred;
+    TTS.accent = accent; TTS.preferred = p.voice || ''; TTS.load();
+    TTS.say('Hello! This is how I pronounce English words: journey, knowledge, schedule.', 0.95);
+    TTS.accent = prevA; TTS.preferred = prevV; setTimeout(() => TTS.load(), 0);
+  };
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-bold">Talaffuz ovozi</p>
+      <Segmented id="set-accent" value={accent} onChange={(v) => setP({ ...p, accent: v, voice: '' })} options={[{ value: 'us', label: '🇺🇸 Amerika' }, { value: 'uk', label: '🇬🇧 Britaniya' }]} />
+      <div className="flex gap-2">
+        <select id="set-voice" aria-label="Ovoz" className={`${inputCls} !py-2`} value={p.voice || ''} onChange={(e) => setP({ ...p, voice: e.target.value })}>
+          <option value="">Avto (eng yaxshisi)</option>
+          {opts.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}
+        </select>
+        <Btn kind="soft" size="sm" onClick={tts.active ? () => TTS.stop() : test} className="shrink-0">{tts.active ? 'To\'xtatish' : 'Sinab ko\'rish'}</Btn>
+      </div>
+      {!opts.length && <p className="text-xs text-warn">Qurilmada ingliz ovozi topilmadi. Telefon sozlamalarida «Matnni ovozga aylantirish» bo'limidan English (US) ovozini yuklab oling.</p>}
+      <p className="text-xs text-muted">Talaffuz yoqmasa, boshqa ovozni tanlab sinab ko'ring. «Google», «Natural» yoki «Enhanced» nomli ovozlar odatda eng tabiiy.</p>
+    </div>
+  );
+}
+
 /* =====================================================================
    20. SOZLAMALAR, EKSPORT / IMPORT
    ===================================================================== */
@@ -2250,6 +2437,7 @@ function Settings({ open, onClose, S, upd, replace, cloudOn }) {
         <div><p className="text-sm font-bold mb-1.5">Daraja</p><Segmented id="set-level" value={p.level} onChange={(v) => setP({ ...p, level: v })} options={LEVELS.map((l) => l.id)} /></div>
         <div><p className="text-sm font-bold mb-1.5">Kunlik maqsad</p><Segmented id="set-goal" value={p.goal} onChange={(v) => setP({ ...p, goal: v })} options={[{ value: 5, label: '5' }, { value: 10, label: '10' }, { value: 20, label: '20' }]} /></div>
         <div><p className="text-sm font-bold mb-1.5">Mavzu</p><Segmented id="set-theme" value={p.theme || 'auto'} onChange={(v) => setP({ ...p, theme: v })} options={[{ value: 'auto', label: 'Avto' }, { value: 'light', label: "Yorug'" }, { value: 'dark', label: "Qorong'i" }]} /></div>
+        <VoicePicker p={p} setP={setP} />
         <label className="flex items-center gap-3"><input id="set-sound" type="checkbox" className="w-5 h-5" checked={p.sound !== false} onChange={(e) => setP({ ...p, sound: e.target.checked })} />To'g'ri/xato javob ovozi</label>
         <Btn className="w-full" onClick={save}>Saqlash</Btn>
         <div className="border-t border-line pt-4 space-y-3">
@@ -2341,6 +2529,14 @@ function App() {
     return () => clearTimeout(t);
   }, [S, cloudOn, flush]);
 
+  // Ovoz sozlamasi
+  useEffect(() => {
+    if (!S) return;
+    TTS.accent = S.profile.accent || 'us';
+    TTS.preferred = S.profile.voice || '';
+    TTS.load();
+  }, [S && S.profile.accent, S && S.profile.voice]); // eslint-disable-line
+
   // Mavzu (yorug'/qorong'i)
   useEffect(() => {
     const r = document.documentElement, th = S && S.profile.theme;
@@ -2378,23 +2574,24 @@ function App() {
   }, [upd, reward]);
 
   if (!S) {
-    return <Onboarding onDone={({ name, level, goal, starter }) => {
+    return <><AppBg /><Onboarding onDone={({ name, level, goal, starter }) => {
       const s = makeState({ name, level, goal });
       if (starter) { s.decks.push({ id: 'd-starter', name: 'Starter' }); s.words = starterWords('d-starter'); }
-      setS(s); setTab('home');
-    }} />;
+      setS(s); setTab('home'); window.scrollTo(0, 0);
+    }} /></>;
   }
 
-  const go = (t) => { setTab(t); setSub(null); setStudy(null); window.scrollTo(0, 0); };
+  const go = (t) => { TTS.stop(); setTab(t); setSub(null); setStudy(null); window.scrollTo(0, 0); };
   const startStudy = (deck) => { setTab('vocab'); setSub(null); setStudy({ deck }); window.scrollTo(0, 0); };
   const streak = liveStreak(S);
   return (
     <div className="min-h-full">
+      <AppBg />
       <header className="sticky top-safe z-30 bg-paper/90 backdrop-blur border-b border-line/70">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
           <button onClick={() => go('home')} className={`flex items-center gap-2 rounded-xl px-2 py-1 min-w-0 ${tab === 'home' ? 'text-primary' : ''}`} aria-label="Bosh sahifa">
             <span className="w-8 h-8 rounded-lg bg-marker text-onmarker grid place-items-center font-display font-extrabold">V</span>
-            <span className="font-display font-extrabold text-base whitespace-nowrap truncate hidden min-[360px]:inline">Vocabulary Teacher</span>
+            <span className="font-display font-extrabold text-base whitespace-nowrap hidden min-[340px]:inline">Vocabulary<span className="hidden min-[430px]:inline"> Teacher</span></span>
           </button>
           <div className="flex-1" />
           <span className="flex items-center whitespace-nowrap shrink-0 gap-1 font-bold text-sm num" title="Kunlar ketma-ketligi">🔥 {streak}</span>
@@ -2428,6 +2625,7 @@ function App() {
       </nav>
 
       {xpPop && <div key={xpPop.k} className="xp-float"><span className={`px-4 py-2 rounded-full font-display font-extrabold shadow-lift ${xpPop.goal ? 'bg-marker text-onmarker' : 'bg-primary text-onprimary'}`}>{xpPop.goal ? '🎯 Maqsad bajarildi! ' : ''}+{xpPop.n} XP</span></div>}
+      <StopSpeechBar />
       <Confetti fire={confetti} />
       <WordSheet req={wordReq} onClose={() => setWordReq(null)} state={S} onAdd={addFromText} level={S.profile.level} />
       <Settings open={settings} onClose={() => setSettings(false)} S={S} upd={upd} replace={(n) => {
