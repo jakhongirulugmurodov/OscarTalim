@@ -49,6 +49,9 @@ jobs:
       DOKON_XARITA: ${{ vars.DOKON_XARITA }}
       DOKON_INSTAGRAM: ${{ vars.DOKON_INSTAGRAM }}
       DB_PATH: ${{ github.workspace }}/state/mutolaa.db
+      PYTHONUNBUFFERED: "1"
+      # Qo'lda ishga tushirilganda adminga «ishga tushdi» xabari boradi
+      ISHGA_TUSHDI_XABARI: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 
