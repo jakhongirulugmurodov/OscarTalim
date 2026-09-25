@@ -23,8 +23,8 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
 - `docs/anjuman/` — anjuman mashg'uloti dasturi.
 - `docs/index.html` — transkripsiya sahifasi.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
-- `kitob-bot/` — «Sehrli Javon» kitob do'koni boti: katalog, aksiya, sovg'a,
-  promokod (10–50%), buyurtma, baholash. Sinov: `python3 kitob-bot/test_bot.py`.
+- `sehrli_javon/` — «Sehrli Javon» kitob do'koni boti: katalog, aksiya, sovg'a,
+  promokod (10–50%), buyurtma, baholash. Sinov: `python3 sehrli_javon/test_bot.py`.
 - `.github/workflows/` — bot, Firebase sozlash, Pages shoxchasini sinxronlash.
 
 Batafsil: `docs/sinf/README.md`.

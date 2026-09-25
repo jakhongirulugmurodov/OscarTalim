@@ -1,0 +1,71 @@
+# Sehrli Javon (@My_book08_bot) — kitob do'koni boti GitHub Actions'da ishlaydi.
+#
+# Har ishga tushish ~55 daqiqa xabarlarni jonli kutadi (long polling). Jadval
+# har 30 daqiqada navbatdagisini qo'yadi — oldingisi tugashi bilan keyingisi
+# boshlanadi, shuning uchun bot uzluksiz javob beradi.
+# "Run workflow" tugmasi orqali: bir martalik sozlash (nom, tavsif, buyruqlar).
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret   SEHRLI_BOT_TOKEN   — @My_book08_bot tokeni (BotFather bergan)
+#   variable SEHRLI_ADMIN_IDS   — admin(lar) Telegram ID si, vergul bilan (botga /men)
+#
+# Holat (mijozlar, savat, buyurtmalar, ombor) actions/cache'da saqlanadi.
+# Batafsil: sehrli_javon/README.md
+
+name: Sehrli Javon bot
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      rejim:
+        description: "Nima qilsin"
+        type: choice
+        options: [xabarlar, sozlash]
+        default: xabarlar
+
+concurrency:
+  group: sehrli-javon
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 62
+    env:
+      BOT_TOKEN: ${{ secrets.SEHRLI_BOT_TOKEN }}
+      ADMIN_IDS: ${{ vars.SEHRLI_ADMIN_IDS }}
+      STATE_FILE: ${{ github.workspace }}/sehrli-state/holat.json
+      REJIM: ${{ github.event.inputs.rejim || 'xabarlar' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Holatni tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: sehrli-state
+          key: sehrli-state-${{ github.run_id }}
+          restore-keys: sehrli-state-
+
+      - name: Bot
+        run: |
+          mkdir -p sehrli-state
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "SEHRLI_BOT_TOKEN secret'i qo'shilmagan — o'tkazib yuborildi."
+            exit 0
+          fi
+          case "$REJIM" in
+            sozlash) python3 sehrli_javon/bot.py --setup ;;
+            *)       python3 sehrli_javon/bot.py --for 3300 ;;
+          esac
+
+      - name: Holatni saqlash
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: sehrli-state
+          key: sehrli-state-${{ github.run_id }}

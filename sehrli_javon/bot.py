@@ -35,8 +35,8 @@ Rejimlar:
 Muhit o'zgaruvchilari:
     BOT_TOKEN      BotFather bergan token
     ADMIN_IDS      admin(lar) Telegram ID si, vergul bilan
-    STATE_FILE     holat fayli (ixtiyoriy, standart: kitob-bot/holat.json)
-    KATALOG_FILE   katalog (ixtiyoriy, standart: kitob-bot/katalog.json)
+    STATE_FILE     holat fayli (ixtiyoriy, standart: sehrli_javon/holat.json)
+    KATALOG_FILE   katalog (ixtiyoriy, standart: sehrli_javon/katalog.json)
 """
 
 import hashlib

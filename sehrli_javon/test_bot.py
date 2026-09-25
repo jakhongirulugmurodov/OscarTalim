@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sehrli Javon botining sinovlari — Telegram'siz, soxta API bilan.
 
-    python3 kitob-bot/test_bot.py
+    python3 sehrli_javon/test_bot.py
 """
 
 import io

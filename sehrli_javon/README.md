@@ -80,25 +80,25 @@ odam kelgani, nechtasi xarid qilgani va qancha tushum bergani ko'rinadi.
 
 ## Ishga tushirish
 
-1. **@BotFather** → `/newbot` → nomi: `Sehrli Javon`, username: masalan
-   `SehrliJavonBot` (band bo'lsa — boshqasi) → **token**.
+1. Bot: **@My_book08_bot** (`t.me/My_book08_bot`) — BotFather'da yasalgan.
+   Uning tokeni faqat GitHub secret'ida saqlanadi, kodga yoki chatlarga yozilmaydi.
 2. Repo → **Settings → Secrets and variables → Actions**:
-   - secret `KITOB_BOT_TOKEN` — token;
-   - variable `KITOB_ADMIN_IDS` — sizning Telegram ID ingiz (botga `/men` deb yozsangiz aytadi).
-3. **Actions → Kitob bot → Run workflow → rejim: `sozlash`** — bot tavsifi va
+   - secret `SEHRLI_BOT_TOKEN` — token;
+   - variable `SEHRLI_ADMIN_IDS` — sizning Telegram ID ingiz (botga `/men` deb yozsangiz aytadi).
+3. **Actions → Sehrli Javon bot → Run workflow → rejim: `sozlash`** — bot tavsifi va
    buyruqlar ro'yxati o'rnatiladi.
 4. **Logotip:** @BotFather → `/setuserpic` → botingizni tanlang →
-   `kitob-bot/logo.png` ni yuboring. (Bot o'zi ham har bir yangi mijozni
+   `sehrli_javon/logo.png` ni yuboring. (Bot o'zi ham har bir yangi mijozni
    shu logotip bilan kutib oladi.)
-5. Tamom: workflow har 5 daqiqada ishga tushib, ~4,5 daqiqa xabarlarni jonli
-   kutadi. (GitHub jadvalni ba'zan kechiktiradi, shunda bot bir necha daqiqa
+5. Tamom: workflow uzluksiz ishlaydi (har ishga tushish ~55 daqiqa, keyingisi
+   navbatda turadi). (GitHub jadvalni ba'zan kechiktiradi, shunda bot bir necha daqiqa
    jim turishi mumkin — to'liq uzluksiz bo'lishi uchun serverda ishlating.)
 
 **O'z serveringizda** (VPS, uy kompyuteri):
 
 ```bash
-BOT_TOKEN=123:ABC ADMIN_IDS=111222333 python3 kitob-bot/bot.py --setup
-BOT_TOKEN=123:ABC ADMIN_IDS=111222333 python3 kitob-bot/bot.py
+BOT_TOKEN=123:ABC ADMIN_IDS=111222333 python3 sehrli_javon/bot.py --setup
+BOT_TOKEN=123:ABC ADMIN_IDS=111222333 python3 sehrli_javon/bot.py
 ```
 
 Bitta token bilan bir vaqtda faqat bitta nusxa ishlashi kerak (yoki Actions,
@@ -116,7 +116,7 @@ chunki sotuv davomida ular o'zgarib boradi. Rasm qo'shish uchun kitobga
 ## Sinovlar
 
 ```bash
-python3 kitob-bot/test_bot.py
+python3 sehrli_javon/test_bot.py
 ```
 
 Telegram'siz, soxta API bilan (21 ta): ro'yxatdan o'tish, katalog, yosh cheklovi,
@@ -125,7 +125,7 @@ sovg'alar, baholash, bekor qilish, admin ✅/❌, hisobotlar, reklama manbalari,
 fayl yuborish, HTML xavfsizligi.
 
 Marketing sahifasini namuna ma'lumot bilan ko'rish:
-`python3 kitob-bot/hisobot.py > misol.html` va brauzerda oching.
+`python3 sehrli_javon/hisobot.py > misol.html` va brauzerda oching.
 
 ## Bilib qo'ying
 
