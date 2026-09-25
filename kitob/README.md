@@ -10,8 +10,25 @@ o'z vaqtida eslatib turadi.
 2. Ketma-ket so'raladi: **ism → familiya → telefon** (tugma bilan yoki
    yozib) **→ yosh → qiziqqan janr** (Motivatsion, Kino asosidagi
    kitoblar, Romanlar, Diniy va tarixiy, … yoki o'zi yozadi).
-3. Tayyor. Keyin menyu: **🔥 Juma aksiyasi**, **👤 Ma'lumotlarim**,
-   **✏️ Ma'lumotni o'zgartirish**.
+3. Tayyor. Keyin menyu: **🔥 Juma aksiyasi**, **📦 Buyurtmalarim**,
+   **👤 Ma'lumotlarim**, **✏️ Ma'lumotni o'zgartirish**.
+
+## Buyurtma
+
+Aksiya xabari (kitob muqovasi rasmi, eski narx → aksiya narxi, «Qoldi: N ta»)
+ostida **🛒 Buyurtma berish** tugmasi bor:
+
+1. Ro'yxatdan o'tmagan bo'lsa — avval ro'yxatdan o'tadi, keyin davom etadi.
+2. **Nechta?** — 1 dan 5 gacha (qolgan kitobdan ko'p emas).
+3. `TOLOV_KARTA` berilgan bo'lsa — kartaga o'tkazib **chek rasmini** yuboradi
+   yoki «💵 Olganda to'layman» ni tanlaydi.
+4. Tekshiradi → **✅ Buyurtmani tasdiqlash** → «Buyurtma #1001 rasmiylashtirildi».
+5. Do'kon egasiga buyurtma (chek rasmi bilan) **✅ Qabul / ❌ Rad** tugmalari
+   bilan keladi. Bosgach, mijozga javob boradi. Rad etilgan buyurtmaning
+   kitoblari yana sotuvga qaytadi.
+
+Kitoblar tugasa, e'londa «tugadi» deb yoziladi va payshanba/juma eslatmasi
+yuborilmaydi.
 
 ## Eslatmalar jadvali
 
@@ -34,11 +51,19 @@ kelsa, xabarga «💚 Bu siz yoqtirgan janrdan» qo'shiladi.
 Egasining Telegram ID si `KITOB_ADMIN_IDS` da bo'lsa, menyuda qo'shimcha
 tugmalar chiqadi:
 
-- **➕ Aksiya qo'shish** — juma (tugmalardan tanlanadi), kitob nomi, janr,
-  odatiy narx, **tannarx**, aksiya narxi. Aksiya narxi tannarxdan past
-  bo'lmasa, bot qabul qilmaydi; zarar 15% dan oshsa, ogohlantiradi.
-  Tannarxni mijozlar ko'rmaydi.
-- **📋 Aksiyalar** — rejadagi aksiyalar, har biridan zarar, aksiyasiz jumalar.
+- **➕ Aksiya qo'shish** — juma (tugmalardan tanlanadi), kitob nomi,
+  muqova rasmi, janr, odatiy narx, **tannarx**, aksiya narxi, nechta kitob.
+  - Aksiya narxi tannarxdan past bo'lmasa, bot qabul qilmaydi.
+  - Bot tannarxdan 1 000 so'm kamini taklif qiladi: tannarx **340 000** →
+    aksiya **339 000** (bir tugma).
+  - Zarar 5% dan oshsa, ogohlantiradi. Tannarxni mijozlar ko'rmaydi.
+- **📋 Aksiyalar** — rejadagi aksiyalar, har biridan zarar, nechta buyurtma
+  olingani, aksiyasiz jumalar.
+- **📦 Buyurtmalar** — kutilayotgan buyurtmalar ✅/❌ tugmalari bilan.
+- **📊 Marketing** — mijozlar soni (bu hafta nechta yangi), buyurtmalar,
+  sotilgan kitoblar, tushum, aksiya xarajati (jami zarar), bitta mijozga
+  xarajat, buyurtma bergan va qayta kelgan mijozlar, 8 haftalik
+  «Mijoz / Sotuv» grafigi, oxirgi aksiyalar natijasi, mijozlar yoqtirgan janrlar.
 - **👥 Mijozlar** — ro'yxatdan o'tganlar soni, janrlar bo'yicha, telefonlar.
 - `/ochir 3` — 3-aksiyani o'chirish.
 - `/xabar matn` — barcha mijozlarga xabar (masalan, yangi kitoblar keldi).
@@ -49,7 +74,9 @@ tugmalar chiqadi:
 2. GitHub: **Settings → Secrets and variables → Actions**:
    - *Secrets* → `KITOB_BOT_TOKEN` = token;
    - *Variables* → `KITOB_ADMIN_IDS` = do'kon egasining Telegram ID si
-     (botga `/men` deb yozsangiz aytadi; bir nechta bo'lsa — vergul bilan).
+     (botga `/men` deb yozsangiz aytadi; bir nechta bo'lsa — vergul bilan);
+   - *Variables* → `KITOB_TOLOV_KARTA` = karta raqami (ixtiyoriy; bo'lmasa,
+     mijoz kitobni olganda to'laydi).
 3. **Actions → Kitob olami bot → Run workflow → rejim: `sozlash`**.
 
 Shundan keyin workflow har 5 daqiqada ishlaydi (faqat `main` shoxchada).

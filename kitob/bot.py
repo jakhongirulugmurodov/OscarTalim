@@ -7,7 +7,10 @@ Vazifasi:
      telefon, yosh, qiziqqan kitob janri.
   2. Juma aksiyasi: har juma bitta kitob tannarxidan ozgina arzonga
      (ozgina zarariga) sotiladi. Aksiyani do'kon egasi bot ichida qo'shadi.
-  3. Eslatmalar (Toshkent vaqti bilan, soat ESLATMA_SOAT dan keyin):
+  3. Buyurtma: aksiya xabari ostidagi «🛒 Buyurtma berish» tugmasi → soni →
+     (TOLOV_KARTA bo'lsa, to'lov cheki rasmi) → tasdiqlash. Do'kon egasi
+     buyurtmani ✅/❌ bilan qabul qiladi yoki rad etadi; mijozga xabar boradi.
+  4. Eslatmalar (Toshkent vaqti bilan, soat ESLATMA_SOAT dan keyin):
        - do'kon egasiga — aksiyadan 4 hafta oldin (kitobni tayyorlash uchun)
          va 4 hafta keyingi juma bo'sh bo'lsa, «aksiya qo'ying» deb;
        - do'kon egasiga — mijozlarga e'lon ketishidan bir kun oldin;
@@ -18,7 +21,9 @@ Vazifasi:
 Do'kon egasi (ADMIN_IDS) uchun buyruqlar:
     ➕ Aksiya qo'shish   — sana, kitob, janr, narxlar so'raladi
     📋 Aksiyalar          — rejalashtirilgan aksiyalar, tannarx va zarar
+    📦 Buyurtmalar        — kutilayotgan buyurtmalar, ✅/❌ tugmalari bilan
     👥 Mijozlar           — ro'yxatdan o'tganlar
+    📊 Marketing          — mijozlar, sotuv, xarajat va haftalik grafik
     /ochir 3              — 3-aksiyani o'chirish
     /xabar matn           — barcha mijozlarga xabar
     /men                  — o'z Telegram ID ingizni bilish
@@ -33,6 +38,8 @@ Muhit o'zgaruvchilari:
     ADMIN_IDS      do'kon egasining Telegram ID lari, vergul bilan
     STATE_FILE     kitob.json manzili (ixtiyoriy)
     ESLATMA_SOAT   eslatmalar yuboriladigan soat, Toshkent vaqti (standart 10)
+    TOLOV_KARTA    to'lov kartasi (ixtiyoriy). Bo'lsa, mijoz buyurtmada chek
+                   rasmini yuboradi; bo'lmasa, kitob olinganda to'lanadi.
 """
 
 import json
@@ -51,11 +58,15 @@ ADMINS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.str
 STORE = os.environ.get("STATE_FILE") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "kitob.json")
 ESLATMA_SOAT = int(os.environ.get("ESLATMA_SOAT") or 10)
+TOLOV_KARTA = os.environ.get("TOLOV_KARTA", "").strip()
 API = "https://api.telegram.org/bot%s/" % TOKEN
 TOSHKENT = timezone(timedelta(hours=5))
 
 EGA_OLDIN = 28          # do'kon egasi aksiyani necha kun oldin bilishi kerak
 MIJOZ_OLDIN = 7         # mijozlar necha kun oldin biladi
+ZARAR_TAVSIYA = 1000    # aksiya narxi: tannarxdan shuncha kam (340 000 → 339 000)
+ZARAR_OGOH = 5          # zarar shu foizdan oshsa, ogohlantiramiz
+BIR_KISHIGA = 5         # bitta buyurtmada ko'pi bilan nechta kitob
 
 BTN_ROYXAT = "📝 Ro'yxatdan o'tish"
 BTN_AKSIYA = "🔥 Juma aksiyasi"
@@ -67,6 +78,14 @@ BTN_QOSH = "➕ Aksiya qo'shish"
 BTN_ROYXAT_AKSIYA = "📋 Aksiyalar"
 BTN_MIJOZLAR = "👥 Mijozlar"
 BTN_HA = "✅ Ha, saqlash"
+BTN_BUYURTMALAR = "📦 Buyurtmalar"
+BTN_BUYURTMALARIM = "📦 Buyurtmalarim"
+BTN_MARKETING = "📊 Marketing"
+BTN_RASMSIZ = "⏭ Rasmsiz"
+BTN_CHEKSIZ = "💵 Olganda to'layman"
+BTN_TASDIQ = "✅ Buyurtmani tasdiqlash"
+HOLAT = {"kutilmoqda": "⏳ kutilmoqda", "tasdiqlandi": "✅ tasdiqlandi",
+         "rad": "❌ rad etildi"}
 BTN_YOQ = "❌ Yo'q"
 HAMMA = "📚 Hamma uchun"
 
@@ -119,6 +138,16 @@ def send(chat_id, text, keyboard=None):
                 disable_web_page_preview="true", reply_markup=keyboard)
 
 
+def send_photo(chat_id, photo, caption, keyboard=None):
+    return call("sendPhoto", chat_id=chat_id, photo=photo, caption=caption,
+                parse_mode="HTML", reply_markup=keyboard)
+
+
+def inline(rows):
+    return {"inline_keyboard": [[{"text": t, "callback_data": d} for t, d in row]
+                                for row in rows]}
+
+
 def send_long(chat_id, lines, keyboard=None):
     """Telegram bitta xabarga 4096 belgidan ko'p sig'dirmaydi — bo'lib yuboramiz."""
     chunk = ""
@@ -140,9 +169,10 @@ def menyu(chat, db):
     if not royxatda(db, chat):
         rows = [[BTN_ROYXAT], [BTN_AKSIYA]]
     else:
-        rows = [[BTN_AKSIYA], [BTN_MEN, BTN_QAYTA]]
+        rows = [[BTN_AKSIYA], [BTN_BUYURTMALARIM, BTN_MEN], [BTN_QAYTA]]
     if chat in ADMINS:
-        rows += [[BTN_QOSH, BTN_ROYXAT_AKSIYA], [BTN_MIJOZLAR]]
+        rows += [[BTN_QOSH, BTN_ROYXAT_AKSIYA], [BTN_BUYURTMALAR, BTN_MIJOZLAR],
+                 [BTN_MARKETING]]
     return kb(rows)
 
 
@@ -161,6 +191,8 @@ def load():
     db.setdefault("promos", [])
     db.setdefault("sent", {})
     db.setdefault("seq", 0)
+    db.setdefault("orders", [])
+    db.setdefault("oseq", 1000)             # buyurtma raqamlari #1001 dan boshlanadi
     return db
 
 
@@ -238,6 +270,41 @@ def kelgusi(db):
 
 def zarar(p):
     return p["tannarx"] - p["narx"]
+
+
+def band_soni(db, p):
+    """Aksiya kitobidan buyurtma qilingan (rad etilmagan) nusxalar soni."""
+    return sum(o["soni"] for o in db["orders"]
+               if o["promo"] == p["id"] and o["holat"] != "rad")
+
+
+def qolgan(db, p):
+    if not p.get("soni"):
+        return None                          # cheklanmagan
+    return max(0, p["soni"] - band_soni(db, p))
+
+
+def korinadi(p):
+    """Mijozlar aksiyani faqat MIJOZ_OLDIN kun qolganda ko'radi."""
+    return 0 <= (date.fromisoformat(p["sana"]) - bugun()).days <= MIJOZ_OLDIN
+
+
+def aksiya_yubor(db, chat, p, u=None):
+    """Aksiyani mijozga yuboradi: rasm (bo'lsa), matn va «Buyurtma berish» tugmasi."""
+    matn = aksiya_matn(p, u)
+    q = qolgan(db, p)
+    if q == 0:
+        matn += "\n\n😔 Bu aksiya kitoblari tugadi."
+        tugma = None
+    else:
+        if q is not None:
+            matn += "\n\n📦 Qoldi: <b>%d</b> ta" % q
+        tugma = inline([[("🛒 Buyurtma berish", "buy:%d" % p["id"])]])
+    if p.get("rasm"):
+        r = send_photo(chat, p["rasm"], matn, tugma)
+        if r.get("ok") or r.get("error_code") == 403:
+            return r
+    return send(chat, matn, tugma)
 
 
 def aksiya_matn(p, u=None):
@@ -328,6 +395,10 @@ def royxat_qadam(chat, u, msg, text, db):
             for a in ADMINS:
                 send(a, "🆕 Yangi mijoz (%d-chi):\n%s" % (
                     sum(1 for x in db["users"].values() if x.get("royxat")), profil(u)))
+        keyin = u.pop("keyin", None)
+        p = next((p for p in db["promos"] if p["id"] == keyin), None)
+        if p and korinadi(p):
+            aksiya_yubor(db, chat, p, u)
         return
 
 
@@ -344,7 +415,7 @@ def bosh_jumalar(db):
     return [d for d in jumalar(10) if d.isoformat() not in band]
 
 
-def aksiya_qadam(chat, u, text, db):
+def aksiya_qadam(chat, u, msg, text, db):
     qadam = u["qadam"]
     q = u.setdefault("vaqtincha", {})
 
@@ -381,6 +452,17 @@ def aksiya_qadam(chat, u, text, db):
             send(chat, "Kitob nomini yozing.")
             return
         q["kitob"] = text
+        u["qadam"] = "a_rasm"
+        send(chat, "Kitob muqovasining rasmini yuboring — mijozlar e'londa ko'radi:",
+             kb([[BTN_RASMSIZ], [BTN_BEKOR]]))
+        return
+
+    if qadam == "a_rasm":
+        if msg.get("photo"):
+            q["rasm"] = msg["photo"][-1]["file_id"]
+        elif text != BTN_RASMSIZ:
+            send(chat, "Rasm yuboring yoki «%s» tugmasini bosing." % BTN_RASMSIZ)
+            return
         u["qadam"] = "a_janr"
         send(chat, "Kitob janri? (shu janrni yoqtirganlarga alohida belgi qo'yamiz)",
              kb([[HAMMA]] + ustunlar(JANRLAR) + [[BTN_BEKOR]]))
@@ -413,9 +495,10 @@ def aksiya_qadam(chat, u, text, db):
             return
         q["tannarx"] = n
         u["qadam"] = "a_narx"
-        tavsiya = int(round(n * 0.95, -3)) or n - 1
+        tavsiya = n - ZARAR_TAVSIYA if n > ZARAR_TAVSIYA else n - 1
         send(chat, "Juma kuni qanchaga sotamiz? U <b>tannarxdan ozgina past</b> "
-                   "bo'lishi kerak. Masalan: <i>%d</i> (tannarxdan ~5%% past)." % tavsiya)
+                   "bo'lishi kerak — tugmani bosing yoki o'zingiz yozing:",
+             kb([["%s" % som(tavsiya)], [BTN_BEKOR]]))
         return
 
     if qadam == "a_narx":
@@ -429,17 +512,33 @@ def aksiya_qadam(chat, u, text, db):
                  % som(q["tannarx"]))
             return
         q["narx"] = n
+        u["qadam"] = "a_soni"
+        send(chat, "Aksiyaga nechta kitob qo'yamiz? Shuncha buyurtma olinadi, "
+                   "keyin «tugadi» deb yoziladi. Cheklamaslik uchun «0» yozing.",
+             kb([["20", "50", "100"], [BTN_BEKOR]]))
+        return
+
+    if qadam == "a_soni":
+        n = son(text)
+        if n is None:
+            send(chat, "Sonini raqam bilan yozing, masalan: <i>50</i>.")
+            return
+        q["soni"] = n
         u["qadam"] = "a_tasdiq"
+        n = q["narx"]
         z = q["tannarx"] - n
         foiz = 100.0 * z / q["tannarx"]
         ogoh = ("\n⚠️ Zarar %.0f%% — bu «ozgina» emas. Ishonchingiz komilmi?" % foiz
-                if foiz > 15 else "")
-        send(chat, "Tekshiring:\n\n📅 %s, juma\n📖 %s\n📚 %s\n"
+                if foiz > ZARAR_OGOH else "")
+        jami = ("\nHammasi sotilsa, jami zarar: %s" % som(z * q["soni"])) if q["soni"] else ""
+        send(chat, "Tekshiring:\n\n📅 %s, juma\n📖 %s\n📚 %s\n🖼 %s\n"
                    "Odatiy narx: %s\nTannarx: %s\nAksiya narxi: <b>%s</b>\n"
-                   "Bitta kitobdan zarar: %s (%.1f%%)%s\n\nSaqlaymizmi?"
+                   "Soni: %s\nBitta kitobdan zarar: %s (%.1f%%)%s%s\n\nSaqlaymizmi?"
              % (sana_matn(date.fromisoformat(q["sana"])), escape(q["kitob"]),
-                escape(q["janr"]), som(q["odatiy"]) if q["odatiy"] else "—",
-                som(q["tannarx"]), som(n), som(z), foiz, ogoh),
+                escape(q["janr"]), "rasm bor" if q.get("rasm") else "rasmsiz",
+                som(q["odatiy"]) if q["odatiy"] else "—",
+                som(q["tannarx"]), som(n), q["soni"] or "cheklanmagan",
+                som(z), foiz, jami, ogoh),
              kb([[BTN_HA, BTN_YOQ]]))
         return
 
@@ -477,10 +576,11 @@ def aksiyalar_royxati(chat, db):
         qoldi = (d - bugun()).days
         holat = ("mijozlar biladi" if qoldi <= MIJOZ_OLDIN
                  else "mijozlarga %d kundan keyin e'lon" % (qoldi - MIJOZ_OLDIN))
-        lines.append("#%d · 📅 %s (%d kun) — <b>%s</b>\n   %s → %s, zarar %s/dona · %s"
+        soni = "%d/%s buyurtma" % (band_soni(db, p), p.get("soni") or "∞")
+        lines.append("#%d · 📅 %s (%d kun) — <b>%s</b>\n   %s → %s, zarar %s/dona · %s · %s"
                      % (p["id"], sana_matn(d), qoldi, escape(p["kitob"]),
-                        som(p["tannarx"]), som(p["narx"]), som(zarar(p)), holat))
-    bosh = [d for d in bosh_jumalar(db) if (d - bugun()).days <= EGA_OLDIN + 7]
+                        som(p["tannarx"]), som(p["narx"]), som(zarar(p)), soni, holat))
+    bosh = [d for d in bosh_jumalar(db) if 0 < (d - bugun()).days <= EGA_OLDIN + 7]
     if bosh:
         lines.append("\n⚠️ Aksiyasiz jumalar: " + ", ".join(sana_matn(d) for d in bosh))
     lines.append("\nO'chirish: <code>/ochir 3</code>")
@@ -510,19 +610,278 @@ def mijozlar(chat, db):
     send_long(chat, lines, menyu(chat, db))
 
 
-def hammaga(db, matn_fn):
-    """Ro'yxatdan o'tgan har bir mijozga matn_fn(u) ni yuboradi."""
+def hammaga(db, yubor):
+    """Ro'yxatdan o'tgan har bir mijozga yubor(chat, u) orqali xabar yuboradi."""
     yuborildi = 0
     for chat, u in db["users"].items():
         if not u.get("royxat") or u.get("bloklagan"):
             continue
-        r = send(chat, matn_fn(u), menyu(chat, db))
+        r = yubor(chat, u)
         if r.get("ok"):
             yuborildi += 1
         elif r.get("error_code") == 403:          # botni o'chirib qo'ygan
             u["bloklagan"] = int(time.time())
         time.sleep(0.05)                           # Telegram cheklovi: ~30 xabar/soniya
     return yuborildi
+
+
+# ---------------------------------------------------------------- buyurtma (mijoz)
+def buyurtma_boshla(chat, u, pid, db):
+    p = next((p for p in db["promos"] if p["id"] == pid), None)
+    if not p or not korinadi(p):
+        send(chat, "Bu aksiya tugagan.", menyu(chat, db))
+        return
+    if not royxatda(db, chat):
+        u["keyin"] = pid
+        u["qadam"] = "ism"
+        u["vaqtincha"] = {}
+        send(chat, "Buyurtma berish uchun avval ro'yxatdan o'ting.\n\nIsmingizni yozing:",
+             kb([[BTN_BEKOR]]))
+        return
+    q = qolgan(db, p)
+    if q == 0:
+        send(chat, "😔 Bu aksiya kitoblari tugadi.", menyu(chat, db))
+        return
+    eng_kop = min(BIR_KISHIGA, q) if q is not None else BIR_KISHIGA
+    u["qadam"] = "b_soni"
+    u["vaqtincha"] = {"promo": pid}
+    send(chat, "📖 <b>%s</b> — %s\nNechta olasiz?" % (escape(p["kitob"]), som(p["narx"])),
+         kb([[str(i) for i in range(1, eng_kop + 1)], [BTN_BEKOR]]))
+
+
+def buyurtma_qadam(chat, u, msg, text, db):
+    qadam = u["qadam"]
+    q = u.setdefault("vaqtincha", {})
+    p = next((p for p in db["promos"] if p["id"] == q.get("promo")), None)
+    if not p or not korinadi(p):
+        u.pop("qadam", None)
+        u.pop("vaqtincha", None)
+        send(chat, "Bu aksiya tugagan.", menyu(chat, db))
+        return
+
+    if qadam == "b_soni":
+        n = son(text)
+        qol = qolgan(db, p)
+        eng_kop = min(BIR_KISHIGA, qol) if qol is not None else BIR_KISHIGA
+        if not n or n > eng_kop:
+            send(chat, "1 dan %d gacha son tanlang." % eng_kop)
+            return
+        q["soni"] = n
+        jami = n * p["narx"]
+        if TOLOV_KARTA:
+            u["qadam"] = "b_chek"
+            send(chat, "Jami: <b>%s</b>\n\n💳 <code>%s</code> kartasiga o'tkazing va "
+                       "<b>chek rasmini</b> yuboring. Yoki kitobni olganda to'lang:"
+                 % (som(jami), escape(TOLOV_KARTA)),
+                 kb([[BTN_CHEKSIZ], [BTN_BEKOR]]))
+            return
+        u["qadam"] = "b_tasdiq"
+        buyurtma_korsat(chat, u, p)
+        return
+
+    if qadam == "b_chek":
+        if msg.get("photo"):
+            q["chek"] = msg["photo"][-1]["file_id"]
+        elif text != BTN_CHEKSIZ:
+            send(chat, "Chek rasmini yuboring yoki «%s» tugmasini bosing." % BTN_CHEKSIZ)
+            return
+        u["qadam"] = "b_tasdiq"
+        buyurtma_korsat(chat, u, p)
+        return
+
+    if qadam == "b_tasdiq":
+        if text != BTN_TASDIQ:
+            send(chat, "«%s» tugmasini bosing yoki bekor qiling." % BTN_TASDIQ)
+            return
+        u.pop("qadam", None)
+        u.pop("vaqtincha", None)
+        qol = qolgan(db, p)
+        if qol is not None and q["soni"] > qol:
+            send(chat, "😔 Kechirasiz, shu orada kitoblar tugab qoldi (qoldi: %d)." % qol,
+                 menyu(chat, db))
+            return
+        db["oseq"] += 1
+        o = {"id": db["oseq"], "chat": chat, "promo": p["id"], "soni": q["soni"],
+             "narx": p["narx"], "tannarx": p["tannarx"], "chek": q.get("chek"),
+             "holat": "kutilmoqda", "vaqt": int(time.time())}
+        db["orders"].append(o)
+        send(chat, "🧾 <b>Buyurtma #%d rasmiylashtirildi!</b>\n\n📖 %s × %d = %s\n"
+                   "📅 %s, juma kuni do'kondan olasiz.\n\nDo'kon tasdiqlagach, xabar beramiz."
+             % (o["id"], escape(p["kitob"]), o["soni"], som(o["soni"] * o["narx"]),
+                sana_matn(date.fromisoformat(p["sana"]))), menyu(chat, db))
+        for a in ADMINS:
+            buyurtma_adminga(a, o, db)
+        return
+
+
+def buyurtma_korsat(chat, u, p):
+    q = u["vaqtincha"]
+    send(chat, "Tekshiring:\n\n👤 %s %s\n📱 %s\n📖 %s × %d\n💰 Jami: <b>%s</b>\n"
+               "💳 %s\n📅 Olish: %s, juma"
+         % (escape(u.get("ism", "")), escape(u.get("familiya", "")),
+            escape(u.get("telefon", "")), escape(p["kitob"]), q["soni"],
+            som(q["soni"] * p["narx"]), "chek yuborildi" if q.get("chek") else "olganda to'lanadi",
+            sana_matn(date.fromisoformat(p["sana"]))),
+         kb([[BTN_TASDIQ], [BTN_BEKOR]]))
+
+
+def buyurtma_matn(o, db):
+    u = db["users"].get(o["chat"], {})
+    p = next((p for p in db["promos"] if p["id"] == o["promo"]), {"kitob": "?"})
+    return ("🧾 <b>#%d</b> · %s\n👤 %s %s · %s\n📖 %s × %d = %s\n💳 %s"
+            % (o["id"], HOLAT[o["holat"]], escape(u.get("ism", "")),
+               escape(u.get("familiya", "")), escape(u.get("telefon", "")),
+               escape(p["kitob"]), o["soni"], som(o["soni"] * o["narx"]),
+               "chek bor" if o.get("chek") else "olganda to'laydi"))
+
+
+def buyurtma_adminga(a, o, db):
+    tugma = (inline([[("✅ Qabul", "ok:%d" % o["id"]), ("❌ Rad", "no:%d" % o["id"])]])
+             if o["holat"] == "kutilmoqda" else None)
+    if o.get("chek"):
+        send_photo(a, o["chek"], buyurtma_matn(o, db), tugma)
+    else:
+        send(a, buyurtma_matn(o, db), tugma)
+
+
+def buyurtmalarim(chat, db):
+    os_ = [o for o in db["orders"] if o["chat"] == chat][-10:]
+    if not os_:
+        send(chat, "Sizda hali buyurtma yo'q. «%s» tugmasini bosing." % BTN_AKSIYA,
+             menyu(chat, db))
+        return
+    send_long(chat, [buyurtma_matn(o, db) + "\n" for o in reversed(os_)], menyu(chat, db))
+
+
+def buyurtmalar(chat, db):
+    kut = [o for o in db["orders"] if o["holat"] == "kutilmoqda"]
+    tas = [o for o in db["orders"] if o["holat"] == "tasdiqlandi"]
+    send(chat, "📦 Buyurtmalar: ⏳ %d ta kutilmoqda, ✅ %d ta tasdiqlangan."
+         % (len(kut), len(tas)), menyu(chat, db))
+    for o in kut[:20]:
+        buyurtma_adminga(chat, o, db)
+    if len(kut) > 20:
+        send(chat, "…yana %d ta. Bularni ko'rib chiqqach, qayta bosing." % (len(kut) - 20))
+
+
+def callback(cq, db):
+    chat = str(cq["from"]["id"])
+    data = cq.get("data") or ""
+    javob = None
+    turi, _, raqam = data.partition(":")
+    n = son(raqam)
+
+    if turi == "buy":
+        u = db["users"].setdefault(chat, {"id": chat, "since": int(time.time())})
+        buyurtma_boshla(chat, u, n, db)
+
+    elif turi in ("ok", "no") and chat in ADMINS:
+        o = next((o for o in db["orders"] if o["id"] == n), None)
+        if not o:
+            javob = "Buyurtma topilmadi"
+        elif o["holat"] != "kutilmoqda":
+            javob = "Allaqachon: " + HOLAT[o["holat"]]
+        else:
+            o["holat"] = "tasdiqlandi" if turi == "ok" else "rad"
+            o["kim"] = chat
+            o["hal"] = int(time.time())
+            p = next((p for p in db["promos"] if p["id"] == o["promo"]), {"kitob": "?", "sana": ""})
+            if turi == "ok":
+                send(o["chat"], "✅ Buyurtma #%d tasdiqlandi!\n📖 %s × %d\n"
+                                "📅 %s, juma kuni do'konga keling."
+                     % (o["id"], escape(p["kitob"]), o["soni"],
+                        sana_matn(date.fromisoformat(p["sana"])) if p["sana"] else "juma"))
+            else:
+                send(o["chat"], "❌ Buyurtma #%d qabul qilinmadi. Savol bo'lsa, "
+                                "do'kon bilan bog'laning." % o["id"])
+            javob = HOLAT[o["holat"]]
+            msg = cq.get("message") or {}
+            if msg:
+                call("editMessageReplyMarkup", chat_id=msg["chat"]["id"],
+                     message_id=msg["message_id"], reply_markup={"inline_keyboard": []})
+                send(chat, "#%d → %s" % (o["id"], HOLAT[o["holat"]]))
+
+    call("answerCallbackQuery", callback_query_id=cq["id"], text=javob)
+
+
+# ---------------------------------------------------------------- marketing tahlili
+def hafta_boshi(d):
+    return d - timedelta(days=d.weekday())
+
+
+def ustun(n, eng, eni=10):
+    if not eng:
+        return ""
+    return "▇" * max(1 if n else 0, round(eni * n / eng))
+
+
+def marketing(chat, db):
+    b = bugun()
+    us = [u for u in db["users"].values() if u.get("royxat")]
+    tas = [o for o in db["orders"] if o["holat"] == "tasdiqlandi"]
+    kut = [o for o in db["orders"] if o["holat"] == "kutilmoqda"]
+    sotildi = sum(o["soni"] for o in tas)
+    tushum = sum(o["soni"] * o["narx"] for o in tas)
+    xarajat = sum(o["soni"] * (o["tannarx"] - o["narx"]) for o in tas)
+    haftada = hafta_boshi(b)
+    yangi = sum(1 for u in us
+                if datetime.fromtimestamp(u["royxat"], TOSHKENT).date() >= haftada)
+    olganlar = {o["chat"] for o in tas}
+    konv = 100.0 * len(olganlar) / len(us) if us else 0
+    qaytgan = sum(1 for c in olganlar
+                  if len({o["promo"] for o in tas if o["chat"] == c}) > 1)
+
+    lines = [
+        "📊 <b>Marketing tahlili</b>\n",
+        "👥 Mijozlar: <b>%d</b> (bu hafta +%d)" % (len(us), yangi),
+        "🧾 Buyurtmalar: <b>%d</b> tasdiqlangan, %d kutilmoqda" % (len(tas), len(kut)),
+        "📚 Sotilgan kitoblar: <b>%d</b>" % sotildi,
+        "💰 Tushum: <b>%s</b>" % som(tushum),
+        "📉 Aksiya xarajati (zarar): <b>%s</b>" % som(xarajat),
+        "🎯 Buyurtma bergan mijozlar: %d (%.0f%%), qayta kelganlar: %d"
+        % (len(olganlar), konv, qaytgan),
+    ]
+    if us and xarajat:
+        lines.append("💡 Bitta mijozga xarajat: %s" % som(xarajat // len(us)))
+
+    # Haftalik grafik: yangi mijozlar va sotilgan kitoblar (8 hafta).
+    haftalar = [haftada - timedelta(weeks=i) for i in range(7, -1, -1)]
+    mij = {h: 0 for h in haftalar}
+    sot = {h: 0 for h in haftalar}
+    for u in us:
+        h = hafta_boshi(datetime.fromtimestamp(u["royxat"], TOSHKENT).date())
+        if h in mij:
+            mij[h] += 1
+    for o in tas:
+        h = hafta_boshi(datetime.fromtimestamp(o["vaqt"], TOSHKENT).date())
+        if h in sot:
+            sot[h] += o["soni"]
+    em, es = max(mij.values()), max(sot.values())
+    grafik = ["Hafta    Mijoz          Sotuv"]
+    for h in haftalar:
+        grafik.append("%-8s %-10s%3d  %-10s%3d" % (
+            "%d.%02d" % (h.day, h.month), ustun(mij[h], em), mij[h],
+            ustun(sot[h], es), sot[h]))
+    lines.append("\n<b>Haftalik (8 hafta)</b>\n<pre>%s</pre>" % escape("\n".join(grafik)))
+
+    otgan = sorted((p for p in db["promos"] if p["sana"] <= b.isoformat()),
+                   key=lambda p: p["sana"])[-6:]
+    if otgan:
+        lines.append("<b>Oxirgi aksiyalar</b>")
+        for p in otgan:
+            n = sum(o["soni"] for o in tas if o["promo"] == p["id"])
+            lines.append("📅 %s — %s: %d ta sotildi, zarar %s"
+                         % (sana_matn(date.fromisoformat(p["sana"])), escape(p["kitob"]),
+                            n, som(n * zarar(p))))
+
+    janr = {}
+    for u in us:
+        janr[u.get("qiziqish", "?")] = janr.get(u.get("qiziqish", "?"), 0) + 1
+    if janr:
+        lines.append("\n<b>Mijozlar nimani yoqtiradi</b>")
+        for k, v in sorted(janr.items(), key=lambda x: -x[1])[:5]:
+            lines.append("%s — %d" % (escape(k), v))
+    send_long(chat, lines, menyu(chat, db))
 
 
 # ---------------------------------------------------------------- eslatmalar
@@ -565,7 +924,9 @@ def eslatmalar(db):
                 for k in (MIJOZ_OLDIN, 1, 0):
                     if k >= bosqich:
                         sent.setdefault("%d:m%d" % (pid, k), int(time.time()))
-                n = hammaga(db, lambda u, p=p: aksiya_matn(p, u))
+                if bosqich < MIJOZ_OLDIN and qolgan(db, p) == 0:
+                    continue                     # kitob tugagan — qayta eslatmaymiz
+                n = hammaga(db, lambda c, u, p=p: aksiya_yubor(db, c, p, u))
                 for a in ADMINS:
                     send(a, "📨 «%s» eslatmasi %d ta mijozga yuborildi." % (escape(p["kitob"]), n))
 
@@ -574,7 +935,7 @@ def eslatmalar(db):
     for d in jumalar(6):
         qoldi = (d - b).days
         kalit = "bosh:" + d.isoformat()
-        if qoldi <= EGA_OLDIN and d.isoformat() not in band and kalit not in sent:
+        if 0 < qoldi <= EGA_OLDIN and d.isoformat() not in band and kalit not in sent:
             for a in ADMINS:
                 send(a, "📅 <b>%s, juma</b> uchun aksiya hali yo'q (%d kun qoldi).\n"
                         "«%s» tugmasi bilan kitob tanlang." % (sana_matn(d), qoldi, BTN_QOSH))
@@ -611,9 +972,12 @@ def handle(msg, db):
     qadam = u.get("qadam")
     if qadam and qadam.startswith("a_"):
         if chat in ADMINS:
-            aksiya_qadam(chat, u, text, db)
+            aksiya_qadam(chat, u, msg, text, db)
             return
         qadam = u.pop("qadam", None)
+    if qadam and qadam.startswith("b_"):
+        buyurtma_qadam(chat, u, msg, text, db)
+        return
     if qadam:
         royxat_qadam(chat, u, msg, text, db)
         return
@@ -631,11 +995,14 @@ def handle(msg, db):
             send(chat, "Siz hali ro'yxatdan o'tmagansiz.", menyu(chat, db))
         return
 
+    if text == BTN_BUYURTMALARIM or text == "/buyurtmalarim":
+        buyurtmalarim(chat, db)
+        return
+
     if text == BTN_AKSIYA or text == "/aksiya":
-        yaqin = [p for p in kelgusi(db)
-                 if (date.fromisoformat(p["sana"]) - bugun()).days <= MIJOZ_OLDIN]
+        yaqin = [p for p in kelgusi(db) if korinadi(p)]
         if yaqin:
-            send(chat, aksiya_matn(yaqin[0], u), menyu(chat, db))
+            aksiya_yubor(db, chat, yaqin[0], u)
         else:
             send(chat, "Keyingi juma aksiyasi haqida bir hafta oldin xabar beramiz."
                        + ("" if royxatda(db, chat) else " Buning uchun ro'yxatdan o'ting 👇"),
@@ -657,12 +1024,22 @@ def handle(msg, db):
         if text == BTN_MIJOZLAR or text == "/mijozlar":
             mijozlar(chat, db)
             return
+        if text == BTN_BUYURTMALAR or text == "/buyurtmalar":
+            buyurtmalar(chat, db)
+            return
+        if text == BTN_MARKETING or text == "/marketing":
+            marketing(chat, db)
+            return
         if text.startswith("/ochir"):
             n = son(text)
             p = next((p for p in db["promos"] if p["id"] == n), None)
             if not p:
                 send(chat, "Aksiya topilmadi. Raqamini «📋 Aksiyalar»dan oling: "
                            "<code>/ochir 3</code>")
+                return
+            if band_soni(db, p):
+                send(chat, "Bu aksiyadan %d ta kitobga buyurtma bor — avval ularni rad eting "
+                           "(«%s»)." % (band_soni(db, p), BTN_BUYURTMALAR))
                 return
             db["promos"].remove(p)
             send(chat, "🗑 #%d «%s» o'chirildi." % (p["id"], escape(p["kitob"])),
@@ -674,7 +1051,8 @@ def handle(msg, db):
                 send(chat, "Foydalanish: <code>/xabar Yangi kitoblar keldi!</code>")
                 return
             body = escape(parts[1])
-            send(chat, "Yuborildi: %d ta" % hammaga(db, lambda u: body))
+            send(chat, "Yuborildi: %d ta" % hammaga(
+                db, lambda c, u: send(c, body, menyu(c, db))))
             return
 
     send(chat, "Pastdagi tugmalardan foydalaning 👇", menyu(chat, db))
@@ -684,12 +1062,14 @@ def process(updates, db):
     last = None
     for upd in updates:
         last = upd["update_id"]
-        msg = upd.get("message") or upd.get("edited_message")
-        if msg:
-            try:
+        msg = upd.get("message")
+        try:                                            # bitta xato botni to'xtatmasin
+            if msg:
                 handle(msg, db)
-            except Exception as e:                      # bitta xato botni to'xtatmasin
-                print("xato:", repr(e), file=sys.stderr)
+            elif upd.get("callback_query"):
+                callback(upd["callback_query"], db)
+        except Exception as e:
+            print("xato:", repr(e), file=sys.stderr)
     return last
 
 
@@ -698,6 +1078,7 @@ def setup():
         {"command": "start", "description": "Boshlash"},
         {"command": "royxat", "description": "Ro'yxatdan o'tish"},
         {"command": "aksiya", "description": "Juma aksiyasi"},
+        {"command": "buyurtmalarim", "description": "Mening buyurtmalarim"},
         {"command": "men", "description": "Mening Telegram ID im"},
     ])
     r2 = call("setMyDescription", description=TAVSIF)
@@ -721,7 +1102,7 @@ def main(argv):
         sys.exit(0 if setup() else 1)
 
     if "--once" in argv:
-        r = call("getUpdates", timeout=0, allowed_updates=["message"])
+        r = call("getUpdates", timeout=0, allowed_updates=["message", "callback_query"])
         last = process(r.get("result", []), db)
         if last is not None:
             call("getUpdates", offset=last + 1, timeout=0)
@@ -736,7 +1117,7 @@ def main(argv):
     offset = 0
     print("Kitob olami boti ishga tushdi.")
     while True:
-        r = call("getUpdates", offset=offset, timeout=50, allowed_updates=["message"])
+        r = call("getUpdates", offset=offset, timeout=50, allowed_updates=["message", "callback_query"])
         last = process(r.get("result", []), db)
         if last is not None:
             offset = last + 1
