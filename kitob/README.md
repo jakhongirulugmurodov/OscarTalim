@@ -83,7 +83,7 @@ tugmalar chiqadi:
 3. **Actions → Kitob olami bot → Run workflow → rejim: `sozlash`**.
 4. Rasmlar (faqat @BotFather orqali qo'yiladi, Bot API'da bunday usul yo'q):
    - **o'rtadagi rasm**: @BotFather → `/mybots` → botni tanlang →
-     **Edit Bot** → **Edit Description Picture** → `kitob/rasmlar/salom.png`;
+     **Edit Bot** → **Edit Description Picture** → `kitob/rasmlar/salom-640.png` (640×360);
    - **doirachadagi rasm**: @BotFather → `/setuserpic` → botni tanlang →
      `kitob/rasmlar/avatar.png`.
 
