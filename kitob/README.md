@@ -6,9 +6,10 @@ o'z vaqtida eslatib turadi.
 
 ## Mijoz nima ko'radi
 
-1. `/start` → kitoblar rasmi bilan «**Assalomu alaykum! Kitoblar olamiga
-   xush kelibsiz**» (`rasmlar/salom.png`) va pastda **📝 Ro'yxatdan o'tish**
-   tugmasi.
+1. Botni ochganda o'rtada kitoblar rasmi (`rasmlar/salom.png`) va ostida
+   «**Assalomu alaykum! Kitoblar olamiga xush kelibsiz**» turadi; bot
+   rasmi doirachada — `rasmlar/avatar.png`.
+   START → salomlashish va pastda **📝 Ro'yxatdan o'tish** tugmasi.
 2. Ketma-ket so'raladi: **ism → familiya → telefon** (tugma bilan yoki
    yozib) **→ yosh → qiziqqan janr** (Motivatsion, Kino asosidagi
    kitoblar, Romanlar, Diniy va tarixiy, … yoki o'zi yozadi).
@@ -80,22 +81,25 @@ tugmalar chiqadi:
    - *Variables* → `KITOB_TOLOV_KARTA` = karta raqami (ixtiyoriy; bo'lmasa,
      mijoz kitobni olganda to'laydi).
 3. **Actions → Kitob olami bot → Run workflow → rejim: `sozlash`**.
-4. Bot rasmi: **@BotFather** → `/setuserpic` → botni tanlang →
-   `kitob/rasmlar/avatar.png` ni yuboring.
+4. Rasmlar (faqat @BotFather orqali qo'yiladi, Bot API'da bunday usul yo'q):
+   - **o'rtadagi rasm**: @BotFather → `/mybots` → botni tanlang →
+     **Edit Bot** → **Edit Description Picture** → `kitob/rasmlar/salom.png`;
+   - **doirachadagi rasm**: @BotFather → `/setuserpic` → botni tanlang →
+     `kitob/rasmlar/avatar.png`.
+
+   Rasm ostidagi matn (`TAVSIF`) 3-qadamdagi `sozlash` bilan qo'yiladi.
 
 ## Rasmlar
 
-`kitob/rasmlar/` ichida: `salom.png` (1280×720, /start rasmi) va `avatar.png`
-(640×640, bot profil rasmi). Ular `salom.html` va `avatar.html` dan
+`kitob/rasmlar/` ichida: `salom.png` (1280×720, botni ochganda o'rtada
+turadigan rasm) va `avatar.png` (640×640, doirachadagi bot rasmi). Ular `salom.html` va `avatar.html` dan
 chiziladi. Kitob nomlarini yoki ranglarni o'zgartirsangiz, qayta chizing:
 
 ```sh
 cd kitob/rasmlar && node chiz.mjs     # playwright kerak
 ```
 
-Bot `salom.png` ni birinchi marta Telegram'ga yuklaydi, keyin Telegram
-bergan `file_id` ni saqlab, qayta yuklamaydi. Rasmni o'zgartirsangiz,
-`kitob.json` dagi `salom_rasm` ni o'chiring.
+Keyin yangi rasmni @BotFather orqali qayta qo'ying (yuqoridagi 4-qadam).
 
 Shundan keyin workflow har 5 daqiqada ishlaydi (faqat `main` shoxchada).
 Ma'lumotlar (mijozlar, aksiyalar) Actions keshida `state/kitob.json`
