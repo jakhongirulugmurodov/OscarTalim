@@ -5,8 +5,9 @@ Kitob olami — Telegram bot (kitob do'koni).
 Vazifasi:
   1. Ro'yxatdan o'tish: /start → «📝 Ro'yxatdan o'tish» → ism, familiya,
      telefon, yosh, qiziqqan kitob janri.
-  2. Juma aksiyasi: har juma bitta kitob tannarxidan ozgina arzonga
-     (ozgina zarariga) sotiladi. Aksiyani do'kon egasi bot ichida qo'shadi.
+  2. Juma aksiyasi: har juma bitta kitob odatiy narxidan arzonga sotiladi,
+     lekin tannarxdan arzon emas — do'kon zarar ko'rmaydi. Aksiyani do'kon
+     egasi bot ichida qo'shadi.
   3. Buyurtma: aksiya xabari ostidagi «🛒 Buyurtma berish» tugmasi → soni →
      (TOLOV_KARTA bo'lsa, to'lov cheki rasmi) → tasdiqlash. Do'kon egasi
      buyurtmani ✅/❌ bilan qabul qiladi yoki rad etadi; mijozga xabar boradi.
@@ -20,7 +21,7 @@ Vazifasi:
 
 Do'kon egasi (ADMIN_IDS) uchun buyruqlar:
     ➕ Aksiya qo'shish   — sana, kitob, janr, narxlar so'raladi
-    📋 Aksiyalar          — rejalashtirilgan aksiyalar, tannarx va zarar
+    📋 Aksiyalar          — rejalashtirilgan aksiyalar, chegirma va foyda
     📦 Buyurtmalar        — kutilayotgan buyurtmalar, ✅/❌ tugmalari bilan
     👥 Mijozlar           — ro'yxatdan o'tganlar
     📊 Marketing          — mijozlar, sotuv, xarajat va haftalik grafik
@@ -64,8 +65,8 @@ TOSHKENT = timezone(timedelta(hours=5))
 
 EGA_OLDIN = 28          # do'kon egasi aksiyani necha kun oldin bilishi kerak
 MIJOZ_OLDIN = 7         # mijozlar necha kun oldin biladi
-ZARAR_TAVSIYA = 1000    # aksiya narxi: tannarxdan shuncha kam (340 000 → 339 000)
-ZARAR_OGOH = 5          # zarar shu foizdan oshsa, ogohlantiramiz
+CHEGIRMA_TAVSIYA = 10   # aksiya narxi taklifi: odatiy narxdan shuncha foiz arzon
+CHEGIRMA_OGOH = 30      # chegirma shu foizdan oshsa, ogohlantiramiz
 BIR_KISHIGA = 5         # bitta buyurtmada ko'pi bilan nechta kitob
 
 BTN_ROYXAT = "📝 Ro'yxatdan o'tish"
@@ -105,14 +106,14 @@ OYLAR = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul",
 
 SALOM = (
     "Assalomu alaykum! <b>Kitoblar olamiga xush kelibsiz</b> 📚\n\n"
-    "Har <b>juma</b> kuni bitta kitobni tannarxidan ham arzonga sotamiz — "
+    "Har <b>juma</b> kuni bitta kitobni aksiya narxida sotamiz — "
     "masalan, «Muqaddima» yoki «Saodat asri qissalari».\n\n"
     "Ro'yxatdan o'ting — juma aksiyasini bir hafta oldin sizga "
     "birinchilardan bo'lib aytamiz 👇"
 )
 # Botga birinchi kirganda, rasm (rasmlar/salom.png) ostida chiqadigan matn.
 TAVSIF = ("Assalomu alaykum! Kitoblar olamiga xush kelibsiz 📚\n\n"
-          "Har juma bitta kitob tannarxidan ham arzon — «Muqaddima», "
+          "Har juma bitta kitob aksiya narxida — «Muqaddima», "
           "«Saodat asri qissalari» va boshqalar.\n\n"
           "START tugmasini bosing, ro'yxatdan o'ting va juma aksiyasini "
           "bir hafta oldin biling.")
@@ -273,8 +274,13 @@ def kelgusi(db):
     return sorted((p for p in db["promos"] if p["sana"] >= b), key=lambda p: p["sana"])
 
 
-def zarar(p):
-    return p["tannarx"] - p["narx"]
+def foyda(p):
+    """Bitta kitobdan foyda (aksiya narxi − tannarx); tannarx mijozga ko'rinmaydi."""
+    return p["narx"] - p["tannarx"]
+
+
+def chegirma_foiz(p):
+    return 100.0 * (p["odatiy"] - p["narx"]) / p["odatiy"] if p.get("odatiy") else 0
 
 
 def band_soni(db, p):
@@ -324,10 +330,11 @@ def aksiya_matn(p, u=None):
         qachon = "📢 <b>%s, juma — aksiya</b> (%d kun qoldi)" % (sana_matn(d), qoldi)
     lines = [qachon, "", "📖 <b>%s</b>" % escape(p["kitob"])]
     if p.get("odatiy") and p["odatiy"] > p["narx"]:
-        lines.append("Narxi: <s>%s</s> → <b>%s</b>" % (som(p["odatiy"]), som(p["narx"])))
+        lines.append("Narxi: <s>%s</s> → <b>%s</b> (−%.0f%%)"
+                     % (som(p["odatiy"]), som(p["narx"]), chegirma_foiz(p)))
     else:
         lines.append("Narxi: <b>%s</b>" % som(p["narx"]))
-    lines.append("Bu narx kitobning tannarxidan ham past — faqat shu juma kuni.")
+    lines.append("Bu narx faqat shu juma kuni.")
     if u and p.get("janr") and p["janr"] != HAMMA and u.get("qiziqish") == p["janr"]:
         lines.append("\n💚 Bu siz yoqtirgan janrdan: %s" % escape(p["janr"]))
     if u and u.get("ism"):
@@ -479,12 +486,12 @@ def aksiya_qadam(chat, u, msg, text, db):
         q["janr"] = text
         u["qadam"] = "a_odatiy"
         send(chat, "Kitobning <b>odatiy</b> (do'kondagi) narxi qancha? "
-                   "Masalan: <i>150000</i>. Bilmasangiz «0» yozing.", kb([[BTN_BEKOR]]))
+                   "Masalan: <i>150000</i>.", kb([[BTN_BEKOR]]))
         return
 
     if qadam == "a_odatiy":
         n = son(text)
-        if n is None:
+        if not n:
             send(chat, "Narxni raqam bilan yozing, masalan: <i>150000</i>.")
             return
         q["odatiy"] = n
@@ -498,11 +505,18 @@ def aksiya_qadam(chat, u, msg, text, db):
         if not n:
             send(chat, "Tannarxni raqam bilan yozing, masalan: <i>120000</i>.")
             return
+        if n >= q["odatiy"]:
+            send(chat, "Tannarx (%s) odatiy narxdan (%s) kam emas — bu kitobni "
+                       "zararsiz arzonlashtirib bo'lmaydi. Boshqa kitob tanlang yoki "
+                       "tannarxni qayta yozing:" % (som(n), som(q["odatiy"])))
+            return
         q["tannarx"] = n
         u["qadam"] = "a_narx"
-        tavsiya = n - ZARAR_TAVSIYA if n > ZARAR_TAVSIYA else n - 1
-        send(chat, "Juma kuni qanchaga sotamiz? U <b>tannarxdan ozgina past</b> "
-                   "bo'lishi kerak — tugmani bosing yoki o'zingiz yozing:",
+        # Odatiy narxdan ~10% arzon, mingga yaxlitlab; tannarxdan past emas.
+        tavsiya = max(n, q["odatiy"] * (100 - CHEGIRMA_TAVSIYA) // 100 // 1000 * 1000)
+        send(chat, "Juma kuni qanchaga sotamiz? Odatiy narxdan (%s) <b>arzon</b>, "
+                   "lekin tannarxdan (%s) <b>arzon emas</b> — tugmani bosing yoki "
+                   "o'zingiz yozing:" % (som(q["odatiy"]), som(n)),
              kb([["%s" % som(tavsiya)], [BTN_BEKOR]]))
         return
 
@@ -511,10 +525,14 @@ def aksiya_qadam(chat, u, msg, text, db):
         if not n:
             send(chat, "Narxni raqam bilan yozing.")
             return
-        if n >= q["tannarx"]:
-            send(chat, "Aksiya narxi tannarxdan (%s) <b>past</b> bo'lishi kerak — "
-                       "juma aksiyasi ozgina zarariga qilinadi. Qaytadan yozing:"
+        if n < q["tannarx"]:
+            send(chat, "Bu narx tannarxdan (%s) past — zarar bo'ladi. Aksiya narxi "
+                       "tannarxdan arzon bo'lmasligi kerak. Qaytadan yozing:"
                  % som(q["tannarx"]))
+            return
+        if n >= q["odatiy"]:
+            send(chat, "Bu narx odatiy narxdan (%s) arzon emas — aksiya bo'lmaydi. "
+                       "Qaytadan yozing:" % som(q["odatiy"]))
             return
         q["narx"] = n
         u["qadam"] = "a_soni"
@@ -531,19 +549,18 @@ def aksiya_qadam(chat, u, msg, text, db):
         q["soni"] = n
         u["qadam"] = "a_tasdiq"
         n = q["narx"]
-        z = q["tannarx"] - n
-        foiz = 100.0 * z / q["tannarx"]
-        ogoh = ("\n⚠️ Zarar %.0f%% — bu «ozgina» emas. Ishonchingiz komilmi?" % foiz
-                if foiz > ZARAR_OGOH else "")
-        jami = ("\nHammasi sotilsa, jami zarar: %s" % som(z * q["soni"])) if q["soni"] else ""
+        f = n - q["tannarx"]
+        foiz = chegirma_foiz(q)
+        ogoh = ("\n⚠️ Chegirma %.0f%% — katta. Ishonchingiz komilmi?" % foiz
+                if foiz > CHEGIRMA_OGOH else "")
+        jami = ("\nHammasi sotilsa, jami foyda: %s" % som(f * q["soni"])) if q["soni"] else ""
         send(chat, "Tekshiring:\n\n📅 %s, juma\n📖 %s\n📚 %s\n🖼 %s\n"
-                   "Odatiy narx: %s\nTannarx: %s\nAksiya narxi: <b>%s</b>\n"
-                   "Soni: %s\nBitta kitobdan zarar: %s (%.1f%%)%s%s\n\nSaqlaymizmi?"
+                   "Odatiy narx: %s\nTannarx: %s\nAksiya narxi: <b>%s</b> (−%.0f%%)\n"
+                   "Soni: %s\nBitta kitobdan foyda: %s%s%s\n\nSaqlaymizmi?"
              % (sana_matn(date.fromisoformat(q["sana"])), escape(q["kitob"]),
                 escape(q["janr"]), "rasm bor" if q.get("rasm") else "rasmsiz",
-                som(q["odatiy"]) if q["odatiy"] else "—",
-                som(q["tannarx"]), som(n), q["soni"] or "cheklanmagan",
-                som(z), foiz, jami, ogoh),
+                som(q["odatiy"]), som(q["tannarx"]), som(n), foiz,
+                q["soni"] or "cheklanmagan", som(f), jami, ogoh),
              kb([[BTN_HA, BTN_YOQ]]))
         return
 
@@ -582,9 +599,10 @@ def aksiyalar_royxati(chat, db):
         holat = ("mijozlar biladi" if qoldi <= MIJOZ_OLDIN
                  else "mijozlarga %d kundan keyin e'lon" % (qoldi - MIJOZ_OLDIN))
         soni = "%d/%s buyurtma" % (band_soni(db, p), p.get("soni") or "∞")
-        lines.append("#%d · 📅 %s (%d kun) — <b>%s</b>\n   %s → %s, zarar %s/dona · %s · %s"
+        lines.append("#%d · 📅 %s (%d kun) — <b>%s</b>\n   %s → %s (−%.0f%%), foyda %s/dona · %s · %s"
                      % (p["id"], sana_matn(d), qoldi, escape(p["kitob"]),
-                        som(p["tannarx"]), som(p["narx"]), som(zarar(p)), soni, holat))
+                        som(p["odatiy"]), som(p["narx"]), chegirma_foiz(p),
+                        som(foyda(p)), soni, holat))
     bosh = [d for d in bosh_jumalar(db) if 0 < (d - bugun()).days <= EGA_OLDIN + 7]
     if bosh:
         lines.append("\n⚠️ Aksiyasiz jumalar: " + ", ".join(sana_matn(d) for d in bosh))
@@ -707,7 +725,8 @@ def buyurtma_qadam(chat, u, msg, text, db):
             return
         db["oseq"] += 1
         o = {"id": db["oseq"], "chat": chat, "promo": p["id"], "soni": q["soni"],
-             "narx": p["narx"], "tannarx": p["tannarx"], "chek": q.get("chek"),
+             "narx": p["narx"], "tannarx": p["tannarx"], "odatiy": p["odatiy"],
+             "chek": q.get("chek"),
              "holat": "kutilmoqda", "vaqt": int(time.time())}
         db["orders"].append(o)
         send(chat, "🧾 <b>Buyurtma #%d rasmiylashtirildi!</b>\n\n📖 %s × %d = %s\n"
@@ -827,7 +846,8 @@ def marketing(chat, db):
     kut = [o for o in db["orders"] if o["holat"] == "kutilmoqda"]
     sotildi = sum(o["soni"] for o in tas)
     tushum = sum(o["soni"] * o["narx"] for o in tas)
-    xarajat = sum(o["soni"] * (o["tannarx"] - o["narx"]) for o in tas)
+    sof = sum(o["soni"] * (o["narx"] - o["tannarx"]) for o in tas)
+    chegirma = sum(o["soni"] * (o.get("odatiy", o["narx"]) - o["narx"]) for o in tas)
     haftada = hafta_boshi(b)
     yangi = sum(1 for u in us
                 if datetime.fromtimestamp(u["royxat"], TOSHKENT).date() >= haftada)
@@ -842,12 +862,11 @@ def marketing(chat, db):
         "🧾 Buyurtmalar: <b>%d</b> tasdiqlangan, %d kutilmoqda" % (len(tas), len(kut)),
         "📚 Sotilgan kitoblar: <b>%d</b>" % sotildi,
         "💰 Tushum: <b>%s</b>" % som(tushum),
-        "📉 Aksiya xarajati (zarar): <b>%s</b>" % som(xarajat),
+        "📈 Foyda (tannarxdan tashqari): <b>%s</b>" % som(sof),
+        "🏷 Mijozlarga berilgan chegirma: <b>%s</b>" % som(chegirma),
         "🎯 Buyurtma bergan mijozlar: %d (%.0f%%), qayta kelganlar: %d"
         % (len(olganlar), konv, qaytgan),
     ]
-    if us and xarajat:
-        lines.append("💡 Bitta mijozga xarajat: %s" % som(xarajat // len(us)))
 
     # Haftalik grafik: yangi mijozlar va sotilgan kitoblar (8 hafta).
     haftalar = [haftada - timedelta(weeks=i) for i in range(7, -1, -1)]
@@ -875,9 +894,9 @@ def marketing(chat, db):
         lines.append("<b>Oxirgi aksiyalar</b>")
         for p in otgan:
             n = sum(o["soni"] for o in tas if o["promo"] == p["id"])
-            lines.append("📅 %s — %s: %d ta sotildi, zarar %s"
+            lines.append("📅 %s — %s: %d ta sotildi, foyda %s"
                          % (sana_matn(date.fromisoformat(p["sana"])), escape(p["kitob"]),
-                            n, som(n * zarar(p))))
+                            n, som(n * foyda(p))))
 
     janr = {}
     for u in us:
@@ -1100,7 +1119,7 @@ def setup():
         {"command": "ochir_meni", "description": "Ma'lumotlarimni o'chirish"},
     ])
     r2 = call("setMyDescription", description=TAVSIF)
-    r3 = call("setMyShortDescription", short_description="Har juma bitta kitob tannarxidan arzon")
+    r3 = call("setMyShortDescription", short_description="Har juma bitta kitob aksiya narxida 📚")
     r4 = call("setChatMenuButton", menu_button={"type": "commands"})
     me = call("getMe").get("result", {})
     print("bot: @%s" % me.get("username", "?"))

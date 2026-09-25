@@ -1,7 +1,8 @@
 # Kitob olami — Telegram bot
 
 Kitob do'koni uchun bot: mijozlar ro'yxatdan o'tadi, har juma bitta kitob
-**tannarxidan ozgina arzonga** (ozgina zarariga) sotiladi, bot esa hammaga
+**odatiy narxidan arzonga** sotiladi — lekin tannarxdan arzon emas, do'kon
+zarar ko'rmaydi, bot esa hammaga
 o'z vaqtida eslatib turadi.
 
 ## Mijoz nima ko'radi
@@ -59,16 +60,16 @@ tugmalar chiqadi:
 
 - **➕ Aksiya qo'shish** — juma (tugmalardan tanlanadi), kitob nomi,
   muqova rasmi, janr, odatiy narx, **tannarx**, aksiya narxi, nechta kitob.
-  - Aksiya narxi tannarxdan past bo'lmasa, bot qabul qilmaydi.
-  - Bot tannarxdan 1 000 so'm kamini taklif qiladi: tannarx **340 000** →
-    aksiya **339 000** (bir tugma).
-  - Zarar 5% dan oshsa, ogohlantiradi. Tannarxni mijozlar ko'rmaydi.
-- **📋 Aksiyalar** — rejadagi aksiyalar, har biridan zarar, nechta buyurtma
+  - Aksiya narxi odatiy narxdan **arzon**, lekin tannarxdan **arzon emas**
+    bo'lishi shart — aks holda bot qabul qilmaydi.
+  - Bot odatiy narxdan ~10% arzonini taklif qiladi (tannarxdan past
+    tushmaydi): odatiy **400 000**, tannarx **340 000** → aksiya **360 000**.
+  - Chegirma 30% dan oshsa, ogohlantiradi. Tannarxni mijozlar ko'rmaydi.
+- **📋 Aksiyalar** — rejadagi aksiyalar, chegirma va har biridan foyda, nechta buyurtma
   olingani, aksiyasiz jumalar.
 - **📦 Buyurtmalar** — kutilayotgan buyurtmalar ✅/❌ tugmalari bilan.
 - **📊 Marketing** — mijozlar soni (bu hafta nechta yangi), buyurtmalar,
-  sotilgan kitoblar, tushum, aksiya xarajati (jami zarar), bitta mijozga
-  xarajat, buyurtma bergan va qayta kelgan mijozlar, 8 haftalik
+  sotilgan kitoblar, tushum, foyda, mijozlarga berilgan chegirma, buyurtma bergan va qayta kelgan mijozlar, 8 haftalik
   «Mijoz / Sotuv» grafigi, oxirgi aksiyalar natijasi, mijozlar yoqtirgan janrlar.
 - **👥 Mijozlar** — ro'yxatdan o'tganlar soni, janrlar bo'yicha, telefonlar.
 - `/ochir 3` — 3-aksiyani o'chirish.
