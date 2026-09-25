@@ -8,9 +8,11 @@ Vazifasi:
   2. Juma aksiyasi: har juma bitta kitob odatiy narxidan arzonga sotiladi,
      lekin tannarxdan arzon emas — do'kon zarar ko'rmaydi. Aksiyani do'kon
      egasi bot ichida qo'shadi.
-  3. Buyurtma: aksiya xabari ostidagi «🛒 Buyurtma berish» tugmasi → soni →
-     (TOLOV_KARTA bo'lsa, to'lov cheki rasmi) → tasdiqlash. Do'kon egasi
-     buyurtmani ✅/❌ bilan qabul qiladi yoki rad etadi; mijozga xabar boradi.
+  3. Band qilish (bron): juma kelmasdan oldin aksiya xabari ostidagi
+     «📌 Band qilish» → soni → kitob pulining YARMINI oldindan to'lab, chek
+     rasmini yuboradi → tasdiqlash. Do'kon egasi chekni ✅/❌ bilan qabul
+     qiladi yoki rad etadi. Qolgan yarmi juma kuni kitob olinganda to'lanadi.
+     Band qilganlarga shaxsiy eslatma: 1 kun oldin va juma kuni ertalab.
   4. Eslatmalar (Toshkent vaqti bilan, soat ESLATMA_SOAT dan keyin):
        - do'kon egasiga — aksiyadan 4 hafta oldin (kitobni tayyorlash uchun)
          va 4 hafta keyingi juma bo'sh bo'lsa, «aksiya qo'ying» deb;
@@ -39,8 +41,8 @@ Muhit o'zgaruvchilari:
     ADMIN_IDS      do'kon egasining Telegram ID lari, vergul bilan
     STATE_FILE     kitob.json manzili (ixtiyoriy)
     ESLATMA_SOAT   eslatmalar yuboriladigan soat, Toshkent vaqti (standart 10)
-    TOLOV_KARTA    to'lov kartasi (ixtiyoriy). Bo'lsa, mijoz buyurtmada chek
-                   rasmini yuboradi; bo'lmasa, kitob olinganda to'lanadi.
+    TOLOV_KARTA    oldindan to'lov kartasi. Bo'lsa, mijoz yarim pulni shu kartaga
+                   o'tkazib chek yuboradi; bo'lmasa, yarim pulni do'konga kelib to'laydi.
 """
 
 import json
@@ -84,9 +86,8 @@ BTN_BUYURTMALAR = "📦 Buyurtmalar"
 BTN_BUYURTMALARIM = "📦 Buyurtmalarim"
 BTN_MARKETING = "📊 Marketing"
 BTN_RASMSIZ = "⏭ Rasmsiz"
-BTN_CHEKSIZ = "💵 Olganda to'layman"
-BTN_TASDIQ = "✅ Buyurtmani tasdiqlash"
-HOLAT = {"kutilmoqda": "⏳ kutilmoqda", "tasdiqlandi": "✅ tasdiqlandi",
+BTN_TASDIQ = "✅ Band qilishni tasdiqlash"
+HOLAT = {"kutilmoqda": "⏳ to'lov tekshirilmoqda", "tasdiqlandi": "✅ band qilindi",
          "rad": "❌ rad etildi"}
 BTN_YOQ = "❌ Yo'q"
 HAMMA = "📚 Hamma uchun"
@@ -302,7 +303,7 @@ def korinadi(p):
 
 
 def aksiya_yubor(db, chat, p, u=None):
-    """Aksiyani mijozga yuboradi: rasm (bo'lsa), matn va «Buyurtma berish» tugmasi."""
+    """Aksiyani mijozga yuboradi: rasm (bo'lsa), matn, qoldiq va «Band qilish» tugmasi."""
     matn = aksiya_matn(p, u)
     q = qolgan(db, p)
     if q == 0:
@@ -311,7 +312,7 @@ def aksiya_yubor(db, chat, p, u=None):
     else:
         if q is not None:
             matn += "\n\n📦 Aksiyada %d ta kitob — qoldi: <b>%d</b> ta" % (p["soni"], q)
-        tugma = inline([[("🛒 Buyurtma berish", "buy:%d" % p["id"])]])
+        tugma = inline([[("📌 Band qilish — yarim pulini to'lab", "buy:%d" % p["id"])]])
     if p.get("rasm"):
         r = send_photo(chat, p["rasm"], matn, tugma)
         if r.get("ok") or r.get("error_code") == 403:
@@ -639,6 +640,11 @@ def hammaga(db, yubor):
 
 
 # ---------------------------------------------------------------- buyurtma (mijoz)
+def oldindan_tolov(jami):
+    """Jami narxning yarmi, mingga yuqoriga yaxlitlangan (180 500 → 181 000)."""
+    return min(jami, -(-(jami // 2) // 1000) * 1000)
+
+
 def buyurtma_boshla(chat, u, pid, db):
     p = next((p for p in db["promos"] if p["id"] == pid), None)
     if not p or not korinadi(p):
@@ -648,7 +654,7 @@ def buyurtma_boshla(chat, u, pid, db):
         u["keyin"] = pid
         u["qadam"] = "ism"
         u["vaqtincha"] = {}
-        send(chat, "Buyurtma berish uchun avval ro'yxatdan o'ting.\n\nIsmingizni yozing:",
+        send(chat, "Kitobni band qilish uchun avval ro'yxatdan o'ting.\n\nIsmingizni yozing:",
              kb([[BTN_BEKOR]]))
         return
     q = qolgan(db, p)
@@ -658,7 +664,10 @@ def buyurtma_boshla(chat, u, pid, db):
     eng_kop = min(BIR_KISHIGA, q) if q is not None else BIR_KISHIGA
     u["qadam"] = "b_soni"
     u["vaqtincha"] = {"promo": pid}
-    send(chat, "📖 <b>%s</b> — %s\nNechta olasiz?" % (escape(p["kitob"]), som(p["narx"])),
+    send(chat, "📖 <b>%s</b> — %s\n📦 Qoldi: %s ta\n\nNechta kitob band qilasiz?\n"
+               "Band qilish uchun kitob pulining <b>yarmini</b> oldindan to'laysiz, "
+               "qolgan yarmini — juma kuni kitobni olganda."
+         % (escape(p["kitob"]), som(p["narx"]), q if q is not None else "ko'p"),
          kb([[str(i) for i in range(1, eng_kop + 1)], [BTN_BEKOR]]))
 
 
@@ -680,24 +689,27 @@ def buyurtma_qadam(chat, u, msg, text, db):
             send(chat, "1 dan %d gacha son tanlang." % eng_kop)
             return
         q["soni"] = n
-        jami = n * p["narx"]
+        q["jami"] = n * p["narx"]
+        q["oldindan"] = oldindan_tolov(q["jami"])
         if TOLOV_KARTA:
             u["qadam"] = "b_chek"
-            send(chat, "Jami: <b>%s</b>\n\n💳 <code>%s</code> kartasiga o'tkazing va "
-                       "<b>chek rasmini</b> yuboring. Yoki kitobni olganda to'lang:"
-                 % (som(jami), escape(TOLOV_KARTA)),
-                 kb([[BTN_CHEKSIZ], [BTN_BEKOR]]))
+            send(chat, "Jami: %s\nOldindan to'lov (yarmi): <b>%s</b>\n\n"
+                       "💳 <code>%s</code> kartasiga <b>%s</b> o'tkazing va "
+                       "<b>chek rasmini</b> (skrinshot) shu yerga yuboring:"
+                 % (som(q["jami"]), som(q["oldindan"]), escape(TOLOV_KARTA),
+                    som(q["oldindan"])),
+                 kb([[BTN_BEKOR]]))
             return
         u["qadam"] = "b_tasdiq"
         buyurtma_korsat(chat, u, p)
         return
 
     if qadam == "b_chek":
-        if msg.get("photo"):
-            q["chek"] = msg["photo"][-1]["file_id"]
-        elif text != BTN_CHEKSIZ:
-            send(chat, "Chek rasmini yuboring yoki «%s» tugmasini bosing." % BTN_CHEKSIZ)
+        if not msg.get("photo"):
+            send(chat, "To'lov chekining <b>rasmini</b> yuboring (skrinshot). "
+                       "Chek bo'lmasa, kitob band qilinmaydi.")
             return
+        q["chek"] = msg["photo"][-1]["file_id"]
         u["qadam"] = "b_tasdiq"
         buyurtma_korsat(chat, u, p)
         return
@@ -716,13 +728,19 @@ def buyurtma_qadam(chat, u, msg, text, db):
         db["oseq"] += 1
         o = {"id": db["oseq"], "chat": chat, "promo": p["id"], "soni": q["soni"],
              "narx": p["narx"], "tannarx": p["tannarx"], "odatiy": p["odatiy"],
-             "chek": q.get("chek"),
+             "jami": q["jami"], "oldindan": q["oldindan"], "chek": q.get("chek"),
              "holat": "kutilmoqda", "vaqt": int(time.time())}
         db["orders"].append(o)
-        send(chat, "🧾 <b>Buyurtma #%d rasmiylashtirildi!</b>\n\n📖 %s × %d = %s\n"
-                   "📅 %s, juma kuni do'kondan olasiz.\n\nDo'kon tasdiqlagach, xabar beramiz."
-             % (o["id"], escape(p["kitob"]), o["soni"], som(o["soni"] * o["narx"]),
-                sana_matn(date.fromisoformat(p["sana"]))), menyu(chat, db))
+        if o["chek"]:
+            keyin = "Do'kon chekni tekshirib, bronni tasdiqlagach xabar beramiz."
+        else:
+            keyin = ("Oldindan to'lovni (%s) do'konga kelib to'lang — shundan keyin "
+                     "bron tasdiqlanadi." % som(o["oldindan"]))
+        send(chat, "📌 <b>Bron #%d qabul qilindi!</b>\n\n📖 %s × %d = %s\n"
+                   "💳 Oldindan: %s · juma kuni: %s\n📅 %s, juma kuni do'kondan olasiz.\n\n%s"
+             % (o["id"], escape(p["kitob"]), o["soni"], som(o["jami"]),
+                som(o["oldindan"]), som(o["jami"] - o["oldindan"]),
+                sana_matn(date.fromisoformat(p["sana"])), keyin), menyu(chat, db))
         for a in ADMINS:
             buyurtma_adminga(a, o, db)
         return
@@ -731,26 +749,31 @@ def buyurtma_qadam(chat, u, msg, text, db):
 def buyurtma_korsat(chat, u, p):
     q = u["vaqtincha"]
     send(chat, "Tekshiring:\n\n👤 %s %s\n📱 %s\n📖 %s × %d\n💰 Jami: <b>%s</b>\n"
-               "💳 %s\n📅 Olish: %s, juma"
+               "💳 Oldindan (yarmi): <b>%s</b> — %s\n💵 Juma kuni to'lanadi: %s\n"
+               "📅 Olish: %s, juma"
          % (escape(u.get("ism", "")), escape(u.get("familiya", "")),
             escape(u.get("telefon", "")), escape(p["kitob"]), q["soni"],
-            som(q["soni"] * p["narx"]), "chek yuborildi" if q.get("chek") else "olganda to'lanadi",
-            sana_matn(date.fromisoformat(p["sana"]))),
+            som(q["jami"]), som(q["oldindan"]),
+            "chek yuborildi" if q.get("chek") else "do'konga kelib to'lanadi",
+            som(q["jami"] - q["oldindan"]), sana_matn(date.fromisoformat(p["sana"]))),
          kb([[BTN_TASDIQ], [BTN_BEKOR]]))
 
 
 def buyurtma_matn(o, db):
     u = db["users"].get(o["chat"], {})
     p = next((p for p in db["promos"] if p["id"] == o["promo"]), {"kitob": "?"})
-    return ("🧾 <b>#%d</b> · %s\n👤 %s %s · %s\n📖 %s × %d = %s\n💳 %s"
+    jami = o.get("jami", o["soni"] * o["narx"])
+    oldindan = o.get("oldindan", 0)
+    return ("📌 <b>Bron #%d</b> · %s\n👤 %s %s · %s\n📖 %s × %d = %s\n"
+            "💳 Oldindan: %s (%s) · juma kuni: %s"
             % (o["id"], HOLAT[o["holat"]], escape(u.get("ism", "")),
                escape(u.get("familiya", "")), escape(u.get("telefon", "")),
-               escape(p["kitob"]), o["soni"], som(o["soni"] * o["narx"]),
-               "chek bor" if o.get("chek") else "olganda to'laydi"))
+               escape(p["kitob"]), o["soni"], som(jami), som(oldindan),
+               "chek bor" if o.get("chek") else "do'konda to'laydi", som(jami - oldindan)))
 
 
 def buyurtma_adminga(a, o, db):
-    tugma = (inline([[("✅ Qabul", "ok:%d" % o["id"]), ("❌ Rad", "no:%d" % o["id"])]])
+    tugma = (inline([[("✅ To'lov keldi", "ok:%d" % o["id"]), ("❌ Rad", "no:%d" % o["id"])]])
              if o["holat"] == "kutilmoqda" else None)
     if o.get("chek"):
         send_photo(a, o["chek"], buyurtma_matn(o, db), tugma)
@@ -761,7 +784,7 @@ def buyurtma_adminga(a, o, db):
 def buyurtmalarim(chat, db):
     os_ = [o for o in db["orders"] if o["chat"] == chat][-10:]
     if not os_:
-        send(chat, "Sizda hali buyurtma yo'q. «%s» tugmasini bosing." % BTN_AKSIYA,
+        send(chat, "Sizda hali bron yo'q. «%s» tugmasini bosing." % BTN_AKSIYA,
              menyu(chat, db))
         return
     send_long(chat, [buyurtma_matn(o, db) + "\n" for o in reversed(os_)], menyu(chat, db))
@@ -770,7 +793,7 @@ def buyurtmalarim(chat, db):
 def buyurtmalar(chat, db):
     kut = [o for o in db["orders"] if o["holat"] == "kutilmoqda"]
     tas = [o for o in db["orders"] if o["holat"] == "tasdiqlandi"]
-    send(chat, "📦 Buyurtmalar: ⏳ %d ta kutilmoqda, ✅ %d ta tasdiqlangan."
+    send(chat, "📦 Bronlar: ⏳ %d ta to'lovi tekshirilmoqda, ✅ %d ta band qilingan."
          % (len(kut), len(tas)), menyu(chat, db))
     for o in kut[:20]:
         buyurtma_adminga(chat, o, db)
@@ -792,7 +815,7 @@ def callback(cq, db):
     elif turi in ("ok", "no") and chat in ADMINS:
         o = next((o for o in db["orders"] if o["id"] == n), None)
         if not o:
-            javob = "Buyurtma topilmadi"
+            javob = "Bron topilmadi"
         elif o["holat"] != "kutilmoqda":
             javob = "Allaqachon: " + HOLAT[o["holat"]]
         else:
@@ -800,14 +823,17 @@ def callback(cq, db):
             o["kim"] = chat
             o["hal"] = int(time.time())
             p = next((p for p in db["promos"] if p["id"] == o["promo"]), {"kitob": "?", "sana": ""})
+            jami = o.get("jami", o["soni"] * o["narx"])
             if turi == "ok":
-                send(o["chat"], "✅ Buyurtma #%d tasdiqlandi!\n📖 %s × %d\n"
-                                "📅 %s, juma kuni do'konga keling."
-                     % (o["id"], escape(p["kitob"]), o["soni"],
+                send(o["chat"], "✅ <b>Bron #%d tasdiqlandi!</b> Kitob siz uchun band.\n"
+                                "📖 %s × %d\n💳 Oldindan to'lov qabul qilindi: %s\n"
+                                "💵 Juma kuni to'laysiz: %s\n📅 %s, juma kuni do'konga keling."
+                     % (o["id"], escape(p["kitob"]), o["soni"], som(o.get("oldindan", 0)),
+                        som(jami - o.get("oldindan", 0)),
                         sana_matn(date.fromisoformat(p["sana"])) if p["sana"] else "juma"))
             else:
-                send(o["chat"], "❌ Buyurtma #%d qabul qilinmadi. Savol bo'lsa, "
-                                "do'kon bilan bog'laning." % o["id"])
+                send(o["chat"], "❌ Bron #%d tasdiqlanmadi (to'lov topilmadi). Savol "
+                                "bo'lsa, do'kon bilan bog'laning." % o["id"])
             javob = HOLAT[o["holat"]]
             msg = cq.get("message") or {}
             if msg:
@@ -816,6 +842,22 @@ def callback(cq, db):
                 send(chat, "#%d → %s" % (o["id"], HOLAT[o["holat"]]))
 
     call("answerCallbackQuery", callback_query_id=cq["id"], text=javob)
+
+
+def bron_eslatma(p, os_, bosqich, db):
+    qachon = "ertaga" if bosqich == 1 else "bugun"
+    soni = sum(o["soni"] for o in os_)
+    jami = sum(o.get("jami", o["soni"] * o["narx"]) for o in os_)
+    oldindan = sum(o.get("oldindan", 0) for o in os_ if o["holat"] == "tasdiqlandi")
+    lines = ["⏰ <b>Eslatma: %s — juma!</b>" % qachon.capitalize(), "",
+             "📌 Siz band qilgan kitob: <b>%s</b> × %d" % (escape(p["kitob"]), soni),
+             "💳 Oldindan to'langan: %s" % som(oldindan),
+             "💵 Kitobni olganda to'laysiz: <b>%s</b>" % som(jami - oldindan)]
+    if any(o["holat"] == "kutilmoqda" for o in os_):
+        lines.append("\n⏳ Oldindan to'lovingiz hali tasdiqlanmagan — do'kon tekshirmoqda.")
+    lines.append("\nKitobingiz siz uchun ajratib qo'yilgan. %s do'konga keling! 📚"
+                 % qachon.capitalize())
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------- marketing tahlili
@@ -938,9 +980,19 @@ def eslatmalar(db):
                 for k in (MIJOZ_OLDIN, 1, 0):
                     if k >= bosqich:
                         sent.setdefault("%d:m%d" % (pid, k), int(time.time()))
+                # Band qilganlarga — shaxsiy eslatma (1 kun oldin va juma kuni).
+                bronlar = {}
+                if bosqich < MIJOZ_OLDIN:
+                    for o in db["orders"]:
+                        if o["promo"] == pid and o["holat"] != "rad":
+                            bronlar.setdefault(o["chat"], []).append(o)
+                    for c, os_ in bronlar.items():
+                        if not db["users"].get(c, {}).get("bloklagan"):
+                            send(c, bron_eslatma(p, os_, bosqich, db))
                 if bosqich < MIJOZ_OLDIN and qolgan(db, p) == 0:
                     continue                     # kitob tugagan — qayta eslatmaymiz
-                n = hammaga(db, lambda c, u, p=p: aksiya_yubor(db, c, p, u))
+                n = hammaga(db, lambda c, u, p=p, b=bronlar:
+                            {"ok": False} if c in b else aksiya_yubor(db, c, p, u))
                 for a in ADMINS:
                     send(a, "📨 «%s» eslatmasi %d ta mijozga yuborildi." % (escape(p["kitob"]), n))
 

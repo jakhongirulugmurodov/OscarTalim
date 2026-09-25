@@ -20,22 +20,29 @@ o'z vaqtida eslatib turadi.
 Mijoz `/ochir_meni` deb yozsa, uning ism, familiya, telefon, yosh,
 qiziqish va chek rasmlari o'chiriladi, eslatmalar to'xtaydi.
 
-## Buyurtma
+## Band qilish (bron) — yarim pul oldindan
 
-Aksiya xabari (kitob muqovasi rasmi, eski narx → aksiya narxi, «Qoldi: N ta»)
-ostida **🛒 Buyurtma berish** tugmasi bor:
+Aksiya xabarida (kitob muqovasi, eski narx → aksiya narxi, «Aksiyada 100 ta
+kitob — qoldi: N ta») **📌 Band qilish — yarim pulini to'lab** tugmasi bor:
 
 1. Ro'yxatdan o'tmagan bo'lsa — avval ro'yxatdan o'tadi, keyin davom etadi.
 2. **Nechta?** — 1 dan 5 gacha (qolgan kitobdan ko'p emas).
-3. `TOLOV_KARTA` berilgan bo'lsa — kartaga o'tkazib **chek rasmini** yuboradi
-   yoki «💵 Olganda to'layman» ni tanlaydi.
-4. Tekshiradi → **✅ Buyurtmani tasdiqlash** → «Buyurtma #1001 rasmiylashtirildi».
-5. Do'kon egasiga buyurtma (chek rasmi bilan) **✅ Qabul / ❌ Rad** tugmalari
-   bilan keladi. Bosgach, mijozga javob boradi. Rad etilgan buyurtmaning
-   kitoblari yana sotuvga qaytadi.
+3. Bot jami va **oldindan to'lov (yarmi)** ni aytadi, masalan 2 × 360 000 =
+   720 000 → oldindan **360 000**, juma kuni 360 000.
+4. `TOLOV_KARTA` bo'lsa — kartaga yarim pulni o'tkazib, **chek rasmini**
+   yuboradi (chek bo'lmasa, bron qilinmaydi). Karta berilmagan bo'lsa —
+   yarim pulni do'konga kelib to'laydi.
+5. Tekshiradi → **✅ Band qilishni tasdiqlash** → «Bron #1001 qabul qilindi».
+6. Do'kon egasiga bron chek rasmi bilan **✅ To'lov keldi / ❌ Rad** tugmalari
+   bilan keladi. «To'lov keldi» → mijozga «Kitob siz uchun band».
+   Rad etilgan bronning kitoblari yana sotuvga qaytadi.
 
-Kitoblar tugasa, e'londa «tugadi» deb yoziladi va payshanba/juma eslatmasi
-yuborilmaydi.
+Band qilganlarga **shaxsiy eslatma** boradi — payshanba (1 kun oldin) va
+juma ertalab: qaysi kitob, nechta, qancha oldindan to'langan va olganda
+qancha to'lanadi. Ular umumiy aksiya e'lonini qayta olmaydi.
+
+100 ta kitob band qilinsa, e'londa «tugadi» deb yoziladi va payshanba/juma
+umumiy eslatmasi yuborilmaydi.
 
 ## Eslatmalar jadvali
 
@@ -69,7 +76,7 @@ tugmalar chiqadi:
   - Chegirma 30% dan oshsa, ogohlantiradi. Tannarxni mijozlar ko'rmaydi.
 - **📋 Aksiyalar** — rejadagi aksiyalar, chegirma va har biridan foyda, nechta buyurtma
   olingani, aksiyasiz jumalar.
-- **📦 Buyurtmalar** — kutilayotgan buyurtmalar ✅/❌ tugmalari bilan.
+- **📦 Buyurtmalar** — to'lovi tekshirilayotgan bronlar ✅/❌ tugmalari bilan.
 - **📊 Marketing** — mijozlar soni (bu hafta nechta yangi), buyurtmalar,
   sotilgan kitoblar, tushum, foyda, mijozlarga berilgan chegirma, buyurtma bergan va qayta kelgan mijozlar, 8 haftalik
   «Mijoz / Sotuv» grafigi, oxirgi aksiyalar natijasi, mijozlar yoqtirgan janrlar.
@@ -84,8 +91,8 @@ tugmalar chiqadi:
    - *Secrets* → `KITOB_OLAMI_BOT_TOKEN` = token;
    - *Variables* → `KITOB_OLAMI_ADMIN_IDS` = do'kon egasining Telegram ID si
      (botga `/men` deb yozsangiz aytadi; bir nechta bo'lsa — vergul bilan);
-   - *Variables* → `KITOB_OLAMI_TOLOV_KARTA` = karta raqami (ixtiyoriy; bo'lmasa,
-     mijoz kitobni olganda to'laydi).
+   - *Variables* → `KITOB_OLAMI_TOLOV_KARTA` = oldindan to'lov kartasi raqami
+     (bo'lmasa, mijoz yarim pulni do'konga kelib to'laydi).
 3. **Actions → Kitob olami bot → Run workflow → rejim: `sozlash`**.
 4. Rasmlar (faqat @BotFather orqali qo'yiladi, Bot API'da bunday usul yo'q):
    - **o'rtadagi rasm**: @BotFather → `/mybots` → botni tanlang →
