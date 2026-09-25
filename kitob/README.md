@@ -16,6 +16,9 @@ o'z vaqtida eslatib turadi.
 3. Tayyor. Keyin menyu: **🔥 Juma aksiyasi**, **📦 Buyurtmalarim**,
    **👤 Ma'lumotlarim**, **✏️ Ma'lumotni o'zgartirish**.
 
+Mijoz `/ochir_meni` deb yozsa, uning ism, familiya, telefon, yosh,
+qiziqish va chek rasmlari o'chiriladi, eslatmalar to'xtaydi.
+
 ## Buyurtma
 
 Aksiya xabari (kitob muqovasi rasmi, eski narx → aksiya narxi, «Qoldi: N ta»)

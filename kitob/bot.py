@@ -975,6 +975,17 @@ def handle(msg, db):
         send(chat, "Sizning Telegram ID: <code>%s</code>" % chat)
         return
 
+    if text == "/ochir_meni":
+        u.clear()
+        u.update(id=chat, since=int(time.time()), ochirgan=int(time.time()))
+        for o in db["orders"]:
+            if o["chat"] == chat:
+                o["chek"] = None
+        send(chat, "🗑 Ma'lumotlaringiz (ism, familiya, telefon, yosh, qiziqish, "
+                   "chek rasmlari) o'chirildi. Endi sizga eslatma kelmaydi.\n\n"
+                   "Qaytmoqchi bo'lsangiz — /start.", menyu(chat, db))
+        return
+
     qadam = u.get("qadam")
     if qadam and qadam.startswith("a_"):
         if chat in ADMINS:
@@ -1086,6 +1097,7 @@ def setup():
         {"command": "aksiya", "description": "Juma aksiyasi"},
         {"command": "buyurtmalarim", "description": "Mening buyurtmalarim"},
         {"command": "men", "description": "Mening Telegram ID im"},
+        {"command": "ochir_meni", "description": "Ma'lumotlarimni o'chirish"},
     ])
     r2 = call("setMyDescription", description=TAVSIF)
     r3 = call("setMyShortDescription", short_description="Har juma bitta kitob tannarxidan arzon")
