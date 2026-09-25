@@ -1,0 +1,15 @@
+{
+  "name": "Lug'at — English so'zlarini yodlash",
+  "short_name": "Lug'at",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1220",
+  "theme_color": "#6d5dfc",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
