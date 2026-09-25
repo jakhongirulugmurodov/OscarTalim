@@ -104,11 +104,16 @@ def load():
     except (OSError, ValueError):
         db = {}
     db.setdefault("users", {})
-    if "kitoblar" not in db:                  # birinchi ishga tushish: dokon.json'dan
-        db["kitoblar"] = {}
-        now = int(time.time())
-        for k in CFG.get("kitoblar", []):
-            db["kitoblar"][norm(k["nom"])] = dict(k, chegirma=0, juma=0, qoshildi=now - 86400 * 30)
+    birinchi = "kitoblar" not in db
+    db.setdefault("kitoblar", {})
+    db.setdefault("ochirilgan", [])
+    # dokon.json'ga keyin qo'shilgan kitoblar ham katalogga tushadi
+    # (bot orqali /ochir bilan o'chirilganlari qaytmaydi)
+    for k in CFG.get("kitoblar", []):
+        key = norm(k["nom"])
+        if key not in db["kitoblar"] and key not in db["ochirilgan"]:
+            db["kitoblar"][key] = dict(k, chegirma=0, juma=0,
+                                       qoshildi=int(time.time()) - (86400 * 30 if birinchi else 0))
     if "keladi" not in db:
         db["keladi"] = list(CFG.get("keladi", []))
     return db
@@ -502,6 +507,7 @@ def admin_buyruq(chat, text, db):
         if yangi_keldi:
             k["qoshildi"] = int(time.time())
         db["kitoblar"][norm(a[0])] = k
+        db["ochirilgan"] = [x for x in db["ochirilgan"] if x != norm(a[0])]
         db["keladi"] = [x for x in db["keladi"] if norm(x["nom"]) != norm(a[0])]
         javob = "✅ Сақланди:\n" + kitob_qator(k)
         if a[2] not in JANRLAR:
@@ -529,6 +535,8 @@ def admin_buyruq(chat, text, db):
             send(chat, "Китоб топилмади.")
             return
         db["kitoblar"].pop(norm(k["nom"]), None)
+        if norm(k["nom"]) not in db["ochirilgan"]:
+            db["ochirilgan"].append(norm(k["nom"]))
         send(chat, "🗑 «%s» каталогдан олиб ташланди." % e(k["nom"]))
 
     elif cmd == "/katalog":
