@@ -1,6 +1,9 @@
 # Kitob do'koni — Telegram bot GitHub Actions'da ishlaydi (server kerak emas).
 #
-# Har 5 daqiqada botga kelgan xabarlarni oladi va javob beradi.
+# Har ishga tushishda bot 50 daqiqa uzluksiz ishlaydi va xabarlarga darhol
+# javob beradi. Jadval har 10 daqiqada navbatdagi ishga tushishni tayyorlab
+# qo'yadi: oldingisi tugashi bilan keyingisi boshlanadi. Navbatda kutib turgan
+# eski ishga tushishlar "cancelled" bo'lib qoladi — bu normal holat.
 # Har juma soat 09:00 da (Toshkent) Juma aksiyalarini hamma mijozga yuboradi.
 # "Run workflow" tugmasi orqali: bir martalik sozlash, Juma aksiyasi yoki xabar.
 #
@@ -16,7 +19,7 @@ name: Kitob do'koni bot
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/10 * * * *"
     - cron: "0 4 * * 5"        # juma, 09:00 Toshkent vaqti
   workflow_dispatch:
     inputs:
@@ -30,17 +33,18 @@ on:
         required: false
         default: ""
 
-concurrency:
-  group: kitob-bot
-  cancel-in-progress: false
-
 permissions:
   contents: read
 
 jobs:
   bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 60
+    # Faqat "xabarlar" rejimi holatni o'zgartiradi va navbatda turadi;
+    # sozlash, juma va xabar yuborish uni kutmay darhol ishlaydi.
+    concurrency:
+      group: kitob-bot-${{ (github.event.inputs.rejim || (github.event.schedule == '0 4 * * 5' && 'juma') || 'xabarlar') == 'xabarlar' && 'asosiy' || github.run_id }}
+      cancel-in-progress: false
     env:
       BOT_TOKEN: ${{ secrets.KITOB_BOT_TOKEN }}
       ADMIN_IDS: ${{ vars.KITOB_ADMIN_IDS }}
@@ -68,11 +72,11 @@ jobs:
             sozlash) python3 kitob_bot/bot.py --setup ;;
             juma)    python3 kitob_bot/bot.py --juma ;;
             xabar)   python3 kitob_bot/bot.py --broadcast "$MATN" ;;
-            *)       python3 kitob_bot/bot.py --once ;;
+            *)       python3 kitob_bot/bot.py --minutes 50 ;;
           esac
 
       - name: Holatni saqlash
-        if: always() && env.BOT_TOKEN != ''
+        if: always() && env.BOT_TOKEN != '' && env.REJIM == 'xabarlar'
         uses: actions/cache/save@v4
         with:
           path: kitob_state
