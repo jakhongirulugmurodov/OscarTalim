@@ -140,7 +140,7 @@ def load():
         db = {}
     db.setdefault("users", {})
     db.setdefault("orders", [])
-    db.setdefault("aksiyalar", {})         # "2026-10-02": {foiz, matn, elon, bugun}
+    db.setdefault("aksiyalar", {})         # "2026-10-02": {tur, foiz, kitoblar, matn, elon, bugun}
     db.setdefault("eslatildi", [])         # admin eslatmasi yuborilgan jumalar
     return db
 
@@ -175,9 +175,17 @@ def som(n):
 
 
 def bugungi_aksiya(db):
-    """Bugun aksiya kuni bo'lsa — chegirma foizi, aks holda 0."""
-    a = db["aksiyalar"].get(bugun().isoformat())
-    return int(a.get("foiz") or 0) if a else 0
+    """Bugun aksiya kuni bo'lsa — o'sha aksiya, aks holda None."""
+    return db["aksiyalar"].get(bugun().isoformat())
+
+
+def birga_bir(a):
+    """1+1 aksiyasi: ikkita kitob olsa, arzonrog'i sovg'a."""
+    return bool(a) and a.get("tur") == "1+1"
+
+
+def aksiya_nomi(a):
+    return "1+1" if birga_bir(a) else "−%d%%" % int(a.get("foiz") or 0)
 
 
 def chegirmadami(book, a):
@@ -186,10 +194,26 @@ def chegirmadami(book, a):
 
 
 def narx(book, db):
-    a = db["aksiyalar"].get(bugun().isoformat())
-    if not a or not chegirmadami(book, a):
+    """Bitta kitobning bugungi narxi (1+1 da narx o'zgarmaydi — savatchada hisoblanadi)."""
+    a = bugungi_aksiya(db)
+    if not a or birga_bir(a) or not chegirmadami(book, a):
         return book["narx"]
     return book["narx"] * (100 - int(a.get("foiz") or 0)) // 100
+
+
+def sovgalar(savat, db):
+    """1+1: aksiyadagi kitoblar narxi bo'yicha tartiblanadi, har ikkinchisi (arzonrog'i) bepul.
+    Qaytaradi: {kitob_id: nechta_bepul}."""
+    a = bugungi_aksiya(db)
+    if not birga_bir(a):
+        return {}
+    donalar = sorted((BOOKS[k]["narx"], k) for k, n in savat.items()
+                     if k in BOOKS and chegirmadami(BOOKS[k], a) for _ in range(n))
+    donalar.reverse()
+    bepul = {}
+    for _, k in donalar[1::2]:
+        bepul[k] = bepul.get(k, 0) + 1
+    return bepul
 
 
 def mos_kitoblar(u):
@@ -204,7 +228,10 @@ def mos_kitoblar(u):
 def kitob_matni(b, db):
     janrlar = ", ".join(JANR_NOMI.get(j, j) for j in b["janr"])
     yangi = narx(b, db)
-    if yangi < b["narx"]:
+    a = bugungi_aksiya(db)
+    if birga_bir(a) and chegirmadami(b, a):
+        pul = "<b>%s</b>\n🎁 Bugun 1+1: ikkita kitob oling — arzonrog'i sovg'a!" % som(b["narx"])
+    elif yangi < b["narx"]:
         pul = "<s>%s</s> → <b>%s</b> 🎉" % (som(b["narx"]), som(yangi))
     else:
         pul = "<b>%s</b>" % som(b["narx"])
@@ -319,14 +346,23 @@ def savat_matni(u, db):
     savat = {k: v for k, v in (u.get("savat") or {}).items() if k in BOOKS}
     if not savat:
         return None, 0
+    bepul = sovgalar(savat, db)
     lines, jami = [], 0
     for bid, soni in savat.items():
         b = BOOKS[bid]
-        summa = narx(b, db) * soni
+        summa = narx(b, db) * (soni - bepul.get(bid, 0))
         jami += summa
-        lines.append("• %s — %d × %s = %s" % (escape(b["nomi"]), soni, som(narx(b, db)), som(summa)))
-    chegirma = any(narx(BOOKS[k], db) < BOOKS[k]["narx"] for k in savat)
-    izoh = "\n🎉 Juma aksiyasi: −%d%% chegirma hisoblandi." % bugungi_aksiya(db) if chegirma else ""
+        sovga = " (🎁 %d tasi sovg'a)" % bepul[bid] if bepul.get(bid) else ""
+        lines.append("• %s — %d × %s = %s%s" % (escape(b["nomi"]), soni, som(narx(b, db)), som(summa), sovga))
+    a = bugungi_aksiya(db)
+    if bepul:
+        izoh = "\n🎁 Juma 1+1 aksiyasi: %d ta kitob sovg'a!" % sum(bepul.values())
+    elif birga_bir(a) and any(chegirmadami(BOOKS[k], a) for k in savat):
+        izoh = "\n🎁 Bugun 1+1: aksiyadagi yana bitta kitob qo'shsangiz, arzonrog'i sovg'a!"
+    elif any(narx(BOOKS[k], db) < BOOKS[k]["narx"] for k in savat):
+        izoh = "\n🎉 Juma aksiyasi: %s chegirma hisoblandi." % aksiya_nomi(a)
+    else:
+        izoh = ""
     return "🛒 <b>Savatcha</b>\n\n%s\n\n<b>Jami: %s</b>%s" % ("\n".join(lines), som(jami), izoh), jami
 
 
@@ -472,7 +508,12 @@ def keyingi_juma(d, ichida=False):
 def aksiya_matni(kun, a, tur):
     d = date.fromisoformat(kun)
     kimga = "Tanlangan kitoblarga" if a.get("kitoblar") else "Barcha kitoblarga"
-    foiz = ("\n\n🔥 %s <b>−%d%%</b> chegirma!" % (kimga, a["foiz"])) if a.get("foiz") else ""
+    if birga_bir(a):
+        foiz = "\n\n🎁 %s <b>1+1</b>: ikkita kitob oling — arzonrog'i sovg'a!" % kimga
+    elif a.get("foiz"):
+        foiz = "\n\n🔥 %s <b>−%d%%</b> chegirma!" % (kimga, a["foiz"])
+    else:
+        foiz = ""
     if tur == "elon":
         bosh = "📣 <b>Kelasi juma — %s — aksiya!</b>" % sana(d)
         oxir = "\n\nBir hafta bor — kerakli kitoblarni hozirdan savatchaga yig'ib qo'ying 😉"
@@ -526,7 +567,8 @@ def aksiya_qosh(chat, db, args):
     qism = args.split(maxsplit=1)
     if not qism:
         send(chat, "Foydalanish:\n<code>/aksiya 2026-10-02 20 Barcha kitoblarga chegirma!</code>\n"
-                   "(sana — juma kuni; 20 — chegirma foizi, ixtiyoriy)")
+                   "(sana — juma kuni; 20 — chegirma foizi, ixtiyoriy)\n\n"
+                   "1+1 aksiyasi:\n<code>/aksiya 2026-10-02 1+1 Ikkinchi kitob sovg'a!</code>")
         return
     try:
         if "." in qism[0]:
@@ -544,22 +586,25 @@ def aksiya_qosh(chat, db, args):
         send(chat, "Bu sana o'tib ketgan.")
         return
     rest = qism[1].strip() if len(qism) > 1 else ""
-    foiz = 0
+    foiz, tur = 0, "foiz"
     bosh = rest.split(maxsplit=1)
-    if bosh and bosh[0].rstrip("%").isdigit():
+    if bosh and bosh[0] in ("1+1", "1+1=1"):
+        tur = "1+1"
+        rest = bosh[1] if len(bosh) > 1 else ""
+    elif bosh and bosh[0].rstrip("%").isdigit():
         foiz = int(bosh[0].rstrip("%"))
         rest = bosh[1] if len(bosh) > 1 else ""
     if not (0 <= foiz <= 90):
         send(chat, "Chegirma 0–90% oralig'ida bo'lsin.")
         return
     eski = db["aksiyalar"].get(d.isoformat(), {})
-    db["aksiyalar"][d.isoformat()] = {"foiz": foiz, "matn": rest or "Kitoblar olamida katta aksiya!",
+    db["aksiyalar"][d.isoformat()] = {"tur": tur, "foiz": foiz, "matn": rest or "Kitoblar olamida katta aksiya!",
                                       "kitoblar": eski.get("kitoblar", []),
                                       "elon": eski.get("elon", False), "bugun": eski.get("bugun", False)}
     elon_kuni = d - timedelta(days=7)
-    send(chat, "✅ Aksiya saqlandi: %s, −%d%%.\nE'lon: %s soat %d:00 dan keyin (yoki kechikkan "
+    send(chat, "✅ Aksiya saqlandi: %s, %s.\nE'lon: %s soat %d:00 dan keyin (yoki kechikkan "
                "bo'lsa — darhol).\n\nKo'rinishi:\n\n%s" % (
-                   sana(d), foiz, sana(max(elon_kuni, bugun())), ELON_SOATI,
+                   sana(d), aksiya_nomi(db["aksiyalar"][d.isoformat()]), sana(max(elon_kuni, bugun())), ELON_SOATI,
                    aksiya_matni(d.isoformat(), db["aksiyalar"][d.isoformat()], "elon")),
          inline([[("🏷 Chegirmadagi kitoblarni tanlash", "akk:" + d.isoformat())]]))
     aksiya_tekshir(db)
@@ -570,7 +615,7 @@ def aksiya_qosh(chat, db, args):
 ADMIN_YORDAM = (
     "⚙️ <b>Admin panel</b>\n\n"
     "🔑 Mijoz kodini tekshirish — 6 xonali kodni shunchaki yozing\n\n"
-    "/aksiya 2026-10-02 20 Matn — juma aksiyasini kiritish\n"
+    "/aksiya 2026-10-02 20 Matn — juma aksiyasini kiritish\n"    "/aksiya 2026-10-02 1+1 Matn — 1+1 aksiyasi (arzonrog'i sovg'a)\n"
     "/aksiya_ochir 2026-10-02 — aksiyani o'chirish\n"
     "/xabar Matn — hamma foydalanuvchiga xabar"
 )
@@ -595,7 +640,10 @@ def juma_panel(chat, db):
     for kun, a in kelasi:
         d = date.fromisoformat(kun)
         foiz = int(a.get("foiz") or 0)
-        if a.get("kitoblar"):
+        if a.get("kitoblar") and birga_bir(a):
+            royxat = "\n".join("• %s — %s" % (escape(BOOKS[k]["nomi"]), som(BOOKS[k]["narx"]))
+                               for k in a["kitoblar"] if k in BOOKS)
+        elif a.get("kitoblar"):
             lines = ["• %s — <s>%s</s> → %s" % (escape(BOOKS[k]["nomi"]), som(BOOKS[k]["narx"]),
                                                 som(BOOKS[k]["narx"] * (100 - foiz) // 100))
                      for k in a["kitoblar"] if k in BOOKS]
@@ -603,8 +651,8 @@ def juma_panel(chat, db):
         else:
             royxat = "• barcha kitoblar"
         holat = "e'lon qilingan ✅" if a.get("elon") else "e'lon: %s" % sana(d - timedelta(days=7))
-        send(chat, "🏷 <b>%s (juma)</b> — −%d%%, %s\n%s\n\n%s" % (
-            sana(d), foiz, holat, escape(a.get("matn", "")), royxat),
+        send(chat, "🏷 <b>%s (juma)</b> — %s, %s\n%s\n\n%s" % (
+            sana(d), aksiya_nomi(a), holat, escape(a.get("matn", "")), royxat),
              inline([[("✏️ Kitoblarni tanlash", "akk:" + kun)]]))
 
 
@@ -716,9 +764,9 @@ def admin_callback(chat, mid, data, db):
         if not a:
             return "Bu aksiya o'chirilgan"
         if data.startswith("akk:"):
-            send(chat, "🏷 <b>%s</b> — qaysi kitoblar −%d%% chegirmaga tushadi? Hech biri "
-                       "tanlanmasa — hammasi chegirmada.\n\nBu ro'yxatni faqat adminlar ko'radi." % (
-                           sana(date.fromisoformat(kun)), int(a.get("foiz") or 0)),
+            send(chat, "🏷 <b>%s</b> — qaysi kitoblar %s aksiyasiga tushadi? Hech biri "
+                       "tanlanmasa — hammasi aksiyada.\n\nBu ro'yxatni faqat adminlar ko'radi." % (
+                           sana(date.fromisoformat(kun)), aksiya_nomi(a)),
                  kitob_tanlash_klaviatura(kun, a))
             return None
         if data.startswith("akt:") and bid in BOOKS:

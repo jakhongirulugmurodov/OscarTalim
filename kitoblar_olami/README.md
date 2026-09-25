@@ -11,7 +11,7 @@ Kitob do'koni boti. Faqat Python standart kutubxonasi — hech narsa o'rnatish s
 | **Katalog va qidiruv** | Janr bo'yicha ro'yxat; kitob nomi yoki muallifni yozsa — qidiradi |
 | **Onlayn buyurtma** | Savatcha → telefon → **🏬 do'kondan olib ketish** yoki 🚚 yetkazib berish → to'lov: 💳 onlayn (Click/Payme) yoki 💵 naqd |
 | **Olish kodi** | Har bir buyurtmaga 6 xonali kod beriladi (masalan, `460614`). Mijoz do'konga kelib kodni ko'rsatadi, admin uni botga yozadi — bot buyurtmani ko'rsatadi, «📦 Kitoblar berildi» bosilgach kod yaroqsiz bo'ladi. Mijoz kodini «👤 Profil»dan istalgan payt ko'radi |
-| **Juma aksiyasi** | Admin aksiyani kiritadi va chegirmaga tushadigan kitoblarni tanlaydi → bot aksiyani **1 hafta oldin** (o'tgan juma soat 10:00 da) hammaga e'lon qiladi, aksiya kuni yana eslatadi va chegirmani o'sha kitoblarga avtomatik qo'llaydi. Keyingi juma uchun aksiya kiritilmagan bo'lsa, adminlarga oldindan eslatadi |
+| **Juma aksiyasi** | Ikki turi bor: **foizli chegirma** (masalan, −20%) yoki **1+1** (aksiyadagi kitoblar narx bo'yicha tartiblanadi, har ikkinchisi — arzonrog'i — bepul). Admin aksiyani kiritadi va chegirmaga tushadigan kitoblarni tanlaydi → bot aksiyani **1 hafta oldin** (o'tgan juma soat 10:00 da) hammaga e'lon qiladi, aksiya kuni yana eslatadi va chegirmani o'sha kitoblarga avtomatik qo'llaydi. Keyingi juma uchun aksiya kiritilmagan bo'lsa, adminlarga oldindan eslatadi |
 
 ## ⚙️ Admin panel (faqat adminlarga ko'rinadi)
 
@@ -29,6 +29,7 @@ Buyruqlar:
 
 ```
 /aksiya 2026-10-02 20 Matn       — juma aksiyasi (sana, chegirma %, matn)
+/aksiya 2026-10-02 1+1 Matn      — 1+1 aksiyasi: ikkita kitob olsa, arzonrog'i sovg'a
 /juma                            — juma chegirmasidagi kitoblar
 /aksiya_ochir 2026-10-02         — aksiyani o'chirish
 /kod 460614                      — kodni tekshirish
