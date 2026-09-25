@@ -15,6 +15,7 @@ Faqat Python standart kutubxonasi ishlatilgan, qo'shimcha o'rnatish kerak emas.
 | 🔍 **Qidiruv** | kitob yoki muallif nomini yozish kifoya |
 | 🎟 **Promokod** | 10% dan 50% gacha; har bir kishi bitta kodni bir marta ishlatadi |
 | 🛒 **Savat** | ➖ ➕ ❌, chegirma va sovg'alar hisobi, «yana X so'mlik olsangiz — sovg'a» maslahati |
+| 📝 **Rasmiylashtirish** | qabul qiluvchi ismi → 📱 telefon → 📍 **lokatsiya** (yoki manzil / do'kondan olib ketish) → 💳 **to'lov turi**: naqd, karta, Click/Payme → «Buyurtma rasmiylashtirildi, raqami #N» |
 | 📦 **Xaridlarim** | har bir buyurtmaning sahifasi: holati, kitoblar, summa, sovg'alar; sotib olingan kitobni **1–5 ⭐ baholash** va sharh yozish |
 
 **Chegirma qoidasi:** har bir kitobga eng katta chegirma qo'llanadi — aksiya
@@ -33,10 +34,21 @@ faqat sotib olgan kishi baholay oladi; ism/manzilga yozilgan HTML buzmaydi.
 
 ## Admin (do'kon egasi)
 
-`ADMIN_IDS` dagi odam uchun. Har bir yangi buyurtma adminga tugmalar bilan
-keladi (🚚 Yo'lda / ✅ Yetkazildi / ❌ Bekor) — mijozga holat o'zi boradi.
+`ADMIN_IDS` dagi odam uchun. Har bir yangi buyurtma adminga **✅ Tasdiqlash /
+❌ Rad etish** tugmalari bilan keladi (lokatsiya bo'lsa — xarita nuqtasi ham).
+Keyin: 🚚 Yuborildi → 📬 Yetkazildi. Mijozga holat o'zi boradi. Tasdiqlangan
+buyurtmani mijoz o'zi bekor qila olmaydi.
 
-`/admin` — panel: mijozlar, buyurtmalar, tushum, ombordagi kitoblar qiymati, va:
+`/admin` — panel (jami tushum, bugungi tushum, kutayotgan buyurtmalar, mijozlar / maqsad), va:
+- 📊 **Umumiy hisobot** — tushum (bugun / 7 / 30 kun), o'rtacha chek, 1000 mijoz
+  maqsadiga progress, voronka (ochgan → ro'yxat → xarid), 14 kunlik sotuv va
+  yangi mijozlar mini-grafigi, top kitoblar, mijozlar qayerdan kelgani.
+- 📈 **Marketing tahlil** — bot HTML fayl yuboradi, telefonda yoki kompyuterda
+  ochiladi: ko'rsatkich doiralari, kunlik sotuv grafigi, yangi mijozlar grafigi,
+  voronka, yosh guruhlari, manbalar, top va sotilmayotgan kitoblar, promokodlar,
+  to'lov turlari.
+- 🧾 **Buyurtmalar** — yangilari tepada, har birining yonida ✅ / ❌.
+- 👥 **Mijozlar** — ism, yosh, telefon, nechta buyurtma, qancha xarid, manba.
 - 🐢 **Sotilmayotganlar** — omborda ko'p, sotuvi kam kitoblar. Bir bosishda
   −20% / −30% aksiya qo'yasiz va 📣 hamma mijozlarga e'lon yuborasiz.
 - 🧾 Buyurtmalar, 📦 Ombor, 🎟 Promokodlar.
@@ -50,7 +62,14 @@ keladi (🚚 Yo'lda / ✅ Yetkazildi / ❌ Bekor) — mijozga holat o'zi boradi.
 | promokod (10–50%, soni va muddat ixtiyoriy) | `/promo YOZ30 30 100 2026-12-31` |
 | promokodni o'chirish | `/promo_ochir YOZ30` |
 | yangi kitob | `/yangi_kitob Nomi \| Muallif \| janr \| 45000 \| 10 \| 12 \| Tavsif` |
+| reklama havolasi (manbani sanaydi) | `/havola instagram` → `t.me/<bot>?start=r_instagram` |
 | hammaga e'lon | `/xabar Yangi kitoblar keldi!` |
+
+**Reklama havolalari.** Har bir reklama joyi uchun alohida havola oling
+(`/havola instagram`, `/havola varaqa`, `/havola kanal`) — varaqaga QR qilib
+bosish mumkin. Shu havoladan kirgan yangi mijoz ro'yxatdan o'tgach 10% tanishuv
+promokodini (`SALOM10`) oladi, marketing tahlilida esa har bir manbadan nechta
+odam kelgani, nechtasi xarid qilgani va qancha tushum bergani ko'rinadi.
 
 ## Ishga tushirish
 
@@ -90,15 +109,20 @@ chunki sotuv davomida ular o'zgarib boradi. Rasm qo'shish uchun kitobga
 python3 kitob-bot/test_bot.py
 ```
 
-Telegram'siz, soxta API bilan: ro'yxatdan o'tish, katalog, yosh cheklovi,
-ombor chegarasi, promokod chegaralari, to'liq xarid, sovg'alar, baholash,
-bekor qilish, admin buyruqlari, HTML xavfsizligi.
+Telegram'siz, soxta API bilan (21 ta): ro'yxatdan o'tish, katalog, yosh cheklovi,
+ombor chegarasi, promokod chegaralari, to'liq xarid, lokatsiya va to'lov turi,
+sovg'alar, baholash, bekor qilish, admin ✅/❌, hisobotlar, reklama manbalari,
+fayl yuborish, HTML xavfsizligi.
+
+Marketing sahifasini namuna ma'lumot bilan ko'rish:
+`python3 kitob-bot/hisobot.py > misol.html` va brauzerda oching.
 
 ## Bilib qo'ying
 
 - **Google akkaunt** — bot Gmail manzilini so'raydi va mijoz profiliga
   bog'laydi. Haqiqiy «Google bilan kirish» (OAuth) uchun doimiy veb-server
   kerak; bu bot serversiz ishlagani uchun manzil tasdiqlanmaydi.
-- **To'lov** — kitobni qabul qilganda naqd yoki karta orqali. Bot ichida
-  onlayn to'lov (Click/Payme) uchun to'lov provayderi bilan shartnoma va
-  token kerak — keyin qo'shish mumkin.
+- **To'lov** — mijoz naqd, karta yoki Click/Payme'ni tanlaydi, pul esa
+  kitobni qabul qilganda (yoki admin yuborgan havola orqali) to'lanadi. Bot
+  ichida avtomatik onlayn to'lov uchun Click/Payme bilan shartnoma va provayder
+  tokeni kerak — keyin qo'shish mumkin.

@@ -6,6 +6,7 @@
 
 import io
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -35,7 +36,8 @@ class _Html(HTMLParser):
 def html_tekshir(matn):
     """Telegram HTML: faqat ruxsat etilgan teglar, hammasi yopilgan, <= 4096 belgi."""
     assert len(matn) <= 4096, "xabar juda uzun"
-    assert "<" not in matn.replace("<b>", "").replace("</b>", "").replace("<i>", "") \
+    matn_ = re.sub(r'<a href="https://[^"<>]*">|</a>', "", matn)
+    assert "<" not in matn_.replace("<b>", "").replace("</b>", "").replace("<i>", "") \
         .replace("</i>", "").replace("<s>", "").replace("</s>", "").replace("<code>", "") \
         .replace("</code>", ""), "escape qilinmagan '<': " + matn[:200]
     p = _Html()
@@ -109,6 +111,18 @@ class Sinov(unittest.TestCase):
             "id": "cb%d" % self.uid, "data": data, "from": {"id": int(chat), "first_name": "Aziz"},
             "message": {"message_id": 5, "chat": {"id": int(chat), "type": "private"}, "text": text}}}])
 
+    def rasmiylashtir(self, tel="901234567", manzil=None, tolov="naqd", tasdiq=True):
+        self.bos("buy")
+        self.yoz(tel)
+        self.yoz(manzil or bot.B_OLIB)
+        self.assertIn("pay:" + tolov, self.api.tugmalar())
+        self.bos("pay:" + tolov)
+        iz = [d for d in self.api.tugmalar() if d.startswith("ok:")]
+        self.assertEqual(len(iz), 1)
+        if tasdiq:
+            self.bos(iz[0])
+        return iz[0]
+
     def royxat(self, yosh="20", chat=MIJOZ):
         self.yoz("/start", chat)
         self.bos("reg:ism", chat)
@@ -132,7 +146,7 @@ class Sinov(unittest.TestCase):
         u = self.db["users"][MIJOZ]
         self.assertTrue(u["royxat"])
         self.assertEqual((u["ism"], u["familiya"], u["yosh"]), ("Aziz", "Karimov", 20))
-        self.assertIn("SALOM15", self.api.oxirgi())
+        self.assertIn("SALOM10", self.api.oxirgi())
 
     def test_royxat_gmail(self):
         self.yoz("/start")
@@ -226,12 +240,18 @@ class Sinov(unittest.TestCase):
         self.yoz("qisqa")
         self.assertIn("batafsilroq", self.api.oxirgi())
         self.yoz("Toshkent, Chilonzor 5-kvartal, 12-uy")
+        self.bos("ok:eskiiz")                               # to'lov tanlanmagan — so'raladi
+        self.assertEqual(self.db["buyurtmalar"], {})
+        self.assertIn("pay:click", self.api.tugmalar())
+        self.bos("pay:click")
         izlar = [d for d in self.api.tugmalar() if d.startswith("ok:")]
         self.assertEqual(len(izlar), 1)
         self.bos(izlar[0])
         o = self.db["buyurtmalar"]["1"]
         self.assertEqual(o["jami"], 119500)
         self.assertEqual(o["tel"], "+998901234567")
+        self.assertEqual(o["tolov"], "click")
+        self.assertTrue(any("rasmiylashtirildi" in m and "#1" in m for m in self.api.matnlar()))
         self.assertEqual(self.db["kitoblar"]["b01"]["soni"], 22)
         self.assertEqual(self.db["kitoblar"]["b01"]["sotildi"], 2)
         self.assertEqual(self.db["users"][MIJOZ]["savat"], {})
@@ -277,10 +297,7 @@ class Sinov(unittest.TestCase):
     def test_savat_ozgarsa_tasdiq_rad(self):
         self.royxat()
         self.bos("+:b01:uzbek:0")
-        self.bos("buy")
-        self.yoz("+998 90 123 45 67")
-        self.yoz(bot.B_OLIB)
-        iz = [d for d in self.api.tugmalar() if d.startswith("ok:")][0]
+        iz = self.rasmiylashtir(tel="+998 90 123 45 67", tasdiq=False)
         self.bos("+:b03:bolalar:0")                         # tasdiqdan oldin savat o'zgardi
         self.bos(iz)
         self.assertEqual(self.db["buyurtmalar"], {})
@@ -294,10 +311,7 @@ class Sinov(unittest.TestCase):
         self.bos("+:b07:bolalar:0")
         self.yoz(bot.B_PROMO)
         self.yoz("OMBOR50")
-        self.bos("buy")
-        self.yoz("901234567")
-        self.yoz(bot.B_OLIB)
-        self.bos([d for d in self.api.tugmalar() if d.startswith("ok:")][0])
+        self.rasmiylashtir()
         self.assertEqual(self.db["kitoblar"]["b07"]["soni"], 49)
         self.assertEqual(self.db["buyurtmalar"]["1"]["tel"], "+998901234567")
         self.bos("oc:1")
@@ -335,10 +349,14 @@ class Sinov(unittest.TestCase):
                             for m, p in self.api.log if m == "sendMessage"))
         # buyurtma holatini o'zgartirish
         self.bos("+:b01:uzbek:0")
-        self.bos("buy")
-        self.yoz("901234567")
-        self.yoz(bot.B_OLIB)
-        self.bos([d for d in self.api.tugmalar() if d.startswith("ok:")][0])
+        self.rasmiylashtir()
+        self.bos("a:s:1:yuborildi", ADMIN)                 # avval tasdiqlash kerak
+        self.assertEqual(self.db["buyurtmalar"]["1"]["holat"], "yangi")
+        self.bos("a:s:1:tasdiqlandi", ADMIN)
+        self.assertEqual(self.db["buyurtmalar"]["1"]["holat"], "tasdiqlandi")
+        self.bos("oc:1")
+        self.bos("ocy:1")                                   # tasdiqlangani mijoz bekor qila olmaydi
+        self.assertEqual(self.db["buyurtmalar"]["1"]["holat"], "tasdiqlandi")
         self.bos("a:s:1:yuborildi", ADMIN)
         self.assertEqual(self.db["buyurtmalar"]["1"]["holat"], "yuborildi")
         self.bos("a:s:1:yangi", ADMIN)                      # orqaga qaytib bo'lmaydi
@@ -368,6 +386,95 @@ class Sinov(unittest.TestCase):
         self.yoz("<b>qidiruv")
         self.yoz(bot.B_PROMO)
         self.yoz("<i>kod")
+
+    def test_lokatsiya_va_tolov(self):
+        self.royxat()
+        self.bos("+:b01:uzbek:0")
+        self.bos("pay:naqd")                                # telefonsiz — boshidan so'raladi
+        self.assertEqual(self.db["users"][MIJOZ]["qadam"], "tel")
+        self.yoz("901234567")
+        self.uid += 1
+        bot.process(self.db, [{"update_id": self.uid, "message": {
+            "chat": {"id": int(MIJOZ), "type": "private"}, "from": {"id": int(MIJOZ), "first_name": "Aziz"},
+            "location": {"latitude": 41.311081, "longitude": 69.240562}}}])
+        self.bos("pay:karta")
+        self.assertIn("xaritada ochish", self.api.oxirgi())
+        self.bos([d for d in self.api.tugmalar() if d.startswith("ok:")][0])
+        o = self.db["buyurtmalar"]["1"]
+        self.assertEqual(o["lokatsiya"], {"lat": 41.311081, "lon": 69.240562})
+        self.assertEqual(o["tolov"], "karta")
+        self.assertTrue(any(m == "sendLocation" and p["chat_id"] == ADMIN for m, p in self.api.log))
+        # keyingi buyurtmada matnli manzil lokatsiyani almashtiradi
+        self.bos("+:b03:bolalar:0")
+        self.rasmiylashtir(manzil="Samarqand, Registon ko'chasi 1")
+        self.assertIsNone(self.db["buyurtmalar"]["2"]["lokatsiya"])
+
+    def test_manba_havola(self):
+        self.yoz("/havola Instagram!", ADMIN)
+        self.assertIn("Foydalanish", self.api.oxirgi())
+        self.yoz("/havola instagram", ADMIN)
+        self.assertIn("?start=r_instagram", self.api.oxirgi())
+        self.yoz("/start r_instagram")
+        self.yoz("/start r_boshqa")                          # birinchi manba saqlanadi
+        self.assertEqual(self.db["users"][MIJOZ]["manba"], "instagram")
+        self.bos("reg:ism")
+        self.yoz("Aziz Karimov")
+        self.yoz("20")
+        self.bos("+:b05:jahon:0")
+        self.rasmiylashtir()
+        st = bot.hisobot.statistika(self.db, bot.KAT)
+        m = dict(st["manbalar"])
+        self.assertEqual(m["instagram"]["xaridor"], 1)
+        self.assertEqual(m["instagram"]["tushum"], 31500)
+
+    def test_admin_royxatdan_tasdiqlash_va_hisobotlar(self):
+        self.royxat()
+        for bid in ("b01", "b05"):
+            self.bos("+:%s:x:0" % bid)
+            self.rasmiylashtir()
+        self.bos("a:o", ADMIN)
+        t = self.api.tugmalar()
+        self.assertIn("a:s:1:tasdiqlandi:l", t)
+        self.assertIn("a:s:2:bekor:l", t)
+        self.bos("a:s:1:tasdiqlandi:l", ADMIN)
+        self.bos("a:s:2:bekor:l", ADMIN)
+        self.assertEqual(self.db["buyurtmalar"]["1"]["holat"], "tasdiqlandi")
+        self.assertEqual(self.db["buyurtmalar"]["2"]["holat"], "bekor")
+        self.assertEqual(self.db["kitoblar"]["b05"]["soni"], 40)            # omborga qaytdi
+        self.assertNotIn("a:s:1:tasdiqlandi:l", self.api.tugmalar())      # ro'yxat yangilandi
+        self.assertTrue(any(p.get("chat_id") == MIJOZ and "Tasdiqlandi" in p.get("text", "")
+                            for m, p in self.api.log if m == "sendMessage"))
+        self.bos("a:m:0", ADMIN)
+        self.assertIn("Aziz Karimov", self.api.oxirgi())
+        self.bos("a:r", ADMIN)
+        m = self.api.oxirgi()
+        self.assertIn("55 000 so'm", m)                                   # faqat tasdiqlangani
+        self.assertIn("1 / 1000", m)
+        self.bos("a:mk", ADMIN)
+        fayl = [p for m, p in self.api.log if m == "sendDocument"][-1]
+        self.assertEqual(fayl["chat_id"], ADMIN)
+        maydon, nom, bayt, mime = fayl["_fayl"]
+        self.assertTrue(nom.endswith(".html"))
+        self.assertIn(b"marketing tahlili", bayt)
+        self.assertIn(b"<svg", bayt)
+
+    def test_multipart(self):
+        tana, turi = bot._multipart({"chat_id": "5", "caption": "salom"},
+                                    ("document", "a.html", b"<p>x</p>", "text/html"))
+        chegara = turi.split("boundary=")[1].encode()
+        self.assertTrue(tana.startswith(b"--" + chegara))
+        self.assertTrue(tana.endswith(b"--" + chegara + b"--\r\n"))
+        self.assertIn(b'name="document"; filename="a.html"', tana)
+        self.assertIn(b"<p>x</p>", tana)
+
+    def test_bosh_hisobot(self):
+        st = bot.hisobot.statistika(self.db, bot.KAT)
+        self.assertEqual(st["tushum"], 0)
+        html_tekshir(bot.hisobot.matn_hisobot(st))
+        self.assertIn("<svg", bot.hisobot.html_hisobot(st))
+        misol = bot.hisobot._misol()
+        self.assertGreater(misol["tushum"], 0)
+        bot.hisobot.html_hisobot(misol)
 
     def test_guruhda_jim(self):
         bot.process(self.db, [{"update_id": 1, "message": {

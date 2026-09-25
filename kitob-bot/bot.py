@@ -14,10 +14,13 @@ Xaridor uchun:
     qarab qo'shimcha sovg'a.
   • Promokod — 10% dan 50% gacha. Har bir kitobga eng katta chegirma
     qo'llanadi (aksiya yoki promokod), ikkalasi qo'shilib ketmaydi.
-  • Savat → telefon → manzil → tasdiqlash → buyurtma sahifasi va holati.
+  • Rasmiylashtirish: telefon → lokatsiya yoki manzil → to'lov turi (naqd,
+    karta, Click/Payme) → tasdiqlash → buyurtma raqami, sahifasi va holati.
   • Sotib olingan kitobni 1–5 yulduz bilan baholash va sharh qoldirish.
 
-Admin uchun (ADMIN_IDS): /admin — hisobot, buyurtmalar, ombor,
+Admin uchun (ADMIN_IDS): /admin — umumiy hisobot, marketing tahlili (HTML
+grafiklar, hisobot.py), buyurtmalarni ✅ tasdiqlash / ❌ rad etish, mijozlar,
+reklama havolalari (/havola — mijoz qayerdan kelganini sanaydi), ombor,
 sotilmayotgan kitoblar (bir bosishda aksiya + hammaga e'lon), promokodlar.
 
 Faqat standart kutubxona. Ma'lumotlar bitta JSON faylda (STATE_FILE),
@@ -48,6 +51,9 @@ from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hisobot  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 ADMINS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()}
@@ -74,23 +80,53 @@ B_BEKOR = "❌ Bekor qilish"
 B_OLIB = "🏪 Do'kondan olib ketaman"
 B_TEL = "📱 Raqamimni yuborish"
 
+B_LOK = "📍 Lokatsiyani yuborish"
+
 HOLAT = {
-    "yangi": "🆕 Qabul qilindi",
+    "yangi": "🆕 Ko'rib chiqilmoqda",
+    "tasdiqlandi": "👍 Tasdiqlandi",
     "yuborildi": "🚚 Yo'lda",
     "yetkazildi": "✅ Yetkazildi",
     "bekor": "❌ Bekor qilindi",
 }
 # qaysi holatdan qaysilariga o'tish mumkin
 OTISH = {
-    "yangi": ("yuborildi", "yetkazildi", "bekor"),
+    "yangi": ("tasdiqlandi", "bekor"),
+    "tasdiqlandi": ("yuborildi", "yetkazildi", "bekor"),
     "yuborildi": ("yetkazildi", "bekor"),
     "yetkazildi": (),
     "bekor": (),
 }
+# admin tugmalari (holatga o'tkazish)
+TUGMA = {
+    "tasdiqlandi": "✅ Tasdiqlash",
+    "yuborildi": "🚚 Yuborildi",
+    "yetkazildi": "📬 Yetkazildi",
+    "bekor": "❌ Rad etish",
+}
+TOLOV = {
+    "naqd": "💵 Naqd pul",
+    "karta": "💳 Karta (qabul qilganda)",
+    "click": "📲 Click / Payme",
+}
 
 
 # ---------------------------------------------------------------- Telegram API
-def call(method, **params):
+def _multipart(data, fayl):
+    """fayl = (maydon, nomi, baytlar, mime) — Telegram'ga fayl yuklash uchun."""
+    chegara = "----sehrlijavon%x" % random.getrandbits(64)
+    qism = []
+    for k, v in data.items():
+        qism.append(('--%s\r\nContent-Disposition: form-data; name="%s"\r\n\r\n%s\r\n'
+                     % (chegara, k, v)).encode())
+    maydon, nomi, bayt, mime = fayl
+    qism.append(('--%s\r\nContent-Disposition: form-data; name="%s"; filename="%s"\r\n'
+                 'Content-Type: %s\r\n\r\n' % (chegara, maydon, nomi, mime)).encode())
+    qism.append(bayt + b"\r\n--" + chegara.encode() + b"--\r\n")
+    return b"".join(qism), "multipart/form-data; boundary=" + chegara
+
+
+def call(method, _fayl=None, **params):
     data = {}
     for k, v in params.items():
         if v is None:
@@ -100,8 +136,13 @@ def call(method, **params):
         elif isinstance(v, (dict, list)):
             v = json.dumps(v, ensure_ascii=False)
         data[k] = v
+    if _fayl:
+        tana, turi = _multipart(data, _fayl)
+        so_rov = Request(API + method, data=tana, headers={"Content-Type": turi})
+    else:
+        so_rov = Request(API + method, data=urlencode(data).encode())
     try:
-        with urlopen(Request(API + method, data=urlencode(data).encode()), timeout=70) as r:
+        with urlopen(so_rov, timeout=70) as r:
             return json.load(r)
     except HTTPError as e:
         try:
@@ -569,6 +610,8 @@ def kitob_sahifa(db, chat, u, mid, bid, kalit, sahifa):
         rows.append([btn("🛒 Savatga qo'shish" + (" (%d)" % savatda if savatda else ""), "+:" + ctx)])
     _, n = reyting(b)
     rows.append([btn("💬 Baholar va sharhlar (%d)" % n, "sh:" + ctx)])
+    if kalit != b.get("janr") and b.get("janr") in KAT.get("janrlar", {}):
+        rows.append([btn("📚 Shu janrdagi boshqa kitoblar", "j:%s:0" % b["janr"])])
     orqa = btn("⬅️ Orqaga", "j:%s:%d" % (kalit, sahifa)) if kalit != "-" else btn("⬅️ Katalog", "cat")
     rows.append([orqa, btn("🛒 Savat" + (" ✓" if u.get("savat") else ""), "cart")])
     edit(chat, mid, kitob_matn(db, u, b), ikb(rows), b.get("rasm"))
@@ -693,8 +736,10 @@ def buyurtma_boshla(db, chat, u):
     kb = {"keyboard": [[{"text": B_TEL, "request_contact": True}]]
           + ([[{"text": u["tel"]}]] if u.get("tel") else []) + [[{"text": B_BEKOR}]],
           "resize_keyboard": True}
-    send(chat, "📱 <b>1/2.</b> Telefon raqamingizni yuboring — kuryer siz bilan shu raqam orqali "
-               "bog'lanadi.\n\nPastdagi tugmani bosing yoki raqamni yozing: <code>+998901234567</code>", kb)
+    send(chat, "📝 <b>Buyurtmani rasmiylashtirish</b>\n👤 Qabul qiluvchi: <b>%s</b>\n\n"
+               "📱 <b>1/3.</b> Telefon raqamingizni yuboring — kuryer siz bilan shu raqam orqali "
+               "bog'lanadi.\n\nPastdagi tugmani bosing yoki raqamni yozing: <code>+998901234567</code>"
+               % e(toliq_ism(u)), kb)
 
 
 def tel_qadam(chat, u, text, contact, frm):
@@ -710,29 +755,55 @@ def tel_qadam(chat, u, text, contact, frm):
         return send(chat, "🤔 Raqam noto'g'ri ko'rinadi. Masalan: <code>+998901234567</code>")
     u["tel"] = "+" + tel
     u["qadam"] = "manzil"
-    send(chat, "📍 <b>2/2.</b> Yetkazib berish manzilini yozing (shahar, ko'cha, uy, mo'ljal).\n\n"
-               "🚚 %s\n🏪 %s" % (e(KAT.get("dokon", {}).get("yetkazish", "")),
-                                e(KAT.get("dokon", {}).get("olib_ketish", ""))),
-         bekor_kb(B_OLIB, u.get("manzil") if u.get("manzil") and u["manzil"] != B_OLIB else None))
+    eski = u.get("manzil") if u.get("manzil") and not u.get("lokatsiya") and u["manzil"] != B_OLIB else None
+    kb = {"keyboard": [[{"text": B_LOK, "request_location": True}], [{"text": B_OLIB}]]
+          + ([[{"text": eski}]] if eski else []) + [[{"text": B_BEKOR}]],
+          "resize_keyboard": True}
+    send(chat, "📍 <b>2/3.</b> Lokatsiyangizni yuboring (pastdagi tugma) yoki manzilni yozing "
+               "(shahar, ko'cha, uy, mo'ljal).\n\n🚚 %s\n🏪 %s" % (
+                   e(KAT.get("dokon", {}).get("yetkazish", "")),
+                   e(KAT.get("dokon", {}).get("olib_ketish", ""))), kb)
 
 
-def manzil_qadam(db, chat, u, text):
+def xarita(lok):
+    return "https://maps.google.com/?q=%.6f,%.6f" % (lok["lat"], lok["lon"])
+
+
+def manzil_qadam(db, chat, u, text, lokatsiya=None):
     t = (text or "").strip()
-    if t != B_OLIB and len(t) < 8:
-        return send(chat, "📍 Manzilni batafsilroq yozing (kamida 8 belgi) yoki "
-                          "«%s» tugmasini bosing." % B_OLIB)
-    u["manzil"] = t[:300]
+    if lokatsiya and "latitude" in lokatsiya:
+        u["lokatsiya"] = {"lat": float(lokatsiya["latitude"]), "lon": float(lokatsiya["longitude"])}
+        u["manzil"] = "📍 Xaritadagi nuqta"
+    elif t == B_OLIB or len(t) >= 8:
+        u["lokatsiya"] = None
+        u["manzil"] = t[:300]
+    else:
+        return send(chat, "📍 Lokatsiyani tugma orqali yuboring, manzilni batafsilroq yozing "
+                          "(kamida 8 belgi) yoki «%s» tugmasini bosing." % B_OLIB)
     u["qadam"] = None
-    send(chat, "Deyarli tayyor! Buyurtmani tekshirib, tasdiqlang 👇", menyu())
-    tasdiq_sahifa(db, chat, u)
+    send(chat, "✅ Manzil saqlandi.", menyu())
+    tolov_sorov(chat, u)
+
+
+def tolov_sorov(chat, u, mid=None):
+    edit(chat, mid, "💳 <b>3/3.</b> To'lov turini tanlang:\n\n<i>%s</i>" % e(
+        KAT.get("dokon", {}).get("tolov", "")),
+         ikb([[btn(v, "pay:" + k)] for k, v in TOLOV.items()]))
+
+
+def manzil_satr(o, html_=True):
+    s = e(o.get("manzil") or "")
+    if o.get("lokatsiya") and html_:
+        s += ' — <a href="%s">xaritada ochish</a>' % xarita(o["lokatsiya"])
+    return s
 
 
 def tasdiq_sahifa(db, chat, u, mid=None):
     h = hisob(db, u)
     if not h["qatorlar"]:
         return edit(chat, mid, "🛒 Savatingiz bo'sh.")
-    matn = (savat_matn(h, tahrir=False) + "\n\n👤 %s\n📱 %s\n📍 %s\n💵 %s" % (
-        e(toliq_ism(u)), e(u["tel"]), e(u["manzil"]), e(KAT.get("dokon", {}).get("tolov", ""))))
+    matn = (savat_matn(h, tahrir=False) + "\n\n👤 %s\n📱 %s\n📍 %s\n%s" % (
+        e(toliq_ism(u)), e(u["tel"]), manzil_satr(u), TOLOV.get(u.get("tolov"), "")))
     edit(chat, mid, "📝 <b>Buyurtmani tasdiqlang</b>\n\n" + matn, ikb([
         [btn("✅ Tasdiqlayman", "ok:" + savat_izi(u))],
         [btn("✏️ Savatni o'zgartirish", "cart"), btn("❌ Bekor", "cancelbuy")],
@@ -742,6 +813,8 @@ def tasdiq_sahifa(db, chat, u, mid=None):
 def buyurtma_tasdiq(db, chat, u, mid, iz):
     if not u.get("tel") or not u.get("manzil"):
         return buyurtma_boshla(db, chat, u)
+    if u.get("tolov") not in TOLOV:
+        return tolov_sorov(chat, u)
     if iz != savat_izi(u):
         send(chat, "⚠️ Savat o'zgargan — yangilangan buyurtmani qayta tekshiring.")
         return tasdiq_sahifa(db, chat, u)
@@ -771,12 +844,14 @@ def buyurtma_tasdiq(db, chat, u, mid, iz):
          "email": u.get("email"), "yosh": u.get("yosh"), "tel": u["tel"], "manzil": u["manzil"],
          "qatorlar": h["qatorlar"], "asl": h["asl"], "jami": h["jami"], "promo": h["promo"],
          "pfoiz": h["pfoiz"], "sovgalar": h["sovgalar"], "holat": "yangi",
+         "tolov": u["tolov"], "lokatsiya": u.get("lokatsiya"), "manba": u.get("manba"),
          "sana": int(time.time()), "tarix": [["yangi", int(time.time())]]}
     db["buyurtmalar"][str(n)] = o
     u["savat"], u["promo"] = {}, None
 
-    edit(chat, mid, "🎉 <b>Buyurtma #%d qabul qilindi!</b>\n\nTez orada siz bilan bog'lanamiz. "
-                    "Holatini «📦 Xaridlarim» bo'limida kuzatib borishingiz mumkin." % n,
+    edit(chat, mid, "🎉 <b>Buyurtma rasmiylashtirildi!</b>\n\n🧾 Buyurtma raqami: <b>#%d</b>\n"
+                    "💳 %s — %s\n\nAdmin tasdiqlashi bilan sizga xabar beramiz. Holatini "
+                    "«📦 Xaridlarim» bo'limida kuzatib borishingiz mumkin." % (n, som(o["jami"]), TOLOV[o["tolov"]]),
          ikb([[btn("📄 Buyurtma sahifasi", "o:%d" % n)]]))
     tavsiya = tavsiyalar(db, u, o)
     if tavsiya:
@@ -785,6 +860,8 @@ def buyurtma_tasdiq(db, chat, u, mid, iz):
     for a in ADMINS:
         send(a, admin_buyurtma_matn(o) + ("\n\n⚠️ <b>Kam qoldi:</b>\n" + "\n".join(map(e, kam)) if kam else ""),
              admin_buyurtma_kb(o))
+        if o["lokatsiya"]:
+            call("sendLocation", chat_id=a, latitude=o["lokatsiya"]["lat"], longitude=o["lokatsiya"]["lon"])
 
 
 def tavsiyalar(db, u, o):
@@ -812,11 +889,14 @@ def buyurtma_matn(o, admin=False):
     q.append("💳 <b>Jami: %s</b>" % som(o["jami"]))
     if o.get("sovgalar"):
         q.append("🎁 Sovg'alar: " + ", ".join(map(e, o["sovgalar"])))
-    q += ["", "📱 %s" % e(o["tel"]), "📍 %s" % e(o["manzil"])]
+    q += ["", "📱 %s" % e(o["tel"]), "📍 %s" % manzil_satr(o)]
+    if o.get("tolov"):
+        q.append(TOLOV.get(o["tolov"], ""))
     if admin:
-        q.insert(1, "👤 %s%s · %s yosh%s" % (
+        q.insert(1, "👤 %s%s · %s yosh%s%s" % (
             e(o["ism"]), (" (@%s)" % e(o["username"])) if o.get("username") else "",
-            o.get("yosh") or "?", ("\n📧 " + e(o["email"])) if o.get("email") else ""))
+            o.get("yosh") or "?", ("\n📧 " + e(o["email"])) if o.get("email") else "",
+            ("\n📣 Manba: " + e(o["manba"])) if o.get("manba") else ""))
     return "\n".join(q)
 
 
@@ -826,7 +906,7 @@ def admin_buyurtma_matn(o):
 
 
 def admin_buyurtma_kb(o):
-    return ikb([[btn(HOLAT[h], "a:s:%d:%s" % (o["id"], h)) for h in OTISH[o["holat"]]]]
+    return ikb([[btn(TUGMA[h], "a:s:%d:%s" % (o["id"], h)) for h in OTISH[o["holat"]]]]
                + [[btn("⬅️ Buyurtmalar", "a:o")]])
 
 
@@ -893,16 +973,11 @@ def buyurtma_sahifa(db, chat, u, mid, n):
 
 # ---------------------------------------------------------------- admin
 def admin_panel(db, chat, mid=None):
-    ob = db["buyurtmalar"].values()
-    faol = [o for o in ob if o["holat"] != "bekor"]
-    tushum = sum(o["jami"] for o in faol)
-    yangi = sum(1 for o in ob if o["holat"] == "yangi")
-    ombor = sum(b.get("soni", 0) for b in db["kitoblar"].values())
+    st = hisobot.statistika(db, KAT)
     qiymat = sum(b.get("soni", 0) * narxi(b) for b in db["kitoblar"].values())
-    royxat = sum(1 for u in db["users"].values() if u.get("royxat"))
     matn = ("🛠 <b>Admin panel</b>\n\n"
-            "👥 Mijozlar: %d\n🧾 Buyurtmalar: %d (yangi: %d)\n💰 Tushum: %s\n"
-            "📦 Omborda: %d dona (≈ %s)\n\n"
+            "💰 Jami tushum: <b>%s</b> (bugun: %s)\n🧾 Buyurtmalar: %d · kutmoqda: <b>%d</b>\n"
+            "👥 Mijozlar: %d / %d\n📦 Omborda: %d dona (≈ %s)\n\n"
             "<b>Buyruqlar:</b>\n"
             "<code>/qoldiq b01 25</code> — ombordagi soni\n"
             "<code>/narx b01 49000</code> — narx\n"
@@ -911,25 +986,84 @@ def admin_panel(db, chat, mid=None):
             "<code>/promo KOD 30 [soni] [2026-12-31]</code> — promokod (10–50%%)\n"
             "<code>/promo_ochir KOD</code>\n"
             "<code>/yangi_kitob nomi | muallif | janr | narx | soni | yosh | tavsif</code>\n"
+            "<code>/havola instagram</code> — reklama havolasi (qayerdan kelganini sanaydi)\n"
             "<code>/xabar matn</code> — hammaga e'lon\n\n"
             "Janr kalitlari: %s"
-            % (royxat, len(ob), yangi, som(tushum), ombor, som(qiymat),
+            % (som(st["tushum"]), som(st["tushum_bugun"]), st["buyurtmalar"], st["yangi_buyurtma"],
+               st["mijozlar"], st["maqsad"], st["ombor"], som(qiymat),
                ", ".join("<code>%s</code>" % k for k in KAT.get("janrlar", {}))))
     edit(chat, mid, matn, ikb([
-        [btn("🧾 Buyurtmalar", "a:o"), btn("📦 Ombor", "a:w")],
-        [btn("🐢 Sotilmayotganlar", "a:slow"), btn("🎟 Promokodlar", "a:p")],
+        [btn("📊 Umumiy hisobot", "a:r"), btn("📈 Marketing tahlil", "a:mk")],
+        [btn("🧾 Buyurtmalar" + (" (%d)" % st["yangi_buyurtma"] if st["yangi_buyurtma"] else ""), "a:o"),
+         btn("👥 Mijozlar", "a:m:0")],
+        [btn("📦 Ombor", "a:w"), btn("🐢 Sotilmayotganlar", "a:slow")],
+        [btn("🎟 Promokodlar", "a:p")],
     ]))
+
+
+def admin_hisobot(db, chat, mid):
+    edit(chat, mid, hisobot.matn_hisobot(hisobot.statistika(db, KAT)),
+         ikb([[btn("📈 Marketing tahlil (grafiklar)", "a:mk")], [btn("⬅️ Panel", "a:home")]]))
+
+
+def admin_marketing(db, chat):
+    st = hisobot.statistika(db, KAT)
+    sahifa = hisobot.html_hisobot(st, KAT.get("dokon", {}).get("nomi", "Sehrli Javon"))
+    nom = "marketing-%s.html" % st["bugun"]
+    r = call("sendDocument", chat_id=chat, _fayl=("document", nom, sahifa.encode("utf-8"), "text/html"),
+             caption="📈 Marketing tahlili — faylni oching (brauzerda ko'rinadi).\n"
+                     "Tushum: %s · Mijozlar: %d / %d · Konversiya: %d%%"
+                     % (som(st["tushum"]), st["mijozlar"], st["maqsad"], st["konversiya"]))
+    if not r.get("ok"):
+        send(chat, "Faylni yuborib bo'lmadi, birozdan keyin qayta urinib ko'ring.")
+
+
+def admin_mijozlar(db, chat, mid, sahifa):
+    xarid = {}
+    for o in db["buyurtmalar"].values():
+        if o["holat"] != "bekor":
+            x = xarid.setdefault(o["chat"], [0, 0])
+            x[0] += 1
+            x[1] += o["jami"]
+    royxat = sorted((u for u in db["users"].values() if u.get("royxat")),
+                    key=lambda u: (-xarid.get(u["id"], [0, 0])[1], -(u.get("royxat_sana") or 0)))
+    n = 15
+    soni = max(1, (len(royxat) + n - 1) // n)
+    sahifa = max(0, min(sahifa, soni - 1))
+    q = ["👥 <b>Mijozlar</b>: %d ta (xarid qilgan: %d)" % (len(royxat), len(xarid)),
+         "<i>Ko'p xarid qilganlar tepada</i>", ""]
+    for i, u in enumerate(royxat[sahifa * n:(sahifa + 1) * n], sahifa * n + 1):
+        b, j = xarid.get(u["id"], [0, 0])
+        q.append("%d. <b>%s</b>, %s yosh%s%s\n    🧾 %d · %s%s" % (
+            i, e(toliq_ism(u)), u.get("yosh") or "?",
+            (" · @" + e(u["username"])) if u.get("username") else "",
+            (" · " + e(u["tel"])) if u.get("tel") else "", b, som(j),
+            (" · 📣 " + e(u["manba"])) if u.get("manba") else ""))
+    if not royxat:
+        q.append("Hali ro'yxatdan o'tgan mijoz yo'q.")
+    rows = []
+    if soni > 1:
+        rows.append([btn("◀️", "a:m:%d" % ((sahifa - 1) % soni)), btn("%d / %d" % (sahifa + 1, soni), "nop"),
+                     btn("▶️", "a:m:%d" % ((sahifa + 1) % soni))])
+    rows.append([btn("⬅️ Panel", "a:home")])
+    edit(chat, mid, "\n".join(q), ikb(rows))
 
 
 def admin_buyurtmalar(db, chat, mid):
     ob = sorted(db["buyurtmalar"].values(),
-                key=lambda o: (o["holat"] in ("yetkazildi", "bekor"), -o["id"]))[:20]
+                key=lambda o: (o["holat"] in ("yetkazildi", "bekor"), o["holat"] != "yangi", -o["id"]))[:20]
     if not ob:
         return edit(chat, mid, "Hali buyurtma yo'q.", ikb([[btn("⬅️ Panel", "a:home")]]))
-    rows = [[btn("#%d · %s · %s · %s" % (o["id"], qisqa(o["ism"], 14), som(o["jami"]), HOLAT[o["holat"]][:2]),
-                 "a:d:%d" % o["id"])] for o in ob]
+    rows = []
+    for o in ob:
+        r = [btn("#%d · %s · %s · %s" % (o["id"], qisqa(o["ism"], 12), hisobot.qisqa_som(o["jami"]),
+                                          HOLAT[o["holat"]][:1]), "a:d:%d" % o["id"])]
+        if o["holat"] == "yangi":                     # doskadagi ✓ / ✗
+            r += [btn("✅", "a:s:%d:tasdiqlandi:l" % o["id"]), btn("❌", "a:s:%d:bekor:l" % o["id"])]
+        rows.append(r)
     rows.append([btn("⬅️ Panel", "a:home")])
-    edit(chat, mid, "🧾 <b>Buyurtmalar</b> (faollari tepada)", ikb(rows))
+    edit(chat, mid, "🧾 <b>Buyurtmalar</b>\nYangilari tepada: ✅ — tasdiqlash, ❌ — rad etish. "
+                    "Batafsil — buyurtma ustiga bosing.", ikb(rows))
 
 
 def admin_ombor(db, chat, mid):
@@ -1087,6 +1221,18 @@ def admin_buyruq(db, chat, cmd, arg):
                     "aksiya": 0, "sovga": None, "tavsif": q[6] if len(q) > 6 else "",
                     "qiziq": "", "sotildi": 0, "baholar": {}, "sharhlar": []}
         send(chat, "✅ Kitob qo'shildi (<code>%s</code>):\n\n" % bid + kitob_matn(db, {"yosh": 99}, kit[bid]))
+    elif cmd == "/havola":
+        m = arg.strip().lower()
+        if not re.fullmatch(r"[a-z0-9_]{2,30}", m):
+            send(chat, "Foydalanish: <code>/havola instagram</code>\nNom — lotin harf, raqam, _ (2–30 belgi).\n\n"
+                       "Havolani reklamaga, varaqaga yoki QR kodga qo'ying — bot shu havoladan "
+                       "kelganlarni alohida sanaydi (📈 Marketing tahlil → «qayerdan keldi»).")
+            return True
+        link = "https://t.me/%s?start=r_%s" % (bot_nomi(), m)
+        xp = KAT.get("dokon", {}).get("xush_promo")
+        send(chat, "🔗 <b>%s</b> uchun havola:\n<code>%s</code>\n\n"
+                   "Shu havola orqali kirgan har bir yangi mijoz ro'yxatdan o'tgach %s oladi."
+                   % (e(m), link, ("<code>%s</code> promokodini" % xp) if xp else "salomlashuv xabarini"))
     elif cmd == "/xabar":
         if not arg.strip():
             send(chat, "Foydalanish: <code>/xabar Yangi kitoblar keldi!</code>")
@@ -1095,6 +1241,18 @@ def admin_buyruq(db, chat, cmd, arg):
     else:
         return False
     return True
+
+
+_BOT_NOMI = []
+
+
+def bot_nomi():
+    if not _BOT_NOMI:
+        n = call("getMe").get("result", {}).get("username")
+        if not n:
+            return "SehrliJavonBot"
+        _BOT_NOMI.append(n)
+    return _BOT_NOMI[0]
 
 
 def admin_tugma(db, chat, mid, p, cb_id):
@@ -1109,15 +1267,25 @@ def admin_tugma(db, chat, mid, p, cb_id):
         admin_promolar(db, chat, mid)
     elif p[1] == "slow":
         admin_sekin(db, chat, mid)
+    elif p[1] == "r":
+        admin_hisobot(db, chat, mid)
+    elif p[1] == "mk":
+        answer(cb_id, "📈 Tayyorlanmoqda…")
+        admin_marketing(db, chat)
+        return True
+    elif p[1] == "m" and len(p) == 3:
+        admin_mijozlar(db, chat, mid, int(p[2]))
     elif p[1] == "d" and len(p) == 3:
         o = db["buyurtmalar"].get(p[2])
         if o:
             edit(chat, mid, buyurtma_matn(o, admin=True), admin_buyurtma_kb(o))
-    elif p[1] == "s" and len(p) == 4:
+    elif p[1] == "s" and len(p) in (4, 5):
         ok, x = holat_ozgartir(db, int(p[2]), p[3], "admin")
         answer(cb_id, x, alert=not ok)
         o = db["buyurtmalar"].get(p[2])
-        if o:
+        if len(p) == 5:
+            admin_buyurtmalar(db, chat, mid)
+        elif o:
             edit(chat, mid, buyurtma_matn(o, admin=True), admin_buyurtma_kb(o))
         return True
     elif p[1] == "ak" and len(p) == 4:
@@ -1166,6 +1334,8 @@ def handle_message(db, msg):
         u["qadam"] = None
         if arg.startswith("k_"):
             u["ochish"] = arg[2:]
+        elif arg.startswith("r_") and not u.get("manba") and re.fullmatch(r"r_[a-z0-9_]{2,30}", arg):
+            u["manba"] = arg[2:]                 # reklama manbasi (birinchi kelgani)
         if not u.get("royxat"):
             return reg_boshla(chat, u)
         send(chat, "📚✨ Yana xush kelibsiz, <b>%s</b>! Javonlarda sizni yangi kitoblar kutyapti."
@@ -1196,7 +1366,7 @@ def handle_message(db, msg):
     if q == "tel":
         return tel_qadam(chat, u, text, contact, frm)
     if q == "manzil":
-        return manzil_qadam(db, chat, u, text)
+        return manzil_qadam(db, chat, u, text, msg.get("location"))
     if q == "promo" and text and not cmd and text not in MENYU_TUGMALARI:
         u["qadam"] = None
         ok, xato, foiz = promo_tekshir(db, text, chat)
@@ -1221,8 +1391,8 @@ def handle_message(db, msg):
     if q:
         u["qadam"] = None                    # menyu tugmasi bosildi — amal bekor
 
-    if contact:
-        return send(chat, "Raqamingiz kerak bo'lsa, o'zim so'rayman 🙂", menyu())
+    if contact or msg.get("location"):
+        return send(chat, "Raqam va lokatsiyani buyurtma berayotganda so'rayman 🙂", menyu())
     if text == B_KATALOG or cmd == "/katalog":
         return katalog(db, chat)
     if text == B_AKSIYA or cmd == "/aksiyalar":
@@ -1337,6 +1507,13 @@ def handle_callback(db, cq):
         savat(db, chat, u, mid)
     elif t == "buy":
         buyurtma_boshla(db, chat, u)
+    elif t == "pay" and len(p) == 2 and p[1] in TOLOV:
+        if not u.get("tel") or not u.get("manzil"):
+            answer(cb)
+            return buyurtma_boshla(db, chat, u)
+        u["tolov"] = p[1]
+        edit(chat, mid, "💳 To'lov turi: <b>%s</b>" % TOLOV[p[1]])
+        tasdiq_sahifa(db, chat, u)
     elif t == "ok" and len(p) == 2:
         buyurtma_tasdiq(db, chat, u, mid, p[1])
     elif t == "cancelbuy":
@@ -1351,6 +1528,10 @@ def handle_callback(db, cq):
             [btn("Ha, bekor qilaman", "ocy:" + p[1]), btn("Yo'q", "o:" + p[1])]]))
     elif t == "ocy" and len(p) == 2:
         o = db["buyurtmalar"].get(p[1])
+        if o and o["chat"] == chat and o["holat"] != "yangi":
+            answer(cb, "Buyurtma allaqachon %s — bekor qilish uchun adminga yozing."
+                   % HOLAT[o["holat"]].split(" ", 1)[1].lower(), alert=True)
+            return buyurtma_sahifa(db, chat, u, mid, int(p[1]))
         if o and o["chat"] == chat:
             ok, javob = holat_ozgartir(db, int(p[1]), "bekor", "mijoz")
             if not ok:

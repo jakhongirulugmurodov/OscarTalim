@@ -5,7 +5,8 @@
     "yetkazish": "Toshkent bo'ylab 1–2 kun, viloyatlarga 3–5 kun",
     "olib_ketish": "Do'kondan o'zingiz olib ketishingiz mumkin",
     "aloqa": "Savollar bo'lsa — shu botga yozing, admin javob beradi",
-    "xush_promo": "SALOM15"
+    "xush_promo": "SALOM10",
+    "maqsad_mijoz": 1000
   },
 
   "janrlar": {
@@ -26,7 +27,7 @@
   },
 
   "promokodlar": [
-    {"kod": "SALOM15", "foiz": 15, "qoldi": null, "muddat": null},
+    {"kod": "SALOM10", "foiz": 10, "qoldi": null, "muddat": null},
     {"kod": "KITOB10", "foiz": 10, "qoldi": null, "muddat": null},
     {"kod": "DOST20",  "foiz": 20, "qoldi": 100,  "muddat": null},
     {"kod": "OMBOR50", "foiz": 50, "qoldi": 20,   "muddat": null}
