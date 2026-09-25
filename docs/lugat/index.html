@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6d5dfc">
+<meta name="description" content="Ingliz tili so'zlarini uzoq muddat eslab qolish: takrorlash tizimi, o'yinlar, yozish, gapirish va tinglash mashqlari.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="style.css">
+<title>Lug'at — English Vocabulary</title>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main class="main"><div class="wrap" id="view"></div></main>
+  <nav class="bottom" id="bottom"></nav>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
+<script src="games.js"></script>
+<script src="ai.js"></script>
+<script>
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  boot();
+</script>
+</body>
+</html>
