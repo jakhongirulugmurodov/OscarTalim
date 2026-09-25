@@ -9,20 +9,33 @@ Kitob do'koni boti. Faqat Python standart kutubxonasi — hech narsa o'rnatish s
 | **Ro'yxatdan o'tish** | `/start` → ism → familiya → yosh → qiziqadigan janrlar (bir nechtasini tanlash mumkin) |
 | **Tavsiya** | Yoshiga mos, qiziqishiga eng ko'p mos keladigan kitoblar oldinda, 5 tadan |
 | **Katalog va qidiruv** | Janr bo'yicha ro'yxat; kitob nomi yoki muallifni yozsa — qidiradi |
-| **Onlayn buyurtma** | Savatcha → telefon → manzil → to'lov: 💳 onlayn (Click/Payme) yoki 💵 yetkazib berganda naqd. Buyurtma adminlarga keladi |
-| **Juma aksiyasi** | Admin aksiyani kiritadi → bot uni **1 hafta oldin** (o'tgan juma soat 10:00 da) hammaga e'lon qiladi, aksiya kuni yana eslatadi va chegirmani narxlarga avtomatik qo'llaydi. Keyingi juma uchun aksiya kiritilmagan bo'lsa, adminlarga oldindan eslatadi |
+| **Onlayn buyurtma** | Savatcha → telefon → **🏬 do'kondan olib ketish** yoki 🚚 yetkazib berish → to'lov: 💳 onlayn (Click/Payme) yoki 💵 naqd |
+| **Olish kodi** | Har bir buyurtmaga 6 xonali kod beriladi (masalan, `460614`). Mijoz do'konga kelib kodni ko'rsatadi, admin uni botga yozadi — bot buyurtmani ko'rsatadi, «📦 Kitoblar berildi» bosilgach kod yaroqsiz bo'ladi. Mijoz kodini «👤 Profil»dan istalgan payt ko'radi |
+| **Juma aksiyasi** | Admin aksiyani kiritadi va chegirmaga tushadigan kitoblarni tanlaydi → bot aksiyani **1 hafta oldin** (o'tgan juma soat 10:00 da) hammaga e'lon qiladi, aksiya kuni yana eslatadi va chegirmani o'sha kitoblarga avtomatik qo'llaydi. Keyingi juma uchun aksiya kiritilmagan bo'lsa, adminlarga oldindan eslatadi |
 
-## Admin buyruqlari
+## ⚙️ Admin panel (faqat adminlarga ko'rinadi)
+
+`ADMIN_IDS` dagi odamlarda pastki menyuda qo'shimcha **⚙️ Admin panel** tugmasi chiqadi.
+Oddiy mijozlar bu tugmani ham, buyruqlarni ham ko'rmaydi; bossa ham ishlamaydi.
+
+| Tugma | Nima qiladi |
+|---|---|
+| 🏷 Juma chegirmasidagi kitoblar | Kelgusi har bir juma: chegirma foizi, qaysi kitoblar tushadi (eski → yangi narx), e'lon holati. «✏️ Kitoblarni tanlash» — ✅ belgilab tanlanadi |
+| 🔑 Kodni tekshirish | Mijoz ko'rsatgan kodni yozing (tugmasiz ham — 6 raqamni shunchaki yuborsangiz bo'ladi). Kod noto'g'ri yoki ishlatilgan bo'lsa, bot ogohlantiradi; naqd buyurtmada «pul oling» deb eslatadi |
+| 🧾 Berilmagan buyurtmalar | Kodlari bilan, hali olib ketilmagan buyurtmalar |
+| 📊 Statistika | Mijozlar soni, buyurtmalar, eng ko'p qiziqilgan janrlar |
+
+Buyruqlar:
 
 ```
-/admin                           — buyruqlar ro'yxati
 /aksiya 2026-10-02 20 Matn       — juma aksiyasi (sana, chegirma %, matn)
-/aksiyalar                       — kelgusi aksiyalar
+/juma                            — juma chegirmasidagi kitoblar
 /aksiya_ochir 2026-10-02         — aksiyani o'chirish
-/buyurtmalar                     — oxirgi 15 buyurtma
-/yetkazildi 5                    — №5 yetkazildi (mijozga xabar boradi)
+/kod 460614                      — kodni tekshirish
+/berildi 5                       — №5 buyurtma berildi
+/buyurtmalar                     — berilmagan buyurtmalar
 /xabar Matn                      — hammaga xabar
-/statistika                      — foydalanuvchilar va qiziqishlar
+/statistika                      — statistika
 ```
 
 ## Ishga tushirish
