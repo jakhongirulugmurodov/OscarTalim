@@ -220,11 +220,11 @@ const NOVELTY_VOICES = /\b(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Wobbl
 function voiceScore(v, accent) {
   if (!/^en[-_]/i.test(v.lang)) return -1000;
   if (NOVELTY_VOICES.test(v.name)) return -500;
-  let s = 0;
-  const wantUS = accent !== 'uk';
-  if (wantUS ? /en[-_]US/i.test(v.lang) : /en[-_]GB/i.test(v.lang)) s += 30;
-  else if (/en[-_](US|GB)/i.test(v.lang)) s += 15;
-  else s += 5; // en-IN, en-AU va h.k.
+  const isUS = /en[-_]US/i.test(v.lang), isGB = /en[-_]GB/i.test(v.lang);
+  // Kerakli talaffuz qat'iy birinchi: amerikancha rejimda en-US bo'lmagan ovoz
+  // faqat qurilmada en-US umuman bo'lmasa ishlatiladi (score 1).
+  if (accent === 'uk') { if (!isGB) return isUS ? 2 : 1; } else if (!isUS) return 1;
+  let s = 100;
   if (/Natural|Neural|Online|Premium|Enhanced|Siri/i.test(v.name)) s += 20;
   if (/Google/i.test(v.name)) s += 16;
   if (/Samantha|Alex|Ava|Allison|Susan|Tom|Aria|Jenny|Guy|Zira|David|Mark|Daniel|Serena|Kate|Oliver|Libby|Sonia|Ryan|Karen|Moira/i.test(v.name)) s += 10;
@@ -265,9 +265,17 @@ const TTS = {
     if (!list.length) return null;
     if (i === 0) return list[0];
     // ikkinchi so'zlovchi uchun: boshqa yaxshi ovoz (bo'lsa)
-    const good = list.filter((v) => voiceScore(v, this.accent) >= 25 && v.name !== list[0].name);
+    const good = list.filter((v) => voiceScore(v, this.accent) >= 100 && v.name !== list[0].name);
     return good[i - 1] || null;
   },
+  /* Qurilmada kerakli (US/UK) ovoz bormi? null — ro'yxat hali kelmagan */
+  hasAccentVoice() {
+    if (!this.ok) return false;
+    const all = speechSynthesis.getVoices() || [];
+    if (!all.length) return null;
+    return all.some((v) => voiceScore(v, this.accent) >= 100);
+  },
+  current() { return this.pick(0); },
   setActive(on) { if (this.active !== on) { this.active = on; this.emit(); } },
   emit() { this.listeners.forEach((f) => f()); },
   /* Bitta matnni (gaplarga bo'lib) aytish. onend hammasi tugaganda chaqiriladi. */
@@ -373,7 +381,7 @@ function extractJSON(txt) {
   throw { code: 'invalid_json', message: 'JSON topilmadi' };
 }
 async function askAI(prompt, { images, tier = 'default' } = {}) {
-  const full = `${prompt}\n\nIMPORTANT: Reply with ONLY one valid JSON value, exactly in the requested shape. No markdown fences, no comments, no text before or after. All Uzbek text must be in Uzbek Latin script (o', g', sh, ch).`;
+  const full = `${prompt}\n\nIMPORTANT: Reply with ONLY one valid JSON value, exactly in the requested shape. No markdown fences, no comments, no text before or after. All Uzbek text must be in Uzbek Latin script (o', g', sh, ch). Use American English spelling, and every IPA transcription must be General American (e.g. /ˈwɔtɚ/, /ˈbɑroʊ/, /ˈdʒɝni/) — never British.`;
   if (window.claude && typeof window.claude.complete === 'function') {
     if (images) throw { code: 'images_unavailable' };
     let t;
@@ -441,7 +449,7 @@ async function enrichWords(items, level) {
       `You are an English teacher for Uzbek speakers (learner level ${level}). For each item fill in a vocabulary flashcard.
 Input items (keep "en" exactly; if "uz" is given keep that meaning, otherwise translate): ${JSON.stringify(list)}
 Return ONLY a JSON array, same order and length, each element:
-{"en":"the English word/phrase","uz":"short Uzbek translation (Latin script)","ipa":"/IPA transcription/","pos":"noun|verb|adjective|adverb|phrase|preposition|pronoun|conjunction|interjection","ex":"one short natural English example sentence (6-12 words) that contains the word, suitable for level ${level}","exUz":"Uzbek translation of the example","note":"very short Uzbek explanation or usage tip, max 12 words"}`,
+{"en":"the English word/phrase","uz":"short Uzbek translation (Latin script)","ipa":"/General American IPA/","pos":"noun|verb|adjective|adverb|phrase|preposition|pronoun|conjunction|interjection","ex":"one short natural English example sentence (6-12 words) that contains the word, suitable for level ${level}","exUz":"Uzbek translation of the example","note":"very short Uzbek explanation or usage tip, max 12 words"}`,
     );
     need(Array.isArray(r));
     chunk.forEach((x, k) => {
@@ -485,27 +493,44 @@ const isDue = (w, now = Date.now()) => w.seen && (w.due || 0) <= now;
    5. STARTER TO'PLAM (20 so'z, AI'siz tayyor)
    ===================================================================== */
 const STARTER = [
-  ['journey', 'sayohat, safar', '/ˈdʒɜːni/', 'noun', 'The journey to Samarkand took five hours.', "Samarqandga safar besh soat davom etdi.", "Uzoq safar; qisqa safar uchun «trip» ishlatiladi."],
-  ['improve', 'yaxshilamoq', '/ɪmˈpruːv/', 'verb', 'I read every day to improve my English.', "Ingliz tilimni yaxshilash uchun har kuni o'qiyman.", "improve + narsa: improve my skills."],
-  ['borrow', 'qarzga olmoq', '/ˈbɒrəʊ/', 'verb', 'Can I borrow your pen for a minute?', "Ruchkangizni bir daqiqaga olib tursam bo'ladimi?", "borrow — olish, lend — berish."],
-  ['honest', 'halol, rostgo‘y', '/ˈɒnɪst/', 'adjective', 'She is an honest and kind person.', "U halol va mehribon inson.", "«h» o'qilmaydi: an honest."],
-  ['schedule', 'jadval', '/ˈʃedjuːl/', 'noun', 'My schedule is very busy this week.', "Bu hafta jadvalim juda band.", "AmE: /ˈskedʒuːl/ deb ham aytiladi."],
-  ['neighbour', "qo'shni", '/ˈneɪbə/', 'noun', 'Our neighbour brought us fresh bread.', "Qo'shnimiz bizga yangi non olib keldi.", "AmE yozilishi: neighbor."],
+  ['journey', 'sayohat, safar', '/ˈdʒɝni/', 'noun', 'The journey to Samarkand took five hours.', "Samarqandga safar besh soat davom etdi.", "Uzoq safar; qisqa safar uchun «trip» ishlatiladi."],
+  ['improve', 'yaxshilamoq', '/ɪmˈpruv/', 'verb', 'I read every day to improve my English.', "Ingliz tilimni yaxshilash uchun har kuni o'qiyman.", "improve + narsa: improve my skills."],
+  ['borrow', 'qarzga olmoq', '/ˈbɑroʊ/', 'verb', 'Can I borrow your pen for a minute?', "Ruchkangizni bir daqiqaga olib tursam bo'ladimi?", "borrow — olish, lend — berish."],
+  ['honest', 'halol, rostgo‘y', '/ˈɑnəst/', 'adjective', 'She is an honest and kind person.', "U halol va mehribon inson.", "«h» o'qilmaydi: an honest."],
+  ['schedule', 'jadval', '/ˈskɛdʒul/', 'noun', 'My schedule is very busy this week.', "Bu hafta jadvalim juda band.", "Britaniyada /ˈʃedjuːl/ deb aytiladi."],
+  ['neighbor', "qo'shni", '/ˈneɪbɚ/', 'noun', 'Our neighbor brought us fresh bread.', "Qo'shnimiz bizga yangi non olib keldi.", "Britaniyada «neighbour» deb yoziladi."],
   ['decide', 'qaror qilmoq', '/dɪˈsaɪd/', 'verb', 'We decided to walk home.', "Biz uyga piyoda borishga qaror qildik.", "decide + to + fe'l."],
-  ['careful', 'ehtiyotkor', '/ˈkeəfl/', 'adjective', 'Be careful, the road is wet.', "Ehtiyot bo'ling, yo'l ho'l.", "Ravishi: carefully."],
-  ['opportunity', 'imkoniyat', '/ˌɒpəˈtjuːnəti/', 'noun', 'This course is a great opportunity for me.', "Bu kurs men uchun ajoyib imkoniyat.", "take an opportunity — imkoniyatdan foydalanmoq."],
-  ['remember', 'eslamoq, esda tutmoq', '/rɪˈmembə/', 'verb', "I can't remember his phone number.", "Uning telefon raqamini eslay olmayapman.", "Qarama-qarshisi: forget."],
-  ['weather', 'ob-havo', '/ˈweðə/', 'noun', 'The weather is sunny today.', "Bugun ob-havo quyoshli.", "«whether» (-mi, yo'qmi) bilan adashtirmang."],
+  ['careful', 'ehtiyotkor', '/ˈkɛrfəl/', 'adjective', 'Be careful, the road is wet.', "Ehtiyot bo'ling, yo'l ho'l.", "Ravishi: carefully."],
+  ['opportunity', 'imkoniyat', '/ˌɑpɚˈtunəti/', 'noun', 'This course is a great opportunity for me.', "Bu kurs men uchun ajoyib imkoniyat.", "take an opportunity — imkoniyatdan foydalanmoq."],
+  ['remember', 'eslamoq, esda tutmoq', '/rɪˈmɛmbɚ/', 'verb', "I can't remember his phone number.", "Uning telefon raqamini eslay olmayapman.", "Qarama-qarshisi: forget."],
+  ['weather', 'ob-havo', '/ˈwɛðɚ/', 'noun', 'The weather is sunny today.', "Bugun ob-havo quyoshli.", "«whether» (-mi, yo'qmi) bilan adashtirmang."],
   ['explain', 'tushuntirmoq', '/ɪkˈspleɪn/', 'verb', 'Can you explain this rule again?', "Bu qoidani yana tushuntirib bera olasizmi?", "explain something to someone."],
   ['hungry', 'och (qorni och)', '/ˈhʌŋɡri/', 'adjective', "I'm hungry, let's eat plov.", "Qornim och, keling osh yeymiz.", "thirsty — chanqagan."],
-  ['knowledge', 'bilim', '/ˈnɒlɪdʒ/', 'noun', 'Knowledge is power.', "Bilim — kuch.", "«k» o'qilmaydi; sanalmaydi (knowledges emas)."],
+  ['knowledge', 'bilim', '/ˈnɑlɪdʒ/', 'noun', 'Knowledge is power.', "Bilim — kuch.", "«k» o'qilmaydi; sanalmaydi (knowledges emas)."],
   ['arrive', 'yetib kelmoq', '/əˈraɪv/', 'verb', 'The train arrives at nine o’clock.', "Poyezd soat to'qqizda yetib keladi.", "arrive in (shahar), arrive at (joy)."],
-  ['cheap', 'arzon', '/tʃiːp/', 'adjective', 'Fruit is cheap in summer.', "Yozda meva arzon.", "Qarama-qarshisi: expensive."],
+  ['cheap', 'arzon', '/tʃip/', 'adjective', 'Fruit is cheap in summer.', "Yozda meva arzon.", "Qarama-qarshisi: expensive."],
   ['advice', 'maslahat', '/ədˈvaɪs/', 'noun', 'My teacher gave me good advice.', "Ustozim menga yaxshi maslahat berdi.", "Fe'li: advise /ədˈvaɪz/."],
   ['quickly', 'tez, tezda', '/ˈkwɪkli/', 'adverb', 'He finished his homework quickly.', "U uy vazifasini tez tugatdi.", "Sifati: quick."],
-  ['healthy', "sog'lom", '/ˈhelθi/', 'adjective', 'Vegetables keep you healthy.', "Sabzavotlar sizni sog'lom saqlaydi.", "Oti: health — salomatlik."],
-  ['grateful', 'minnatdor', '/ˈɡreɪtfl/', 'adjective', 'I am grateful for your help.', "Yordamingiz uchun minnatdorman.", "grateful for + narsa."],
+  ['healthy', "sog'lom", '/ˈhɛlθi/', 'adjective', 'Vegetables keep you healthy.', "Sabzavotlar sizni sog'lom saqlaydi.", "Oti: health — salomatlik."],
+  ['grateful', 'minnatdor', '/ˈɡreɪtfəl/', 'adjective', 'I am grateful for your help.', "Yordamingiz uchun minnatdorman.", "grateful for + narsa."],
 ];
+/* Oldingi versiyada Starter so'zlari britancha IPA bilan saqlangan — amerikanchaga o'tkazish */
+const UK_TO_US_IPA = {
+  '/ˈdʒɜːni/': '/ˈdʒɝni/',
+  '/ɪmˈpruːv/': '/ɪmˈpruv/',
+  '/ˈbɒrəʊ/': '/ˈbɑroʊ/',
+  '/ˈɒnɪst/': '/ˈɑnəst/',
+  '/ˈʃedjuːl/': '/ˈskɛdʒul/',
+  '/ˈneɪbə/': '/ˈneɪbɚ/',
+  '/ˈkeəfl/': '/ˈkɛrfəl/',
+  '/ˌɒpəˈtjuːnəti/': '/ˌɑpɚˈtunəti/',
+  '/rɪˈmembə/': '/rɪˈmɛmbɚ/',
+  '/ˈweðə/': '/ˈwɛðɚ/',
+  '/ˈnɒlɪdʒ/': '/ˈnɑlɪdʒ/',
+  '/tʃiːp/': '/tʃip/',
+  '/ˈhelθi/': '/ˈhɛlθi/',
+  '/ˈɡreɪtfl/': '/ˈɡreɪtfəl/',
+};
 const starterWords = (deckId) => STARTER.map(([en, uz, ipa, pos, ex, exUz, note]) => newWord({ en, uz, ipa, pos, ex, exUz, note }, deckId));
 function newWord(o, deckId) {
   return { id: uid(), deckId, en: (o.en || '').trim(), uz: (o.uz || '').trim(), ipa: o.ipa || '', pos: o.pos || '', ex: o.ex || '', exUz: o.exUz || '', note: o.note || '', ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: false, added: Date.now() };
@@ -885,7 +910,7 @@ function WordSheet({ req, onClose, state, onAdd, level }) {
     if (g && g.uz) setInfo({ en: g.en, uz: g.uz, ipa: g.ipa || '', pos: g.pos || '', partial: true });
     ai.run(async () => {
       const r = await askAI(`An Uzbek learner of English (level ${level}) tapped the word "${req.word}" in this sentence: "${req.sentence}".
-Return ONLY JSON: {"en":"dictionary base form","uz":"short Uzbek translation that fits this context","ipa":"/IPA/","pos":"noun|verb|adjective|adverb|phrase|...","ex":"a short natural example sentence using the word (6-12 words)","exUz":"Uzbek translation of that example","note":"very short Uzbek usage note, max 12 words"}`, { tier: 'quick' });
+Return ONLY JSON: {"en":"dictionary base form","uz":"short Uzbek translation that fits this context","ipa":"/General American IPA/","pos":"noun|verb|adjective|adverb|phrase|...","ex":"a short natural example sentence using the word (6-12 words)","exUz":"Uzbek translation of that example","note":"very short Uzbek usage note, max 12 words"}`, { tier: 'quick' });
       need(r && r.uz);
       cache.current[low] = r;
       setInfo(r);
@@ -1018,6 +1043,7 @@ function Home({ S, go, startStudy }) {
         <h1 className="font-display text-3xl font-extrabold">Bugungi reja</h1>
       </div>
 
+      <VoiceHelp compact />
       <Card className="p-5">
         <div className="flex items-center gap-5">
           <svg viewBox="0 0 100 100" className="w-28 h-28 shrink-0 -rotate-90" aria-label={`Kunlik maqsad: ${today.reviewed}/${goal}`}>
@@ -1539,7 +1565,7 @@ function AddWords({ S, upd, onExit, reward, initialDeck }) {
       setOcrStatus('AI rasmni o\'qimoqda…');
       const r = await askAI(`The image is a photo of a vocabulary list from a notebook or textbook (English words with Uzbek or Russian translations, possibly handwritten).
 Extract every English word/phrase with its translation. Translate into Uzbek (Latin) if the translation is missing or in Russian. Ignore page numbers and headers.
-Return ONLY a JSON array: [{"en":"...","uz":"...","ipa":"/IPA/","pos":"noun|verb|adjective|...","ex":"short natural example sentence for level ${level}","exUz":"Uzbek translation","note":"very short Uzbek note"}]`, { images: [file] });
+Return ONLY a JSON array: [{"en":"...","uz":"...","ipa":"/General American IPA/","pos":"noun|verb|adjective|...","ex":"short natural example sentence for level ${level}","exUz":"Uzbek translation","note":"very short Uzbek note"}]`, { images: [file] });
       need(Array.isArray(r) && r.length);
       setItems(r.filter((x) => x && x.en).map((x) => ({ en: String(x.en), uz: String(x.uz || ''), ipa: x.ipa || '', pos: x.pos || '', ex: x.ex || '', exUz: x.exUz || '', note: x.note || '' })));
       setOcrStatus('');
@@ -1564,7 +1590,7 @@ Return ONLY a JSON array: [{"en":"...","uz":"...","ipa":"/IPA/","pos":"noun|verb
     const r = await askAI(`This is raw OCR text (may contain errors) from a photo of a vocabulary list with English words and translations:
 """${raw.slice(0, 6000)}"""
 Fix obvious OCR mistakes and extract English word/phrase + Uzbek translation pairs (translate to Uzbek Latin if missing or in another language). Skip junk.
-Return ONLY a JSON array: [{"en":"...","uz":"...","ipa":"/IPA/","pos":"...","ex":"short example sentence for level ${level}","exUz":"Uzbek translation","note":"very short Uzbek note"}]`);
+Return ONLY a JSON array: [{"en":"...","uz":"...","ipa":"/General American IPA/","pos":"...","ex":"short example sentence for level ${level}","exUz":"Uzbek translation","note":"very short Uzbek note"}]`);
     need(Array.isArray(r));
     setItems(r.filter((x) => x && x.en).map((x) => ({ en: String(x.en), uz: String(x.uz || ''), ipa: x.ipa || '', pos: x.pos || '', ex: x.ex || '', exUz: x.exUz || '', note: x.note || '' })));
     setOcrStatus('');
@@ -1829,7 +1855,7 @@ Naturally use as many as possible of these words the learner is studying: ${kw.j
 Also include 3-5 NEW useful words at or slightly above level ${level} that are NOT in that list.
 Then write 4 comprehension questions (multiple choice, 4 options each, exactly one correct), with a short Uzbek explanation.
 Return ONLY JSON:
-{"title":"...","text":"paragraphs separated by \\n\\n","newWords":[{"en":"base form","form":"exact form used in text","uz":"Uzbek translation","ipa":"/IPA/","pos":"noun"}],"questions":[{"q":"...","options":["...","...","...","..."],"answer":0,"explainUz":"..."}]}`);
+{"title":"...","text":"paragraphs separated by \\n\\n","newWords":[{"en":"base form","form":"exact form used in text","uz":"Uzbek translation","ipa":"/General American IPA/","pos":"noun"}],"questions":[{"q":"...","options":["...","...","...","..."],"answer":0,"explainUz":"..."}]}`);
     need(r && r.text && Array.isArray(r.questions));
     r.questions = r.questions.filter((q) => q && Array.isArray(q.options) && q.options.length >= 2 && Number.isInteger(q.answer));
     r.newWords = Array.isArray(r.newWords) ? r.newWords : [];
@@ -1938,7 +1964,7 @@ Use some of these words the learner studies: ${kw.join(', ') || '(none)'}. Inclu
 Write 4 multiple-choice comprehension questions (4 options, one correct) with short Uzbek explanations.
 Pick 3 short sentences (5-10 words) copied EXACTLY from the lines for dictation.
 Return ONLY JSON:
-{"title":"...","lines":[{"speaker":"A","text":"..."}],"newWords":[{"en":"base form","form":"exact form in text","uz":"Uzbek translation","ipa":"/IPA/","pos":"..."}],"questions":[{"q":"...","options":["...","...","...","..."],"answer":0,"explainUz":"..."}],"dictation":["...","...","..."]}`);
+{"title":"...","lines":[{"speaker":"A","text":"..."}],"newWords":[{"en":"base form","form":"exact form in text","uz":"Uzbek translation","ipa":"/General American IPA/","pos":"..."}],"questions":[{"q":"...","options":["...","...","...","..."],"answer":0,"explainUz":"..."}],"dictation":["...","...","..."]}`);
     need(r && Array.isArray(r.lines) && r.lines.length && Array.isArray(r.questions));
     r.lines = r.lines.filter((l) => l && l.text);
     r.questions = r.questions.filter((q) => q && Array.isArray(q.options) && Number.isInteger(q.answer));
@@ -2353,6 +2379,31 @@ score is an integer 1-10.`);
   );
 }
 
+/* Qurilmada kerakli talaffuz ovozi yo'q bo'lsa — qanday o'rnatishni aytadi */
+function VoiceHelp({ compact }) {
+  const tts = useTTS();
+  const [, tick] = useState(0);
+  useEffect(() => { const t = setTimeout(() => tick((n) => n + 1), 1500); return () => clearTimeout(t); }, []);
+  if (!TTS.ok) return null;
+  const has = tts.hasAccentVoice();
+  if (has !== false) return null;
+  const us = TTS.accent !== 'uk';
+  return (
+    <div className="rounded-2xl border-2 border-warn/50 bg-warn/10 p-4 text-sm space-y-2" role="status">
+      <p className="font-bold">⚠️ Qurilmada {us ? 'amerikancha (English – United States)' : 'britancha (English – United Kingdom)'} ovoz topilmadi</p>
+      <p>Shuning uchun so'zlar boshqa ovozda o'qilyapti va talaffuz noto'g'ri chiqishi mumkin. Ovozni bir marta o'rnating:</p>
+      {!compact && (
+        <ul className="list-disc pl-5 space-y-1">
+          <li><b>Android:</b> Sozlamalar → Umumiy boshqaruv / Tizim → Til → Matnni nutqqa aylantirish → Google → «English (United States)» ovozini yuklab oling.</li>
+          <li><b>iPhone:</b> Sozlamalar → Universal kirish → Og'zaki kontent → Ovozlar → English → «Samantha» yoki «Ava (Enhanced)».</li>
+          <li><b>Windows:</b> Sozlamalar → Vaqt va til → Nutq → «English (United States)» ovozini qo'shing. Eng yaxshisi — Chrome yoki Edge brauzeri.</li>
+        </ul>
+      )}
+      <p className="text-muted">{compact ? "Yo'riqnoma: ⚙ Sozlamalar → Talaffuz ovozi. " : ''}O'rnatgach, sahifani yangilang.</p>
+    </div>
+  );
+}
+
 /* Ovoz tanlash: talaffuz (US/UK) va aniq ovoz */
 function VoicePicker({ p, setP }) {
   const tts = useTTS();
@@ -2376,7 +2427,8 @@ function VoicePicker({ p, setP }) {
         </select>
         <Btn kind="soft" size="sm" onClick={tts.active ? () => TTS.stop() : test} className="shrink-0">{tts.active ? 'To\'xtatish' : 'Sinab ko\'rish'}</Btn>
       </div>
-      {!opts.length && <p className="text-xs text-warn">Qurilmada ingliz ovozi topilmadi. Telefon sozlamalarida «Matnni ovozga aylantirish» bo'limidan English (US) ovozini yuklab oling.</p>}
+      {tts.current() && <p className="text-xs text-muted">Hozir o'qiyotgan ovoz: <b className="text-ink">{tts.current().name}</b> ({tts.current().lang})</p>}
+      <VoiceHelp />
       <p className="text-xs text-muted">Talaffuz yoqmasa, boshqa ovozni tanlab sinab ko'ring. «Google», «Natural» yoki «Enhanced» nomli ovozlar odatda eng tabiiy.</p>
     </div>
   );
@@ -2528,6 +2580,15 @@ function App() {
     const t = setTimeout(flush, 1500);
     return () => clearTimeout(t);
   }, [S, cloudOn, flush]);
+
+  // Eski britancha Starter transkripsiyalarini amerikanchaga almashtirish (bir marta)
+  useEffect(() => {
+    if (!S || !S.words.some((w) => UK_TO_US_IPA[w.ipa] || (w.en === 'neighbour' && w.deckId === 'd-starter'))) return;
+    upd((d) => d.words.forEach((w) => {
+      if (UK_TO_US_IPA[w.ipa]) w.ipa = UK_TO_US_IPA[w.ipa];
+      if (w.en === 'neighbour' && w.deckId === 'd-starter') { w.en = 'neighbor'; w.ex = w.ex.replace('neighbour', 'neighbor'); }
+    }));
+  }, [S && S.words]); // eslint-disable-line
 
   // Ovoz sozlamasi
   useEffect(() => {
