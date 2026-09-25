@@ -68,6 +68,7 @@ MIJOZ_OLDIN = 7         # mijozlar necha kun oldin biladi
 CHEGIRMA_TAVSIYA = 10   # aksiya narxi taklifi: odatiy narxdan shuncha foiz arzon
 CHEGIRMA_OGOH = 30      # chegirma shu foizdan oshsa, ogohlantiramiz
 BIR_KISHIGA = 5         # bitta buyurtmada ko'pi bilan nechta kitob
+AKSIYA_SONI = int(os.environ.get("AKSIYA_SONI") or 100)   # har juma nechta kitob aksiyada
 
 BTN_ROYXAT = "📝 Ro'yxatdan o'tish"
 BTN_AKSIYA = "🔥 Juma aksiyasi"
@@ -309,7 +310,7 @@ def aksiya_yubor(db, chat, p, u=None):
         tugma = None
     else:
         if q is not None:
-            matn += "\n\n📦 Qoldi: <b>%d</b> ta" % q
+            matn += "\n\n📦 Aksiyada %d ta kitob — qoldi: <b>%d</b> ta" % (p["soni"], q)
         tugma = inline([[("🛒 Buyurtma berish", "buy:%d" % p["id"])]])
     if p.get("rasm"):
         r = send_photo(chat, p["rasm"], matn, tugma)
@@ -535,18 +536,7 @@ def aksiya_qadam(chat, u, msg, text, db):
                        "Qaytadan yozing:" % som(q["odatiy"]))
             return
         q["narx"] = n
-        u["qadam"] = "a_soni"
-        send(chat, "Aksiyaga nechta kitob qo'yamiz? Shuncha buyurtma olinadi, "
-                   "keyin «tugadi» deb yoziladi. Cheklamaslik uchun «0» yozing.",
-             kb([["20", "50", "100"], [BTN_BEKOR]]))
-        return
-
-    if qadam == "a_soni":
-        n = son(text)
-        if n is None:
-            send(chat, "Sonini raqam bilan yozing, masalan: <i>50</i>.")
-            return
-        q["soni"] = n
+        q["soni"] = AKSIYA_SONI
         u["qadam"] = "a_tasdiq"
         n = q["narx"]
         f = n - q["tannarx"]

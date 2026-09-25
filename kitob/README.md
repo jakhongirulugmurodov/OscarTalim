@@ -59,7 +59,9 @@ Egasining Telegram ID si `KITOB_OLAMI_ADMIN_IDS` da bo'lsa, menyuda qo'shimcha
 tugmalar chiqadi:
 
 - **➕ Aksiya qo'shish** — juma (tugmalardan tanlanadi), kitob nomi,
-  muqova rasmi, janr, odatiy narx, **tannarx**, aksiya narxi, nechta kitob.
+  muqova rasmi, janr, odatiy narx, **tannarx**, aksiya narxi. Har juma
+  **100 ta** kitob aksiyaga qo'yiladi (boshqa son kerak bo'lsa — workflow'da
+  `AKSIYA_SONI`); 100 tasi buyurtma qilinsa, «tugadi» deb yoziladi.
   - Aksiya narxi odatiy narxdan **arzon**, lekin tannarxdan **arzon emas**
     bo'lishi shart — aks holda bot qabul qilmaydi.
   - Bot odatiy narxdan ~10% arzonini taklif qiladi (tannarxdan past
