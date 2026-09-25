@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <!-- Sehrli Javon: o'sib borayotgan kitoblar javoni (o'sish grafigi) + sehrli uchqun -->
+  <defs>
+    <radialGradient id="osmon" cx="50%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#3a2c8c"/>
+      <stop offset="0.6" stop-color="#1d1650"/>
+      <stop offset="1" stop-color="#0d0a26"/>
+    </radialGradient>
+    <radialGradient id="nur" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffe7a3" stop-opacity="0.9"/>
+      <stop offset="0.35" stop-color="#f6c453" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#f6c453" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="oltin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe29a"/>
+      <stop offset="1" stop-color="#e9a93a"/>
+    </linearGradient>
+    <linearGradient id="javon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f6c453" stop-opacity="0"/>
+      <stop offset="0.15" stop-color="#f6c453"/>
+      <stop offset="0.85" stop-color="#f6c453"/>
+      <stop offset="1" stop-color="#f6c453" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="640" height="640" fill="url(#osmon)"/>
+
+  <!-- yulduzlar -->
+  <g fill="#fff">
+    <circle cx="140" cy="150" r="2.5" opacity=".7"/>
+    <circle cx="205" cy="98" r="1.8" opacity=".5"/>
+    <circle cx="505" cy="128" r="2.2" opacity=".6"/>
+    <circle cx="545" cy="235" r="1.6" opacity=".45"/>
+    <circle cx="112" cy="268" r="1.8" opacity=".5"/>
+    <circle cx="258" cy="188" r="1.4" opacity=".4"/>
+    <circle cx="560" cy="360" r="1.4" opacity=".35"/>
+  </g>
+
+  <g transform="translate(0 -22)">
+  <!-- uchqunning nuri -->
+  <circle cx="452" cy="170" r="120" fill="url(#nur)"/>
+
+  <!-- kitoblar: pastdan yuqoriga o'sadi -->
+  <g stroke="#0d0a26" stroke-width="4" stroke-linejoin="round">
+    <rect x="162" y="380" width="56" height="95" rx="7" fill="#7fd1b9"/>
+    <rect x="224" y="335" width="62" height="140" rx="7" fill="#ef7f6c"/>
+    <rect x="292" y="290" width="58" height="185" rx="7" fill="#f29e4c"/>
+    <rect x="356" y="238" width="66" height="237" rx="7" fill="#fff3d6"/>
+    <rect x="428" y="200" width="54" height="275" rx="7" fill="url(#oltin)"/>
+  </g>
+  <!-- muqova chiziqlari -->
+  <g fill="#0d0a26" opacity=".28">
+    <rect x="174" y="398" width="32" height="6" rx="3"/>
+    <rect x="238" y="356" width="34" height="6" rx="3"/>
+    <rect x="238" y="368" width="34" height="6" rx="3"/>
+    <rect x="305" y="312" width="32" height="6" rx="3"/>
+    <rect x="371" y="262" width="36" height="6" rx="3"/>
+    <rect x="371" y="274" width="36" height="6" rx="3"/>
+    <rect x="440" y="224" width="30" height="6" rx="3"/>
+  </g>
+  <!-- belgilar: kitob ichidagi kichik bezaklar -->
+  <circle cx="389" cy="330" r="13" fill="none" stroke="#e9a93a" stroke-width="4"/>
+  <path d="M455 300 l6 12 13 2 -9 9 2 13 -12 -6 -12 6 2 -13 -9 -9 13 -2 z" fill="#0d0a26" opacity=".35"/>
+
+  <!-- javon -->
+  <rect x="112" y="475" width="416" height="14" rx="7" fill="url(#javon)"/>
+
+  <!-- sehrli uchqun -->
+  <g transform="translate(455 150)">
+    <path d="M0 -58 C 6 -14, 14 -6, 58 0 C 14 6, 6 14, 0 58 C -6 14, -14 6, -58 0 C -14 -6, -6 -14, 0 -58 Z"
+          fill="#fff6d6"/>
+    <path d="M0 -30 C 3 -7, 7 -3, 30 0 C 7 3, 3 7, 0 30 C -3 7, -7 3, -30 0 C -7 -3, -3 -7, 0 -30 Z"
+          fill="#ffd66b"/>
+  </g>
+  <g transform="translate(392 112)">
+    <path d="M0 -16 C 2 -4, 4 -2, 16 0 C 4 2, 2 4, 0 16 C -2 4, -4 2, -16 0 C -4 -2, -2 -4, 0 -16 Z" fill="#fff6d6" opacity=".9"/>
+  </g>
+  </g>
+</svg>

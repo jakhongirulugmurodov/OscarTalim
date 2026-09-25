@@ -55,11 +55,17 @@ class Soxta:
     def __call__(self, method, **p):
         if "text" in p and method in ("sendMessage", "editMessageText"):
             html_tekshir(p["text"])
+        if method == "sendPhoto":
+            html_tekshir(p["caption"])
+            assert len(p["caption"]) <= 1024, "rasm izohi juda uzun"
+            self.log.append((method, p))
+            return {"ok": True, "result": {"photo": [{"file_id": "kichik"}, {"file_id": "LOGO123"}]}}
         self.log.append((method, p))
         return {"ok": True, "result": {}}
 
     def matnlar(self):
-        return [p.get("text", "") for m, p in self.log if m in ("sendMessage", "editMessageText")]
+        return [p.get("text") or p.get("caption", "") for m, p in self.log
+                if m in ("sendMessage", "editMessageText", "sendPhoto")]
 
     def oxirgi(self):
         return self.matnlar()[-1]
@@ -67,7 +73,7 @@ class Soxta:
     def tugmalar(self):
         for m, p in reversed(self.log):
             kb = p.get("reply_markup")
-            if m in ("sendMessage", "editMessageText") and kb and "inline_keyboard" in kb:
+            if m in ("sendMessage", "editMessageText", "sendPhoto") and kb and "inline_keyboard" in kb:
                 return [b["callback_data"] for row in kb["inline_keyboard"] for b in row]
         return []
 
@@ -147,6 +153,17 @@ class Sinov(unittest.TestCase):
         self.assertTrue(u["royxat"])
         self.assertEqual((u["ism"], u["familiya"], u["yosh"]), ("Aziz", "Karimov", 20))
         self.assertIn("SALOM10", self.api.oxirgi())
+
+    def test_logo(self):
+        self.yoz("/start")
+        birinchi = [p for m, p in self.api.log if m == "sendPhoto"][-1]
+        self.assertEqual(birinchi["_fayl"][1], "logo.png")
+        self.assertTrue(birinchi["_fayl"][2].startswith(b"\x89PNG"))
+        self.assertEqual(self.db["logo_id"], "LOGO123")
+        self.yoz("/start", "2002")                          # ikkinchi marta — qayta yuklanmaydi
+        ikkinchi = [p for m, p in self.api.log if m == "sendPhoto"][-1]
+        self.assertEqual(ikkinchi.get("photo"), "LOGO123")
+        self.assertNotIn("_fayl", ikkinchi)
 
     def test_royxat_gmail(self):
         self.yoz("/start")

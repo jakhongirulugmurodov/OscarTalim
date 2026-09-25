@@ -1,5 +1,12 @@
 # 📚✨ Sehrli Javon — kitob do'koni boti
 
+<img src="logo.png" width="140" alt="Sehrli Javon logotipi">
+
+**Logotip ma'nosi:** javondagi kitoblar pastdan yuqoriga o'sib boradi — bu
+sotuv grafigi (doskadagi «o'sish» chizig'i); eng baland kitob ustidagi ✦ —
+«sehr». Ya'ni: *sehrli javon, o'sib borayotgan sotuv*. Fayllar: `logo.svg`
+(asl, istalgan o'lchamda), `logo.png` (640×640, Telegram uchun).
+
 Sotilmay qolgan va ombordagi kitoblarni sotish uchun Telegram bot.
 Faqat Python standart kutubxonasi ishlatilgan, qo'shimcha o'rnatish kerak emas.
 
@@ -80,7 +87,10 @@ odam kelgani, nechtasi xarid qilgani va qancha tushum bergani ko'rinadi.
    - variable `KITOB_ADMIN_IDS` — sizning Telegram ID ingiz (botga `/men` deb yozsangiz aytadi).
 3. **Actions → Kitob bot → Run workflow → rejim: `sozlash`** — bot tavsifi va
    buyruqlar ro'yxati o'rnatiladi.
-4. Tamom: workflow har 5 daqiqada ishga tushib, ~4,5 daqiqa xabarlarni jonli
+4. **Logotip:** @BotFather → `/setuserpic` → botingizni tanlang →
+   `kitob-bot/logo.png` ni yuboring. (Bot o'zi ham har bir yangi mijozni
+   shu logotip bilan kutib oladi.)
+5. Tamom: workflow har 5 daqiqada ishga tushib, ~4,5 daqiqa xabarlarni jonli
    kutadi. (GitHub jadvalni ba'zan kechiktiradi, shunda bot bir necha daqiqa
    jim turishi mumkin — to'liq uzluksiz bo'lishi uchun serverda ishlating.)
 

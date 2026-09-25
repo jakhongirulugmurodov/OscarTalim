@@ -187,7 +187,9 @@ CSS = """
 font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 main{max-width:980px;margin:0 auto;padding:24px 16px 48px}
 h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}
-.sub{color:var(--t2);margin:0 0 20px}
+.sub{color:var(--t2);margin:0}
+.bosh{display:flex;gap:14px;align-items:center;margin-bottom:20px}
+.logo{flex:0 0 56px;height:56px;border-radius:50%;overflow:hidden}.logo svg{width:56px;height:56px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 10px;
 display:flex;flex-direction:column;align-items:center;text-align:center}
@@ -297,7 +299,7 @@ def _gorizontal(qatorlar, format_=str):
     return "".join(s)
 
 
-def html_hisobot(st, dokon="Sehrli Javon"):
+def html_hisobot(st, dokon="Sehrli Javon", logo=None):
     fs = lambda v, o: qisqa_som(v) if o else som(v)
     fm = lambda v, o: ("%d" % v) if o else "%d yangi mijoz" % v
     maqsad_p = min(100, round(100 * st["mijozlar"] / st["maqsad"])) if st["maqsad"] else 0
@@ -318,9 +320,10 @@ def html_hisobot(st, dokon="Sehrli Javon"):
         "<!doctype html><html lang='uz'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'>",
         "<title>Marketing tahlili</title><style>%s</style></head><body><main>" % CSS,
-        "<h1>📈 %s — marketing tahlili</h1>" % _e(dokon),
+        "<header class='bosh'>%s<div><h1>%s — marketing tahlili</h1>" % (
+            "<div class='logo'>%s</div>" % logo if logo else "", _e(dokon)),
         "<p class='sub'>%s holatiga · oxirgi %d kun</p>" % (
-            time.strftime("%d.%m.%Y %H:%M", time.gmtime(st["vaqt"] + TOSHKENT)), len(st["kunlar"])),
+            time.strftime("%d.%m.%Y %H:%M", time.gmtime(st["vaqt"] + TOSHKENT)), len(st["kunlar"])) + "</div></header>",
         "<section class='kpis'>%s</section>" % k_html,
         "<section class='card'><h2>Kunlik sotuv (so'm)</h2>%s" % _grafik(st["kunlar"], st["sotuv"], "chiziq", fs),
         "<details><summary>Jadval ko'rinishi</summary>%s</details></section>" % _jadval(
@@ -390,4 +393,6 @@ def _misol():
 
 
 if __name__ == "__main__":
-    print(html_hisobot(_misol()))
+    import os
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.svg"), encoding="utf-8") as f:
+        print(html_hisobot(_misol(), logo=f.read()))

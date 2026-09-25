@@ -59,6 +59,8 @@ TOKEN = os.environ.get("BOT_TOKEN", "").strip()
 ADMINS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()}
 STORE = os.environ.get("STATE_FILE") or os.path.join(HERE, "holat.json")
 KATALOG = os.environ.get("KATALOG_FILE") or os.path.join(HERE, "katalog.json")
+LOGO_PNG = os.path.join(HERE, "logo.png")
+LOGO_SVG = os.path.join(HERE, "logo.svg")
 API = "https://api.telegram.org/bot%s/" % TOKEN
 
 PROMO_MIN, PROMO_MAX = 10, 50
@@ -177,6 +179,26 @@ def edit(chat, mid, text, kb=None, rasm=None):
         if r.get("ok") or "not modified" in str(r.get("description")):
             return r
     return send(chat, text, kb, rasm)
+
+
+def logo_bilan(db, chat, caption, kb=None):
+    """Logotip + matn. Rasm bir marta yuklanadi, keyin file_id bilan qayta ishlatiladi."""
+    umumiy = dict(chat_id=chat, caption=caption, parse_mode="HTML", reply_markup=kb)
+    r = {}
+    if db.get("logo_id"):
+        r = call("sendPhoto", photo=db["logo_id"], **umumiy)
+    if not r.get("ok"):
+        try:
+            with open(LOGO_PNG, "rb") as f:
+                r = call("sendPhoto", _fayl=("photo", "logo.png", f.read(), "image/png"), **umumiy)
+        except OSError:
+            r = {}
+        rasm = (r.get("result") or {}).get("photo") if r.get("ok") else None
+        if rasm:
+            db["logo_id"] = rasm[-1]["file_id"]
+    if not r.get("ok"):
+        r = send(chat, caption, kb)
+    return r
 
 
 def answer(cb_id, text=None, alert=False):
@@ -418,9 +440,9 @@ SALOM = (
 )
 
 
-def reg_boshla(chat, u):
+def reg_boshla(db, chat, u):
     u["qadam"] = None
-    send(chat, SALOM, ikb([
+    logo_bilan(db, chat, SALOM, ikb([
         [btn("📧 Google akkaunt (Gmail) orqali", "reg:gmail")],
         [btn("✍️ Ism va familiya orqali", "reg:ism")],
     ]))
@@ -1008,7 +1030,12 @@ def admin_hisobot(db, chat, mid):
 
 def admin_marketing(db, chat):
     st = hisobot.statistika(db, KAT)
-    sahifa = hisobot.html_hisobot(st, KAT.get("dokon", {}).get("nomi", "Sehrli Javon"))
+    try:
+        with open(LOGO_SVG, encoding="utf-8") as f:
+            logo = f.read()
+    except OSError:
+        logo = None
+    sahifa = hisobot.html_hisobot(st, KAT.get("dokon", {}).get("nomi", "Sehrli Javon"), logo)
     nom = "marketing-%s.html" % st["bugun"]
     r = call("sendDocument", chat_id=chat, _fayl=("document", nom, sahifa.encode("utf-8"), "text/html"),
              caption="📈 Marketing tahlili — faylni oching (brauzerda ko'rinadi).\n"
@@ -1337,7 +1364,7 @@ def handle_message(db, msg):
         elif arg.startswith("r_") and not u.get("manba") and re.fullmatch(r"r_[a-z0-9_]{2,30}", arg):
             u["manba"] = arg[2:]                 # reklama manbasi (birinchi kelgani)
         if not u.get("royxat"):
-            return reg_boshla(chat, u)
+            return reg_boshla(db, chat, u)
         send(chat, "📚✨ Yana xush kelibsiz, <b>%s</b>! Javonlarda sizni yangi kitoblar kutyapti."
                    % e(toliq_ism(u)), menyu())
         bid = u.pop("ochish", None)
@@ -1353,7 +1380,7 @@ def handle_message(db, msg):
     if cmd == "/bekor" or text == B_BEKOR:
         u["qadam"] = None
         if not u.get("royxat"):
-            return reg_boshla(chat, u)
+            return reg_boshla(db, chat, u)
         return send(chat, "Bekor qilindi.", menyu())
 
     q = u.get("qadam") or ""
@@ -1361,7 +1388,7 @@ def handle_message(db, msg):
         return reg_qadam(db, chat, u, text)
     if not u.get("royxat"):
         send(chat, "Avval ro'yxatdan o'tib olaylik 🙂")
-        return reg_boshla(chat, u)
+        return reg_boshla(db, chat, u)
 
     if q == "tel":
         return tel_qadam(chat, u, text, contact, frm)
@@ -1451,7 +1478,7 @@ def handle_callback(db, cq):
                  {"remove_keyboard": True})
         elif p[1] == "edit":
             u["royxat"] = False
-            reg_boshla(chat, u)
+            reg_boshla(db, chat, u)
         return answer(cb)
     if t == "nop":
         return answer(cb)
@@ -1463,7 +1490,7 @@ def handle_callback(db, cq):
         return
     if not u.get("royxat"):
         answer(cb, "Avval ro'yxatdan o'ting 🙂")
-        return reg_boshla(chat, u)
+        return reg_boshla(db, chat, u)
 
     if t == "cat":
         katalog(db, chat, mid)
