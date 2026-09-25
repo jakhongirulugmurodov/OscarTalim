@@ -21,10 +21,16 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
 - `docs/sinf/` — AI kursi (13 dars) uchun sinf paneli. Bitta HTML fayl:
   HTML + CSS + JS + kurs mazmuni. PWA, GitHub Pages'da.
 - `docs/anjuman/` — anjuman mashg'uloti dasturi.
+- `docs/lugat/` — ingliz tili so'zlarini yodlash dasturi (takrorlash tizimi,
+  o'yinlar, yozish/gapirish/tinglash, AI ustoz). PWA, build'siz.
 - `docs/index.html` — transkripsiya sahifasi.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
 - `kitob/bot.py` — «Kitob olami» do'kon boti: ro'yxatdan o'tish, juma
   aksiyasi, buyurtma, marketing tahlili va eslatmalar. Batafsil: `kitob/README.md`.
+- `mutolaa_bot/` — «Mutolaa» kitob do'koni boti: ro'yxat + so'rovnoma, katalog
+  (sotildi/qoldi), juma aksiyasi, sovg'alar, admin paneli. SQLite, standart
+  kutubxona. `.github/workflows/mutolaa-bot.yml` orqali ishlaydi. Batafsil:
+  `mutolaa_bot/README.md`.
 - `.github/workflows/` — bot, Firebase sozlash, Pages shoxchasini sinxronlash.
 
 Batafsil: `docs/sinf/README.md`.

@@ -54,7 +54,7 @@ kelsa, xabarga «💚 Bu siz yoqtirgan janrdan» qo'shiladi.
 
 ## Do'kon egasi nima qiladi
 
-Egasining Telegram ID si `KITOB_ADMIN_IDS` da bo'lsa, menyuda qo'shimcha
+Egasining Telegram ID si `KITOB_OLAMI_ADMIN_IDS` da bo'lsa, menyuda qo'shimcha
 tugmalar chiqadi:
 
 - **➕ Aksiya qo'shish** — juma (tugmalardan tanlanadi), kitob nomi,
@@ -78,10 +78,10 @@ tugmalar chiqadi:
 
 1. **@BotFather** → `/newbot` → nomi «Kitob olami» → token.
 2. GitHub: **Settings → Secrets and variables → Actions**:
-   - *Secrets* → `KITOB_BOT_TOKEN` = token;
-   - *Variables* → `KITOB_ADMIN_IDS` = do'kon egasining Telegram ID si
+   - *Secrets* → `KITOB_OLAMI_BOT_TOKEN` = token;
+   - *Variables* → `KITOB_OLAMI_ADMIN_IDS` = do'kon egasining Telegram ID si
      (botga `/men` deb yozsangiz aytadi; bir nechta bo'lsa — vergul bilan);
-   - *Variables* → `KITOB_TOLOV_KARTA` = karta raqami (ixtiyoriy; bo'lmasa,
+   - *Variables* → `KITOB_OLAMI_TOLOV_KARTA` = karta raqami (ixtiyoriy; bo'lmasa,
      mijoz kitobni olganda to'laydi).
 3. **Actions → Kitob olami bot → Run workflow → rejim: `sozlash`**.
 4. Rasmlar (faqat @BotFather orqali qo'yiladi, Bot API'da bunday usul yo'q):

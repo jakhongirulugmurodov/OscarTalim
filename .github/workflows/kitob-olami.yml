@@ -5,9 +5,9 @@
 # "Run workflow" → rejim "sozlash": buyruqlar va tavsifni bir marta o'rnatadi.
 #
 # Kerak: Settings → Secrets and variables → Actions →
-#   secret   KITOB_BOT_TOKEN   — BotFather bergan token (AI kursi botidan boshqa bot)
-#   variable KITOB_ADMIN_IDS   — do'kon egasining Telegram ID si (botga /men deb yozing)
-#   variable KITOB_TOLOV_KARTA — to'lov kartasi (ixtiyoriy, chek so'rash uchun)
+#   secret   KITOB_OLAMI_BOT_TOKEN   — BotFather bergan token (AI kursi botidan boshqa bot)
+#   variable KITOB_OLAMI_ADMIN_IDS   — do'kon egasining Telegram ID si (botga /men deb yozing)
+#   variable KITOB_OLAMI_TOLOV_KARTA — to'lov kartasi (ixtiyoriy, chek so'rash uchun)
 #
 # Eslatma: GitHub jadval bo'yicha ishga tushirishni faqat asosiy (main)
 # shoxchadagi workflow uchun qiladi va 60 kun harakat bo'lmasa o'chiradi.
@@ -37,9 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      BOT_TOKEN: ${{ secrets.KITOB_BOT_TOKEN }}
-      ADMIN_IDS: ${{ vars.KITOB_ADMIN_IDS }}
-      TOLOV_KARTA: ${{ vars.KITOB_TOLOV_KARTA }}
+      BOT_TOKEN: ${{ secrets.KITOB_OLAMI_BOT_TOKEN }}
+      ADMIN_IDS: ${{ vars.KITOB_OLAMI_ADMIN_IDS }}
+      TOLOV_KARTA: ${{ vars.KITOB_OLAMI_TOLOV_KARTA }}
       STATE_FILE: ${{ github.workspace }}/state/kitob.json
       REJIM: ${{ github.event.inputs.rejim || 'xabarlar' }}
     steps:
@@ -49,8 +49,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: state
-          key: kitob-state-${{ github.run_id }}
-          restore-keys: kitob-state-
+          key: kitob-olami-state-${{ github.run_id }}
+          restore-keys: kitob-olami-state-
 
       - name: Bot
         run: |
@@ -65,4 +65,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: state
-          key: kitob-state-${{ github.run_id }}
+          key: kitob-olami-state-${{ github.run_id }}
