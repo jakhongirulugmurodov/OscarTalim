@@ -1,0 +1,2777 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#151a24">
+<meta name="description" content="AI kursi · 13 dars — sinf paneli. Ball ishdan chiqadi, o'yindan emas.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>AI Kursi — Sinf</title>
+<style>
+:root{
+  --bg:#151a24; --bg2:#1b2130; --card:#202838; --line:#2c3547;
+  --ink:#e8ebf2; --muted:#9aa6bb;
+  --accent:#8b7ff0; --accent2:#b3aaf7; --accent-soft:rgba(139,127,240,.16);
+  --ok:#6cc59b; --err:#e2857f; --gold:#9fd6bd;
+  --field:#f5f6fa; --field-ink:#1b2130; --field-line:#cfd5e4; --field-muted:#7d859a;
+  --r:16px; --shadow:0 10px 30px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.55;
+  padding:0 0 90px; min-height:100vh; overscroll-behavior-y:contain;
+}
+.wrap{max-width:620px;margin:0 auto;padding:16px 14px}
+.wrap.wide{max-width:1100px}
+h1,h2,h3{margin:0;letter-spacing:-.02em;line-height:1.25}
+h1{font-size:1.35rem} h2{font-size:1.05rem} h3{font-size:.95rem}
+p{margin:6px 0}
+small,.small{font-size:.82rem;color:var(--muted)}
+.hide{display:none!important}
+
+/* ---- sarlavha ---- */
+.brand{display:flex;align-items:center;gap:11px;padding:14px 0 6px}
+.mark{width:42px;height:42px;border-radius:13px;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--accent),#6b5fd6);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 8px 20px -8px rgba(139,127,240,.55)}
+.brand .eyebrow{font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2)}
+
+/* ---- kartalar ---- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;margin-bottom:12px;box-shadow:var(--shadow);animation:up .35s both}
+.card.flat{box-shadow:none;background:var(--bg2)}
+.card.accent{border-color:var(--accent);background:linear-gradient(180deg,var(--accent-soft),transparent)}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---- tugmalar ---- */
+button{font:inherit}
+.btn{display:block;width:100%;padding:14px 16px;border:0;border-radius:13px;
+  background:var(--accent);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;
+  transition:transform .12s,filter .12s}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:600}
+.btn.sm{padding:9px 13px;font-size:.86rem;width:auto;display:inline-block;border-radius:10px}
+.btn.danger{background:transparent;border:1px solid var(--err);color:#f3c1bd}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-row .btn{width:auto;flex:1 1 130px}
+
+/* ---- inputlar ---- */
+/* Yoziladigan joy — yorug'. Qolgan hamma narsa qoramtir bo'lib qoladi,
+   shuning uchun bola qayerga yozishini adashtirmaydi. */
+input,textarea,select{
+  width:100%;padding:13px 14px;border-radius:12px;
+  border:1px solid var(--field-line);background:var(--field);color:var(--field-ink);
+  font:inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+input::placeholder,textarea::placeholder{color:var(--field-muted)}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,127,240,.28)}
+textarea{resize:vertical;min-height:76px}
+label{display:block;font-size:.87rem;font-weight:600;color:var(--ink);margin:12px 0 5px}
+label .hint{display:block;font-weight:400;font-size:.79rem;color:var(--muted);margin-top:2px}
+.field-code{text-transform:uppercase;letter-spacing:.22em;text-align:center;font-size:1.35rem;font-weight:800}
+/* bosqichli shakl */
+.step h2{display:flex;align-items:center;gap:10px}
+.num{width:26px;height:26px;flex:0 0 auto;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:.85rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.step.ready .num{background:var(--ok)}
+
+/* ---- chiplar ---- */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);
+  color:var(--muted);font-size:.82rem;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.chip.done{border-color:var(--ok);color:var(--ok)}
+.chip.rdy:after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--ok);margin-left:6px;vertical-align:middle}
+.chip.rdy.on:after{background:#fff}
+
+/* ---- o'quvchi paneli ---- */
+.hud{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:12px 14px;margin-bottom:12px;position:sticky;top:8px;z-index:20;
+  backdrop-filter:blur(8px)}
+.hud .lvl{width:44px;height:44px;border-radius:14px;flex:0 0 auto;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:var(--accent-soft);border:1px solid var(--accent);
+  color:var(--accent2);font-weight:800;font-size:1.05rem;line-height:1}
+.hud .lvl span{font-size:.5rem;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.hud .who{flex:1;min-width:0}
+.hud .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud .pts{text-align:right;font-weight:800;font-size:1.15rem;color:var(--gold)}
+.bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+
+/* ---- vazifa kartasi ---- */
+.task h3{display:flex;align-items:center;gap:8px}
+.task .pill{margin-left:auto;font-size:.72rem;font-weight:800;color:var(--gold);
+  background:rgba(159,214,189,.14);padding:3px 9px;border-radius:99px;white-space:nowrap}
+.task.done{border-color:var(--ok)}
+.task.done .pill{color:var(--ok);background:rgba(108,197,155,.14)}
+.items{margin:10px 0 0;padding:0;list-style:none}
+.items li{display:flex;gap:8px;padding:8px 10px;background:var(--bg2);border-radius:10px;margin-bottom:6px;font-size:.9rem}
+.items li b{color:var(--accent2);flex:0 0 auto}
+
+/* ---- reyting ---- */
+.rank{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;
+  background:var(--bg2);margin-bottom:7px;animation:up .3s both}
+.rank .n{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:800;background:var(--card);color:var(--muted);flex:0 0 auto}
+.rank.me{background:var(--accent-soft);border:1px solid var(--accent)}
+.rank.top1 .n{background:var(--gold);color:#12302a}
+.rank.top2 .n{background:#c3cad6;color:#252b36}
+.rank.top3 .n{background:#d8b5a8;color:#3a2a26}
+.rank .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .sc{font-weight:800;color:var(--gold)}
+.rank .st{font-size:.75rem;color:var(--muted)}
+
+/* ---- pastki menyu ---- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;
+  background:rgba(21,26,36,.94);border-top:1px solid var(--line);backdrop-filter:blur(12px);
+  padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;background:none;border:0;color:var(--muted);padding:11px 4px 13px;
+  font-size:.68rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.nav button i{font-style:normal;font-size:19px;line-height:1}
+.nav button.on{color:var(--accent2)}
+
+/* ---- jonli rejim ---- */
+.live-banner{position:sticky;top:64px;z-index:19;margin-bottom:12px;border-radius:var(--r);
+  padding:14px;background:linear-gradient(135deg,var(--accent),#6b5fd6);color:#fff;
+  box-shadow:0 12px 28px -12px rgba(139,127,240,.55);cursor:pointer;animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 12px 28px -12px rgba(139,127,240,.55)}50%{box-shadow:0 12px 40px -8px rgba(139,127,240,.75)}}
+.opt{display:block;width:100%;text-align:left;padding:14px;margin-bottom:9px;border-radius:13px;
+  border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:.97rem;cursor:pointer}
+.opt.picked{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--ok);background:rgba(108,197,155,.16)}
+.opt.wrong{border-color:var(--err);background:rgba(226,133,127,.16)}
+.timer{height:8px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:10px 0 14px}
+.timer i{display:block;height:100%;background:var(--accent);transition:width 1s linear}
+
+.pin{font-size:2.1rem;font-weight:800;letter-spacing:.14em;margin:12px 0;color:var(--accent2)}
+body.proj .pin{font-size:4.5rem}
+/* ---- doska ---- */
+.bd{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.bd .cap{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent2);margin-bottom:8px}
+.bd .big{font-size:1.25rem;font-weight:800;line-height:1.3;white-space:pre-line;letter-spacing:-.01em}
+.bd .sub{color:var(--muted);font-size:.9rem;margin-top:8px}
+.bd ol,.bd ul{margin:6px 0 0;padding-left:0;list-style:none;counter-reset:b}
+.bd ol li{counter-increment:b;position:relative;padding:9px 0 9px 34px;border-bottom:1px solid var(--line)}
+.bd ol li:before{content:counter(b);position:absolute;left:0;top:8px;width:23px;height:23px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:.78rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.bd ul li{position:relative;padding:9px 0 9px 20px;border-bottom:1px solid var(--line)}
+.bd ul li:before{content:"";position:absolute;left:4px;top:17px;width:6px;height:6px;border-radius:50%;background:var(--accent2)}
+.bd li:last-child{border-bottom:0}
+.bd .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.bd .two>div{background:var(--bg2);border-radius:12px;padding:12px}
+.bd .two b{display:block;margin-bottom:5px;font-size:.9rem}
+.bd .two span{color:var(--muted);font-size:.86rem;line-height:1.5}
+.bd .two.warn>div:first-child{border-left:3px solid var(--err)}
+.bd .two.warn>div:last-child{border-left:3px solid var(--ok)}
+.bd .map{margin-top:8px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.bd .map .r{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)}
+.bd .map .r:last-child{border-bottom:0}
+.bd .map .r>div{padding:10px 12px;font-size:.88rem;line-height:1.45}
+.bd .map .r>div:first-child{background:var(--bg2)}
+.bd .map .r>div:last-child{color:var(--accent2)}
+.bd .map .r.h>div{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.bd .map .r.h>div:last-child{color:var(--muted)}
+body.proj .bd .map .r>div{font-size:1.2rem;padding:14px 18px}
+@media (max-width:420px){.bd .two{grid-template-columns:1fr}}
+body.proj .bd{padding:26px}
+body.proj .bd .big{font-size:2.1rem}
+body.proj .bd ol li,body.proj .bd ul li{font-size:1.25rem;padding:13px 0 13px 44px}
+body.proj .bd ol li:before{width:30px;height:30px;font-size:1rem}
+/* ---- qiymat o'yini ---- */
+.doms{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.dom{padding:14px 12px;border-radius:14px;border:1px solid var(--line);background:var(--bg2);
+  color:var(--ink);font-size:.95rem;font-weight:600;cursor:pointer;text-align:left}
+.dom:hover{border-color:var(--accent)}
+.dom small{display:block;color:var(--muted);font-weight:400;font-size:.75rem;margin-top:3px}
+.pr{width:100%;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--ink);font-size:.95rem;cursor:pointer;margin-bottom:8px}
+.pr:disabled{cursor:default}
+.pr.win{border-color:var(--ok)}
+.pr.lose{opacity:.6}
+.mt{display:flex;align-items:center;gap:8px;margin-top:8px}
+.mt span{font-size:.7rem;letter-spacing:.06em;color:var(--muted);width:54px;flex:none}
+.dots{display:flex;gap:3px}
+.dots i{width:12px;height:12px;border-radius:3px;background:var(--line);display:block}
+.dots i.on{background:var(--accent)}
+.dots.f i.on{background:var(--ok)}
+body.proj .pr{font-size:1.25rem;padding:20px}
+body.proj .dom{font-size:1.15rem}
+
+/* ---- proyektor ---- */
+body.proj .wrap{max-width:1400px}
+body.proj{font-size:22px}
+body.proj h1{font-size:2.4rem}
+body.proj .rank{padding:14px 18px;font-size:1.3rem}
+body.proj .rank .n{width:40px;height:40px;font-size:1.1rem}
+body.proj .opt{font-size:1.5rem;padding:22px}
+body.proj .nav{display:none}
+
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
+  background:var(--ok);color:#0f2a20;font-weight:800;padding:11px 20px;border-radius:99px;
+  opacity:0;transition:.3s;z-index:99;pointer-events:none;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.bad{background:var(--err);color:#fff}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--bg2);border-radius:12px;padding:11px 13px}
+.stat b{display:block;font-size:1.35rem;color:var(--accent2)}
+.sep{height:1px;background:var(--line);margin:14px 0}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
+.note{border-left:3px solid var(--accent);padding-left:11px;color:var(--muted);font-size:.86rem}
+/* ---- belgilar ---- */
+svg.ic{width:1em;height:1em;fill:currentColor;vertical-align:-.12em}
+.mark svg.ic{width:22px;height:22px;fill:#fff}
+.nav button i svg.ic{width:22px;height:22px}
+.feat i svg.ic{width:24px;height:24px;color:var(--accent2)}
+.hud small svg.ic,.rank .st svg.ic{color:var(--accent2)}
+/* ---- landing (kirish oynasi) ---- */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 0 2px}
+.brand.compact{padding:0;gap:9px}
+.brand.compact .mark{width:34px;height:34px;font-size:17px;border-radius:11px}
+.tlink{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;
+  padding:6px 12px;font-size:.78rem;cursor:pointer}
+.hero{padding:22px 0 16px}
+.hero .eyebrow{font-size:.68rem;letter-spacing:.18em;color:var(--accent2);margin-bottom:10px;text-transform:uppercase}
+.hero h1{font-size:1.75rem;line-height:1.18;margin-bottom:12px}
+.hero p{color:var(--muted);font-size:.98rem;margin:0 0 18px}
+.btn.big{font-size:1.1rem;padding:17px}
+.hero small{display:block;text-align:center;margin-top:10px}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 14px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px}
+.feat i{font-style:normal;font-size:22px;display:block;margin-bottom:6px}
+.feat b{display:block;margin-bottom:3px}
+.feat span{font-size:.8rem;color:var(--muted);line-height:1.4;display:block}
+.teaser{list-style:none;margin:6px 0 12px;padding:0}
+.teaser li{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+.teaser li:last-child{border-bottom:0}
+.teaser li span{width:26px;height:26px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;
+  justify-content:center;font-size:.75rem;color:var(--accent2);font-weight:800;flex:0 0 auto}
+.lvls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.lvls b{font-size:.74rem;padding:4px 9px;border-radius:999px;background:var(--bg2);color:var(--muted);font-weight:600}
+.lvls b:last-child{background:var(--accent-soft);color:var(--accent2)}
+@media (max-width:380px){.feats{grid-template-columns:1fr}}
+@media print{
+  body{background:#fff;color:#111;padding:0}
+  .nav,.hud,.noprint{display:none!important}
+  .card{box-shadow:none;border:1px solid #ccc;background:#fff;color:#111;break-inside:avoid}
+  .small,.rank .st{color:#555}
+}
+@media (max-width:380px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+/* =====================================================================
+   AI KURSI — SINF PANELI
+   Bitta fayl: HTML + CSS + JS. Backend: Firebase (yoki mahalliy rejim).
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1) FIREBASE SOZLAMASI
+   Firebase konsolidan olingan config'ni shu yerga qo'ying.
+   Bo'sh qolsa — dastur "mahalliy rejim"da ishlaydi (faqat shu qurilmada).
+   --------------------------------------------------------------------- */
+const FB_CONFIG = {
+  "apiKey": "AIzaSyDJh1D_SwuZA4TtavoooeTSIPaRvzE4QzY",
+  "authDomain": "oscartalim-sinf-80da0.firebaseapp.com",
+  "projectId": "oscartalim-sinf-80da0",
+  "storageBucket": "oscartalim-sinf-80da0.firebasestorage.app",
+  "messagingSenderId": "451154934941",
+  "appId": "1:451154934941:web:28c540f7d10edff5736874"
+};
+/*  Namuna:
+const FB_CONFIG = {
+  apiKey: "...", authDomain: "...firebaseapp.com",
+  projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..."
+};
+*/
+
+/* ---------------------------------------------------------------------
+   2) KURS MAZMUNI — 13 dars
+   --------------------------------------------------------------------- */
+const COURSE = {
+  title: "AI kursi · 13 dars",
+  promise: "AI'ni ishlatishni o'rganasan, lekin AI'ga o'ylashni topshirmaysan.",
+  lessons: [
+{ n:1, t:"AI seni kuchli qiladimi yoki dangasa?",
+  learn:"AI'ni ishlatishning ikki xil yo'li borligini va ular seni ikki xil odamga aylantirishini. O'z hayotingdagi 10 ta real muammoni yozasan.",
+  where:"Har safar kimdir sendan nimadir so'raganda.",
+  key:["Kuchaytiruvchi yo'l: fikr sendan chiqadi, AI tekshiradi.",
+       "Dangasalashtiruvchi yo'l: fikr AI'dan chiqadi, sen ko'chirasan.",
+       "Ikkovi bir xil ko'rinadi — natija besh yildan keyin ko'rinadi."],
+  duel:[
+    {q:"Insho yozish kerak. Qaysi yo'l seni kuchli qiladi?",
+     a:["AI yozib beradi, ko'chirasan","O'zing yozasan, AI xatolarni ko'rsatadi","AI 3 ta tayyor variant beradi, birini tanlaysan","Do'stingdan olib, ozgina o'zgartirasan"],c:1,
+     w:"Fikr sendan chiqsa — ko'nikma senda qoladi. AI tekshiruvchi bo'lsa foydali, muallif bo'lsa zararli."},
+    {q:"Qaysi biri AI'ni to'g'ri ishlatishga eng yaqin?",
+     a:["\"Menga referat yoz\"","\"Mana mening rejam, zaif joyini top\"","\"Javobni ayt, tushuntirma\"","\"Men o'rniga o'yla\""],c:1,
+     w:"Eng foydali prompt — sening ishingni AI'ga tekshirtirish. Bo'sh joydan tayyor javob so'rash emas."},
+    {q:"Do'sting AI yozgan uy vazifasini topshirdi va \"5\" oldi. Nima yo'qotdi?",
+     a:["Hech narsa, baho muhim","Vaqt","O'sha mavzuni o'rganish imkonini","Faqat halollikni"],c:2,
+     w:"Baho bugun, ko'nikma umrbod. Imtihon kuni AI yonida bo'lmaydi."}]},
+
+{ n:2, t:"Har muammo yechishga arzimaydi",
+  learn:"Uchta savol — bu muammo nechta odamda bor? takrorlanadimi? kimgadir zarar tegadimi? Guruhing loyihasi shu filtrdan chiqadi.",
+  where:"Qaysi ishga \"ha\", qaysiga \"yo'q\" deyishni shu yerda o'rganasan — bu AI'siz ham ishlaydi.",
+  key:["1-savol: bu muammo nechta odamda bor?",
+       "2-savol: u takrorlanadimi yoki bir martalikmi?",
+       "3-savol: yechilmasa kimgadir zarar tegadimi?",
+       "Uchalasiga ham \"ha\" bo'lsa — ishlashga arziydi."],
+  duel:[
+    {q:"Qaysi muammo ishlashga ARZIYDI?",
+     a:["Mening qalamim yo'qoldi","Sinfimizda navbatchilik jadvali doim chalkashadi","Bugun havo sovuq","Telefonim zaryadi tez tugadi"],c:1,
+     w:"Ko'p odamda bor + har hafta takrorlanadi + chalkashlik zarar keltiradi. Uchala filtrdan ham o'tdi."},
+    {q:"\"Bu muammo faqat menda bor\" — bu qaysi savolga javob?",
+     a:["Nechta odamda bor?","Takrorlanadimi?","Zarar tegadimi?","Qancha turadi?"],c:0,
+     w:"Birinchi filtr. Faqat senda bo'lsa — bu loyiha emas, shaxsiy odat."},
+    {q:"Muammo takrorlanmasa nima bo'ladi?",
+     a:["Yechim ham bir marta kerak bo'ladi — loyiha shart emas","Baribir loyiha qilish kerak","Muammo kattaroq bo'ladi","Farqi yo'q"],c:0,
+     w:"Bir martalik muammoni bir marta qo'lda yechish arzonroq. Loyiha — takrorlanadigan narsa uchun."}]},
+
+{ n:3, t:"Fil qanday yeyiladi",
+  learn:"Katta va qo'rqinchli ishni kichik bosqichlarga bo'lishni.",
+  where:"Imtihonga tayyorgarlikda, maktab loyihasida, referatda. \"Qayerdan boshlashni bilmayapman\" degan holat tugaydi.",
+  key:["Katta ish qo'rqitadi, chunki miya uni bitta bo'lak deb ko'radi.",
+       "Har bosqich 20-30 daqiqada tugaydigan bo'lsin.",
+       "Birinchi bosqich shunchalik kichik bo'lsinki, boshlamaslik uyat bo'lsin."],
+  duel:[
+    {q:"\"Mobil ilova qilamiz\" — bu nima?",
+     a:["Yaxshi birinchi bosqich","Bosqich emas, bu butun fil","Kichik vazifa","Reja"],c:1,
+     w:"Bu natija, bosqich emas. Bosqich — \"3 ta ekran eskizini qog'ozga chizish\"."},
+    {q:"Qaysi bosqich TO'G'RI o'lchamda?",
+     a:["Butun saytni yasash","5 ta odamdan so'rov olish","Dunyoni o'zgartirish","Hammasini o'rganish"],c:1,
+     w:"Bir o'tirishda tugaydi, natijasi ko'rinadi, keyingi qadamni aniqlaydi."},
+    {q:"Bosqichlarni bo'lishdan asosiy foyda nima?",
+     a:["Ish tezroq tugaydi","Boshlash qo'rqinchli bo'lmay qoladi","Baho yaxshi bo'ladi","AI yaxshi tushunadi"],c:1,
+     w:"Asosiy dushman — boshlamaslik. Kichik bosqich qarshilikni sindiradi."}]},
+
+{ n:4, t:"Miyangdagini so'z bilan chiqara olasanmi?",
+  learn:"Bir fikrni uch xil aniqlikda yozishni va farqini ko'rishni.",
+  where:"AI seni tushunmasa, aybdor AI emas — sening jumlang. Insho, xat, ariza — hammasi shu ko'nikma.",
+  key:["1-daraja: umumiy (\"yaxshi matn yoz\")",
+       "2-daraja: aniq (\"5 jumlalik, 7-sinf uchun\")",
+       "3-daraja: to'liq (kim uchun, qanday ohangda, qanday formatda, nima bo'lmasin)"],
+  duel:[
+    {q:"AI noto'g'ri javob berdi. Birinchi navbatda nimani tekshirasan?",
+     a:["Boshqa AI'ga o'taman","Savolimni — nimani aytmay qoldirdim?","AI buzilgan deb qo'yaman","Qayta-qayta so'rayman"],c:1,
+     w:"Ko'p hollarda kamchilik promptda: kim uchun, qanday formatda, qancha hajmda — aytilmagan."},
+    {q:"Qaysi so'rov eng aniq?",
+     a:["Xat yoz","Direktorga xat yoz","Direktorga sport zali haqida, 6 jumlalik, hurmatli ohangda ariza yoz",
+        "Menga yaxshi xat kerak"],c:2,
+     w:"Kim uchun + mavzu + hajm + ohang. Shu to'rttasi bo'lsa AI yanglishmaydi."},
+    {q:"\"Qisqa yoz\" degani AI uchun nechta jumla?",
+     a:["3 ta","10 ta","Aniq emas — shuning uchun raqam yozish kerak","1 ta"],c:2,
+     w:"\"Qisqa\", \"tez\", \"chiroyli\" — o'lchovsiz so'zlar. Raqam bilan almashtir."}]},
+
+{ n:5, t:"AI ishonch bilan yolg'on gapiradi",
+  learn:"AI bergan javobni tekshirishning aniq usulini. To'qib chiqarilgan kitob, sana, raqamni qanday ushlashni.",
+  where:"Har kuni. Sinfingda AI'ga aldanmagan yagona odam bo'lasan.",
+  key:["AI ba'zan biladi, ba'zan o'ylab topadi — ikkalasini bir xil ohangda aytadi.",
+       "Gallyutsinatsiya — AI o'ylab topgan, lekin haqiqat qilib aytgan narsa.",
+       "DOIM tekshiriladi: raqam, sana, ism, manba, sitata, sahifa.",
+       "Tekshirish shart emas: fikr, tushuntirish, g'oya.",
+       "Oxirgi hakam — AI emas."],
+  board:[
+    {t:"Bugungi qoida", big:"AI ba'zan biladi, ba'zan o'ylab topadi.\nIkkalasini bir xil ohangda aytadi.",
+     d:"Tashqaridan farqini ajratib bo'lmaydi — shuning uchun tekshiramiz."},
+    {t:"Atama", big:"Gallyutsinatsiya",
+     d:"AI o'ylab topgan, lekin haqiqat qilib aytgan narsa."},
+    {t:"Nega shunday bo'ladi", num:[
+      "AI bilmasligini bilmaydi. U \"bilmayman\" deyish uchun emas, javob berish uchun qurilgan.",
+      "U keyingi so'zni taxmin qiladi. Darslik nomi qanday ko'rinishini biladi — ichida nima borligini emas.",
+      "Ishonchli ohang — bu uslub, bilim emas. To'g'risini ham, to'qimasini ham bir xil aytadi."]},
+    {t:"Tekshiruv qoidasi", tone:"warn", two:[
+      ["DOIM tekshiriladi", "raqam · sana · ism · manba · sitata · sahifa"],
+      ["Tekshirish shart emas", "fikr · tushuntirish · g'oya"]],
+     d:"Hammasini tekshirsang — AI foydasiz bo'lib qoladi. Ajratish shu."},
+    {t:"Uch tekshiruv usuli", num:[
+      "Manbani so'rash — \"Buni qayerdan bilding?\" Zaif: havolaning o'zi ham to'qilgan bo'lishi mumkin.",
+      "Ikki marta so'rash — yangi chatda xuddi shu savol. Javob farq qilsa, ishonch yo'q.",
+      "Boshqa joydan tekshirish — kitob, hujjat yoki jonli odam. Eng kuchlisi."]},
+    {t:"Uch qoida — yodda tut", list:[
+      "Bir marta so'rash — bir marta taxmin. Muhim narsani ikki marta so'ra.",
+      "\"Aynan\", \"so'zma-so'z\", \"roppa-rosa\" — ogohlantirish belgisi.",
+      "Oxirgi hakam — AI emas."]},
+    {t:"Xulosa", big:"AI yaroqsiz emas.",
+     d:"U kalkulyator kabi — noto'g'ri tugma bosilsa, noto'g'ri javob beradi. Farqi shundaki, kalkulyator xatosini darrov ko'rasan, AI'ning xatosi chiroyli ko'rinadi."}],
+  /* Takrorlash to'plami. Qoida bitta: raqam/sana/ism/manba/sahifa —
+     tekshiriladi, fikr/tushuntirish/g'oya — yo'q. Har savolga javob shu
+     qoidadan kelib chiqadi; tashqi bilim (adabiyot, tarix) kerak emas. */
+  rep:[
+    {q:"«Bu voqea 1991-yilda bo'lgan» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Sana — tekshiriladigan ro'yxatda. AI eng ko'p shu yerda to'qiydi."},
+    {q:"«Kitobning 120-betida yozilgan» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Sahifa raqami — tekshiriladi. Kitobni ochsang bir soniyada bilinadi."},
+    {q:"«Menimcha bu kitob juda qiziqarli» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:1,
+     w:"«Menimcha» — bu fikr. Fikr to'g'ri ham, xato ham emas — tekshirib bo'lmaydi."},
+    {q:"«Muallifning ismi — Hamid Olimjon» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Ism — tekshiriladi. AI ismlarni almashtirib yuborishi oddiy hol."},
+    {q:"«Buni sodda qilib tushuntirib beraman» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:1,
+     w:"Tushuntirish — tekshirilmaydi. Tushunarli bo'ldimi yoki yo'qmi, o'zing bilasan."},
+    {q:"«Insho uchun uchta g'oya beraman» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:1,
+     w:"G'oya — tekshirilmaydi. Yoqdimi yoki yo'qmi — buni sen hal qilasan."},
+    {q:"«Bu «Fan va turmush» jurnalida chiqqan» — tekshirasanmi?", t:15,
+     a:["Tekshiraman","Tekshirmayman"],c:0,
+     w:"Manba — tekshiriladi. Ba'zan jurnalning o'zi ham to'qilgan bo'ladi."},
+    {q:"AI: «Bu qo'shiq 2003-yilda chiqqan. Menimcha juda yaxshi qo'shiq.» Nimani tekshirasan?", t:20,
+     a:["«Juda yaxshi» degan fikrni","Jumlaning uzunligini","2003-yilni","«Menimcha» so'zini"],c:2,
+     w:"Bitta jumlada ikki xil narsa bor: raqam va fikr. Faqat raqam tekshiriladi."},
+    {q:"AI: «Bu kitobni o'qishni maslahat beraman. U 320 betdan iborat.» Nimani tekshirasan?", t:20,
+     a:["320 betni","Maslahatni","AI'ning ohangini","Kitob nomining uzunligini"],c:0,
+     w:"Maslahat — fikr, tekshirilmaydi. 320 — raqam, tekshiriladi."},
+    {q:"AI: «Fotosintez — nur orqali energiya olish. 7-sinf darsligi, 58-bet.» Nimani tekshirasan?", t:20,
+     a:["Fotosintez tushuntirishini","«Energiya» so'zini","Jumla tartibini","58-betni"],c:3,
+     w:"Tushuntirish to'g'ri bo'lishi mumkin, lekin sahifa to'qilgan bo'lishi mumkin."},
+    {q:"AI: «Maqola 2019-yil 12-mayda «Ma'rifat»da chiqqan. Mavzusi juda dolzarb.» Qaysi biri TEKSHIRILMAYDI?", t:20,
+     a:["Gazeta nomi","«Juda dolzarb» degan fikr","2019-yil","12-may"],c:1,
+     w:"Uchtasi — sana va manba, tekshiriladi. Bittasi — fikr, tekshirilmaydi."},
+    {q:"AI kitob nomi va sahifa raqamini berdi. Eng ishonchli tekshiruv qaysi?", t:20,
+     a:["AI'dan «rostmi?» deb so'rash","Kitobning o'zini ochib ko'rish","Savolni qayta yozish","Do'stimdan so'rash"],c:1,
+     w:"AI'dan so'rasang yana ishonch bilan «ha» deydi. Oxirgi hakam — AI emas."},
+    {q:"Qoidani tanla:", t:20,
+     a:["Hammasini tekshiraman","Faqat uzun javoblarni tekshiraman","Hech narsani tekshirmayman",
+        "Raqam, sana, ism, manba, sahifa — tekshiriladi; fikr va g'oya — yo'q"],c:3,
+     w:"Hammasini tekshirsang AI foydasiz bo'ladi. Hech narsani tekshirmasang — aldanasan. Ajratish shu."}],
+  duel:[
+    {q:"Bir xil savolga AI ikki daqiqa oraliqda ikki xil javob berdi. Bu nimani anglatadi?",
+     a:["Internet uzilgan","Kamida bittasi to'qilgan — ishonch yo'q","Ikkinchi javob doim to'g'ri","Model yangilangan"],c:1,
+     w:"Ikkalasi bir vaqtda to'g'ri bo'la olmaydi. Javob o'zgarsa — bu ogohlantirish belgisi."},
+    {q:"Gallyutsinatsiya nima?",
+     a:["AI internetdan topgan xato","AI o'ylab topgan, lekin haqiqat qilib aytgan narsa","Foydalanuvchining xatosi","Modelning sekinlashishi"],c:1,
+     w:"Atama shu: to'qilgan, lekin ishonchli ohangda aytilgan javob."},
+    {q:"Nega AI \"bilmayman\" deyish o'rniga to'qiydi?",
+     a:["Yolg'onchi qilib yasalgan","U javob berish uchun qurilgan — keyingi so'zni taxmin qiladi","Bazasi to'lib ketgan","Savol noto'g'ri berilgan"],c:1,
+     w:"U haqiqatni qidirmaydi, ehtimolli davomni tanlaydi. \"Bilmayman\" kamdan-kam ehtimolli davom."},
+    {q:"Qaysi javobni DOIM tekshirish kerak?",
+     a:["\"Menimcha, bu reja yaxshi\"","\"Bu she'r 1897-yilda «Oy» jurnalida chop etilgan\"","\"Insho uchun uchta g'oya\"","\"Buni sodda tushuntirib beraman\""],c:1,
+     w:"Aniq sana va nashr nomi — to'qish eng ko'p uchraydigan joy."},
+    {q:"Qaysi birini tekshirish SHART EMAS?",
+     a:["Sahifa raqami","Muallifning ismi","Fikr va tushuntirish","Sana"],c:2,
+     w:"Hammasini tekshirsang AI foydasiz bo'lib qoladi. Raqam, sana, ism, manba — tekshiriladi; fikr va g'oya — yo'q."},
+    {q:"AI kitob nomi va sahifa raqamini berdi. Eng ishonchli tekshiruv qaysi?",
+     a:["AI'dan \"rostmi?\" deb so'rash","Do'stingdan so'rash","Kitobning o'zini ochib ko'rish","Savolni qayta yozish"],c:2,
+     w:"AI'dan \"rostmi?\" deb so'rash ishlamaydi — u yana ishonch bilan \"ha\" deydi. Oxirgi hakam — AI emas."},
+    {q:"Javobda \"aynan\", \"so'zma-so'z\", \"roppa-rosa\" so'zlari chiqdi. Bu nima?",
+     a:["Javob aniqroq bo'lgani","Ogohlantirish belgisi — model bilmasligini shu so'zlar bilan yopadi","Model tezroq ishlagani","Hech narsani anglatmaydi"],c:1,
+     w:"Aniqlikni ta'kidlagan joy — eng ko'p tekshirish kerak bo'lgan joy."},
+    {q:"Qaysi savolda to'qish ehtimoli eng yuqori?",
+     a:["Suv necha gradusda qaynaydi?","Toshkent qaysi davlatning poytaxti?","Tumanimizdagi eng eski maktab qachon qurilgan va birinchi direktori kim?","Ikki karra ikki nechchi?"],c:2,
+     w:"Mahalliy va internetda kam yozilgan ma'lumot. Model bunday joyda naqshdan to'qiydi."},
+    {q:"AI \"bu haqda ma'lumotim yo'q\" dedi. Bu qanday belgi?",
+     a:["Model buzilgan","Yomon belgi — boshqa AI'ga o'tish kerak","Yaxshi belgi — to'qimagani ma'qul","Savolni qayta yozish kerak"],c:2,
+     w:"Bilmasligini tan olish — to'qishdan yaxshi. Bunday javobga ishonch ko'proq."},
+    {q:"Savolning ichiga noto'g'ri shart yashirilgan bo'lsa (masalan bo'lmagan voqea haqida so'ralsa), AI ko'pincha nima qiladi?",
+     a:["Savolni rad etadi","Shartni qabul qilib, uning ustiga javob to'qiydi","Internetdan qidiradi","Sukut saqlaydi"],c:1,
+     w:"Model savolni to'g'ri deb qabul qiladi va \"mos keladigan\" javob yasaydi."},
+    {q:"Ikki tekshiruv usulidan qaysi biri kuchliroq?",
+     a:["AI'dan manba so'rash","Kitob, hujjat yoki jonli odamdan tekshirish","Savolni uzunroq yozish","Boshqa AI'dan so'rash"],c:1,
+     w:"Manba so'rash zaif: ba'zan havolaning o'zi ham to'qilgan bo'ladi."},
+    {q:"\"AI 90 foiz holatda to'g'ri gapiradi\" — unda nega tekshirish kerak?",
+     a:["Kerak emas, 90 foiz yetarli","Qaysi 10 foiz xato ekanini oldindan ko'rib bo'lmaydi","AI har doim xato qiladi","Shunchaki qoida shunday"],c:1,
+     w:"Xato oldindan ko'rinmaydi — aynan shuning uchun tekshirish odat bo'lishi kerak."},
+    {q:"Xulosa: AI yaroqsizmi?",
+     a:["Ha, ishlatmaslik kerak","Yo'q — kalkulyator kabi, lekin uning xatosi chiroyli ko'rinadi","Faqat kattalar ishlatsin","Faqat o'yin uchun yaraydi"],c:1,
+     w:"Kalkulyator xatosini darrov ko'rasan, AI'ning xatosi ishonchli ko'rinadi. Farq shunda."}]},
+
+{ n:6, t:"AI aslida qanday \"o'ylaydi\"?",
+  learn:"Nega xato qilishini, nega bir savolga har safar boshqa javob berishini, nega uzun suhbatda unutib qo'yishini.",
+  where:"Uni sehr deb ham, Google deb ham o'ylashni bas qilasan. Xatoni oldindan kutasan — demak sezasan.",
+  key:["AI keyingi so'zni ehtimol bo'yicha tanlaydi — haqiqatni qidirmaydi.",
+       "Shuning uchun har safar javob biroz boshqacha.",
+       "Uning \"xotirasi\" cheklangan — uzun suhbatda boshi tushib qoladi.",
+       "Google topadi, AI yasaydi. Ikkovi boshqa asbob."],
+  board:[
+    {t:"5-dars bilan farqi", two:[
+      ["5-darsda", "Javob kelgandan KEYIN tekshirdik"],
+      ["Bugun", "Savol berishdan OLDIN bilamiz"]],
+     d:"Bu savolda AI zaif bo'ladimi yoki yo'q — buni oldindan aytish mumkin."},
+    {t:"1. AI keyingi so'zni tanlaydi", big:"Zanjir jumla o'yinini esla",
+     d:"Navbating kelganda mos keladigan so'zlar ichidan bittasini tanlading. AI ham xuddi shunday: har safar keyingi so'zni tanlaydi. Shuning uchun bir xil savolga ikki marta so'rasang, javob boshqacha chiqishi mumkin."},
+    {t:"2. Xotirasi chegarali", big:"Bu xato emas \u2014 bu chegara",
+     d:"Robot chizish o'yinida boshidagi \"ko'k rangli\" va \"uchta oyoqli\" tushib qoldi. Yangi narsa kirganda, eskisi chiqib ketadi. Qoida: suhbat uzaysa, eng muhim shartni oxirida ham takrorla."},
+    {t:"3. AI ikki narsani ko'rmaydi", two:[
+      ["Harflarni ko'rmaydi", "So'zni bo'laklar bilan yaxlit ko'radi. Sanash, teskari tartib, oxirgi harf \u2014 unga qiyin."],
+      ["Bugunni bilmaydi", "O'qiganini biladi, bugun bo'lganini emas. Yangilik, natija, narx \u2014 eskisini aytadi."]]},
+    {t:"Zaif joylar xaritasi", map:{head:["AI qayerda zaif","Nima qilaman"], rows:[
+      ["Aniq raqam, sana, sahifa","Kitobdan tekshiraman"],
+      ["Harf sanash, teskari yozish","O'zim sanayman"],
+      ["Bugungi va yaqin kundagi voqealar","Yangilikdan qarayman"],
+      ["Uzun suhbatning boshi","Muhim shartni oxirida takrorlayman"],
+      ["Bir xil savolga ikki xil javob","Ikki marta so'rayman"],
+      ["Mahalliy, kichik joylar haqida","Odamdan so'rayman"]]},
+     d:"Eng muhim qism. Sinf devorida ham turadi."},
+    {t:"Bashorat o'yini", map:{head:["Savol","AI bunga qanday javob beradi"], rows:[
+      ["Suvning qaynash harorati necha gradus?","to'g'ri"],
+      ["Bizning maktabimiz qachon qurilgan?","shubhali"],
+      ["\"Algoritm\" so'zida nechta harf bor?","shubhali"],
+      ["Fotosintez nima?","to'g'ri"],
+      ["Kecha o'yinda hisob qanday bo'ldi?","shubhali"]]},
+     d:"Javobni ko'rmasdan oldin ayt \u2014 keyin sinab ko'r."},
+    {t:"Yodda tut", big:"AI ahmoq emas. U boshqacha.",
+     d:"Odam sanaydi \u2014 AI taxmin qiladi. Odam eslaydi \u2014 AI oxirgi qismini ko'radi. Ikkalasining kuchli joyi boshqa. Sening ishing \u2014 qaysi ishni kimga berishni bilish."}],
+  /* Takrorlash to'plami. Qoida bitta: savolga qarab AI kuchli bo'ladimi
+     yoki zaif — buni OLDINDAN aytish mumkin. Kuchli: tushuntirish, keng
+     tarqalgan bilim. Zaif: mahalliy narsa, bugungi voqea, harf sanash.
+     Tashqi bilim kerak emas — javob doskadagi xaritadan chiqadi. */
+  rep:[
+    {q:"«Nega osmon ko'k ko'rinadi?» — AI bunga qanday javob beradi?", t:15,
+     a:["To'g'ri aytadi","Shubhali"],c:0,
+     w:"Tushuntirish — AI'ning eng kuchli joyi. Bu haqda millionlab matn o'qigan."},
+    {q:"«Mahallamizdagi eng keksa odam kim?» — AI qanday javob beradi?", t:15,
+     a:["To'g'ri aytadi","Shubhali"],c:1,
+     w:"Mahalliy, kichik joy haqidagi ma'lumot. Model bunday joyda naqshdan to'qiydi."},
+    {q:"«Ertalabki yangilikda nima deyildi?» — AI qanday javob beradi?", t:15,
+     a:["To'g'ri aytadi","Shubhali"],c:1,
+     w:"AI o'qiganini biladi, bugun bo'lganini emas. Yangilik — uning zaif joyi."},
+    {q:"«Vulqon qanday otiladi?» — AI qanday javob beradi?", t:15,
+     a:["To'g'ri aytadi","Shubhali"],c:0,
+     w:"Yana tushuntirish. Kitobda bor, keng tarqalgan — bu yerda ishonch yuqori."},
+    {q:"«Matematika» so'zida nechta harf bor? — AI qanday javob beradi?", t:15,
+     a:["To'g'ri aytadi","Shubhali"],c:1,
+     w:"AI so'zni harf-harf ko'rmaydi, bo'laklar bilan yaxlit ko'radi. Sanash unga qiyin."},
+    {q:"«Fotosintez qanday jarayon?» — AI qanday javob beradi?", t:15,
+     a:["To'g'ri aytadi","Shubhali"],c:0,
+     w:"Darslikdagi tushuncha. AI buni yaxshi tushuntiradi."},
+    {q:"«Sinfimizda nechta bola bor?» — AI qanday javob beradi?", t:15,
+     a:["To'g'ri aytadi","Shubhali"],c:1,
+     w:"AI sening sinfingni ko'rmagan. Javob bersa — to'qigan bo'ladi."},
+    {q:"Uzun suhbatda AI boshidagi shartni unutdi. To'g'ri yechim qaysi?", t:20,
+     a:["Yangi AI'ga o'taman","Muhim shartni qisqa qilib qayta yozaman","Urishib beraman","Tashlab qo'yaman"],c:1,
+     w:"Xotira cheklangan — bu xato emas, chegara. Muhim shartni oxirida takrorlash normal ish usuli."},
+    {q:"AI bir xil savolga har safar boshqacha javob bermoqda. Nega?", t:20,
+     a:["Buzilgan","Internet sekin","Kimdir o'zgartirgan","U keyingi so'zni ehtimol bilan tanlaydi"],c:3,
+     w:"Tasodifiylik uning ishlash usulida bor. Muhim ishda javobni ikki marta olib solishtir."},
+    {q:"Google va AI orasidagi farq nimada?", t:20,
+     a:["Google mavjud sahifani topadi, AI yangi matn yasaydi","Farqi yo'q","AI tezroq","Google bepul"],c:0,
+     w:"Manba kerak bo'lsa — qidiruv. Matn kerak bo'lsa — AI. Ikkovi boshqa asbob."},
+    {q:"Qaysi ishda AI eng zaif?", t:20,
+     a:["Insho uchun g'oya berish","So'zdagi harflarni sanash","Matnni qisqartirish","Sodda qilib tushuntirish"],c:1,
+     w:"Uchtasi — uning kuchli joyi. Harf sanash esa o'zingning ishing."},
+    {q:"Kecha bo'lgan voqea haqida AI ishonch bilan javob berdi. Nima qilasan?", t:20,
+     a:["Demak biladi","Ikkinchi marta so'rayman","Qabul qilaman","Yangilikdan tekshiraman — bugun uning zaif joyi"],c:3,
+     w:"Ishonchli ohang — uslub, bilim emas. Bugungi voqeada ohangga qaramaymiz."},
+    {q:"6-darsning asosiy fikri qaysi?", t:20,
+     a:["AI ahmoq, ishlatmaslik kerak","AI hamma narsani biladi",
+        "AI boshqacha ishlaydi — qaysi ishni unga berishni o'zing bilasan","AI faqat kattalar uchun"],c:2,
+     w:"Odam sanaydi — AI taxmin qiladi. Odam eslaydi — AI oxirgi qismini ko'radi. Sening ishing — taqsimlash."}],
+  duel:[
+    {q:"AI bir xil savolga har safar boshqacha javob bermoqda. Bu nima?",
+     a:["Buzilgan","Normal — u ehtimol bilan so'z tanlaydi","Internet sekin","Kimdir o'zgartirgan"],c:1,
+     w:"Tasodifiylik uning ishlash usulida bor. Shuning uchun muhim ishda javobni bir necha marta olib solishtir."},
+    {q:"Google va AI farqi nimada?",
+     a:["Farqi yo'q","Google mavjud sahifani topadi, AI yangi matn yasaydi","AI tezroq","Google bepul"],c:1,
+     w:"Shuning uchun manba kerak bo'lsa — qidiruv, matn kerak bo'lsa — AI."},
+    {q:"Uzun suhbatda AI boshidagi shartni unutdi. To'g'ri yechim?",
+     a:["Urishib beraman","Muhim shartni qisqa qilib qayta yozaman","Yangi AI'ga o'taman","Tashlab qo'yaman"],c:1,
+     w:"Xotira cheklangan. Muhim shartni vaqti-vaqti bilan takrorlash — normal ish usuli."}]},
+
+{ n:7, t:"Prompt emas — vazifa berish", game:"qiymat",
+  learn:"AI'ga vazifani qanday qo'yishni: rol, sharoit, misol, format. Eng ko'p mashq qilinadigan dars.",
+  where:"Bu kursning asosiy ko'nikmasi. Undan keyingi hamma ishingda shu turadi.",
+  key:["ROL: AI kim bo'lib javob bersin",
+       "SHAROIT: kim uchun, nima uchun, qanday cheklov bor",
+       "MISOL: mana shunga o'xshash bo'lsin",
+       "FORMAT: necha jumla, qanday ko'rinishda"],
+  board:[
+    {t:"Bugungi qoida", big:"Yomon javob — yomon AI emas.\nYomon vazifa.",
+     d:"4-darsda aniq yozishni o'rgandik. Bugun undan kattarog'i: vazifani QURISH."},
+    {t:"To'rt qism", map:{head:["Qism","Savolga javob beradi"], rows:[
+      ["ROL","AI kim bo'lib gapirsin?"],
+      ["SHAROIT","Kim uchun va nima uchun kerak?"],
+      ["MISOL","Nimaga o'xshasin?"],
+      ["FORMAT","Necha jumla, qanday ko'rinishda?"]]},
+     d:"To'rttasi ham bir jumladan. Yod olish shart emas — pastdagi jadval muhimroq."},
+    {t:"Tashxis jadvali", map:{head:["Javobdagi kasallik","Qaysi qism tushib qolgan"], rows:[
+      ["Juda uzun yoki juda qisqa","FORMAT"],
+      ["Ro'yxat kutgansan, matn chiqdi","FORMAT"],
+      ["Til noto'g'ri: juda ilmiy yoki juda oddiy","ROL"],
+      ["To'g'ri, lekin noto'g'ri odamga atalgan","SHAROIT"],
+      ["Mavzudan chetga chiqib ketdi","SHAROIT"],
+      ["Ko'rinishi boshda tasavvur qilganingdek emas","MISOL"]]},
+     d:"Darsning eng muhim qismi. Javob yoqmasa — shu jadvaldan qidirasan, boshqa AI'ga yugurmaysan."},
+    {t:"Bitta vazifa — ikki xil", tone:"warn", two:[
+      ["Yomon","«Xat yoz»"],
+      ["Yaxshi","«Sen maktab direktorisan. 7-sinf o'quvchilariga sport zalini toza saqlash haqida, hurmatli ohangda, 5 jumlalik e'lon yoz.»"]],
+     d:"Farqni AI qilmadi — biz qildik. Ikkinchisida to'rttala qism ham bor."},
+    {t:"«AI bo'lib ko'r» mashqi", num:[
+      "Juftlikda o'tirasiz. Har biringiz bitta vazifa kartasi olasiz va unga prompt yozasiz.",
+      "Almashasiz. Do'stingning promptini o'qib, AYNAN yozilganini bajarasan — bir so'z ham qo'shmaysan, taxmin qilmaysan.",
+      "Nima tushib qolgani o'zi ko'rinadi. Shundan keyin o'z promptingni tuzatasan."],
+     d:"AI aynan shunday o'qiydi: yozilganini, o'ylaganingni emas."},
+    {t:"Vazifa kartalari", list:[
+      "Direktorga sport zali uchun ariza",
+      "Ota-onalar yig'ilishiga taklifnoma",
+      "Devoriy gazeta uchun qisqa maqola",
+      "Yangi kelgan o'quvchiga maktab haqida xabar",
+      "Ona tili inshosi uchun reja",
+      "Sinf sayohati uchun kunlik dastur",
+      "Kutubxonachiga kitob so'rab xat",
+      "Sinfdoshingga tug'ilgan kun tabrigi"]},
+    {t:"Yodda tut", big:"AI aqlingni o'qimaydi.\nFaqat yozganingni o'qiydi.",
+     d:"Shuning uchun aybdor qidirma — tashxis qo'y. To'rt qismdan qaysi biri tushib qolgan?"}],
+  /* 7-darsni takrorlash. Qoida bitta: to'rt qism — ROL, SHAROIT,
+     MISOL, FORMAT. Avval "yetarlimi yo'qmi", keyin "qaysi biri yo'q". */
+  rep:[
+    {q:"«Xat yoz» — yetarlimi?", t:15,
+     a:["Yetarli","Kam"],c:1,
+     w:"To'rt qismdan bittasi ham yo'q. AI nima yozishini o'zi o'ylab topadi."},
+    {q:"«Menga yaxshi insho kerak» — yetarlimi?", t:15,
+     a:["Yetarli","Kam"],c:1,
+     w:"«Yaxshi» — o'lchovsiz so'z. Mavzu ham, hajm ham, kim uchunligi ham yo'q."},
+    {q:"«Sen maktab direktorisan. 7-sinflarga, hurmat bilan, 5 jumlalik e'lon yoz» — yetarlimi?", t:15,
+     a:["Yetarli","Kam"],c:0,
+     w:"Rol bor, kim uchun bor, ohang bor, hajm bor. To'rttasi ham joyida."},
+    {q:"«Insho yoz, qisqa bo'lsin» — yetarlimi?", t:15,
+     a:["Yetarli","Kam"],c:1,
+     w:"«Qisqa» — o'lchovsiz. 3 jumlami yoki 10 tami? Raqam yozilsa format bo'ladi."},
+    {q:"«Fotosintezni 5-sinf bolasiga 4 jumlada tushuntir» — yetarlimi?", t:15,
+     a:["Yetarli","Kam"],c:0,
+     w:"Kim uchun — bor. Hajm — bor. Mavzu aniq. Qisqa, lekin yetarli."},
+    {q:"«Sen biologiya o'qituvchisisan. Suv aylanishi bo'yicha 6-sinf uchun 5 ta savol tuz» — yetarlimi?", t:15,
+     a:["Yetarli","Kam"],c:0,
+     w:"Rol, kim uchun, mavzu, son — hammasi bor. Uzun bo'lishi shart emas."},
+    {q:"«Tabriknoma yoz, chiroyli bo'lsin» — yetarlimi?", t:15,
+     a:["Yetarli","Kam"],c:1,
+     w:"Kimga? Nima munosabat bilan? Necha jumla? «Chiroyli» — o'lchovsiz so'z."},
+    {q:"Javob chiroyli, lekin senga kerakli mavzuga tegmadi. Nima yo'q edi?", t:20,
+     a:["FORMAT","MISOL","SHAROIT","ROL"],c:2,
+     w:"Sharoit cheklovni ham o'z ichiga oladi: «faqat shu mavzuda, boshqasiga tegma»."},
+    {q:"Javob to'g'ri, lekin bolalar tushunmaydigan tilda. Nima yo'q edi?", t:20,
+     a:["ROL","FORMAT","MISOL","SHAROIT"],c:0,
+     w:"Rol tilning darajasini belgilaydi: «Sen boshlang'ich sinf o'qituvchisisan»."},
+    {q:"Ro'yxat so'ragansan, uzun matn keldi. Nima yo'q edi?", t:20,
+     a:["MISOL","SHAROIT","ROL","FORMAT"],c:3,
+     w:"Format faqat hajm emas, ko'rinish ham: ro'yxat, jadval, sarlavhalar."},
+    {q:"Ikki marta tushuntirding, baribir sen o'ylagandek chiqmadi. Nima qo'shasan?", t:20,
+     a:["MISOL","FORMAT","ROL","SHAROIT"],c:0,
+     w:"Tushuntirish o'rniga namuna ber. Ko'rsatish aytishdan tez ishlaydi."},
+    {q:"Qaysi qism eng qisqa yoziladi, lekin javobni eng ko'p o'zgartiradi?", t:20,
+     a:["SHAROIT","FORMAT","ROL","MISOL"],c:2,
+     w:"Bir jumla — «Sen ...san». Keyin til, chuqurlik, ohang — hammasi o'zgaradi."},
+    {q:"Javob yoqmadi. To'g'ri odat qaysi?", t:20,
+     a:["Boshqa AI'ga o'tish","Qayta-qayta so'rash","To'rt qismdan qaysi biri yo'qligini qidirish",
+        "AI buzilgan deb qo'yish"],c:2,
+     w:"Aybdor qidirish — vaqt. Tashxis qo'yish — bir daqiqa."}],
+  duel:[
+    {q:"AI javobni 3 bet qilib yubordi. Sen 5 jumla kutgansan. Qaysi qism yo'q edi?",
+     a:["ROL","SHAROIT","FORMAT","MISOL"],c:2,
+     w:"Format — hajm va ko'rinish. «5 jumla», «5 ta punkt» deb raqam bilan yoz."},
+    {q:"«Sen tarix o'qituvchisisan» — bu qaysi qism?",
+     a:["FORMAT","ROL","MISOL","SHAROIT"],c:1,
+     w:"Rol — AI kim bo'lib gapirishi. Bitta jumla, lekin butun javobning tilini o'zgartiradi."},
+    {q:"Javob to'g'ri chiqdi, lekin kattalarga atalgan — 5-sinf bolalari tushunmaydi. Nima yo'q edi?",
+     a:["SHAROIT","FORMAT","ROL","MISOL"],c:0,
+     w:"Sharoit — kim uchun va nima uchun. «5-sinf o'quvchilari uchun» deb yozilsa, til o'zi moslashadi."},
+    {q:"«Ota-onalar yig'ilishida o'qish uchun» — bu qaysi qism?",
+     a:["ROL","MISOL","FORMAT","SHAROIT"],c:3,
+     w:"Sharoit. Javob qayerda ishlatilishini aytsang, AI ohangni o'zi to'g'rilaydi."},
+    {q:"Jadval kutgansan, AI oddiy matn berdi. Qaysi qism tushib qolgan?",
+     a:["MISOL","FORMAT","ROL","SHAROIT"],c:1,
+     w:"Format faqat hajm emas — ko'rinish ham. «Jadval qilib ber» deb aytish kerak."},
+    {q:"«Mana bu e'longa o'xshasin» deb namuna berding. Bu qaysi qism?",
+     a:["SHAROIT","ROL","MISOL","FORMAT"],c:2,
+     w:"Misol. Bitta yaxshi namuna o'nta tushuntirishdan kuchliroq."},
+    {q:"AI juda ilmiy tilda yozdi. Sen oddiy, sodda til kutgansan. Nima yo'q edi?",
+     a:["ROL","FORMAT","MISOL","SHAROIT"],c:0,
+     w:"Rol tilning darajasini belgilaydi. «Sen 7-sinf o'qituvchisisan» — shu yetadi."},
+    {q:"AI mavzudan chetga chiqib, boshqa narsa haqida yozdi. Qaysi qism yetishmadi?",
+     a:["FORMAT","SHAROIT","MISOL","ROL"],c:1,
+     w:"Sharoit — cheklov ham. «Faqat sport zali haqida, boshqa mavzuga tegma» deb yoz."},
+    {q:"To'rt qismdan qaysi biri eng qisqa yoziladi, lekin javobni eng ko'p o'zgartiradi?",
+     a:["MISOL","FORMAT","SHAROIT","ROL"],c:3,
+     w:"Rol — bir jumla. Lekin til, chuqurlik, ohang — hammasi shundan keyin o'zgaradi."},
+    {q:"AI javobi yoqmadi. Birinchi navbatda nima qilasan?",
+     a:["Boshqa AI'ga o'taman","To'rt qismdan qaysi biri yo'qligini qidiraman",
+        "Qayta-qayta so'rayman","AI buzilgan deyman"],c:1,
+     w:"Aybdor qidirish — vaqt yo'qotish. Tashxis qo'yish — bir daqiqalik ish."}]},
+
+{ n:8, t:"Qaysi ish uchun qaysi AI",
+  learn:"Matn, ovoz, rasm, video, hujjat — qaysi ish uchun qaysi vosita.",
+  where:"Maktab prezentatsiyasi, video montaj, uy uchun ish. Hamma narsani bitta chatdan so'rashni to'xtatasan.",
+  key:["Bitta chat — bolg'a. Hamma narsa mix emas.",
+       "Avval ishni ayt, keyin asbob tanla — teskarisi emas.",
+       "Bepul versiya ko'p ishga yetadi; pul to'lashdan oldin chegarani bil."],
+  board:[
+    {t:"Bugungi qoida", big:"Avval ishni ayt.\nKeyin asbob tanla.",
+     d:"Ko'pchilik teskari qiladi: bitta chatni ochadi va hamma ishni o'shanga tiqadi."},
+    {t:"Bolg'a qoidasi", big:"Qo'lingda faqat bolg'a bo'lsa,\nhamma narsa mixga o'xshab ko'rinadi.",
+     d:"Mixni bolg'a uradi. Vintni esa burab kiritish kerak — bolg'a bilan ursang, ham vint buziladi, ham taxta."},
+    {t:"Hammasi shifokor — lekin boshqa", two:[
+      ["Tishing og'risa","Tish shifokoriga borasan"],
+      ["Oyog'ing sinsa","Travmatologga borasan"]],
+     d:"Ikkovi ham shifokor, ikkovi ham oq xalatda. Lekin tish shifokori oyog'ingni davolamaydi. AI ham shunday: hammasining nomi «AI», har biri boshqa ish qiladi."},
+    {t:"Besh xil asbob", map:{head:["Ish","Qanday asbob kerak"], rows:[
+      ["Yozish, tushuntirish, g'oya berish","Matn chati"],
+      ["Rasm, tasvir, chizma","Rasm yasovchi"],
+      ["Matnni ovozga yoki ovozni matnga","Ovoz vositasi"],
+      ["Montaj, subtitr, videoni qisqartirish","Video vositasi"],
+      ["PDF, jadval, uzun fayl ichidan javob","Hujjat bilan ishlaydigani"]]},
+     d:"Yod olish shart emas — kerak bo'lganda qarab tanlaysan. Shu jadval sinf devoriga chiqadi."},
+    {t:"Uch xato — uchalasi ham tanish", num:[
+      "Hamma ishni bitta chatdan so'rash. Natija past chiqadi, vaqt ko'p ketadi, keyin «AI yomon ekan» deysan.",
+      "Faylni bo'lak-bo'lak ko'chirib tashlash. 20 betlik PDF'ni qismlarga bo'lsang, ma'no yo'qoladi — faylning o'zini qabul qiladigan vositaga ber.",
+      "Chegarani bilmay pul to'lash. Avval bepulida qilib ko'r; yetmasa, aynan nimaga yetmaganini bil, keyin to'la."]},
+    {t:"Uch qadam — har safar shu", num:[
+      "Ishni bir jumlada ayt: «Prezentatsiyaga muqova rasmi kerak».",
+      "Natija qanday ko'rinishda bo'lishi kerak? Matnmi, rasmmi, ovozmi, fayldan javobmi?",
+      "O'sha turdagi vositani och. Agar u matn chati bo'lsa — 7-darsdagi to'rt qism bilan vazifa ber."]},
+    {t:"Yodda tut", big:"AI — bitta narsa emas.\nU bir qutida yotgan asboblar.",
+     d:"Usta asbobni ishga qarab tanlaydi. Shogird bitta asbob bilan hamma ishni qilmoqchi bo'ladi — va charchaydi."}],
+  duel:[
+    {q:"Prezentatsiyaga muqova rasmi kerak. Qaysi asbob?",
+     a:["Matn chati","Rasm yasovchi","Ovoz vositasi","Hujjat vositasi"],c:1,
+     w:"Ishni ayt → tur tanla. Matn chatidan rasm so'rash — mixni arra bilan urish."},
+    {q:"20 betlik PDF'dan asosiy fikrni olish kerak. Qaysi asbob?",
+     a:["Rasm yasovchi","Ovoz vositasi","Hujjat bilan ishlaydigani","Video vositasi"],c:2,
+     w:"Fayl qabul qiladigan vosita butun hujjatni ko'radi. Bo'lak-bo'lak ko'chirsang, ma'no yo'qoladi."},
+    {q:"Insho uchun uchta g'oya kerak. Qaysi asbob?",
+     a:["Matn chati","Rasm yasovchi","Video vositasi","Hujjat vositasi"],c:0,
+     w:"G'oya, tushuntirish, yozish — matn chatining o'z ishi. Bu yerda u eng kuchli."},
+    {q:"Video darsga o'zbekcha subtitr kerak. Qaysi asbob?",
+     a:["Matn chati","Hujjat vositasi","Rasm yasovchi","Video vositasi"],c:3,
+     w:"Video ichidagi ovozni vaqt bilan birga oladigan vosita kerak. Chat videoni ko'rmaydi."},
+    {q:"Uzun maqolani yo'lda quloqda eshitmoqchisan. Qaysi asbob?",
+     a:["Ovoz vositasi","Rasm yasovchi","Video vositasi","Matn chati"],c:0,
+     w:"Matnni ovozga o'giradigan vosita. Chatdan «o'qib ber» deb so'rasang, u matn qaytaradi."},
+    {q:"Ustoz aytganlarini darsda yozib olmoqchisan. Qaysi asbob?",
+     a:["Rasm yasovchi","Ovoz vositasi","Hujjat vositasi","Video vositasi"],c:1,
+     w:"Bu safar teskari yo'nalish: ovozni matnga o'giradigan vosita."},
+    {q:"Imtihon natijalari jadval faylda. Eng past ball kimda — bilmoqching. Qaysi asbob?",
+     a:["Matn chati","Rasm yasovchi","Video vositasi","Hujjat va jadval bilan ishlaydigani"],c:3,
+     w:"Faylni o'zini beradigan vosita. Raqamlarni qo'lda ko'chirsang, xato qilasan."},
+    {q:"Matn chatidan rasm so'rading, chiqmadi. Nima bo'ldi?",
+     a:["AI buzilgan","Prompt noto'g'ri edi","Ish turiga mos kelmaydigan asbob tanlangan","Internet sekin"],c:2,
+     w:"Bu prompt masalasi emas. Tish shifokoridan oyoq davolashni so'rading."},
+    {q:"Hamma ishni bitta chatdan so'rashning asosiy zarari?",
+     a:["Qimmat bo'ladi","Natija pasayadi va vaqt ko'p ketadi","Internet sekinlashadi","Hech qanday zarari yo'q"],c:1,
+     w:"Noto'g'ri asbob — ko'p urinish, past natija, va oxirida bekorga «AI yomon» degan xulosa."},
+    {q:"Yangi ish oldingda. Birinchi navbatda nima qilasan?",
+     a:["Doim ishlatadigan chatni ochaman","Avval ishni bir jumlada aytaman, keyin asbob tanlayman",
+        "Eng qimmat vositani tanlayman","Do'stimdan qaysi AI yaxshiligini so'rayman"],c:1,
+     w:"Tartib shu: ish → natija turi → asbob. Teskarisi vaqt yo'qotadi."}]},
+
+{ n:9, t:"AI darsingni qilib bersa, kim o'sadi?",
+  learn:"Qayerda AI'ga topshirish mumkin, qayerda o'zing qilishing shart. Chegarani o'zing chizasan.",
+  where:"Eng noqulay dars. Lekin besh yildan keyin faqat shuni eslaysan.",
+  key:["Qoida: mashq qilayotgan ishingni AI'ga bermaysan.",
+       "Takroriy va mexanik ishni berish mumkin.",
+       "Chegarani o'zing yozib qo'ysang — har safar qaytadan o'ylamaysan."],
+  duel:[
+    {q:"Ertaga matematika imtihoni. AI masalani yechib berdi. Sen o'sdingmi?",
+     a:["Ha, javobni bildim","Yo'q — mashq qilish o'rniga natija oldim","Qisman","Baho muhim"],c:1,
+     w:"Mashq qilinayotgan ko'nikmani AI'ga berish — sport zaliga borib, shtangani boshqaga ko'tartirish."},
+    {q:"Qaysi ishni AI'ga berish mantiqan to'g'ri?",
+     a:["Insho yozish (bugun shuni o'rganyapsan)","100 ta manzilni jadvalga tartiblash","Do'stingga uzr xati","Kundalik yozish"],c:1,
+     w:"Mexanik, takroriy, ko'nikma bermaydigan ish — AI uchun ideal."},
+    {q:"Chegarani oldindan yozib qo'yishning foydasi?",
+     a:["Ustoz maqtaydi","Har safar qaytadan o'ylab, vasvasaga tushmaysan","Tezroq ishlaysan","Hech qanday"],c:1,
+     w:"Qaror charchoqda buziladi. Tinch paytda yozilgan qoida charchagan paytda ishlaydi."}]},
+
+{ n:10, t:"Deepfake, ma'lumot va \"AI do'stim\"",
+  learn:"Nimani hech qachon AI'ga yozmaslik kerakligini. Soxta video va ovozni qanday ajratishni. Nega AI bilan \"do'stlashish\" xavfli ekanini.",
+  where:"Internetda, har kuni. Bu darsni o'tkazib yuborganlar keyin muammoga tushadi.",
+  key:["Hech qachon: parol, karta raqami, manzil, pasport, oilaviy sir.",
+       "Soxta video belgilari: g'alati ko'z pirpirashi, quloq/soch chegarasi, lab bilan ovoz mos emasligi.",
+       "Ovoz ham qalbakilashtiriladi — telefonda pul so'ralsa, boshqa kanaldan tasdiqlat.",
+       "AI hamisha rozi bo'ladi. Rozi bo'lib turadigan narsa do'st emas."],
+  duel:[
+    {q:"Onangning ovozida qo'ng'iroq: \"tez pul yubor\". To'g'ri harakat?",
+     a:["Darhol yuboraman","Qo'ng'iroqni tugatib, o'zim uning raqamiga qo'ng'iroq qilaman","SMS yozaman","Ovozni tekshiraman"],c:1,
+     w:"Ovoz bir necha soniyalik yozuvdan qalbakilashtiriladi. Yagona ishonchli usul — boshqa kanaldan tasdiqlash."},
+    {q:"Qaysi ma'lumotni AI chatiga yozish mumkin?",
+     a:["Pasport raqami","Kartaning CVV kodi","Kimyodan uy vazifasi savoli","Uy manzili"],c:2,
+     w:"Suhbat saqlanishi mumkin. Shaxsiy raqam va manzil — hech qachon."},
+    {q:"\"AI meni tushunadi, u mening do'stim\" — xavfi nimada?",
+     a:["Xavfi yo'q","U doim rozi bo'ladi — sen tanqidsiz qolib, jonli odamdan uzoqlashasan","Qimmat","Sekin javob beradi"],c:1,
+     w:"Haqiqiy do'st \"noto'g'ri qilyapsan\" deya oladi. Doim rozi bo'ladigan ovoz — ko'zgu, do'st emas."}]},
+
+{ n:11, t:"Nega birovning bir soati 50 ming, birovniki 5 million?",
+  learn:"Ishning narxi nimadan kelib chiqishini. Nega AI ba'zi ishlarning narxini nolga tushirayotganini, ba'zilarini esa oshirayotganini.",
+  where:"Pul haqidagi birinchi jiddiy suhbating. Kelajakda qaysi ishni tanlashingga ta'sir qiladi.",
+  key:["Narx sarflangan vaqtdan emas — muammoning qiymatidan kelib chiqadi.",
+       "Osonlashgan ish arzonlashadi. AI nimani osonlashtirsa, o'sha arzonlashadi.",
+       "Javobgarlik, ishonch va tanlov qilish qimmatlashadi."],
+  duel:[
+    {q:"Ikki dizayner logo qildi: biri 2 soat, biri 2 kun. Nega narx teng bo'lishi mumkin?",
+     a:["Xato","Narx vaqtga emas, natija qiymatiga qarab belgilanadi","Biri aldayapti","Tasodif"],c:1,
+     w:"Mijoz vaqtni emas, natijani sotib oladi. Tez qilish — tajriba belgisi, arzonlik sababi emas."},
+    {q:"AI tufayli qaysi ish ARZONLASHADI?",
+     a:["Oddiy matnni tarjima qilish","Jamoani boshqarish","Mijoz bilan muzokara","Javobgarlikni o'z zimmasiga olish"],c:0,
+     w:"Takrorlanadigan, qoidasi aniq ish arzonlashadi. Odam bilan ishlash va javobgarlik qimmatlashadi."},
+    {q:"Nima qimmatlashmoqda?",
+     a:["Tez yozish","To'g'ri savol qo'yish va qaror uchun javobgarlik","Ko'p ishlash","Ko'chirish"],c:1,
+     w:"AI javob beradi, lekin savolni qo'yish va qarorni ko'tarish odamda qoladi."}]},
+
+{ n:12, t:"Besh yildan keyin qaysi ish qoladi?",
+  learn:"Qaysi kasblar o'zgarishini va bugundan nima yig'a boshlashing kerakligini.",
+  where:"11-sinfda \"endi nima qilaman?\" degan savol oldida yolg'iz qolmaysan.",
+  key:["Kasb yo'qolmaydi — uning bir qismi yo'qoladi.",
+       "Bugundan yig'iladigan narsa: portfel, ko'rsatib beriladigan ish, odamlar bilan aloqa.",
+       "Diplom emas, ko'rsata oladigan ishing gapiradi."],
+  duel:[
+    {q:"\"Bu kasb yo'qoladi\" degan gap odatda nimani anglatadi?",
+     a:["Kasb butunlay tugaydi","Kasbning takroriy qismi avtomatlashadi","Hech narsa","Maosh oshadi"],c:1,
+     w:"Bankomat kassirni yo'qotmadi — kassirning ishini o'zgartirdi. Qism yo'qoladi, kasb qoladi."},
+    {q:"Bugundan yig'ish eng foydali narsa qaysi?",
+     a:["Sertifikatlar to'plami","Ko'rsata oladigan tugallangan ishlar","Obunachilar soni","Yoqtirishlar"],c:1,
+     w:"13-darsda aynan shuni himoya qilasan. Tugallangan ish — eng kuchli dalil."},
+    {q:"Qaysi ko'nikma eng uzoq saqlanadi?",
+     a:["Bitta dasturni yodlash","O'rganishni bilish","Tez yozish","Yodlash"],c:1,
+     w:"Asboblar almashadi. Yangi asbobni tez o'rganish ko'nikmasi qoladi."}]},
+
+{ n:13, t:"Himoya kuni",
+  learn:"O'z ishingni begona odamga tushuntirishni.",
+  where:"Loyihang tugagan bo'ladi, o'z qismingni ota-onang va mehmonlar oldida himoya qilasan.",
+  key:["Tuzilma: muammo → nega arziydi → nima qildik → men nima qildim → nima o'rgandim.",
+       "Jurnalingdagi qarorlar — gapiradigan materialing.",
+       "\"Bilmayman\" deyish mumkin. To'qish mumkin emas — 5-darsni esla."],
+  duel:[
+    {q:"Mehmon \"buni AI yozganmi?\" deb so'radi. Eng kuchli javob?",
+     a:["Yo'q, o'zim","Mana jurnalim — har bir qaror qachon va nega qabul qilinganini ko'rsataman","Bilmayman","Savolni o'zgartiraman"],c:1,
+     w:"Jurnal — dalil. Shuning uchun 13 dars davomida har darsda yozdik."},
+    {q:"Javobini bilmaydigan savol berildi. To'g'risi?",
+     a:["To'qib javob beraman","\"Bilmayman, lekin qanday tekshirishimni aytaman\"","Jim turaman","Mavzuni o'zgartiraman"],c:1,
+     w:"Bu kursning butun mazmuni shu bitta javobda: bilmaslikni tan olib, tekshirish yo'lini bilish."},
+    {q:"Himoyada birinchi navbatda nima aytiladi?",
+     a:["Ishlatilgan texnologiyalar","Muammo va nega u arziydi","Guruh a'zolari","Rahmat"],c:1,
+     w:"Odam avval \"nega\"ni tushunmasa, \"nima\"ni eshitmaydi."}]}
+]};
+
+const HUNTS = [
+ {topic:"Tarix", s:["Amir Temur 1336-yilda Shahrisabz yaqinida tug'ilgan.",
+   "U 1370-yilda Movarounnahr hukmdori bo'ldi.",
+   "Unga nisbat berilgan mashhur asar — «Temur tuzuklari».",
+   "Temur 1405-yilda Xitoyga yurish paytida O'tror shahrida vafot etgan.",
+   "Samarqanddagi Ulug'bek madrasasini Temurning o'zi qurdirgan."],
+  lie:4, w:"Ulug'bek madrasasi Temurdan keyin, uning nabirasi Ulug'bek davrida qurilgan. AI ishonchli ohangda ism va davrni aralashtirib yuboradi."},
+ {topic:"Matematika", s:["Doiraning yuzi πr² formulasi bilan topiladi.",
+   "π taxminan 3,14159 ga teng.",
+   "Uchburchak burchaklari yig'indisi 180 gradus.",
+   "Har qanday tub son toq sondir."],
+  lie:3, w:"2 — tub son, lekin juft. Bitta istisno butun qoidani buzadi; AI \"chiroyli\" umumlashmani yaxshi ko'radi."},
+ {topic:"Biologiya", s:["Voyaga yetgan inson tanasida 206 ta suyak bor.",
+   "Yurak to'rtta kameradan iborat.",
+   "Qonning qizil rangi gemoglobindagi temir tufayli.",
+   "Inson miyasining atigi 10 foizi ishlaydi."],
+  lie:3, w:"\"Miyaning 10%\" — keng tarqalgan afsona. AI internetda ko'p uchragan gapni ham ishonch bilan takrorlaydi."},
+ {topic:"Adabiyot", s:["Alisher Navoiy 1441-yilda Hirotda tug'ilgan.",
+   "«Xamsa» beshta dostondan iborat.",
+   "«Farhod va Shirin» — «Xamsa» dostonlaridan biri.",
+   "Navoiy «Boburnoma» asarining muallifi hisoblanadi."],
+  lie:3, w:"«Boburnoma» muallifi — Zahiriddin Muhammad Bobur. Mashhur ikki ismni bir-biriga ulash — AI'ning tipik xatosi."},
+ {topic:"Geografiya", s:["O'zbekiston Markaziy Osiyoda joylashgan.",
+   "Poytaxti — Toshkent.",
+   "O'zbekiston beshta davlat bilan chegaradosh.",
+   "O'zbekistonning Kaspiy dengiziga chiqish yo'li bor."],
+  lie:3, w:"O'zbekiston dengizga chiqish yo'liga ega emas — qo'shnilari ham quruqlik bilan o'ralgan. AI \"mantiqan mos\" tuyulgan jumlani qo'shib yuboradi."},
+ {topic:"Texnologiya", s:["Birinchi dasturchi sifatida Ada Lavleys tilga olinadi.",
+   "Internetning ajdodi ARPANET 1969-yilda ishga tushgan.",
+   "Google 1998-yilda tashkil etilgan.",
+   "HTML — dasturlash tili."],
+  lie:3, w:"HTML — belgilash (markup) tili, unda shart va sikl yo'q. Yaqin atamalarni almashtirish — AI xatosining eng ko'p uchraydigan turi."},
+ {topic:"Sun'iy intellekt", s:["Til modellari keyingi so'zni ehtimol bo'yicha tanlaydi.",
+   "Shuning uchun bir savolga har safar biroz boshqacha javob kelishi mumkin.",
+   "Modelning kontekst xotirasi cheklangan.",
+   "Til modeli har bir javobdan oldin internetni tekshirib chiqadi."],
+  lie:3, w:"Maxsus qidiruv ulanmagan bo'lsa, model internetga qaramaydi — xotirasidagi naqshlardan yozadi."}
+];
+
+const LEVELS = [
+ {p:0,   n:"Yangi"},      {p:60,  n:"Kuzatuvchi"}, {p:150, n:"Savol beruvchi"},
+ {p:280, n:"Tekshiruvchi"},{p:450, n:"Ovchi"},      {p:650, n:"Vazifa qo'yuvchi"},
+ {p:900, n:"Usta"},        {p:1200,n:"Muallif"},    {p:1600,n:"Himoyachi"},
+ {p:2100,n:"Oskar"}
+];
+function levelOf(p){let i=0;for(let k=0;k<LEVELS.length;k++)if(p>=LEVELS[k].p)i=k;
+  return {i:i+1,name:LEVELS[i].n,cur:LEVELS[i].p,next:LEVELS[i+1]?LEVELS[i+1].p:null};}
+
+/* ---------------------------------------------------------------------
+   QIYMAT O'YINI (7-dars)
+   Har muammo: [matn, PUL, FOYDA] — ikkovi ham 1..5.
+   PUL   = buni yechgan odam qancha pul topadi (bozorda qancha turadi)
+   FOYDA = nechta odamga qancha yaxshilik qiladi
+   Ikkovi ataylab alohida: ko'pincha ular mos kelmaydi va darsning
+   asosiy fikri aynan shu. Har sohada ataylab mayda muammolar ham bor.
+   --------------------------------------------------------------------- */
+const VALUE = [
+ {id:"talim", t:"Ta'lim", p:[
+  ["Qishloq maktabida fizika o'qituvchisi yo'q",3,5],
+  ["Kasb tanlashda bolaga hech kim yo'l ko'rsatmaydi",4,5],
+  ["Imtihonga tayyorgarlik uchun repetitor juda qimmat",5,4],
+  ["Bolalar ingliz tilini yozadi, lekin gapira olmaydi",5,4],
+  ["Nogiron bola maktabga bora olmaydi",2,5],
+  ["O'quvchi darsni tushunmay qoldi, so'rashga uyaladi",2,4],
+  ["Ota-ona bolasining bahosini vaqtida bilmaydi",2,3],
+  ["Maktab kutubxonasidagi kitoblar eskirgan",1,3],
+  ["Dars jadvali qog'ozda — o'zgarsa hamma bilmay qoladi",1,2],
+  ["Doska markeri tez tugaydi",1,1]]},
+ {id:"soglik", t:"Sog'liq", p:[
+  ["Dori haqiqiymi yoki soxtami — bilib bo'lmaydi",4,5],
+  ["Qishloqqa shifokor haftada bir kun keladi",3,5],
+  ["Kasalxonagacha yo'l uzoq, tez yordam kech yetadi",3,5],
+  ["Ruhiy holat haqida gapirishdan uyalishadi",2,5],
+  ["Tish shifokori qimmat — shuning uchun kech boriladi",4,4],
+  ["Ko'zi xiralashganini bola o'zi sezmaydi",2,4],
+  ["Sport zali yo'q, bolalar kun bo'yi o'tiradi",2,4],
+  ["Shifokor oldida navbatda uzoq turiladi",3,3],
+  ["Qariyalar dorini qachon ichishni unutadi",2,3],
+  ["Kasalxonada navbat raqami eshitilmaydi",1,1]]},
+ {id:"suv", t:"Suv va tabiat", p:[
+  ["Sug'orish suvi behuda oqib ketadi",4,5],
+  ["Ichimlik suvi hamma uyga yetib bormaydi",3,5],
+  ["Havo changli — bolalar yo'taladi",2,5],
+  ["Plastik butilkalar qayta ishlanmaydi",3,4],
+  ["Chiqindi ko'chaga tashlanadi",2,4],
+  ["Daraxt kesiladi, o'rniga ekilmaydi",1,4],
+  ["Yomg'ir suvi yig'ilmay ketadi",2,3],
+  ["Ariq tozalanmagan, suv sekin oqadi",1,3],
+  ["Ko'chada axlat qutisi kam",1,2],
+  ["Hovlida chivin ko'p",1,1]]},
+ {id:"dehqon", t:"Dehqonchilik", p:[
+  ["Hosilni arzonga oladigan vositachi ko'p",5,5],
+  ["Sabzavot saqlashga joy yo'q — chiriydi",5,5],
+  ["Hosil kasalligini kech payqashadi",4,5],
+  ["Urug' sifatsiz chiqadi, bilib bo'lmaydi",4,4],
+  ["Qachon sug'orishni dehqon taxmin bilan hal qiladi",4,4],
+  ["Ob-havo bashorati aniq emas",3,4],
+  ["Traktor ijaraga olish qiyin",3,3],
+  ["Sut sotish narxi tushib ketgan",3,3],
+  ["Tovuqlar kam tuxum qo'yayotganini payqamaydi",1,1],
+  ["Dala chetida begona o't ko'p",1,1]]},
+ {id:"yol", t:"Transport va yo'l", p:[
+  ["Maktab oldida piyodalar o'tish joyi yo'q",1,5],
+  ["Maktab avtobusi yo'q — bolalar piyoda yuradi",2,5],
+  ["Yo'lda chiroq yo'q, kechasi xavfli",2,5],
+  ["Qishloqdan shaharga transport kam",4,4],
+  ["Yo'l chuqur — mashina tez buziladi",3,4],
+  ["Taksi narxi kelishuv bilan, aldashadi",3,3],
+  ["Avtobus qachon kelishini hech kim bilmaydi",3,3],
+  ["Velosiped uchun xavfsiz yo'l yo'q",2,3],
+  ["Avtobusda o'tirgani joy topilmaydi",1,2],
+  ["Mashinaga to'xtash joyi topilmaydi",1,1]]},
+ {id:"savdo", t:"Savdo va kichik biznes", p:[
+  ["Hunarmand mahsulotini faqat mahallaga sotadi",5,4],
+  ["Onlayn to'lovni hamma bilmaydi",4,4],
+  ["Kichik do'kon hisobni daftarda yuritadi — adashadi",4,3],
+  ["Mijoz qachon kelishi noma'lum, mol qolib ketadi",4,3],
+  ["Reklamaga pul ketadi, natija ko'rinmaydi",4,3],
+  ["Yetkazib berish qimmat, kichik buyurtma foyda bermaydi",4,3],
+  ["Narxni raqobatchi bilan solishtirib bo'lmaydi",3,3],
+  ["Qarzga berilgan pulni eslab qolish qiyin",2,2],
+  ["Do'kon vitrinasi chang bosadi",1,1],
+  ["Chek qog'ozi tez tugaydi",1,1]]},
+ {id:"uy", t:"Uy va kundalik hayot", p:[
+  ["Qishda uy sovuq, isitish qimmat",4,5],
+  ["Elektr tez-tez o'chadi",3,5],
+  ["Gaz bosimi past — ovqat pishmaydi",3,4],
+  ["Eski uskunalar ko'p elektr yeydi",3,3],
+  ["Kommunal to'lovni qayerdan to'lashni bilmaydi",2,3],
+  ["Non tez qotadi va tashlanadi",2,2],
+  ["Kiyim yamashni bilmaydi — tashlab yuboradi",1,2],
+  ["Uyda tinch o'qiydigan joy yo'q",1,2],
+  ["Kalit tez-tez yo'qoladi",1,1],
+  ["Televizor pulti yo'qoladi",1,1]]},
+ {id:"ish", t:"Ish va kasb", p:[
+  ["Diplom bor, ko'nikma yo'q",5,5],
+  ["Ish topish uchun tanish kerak",4,5],
+  ["Yoshlar qanday kasblar borligini bilmaydi",4,5],
+  ["Ayollar uyda o'tiradi, daromadi yo'q",4,5],
+  ["Ota-ona chet elda — bola qarovsiz",2,5],
+  ["Ish haqi kechiktiriladi",2,4],
+  ["Rezyume yozishni bilmaydi",2,3],
+  ["Suhbatdan qo'rqadi",2,3],
+  ["Ishga kechikib qoladi",1,1],
+  ["Ish joyida choy tugab qoladi",1,1]]},
+ {id:"internet", t:"Internet va xavfsizlik", p:[
+  ["Kartadan pul o'g'irlanadi",5,5],
+  ["Firibgarlar telefon qilib pul undiradi",4,5],
+  ["Bolalar internetda zararli narsa ko'radi",3,5],
+  ["Yolg'on yangilik tez tarqaladi",2,5],
+  ["Qishloqda internet sekin",4,4],
+  ["Parolni hamma joyda bir xil qo'yadi",3,4],
+  ["Telefondagi suratlar yo'qolib ketadi",2,2],
+  ["Internet trafigi tez tugaydi",2,2],
+  ["Wi-Fi parolini unutib qo'yadi",1,1],
+  ["Telefon zaryadi tez tugaydi",1,1]]},
+ {id:"mahalla", t:"Mahalla va jamoat", p:[
+  ["To'y xarajati oilani qarzga botiradi",4,5],
+  ["Qariyaga yordam kerak — kim borishini hech kim bilmaydi",1,5],
+  ["Ko'mak kerak oilalarni aniqlash qiyin",2,5],
+  ["Mahalla muammosini kimga aytishni bilmaydi",2,4],
+  ["Bolalar o'ynaydigan joy yo'q",2,4],
+  ["Ko'chada it ko'payib ketgan",1,3],
+  ["Yangi kelganlar hech kimni tanimaydi",1,2],
+  ["Mahalla yig'inidan hamma xabar topmaydi",1,2],
+  ["Mahalla e'lonlar doskasi eskirgan",1,1],
+  ["Ko'chada skameyka kam",1,1]]}
+];
+const VAL_PAIRS = 6;      /* nechta juft savol */
+const VAL_PTS   = 20;     /* o'yin uchun jami ball */
+
+/* ---------------------------------------------------------------------
+   3) PLATFORMA: Telegram Mini App / oddiy brauzer
+   --------------------------------------------------------------------- */
+const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined)
+  ? window.Telegram.WebApp : null;
+const IN_TG = !!(TG && TG.initDataUnsafe && TG.initDataUnsafe.user);
+
+if (TG) { try { TG.ready(); TG.expand(); TG.setHeaderColor && TG.setHeaderColor("#0f2a43"); } catch(e){} }
+
+const Bio = {
+  kind: "yo'q",
+  async init(){
+    if (TG && TG.BiometricManager && TG.BiometricManager.init){
+      await new Promise(r=>{ try{ TG.BiometricManager.init(r); }catch(e){ r(); } });
+      if (TG.BiometricManager.isBiometricAvailable){
+        this.kind = TG.BiometricManager.biometricType === "face" ? "Face ID" : "Barmoq izi";
+        return "tg";
+      }
+    }
+    if (window.PublicKeyCredential && location.protocol === "https:"){
+      try{
+        if (await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()){
+          this.kind = "Face ID / barmoq izi"; return "webauthn";
+        }
+      }catch(e){}
+    }
+    return null;
+  },
+  /* Qurilma egasini tasdiqlash. true = shu telefon egasi tasdiqladi. */
+  async verify(reason){
+    const t = await this.init();
+    if (t === "tg"){
+      const bm = TG.BiometricManager;
+      if (!bm.isAccessGranted){
+        const ok = await new Promise(r=>bm.requestAccess({reason}, r));
+        if (!ok) return false;
+      }
+      return await new Promise(r=>bm.authenticate({reason}, ok=>r(!!ok)));
+    }
+    if (t === "webauthn") return await webauthn();
+    return true; /* qurilma qo'llamasa — to'sib qo'ymaymiz */
+  }
+};
+
+async function webauthn(){
+  const KEY = "sinf:wa:" + (S.code||"") ;
+  const saved = localStorage.getItem(KEY);
+  const rnd = n => { const a=new Uint8Array(n); crypto.getRandomValues(a); return a; };
+  try{
+    if (!saved){
+      const c = await navigator.credentials.create({publicKey:{
+        challenge: rnd(32),
+        rp:{name:"AI Kursi"},
+        user:{id: rnd(16), name: (S.me&&S.me.name)||"o'quvchi", displayName:(S.me&&S.me.name)||"o'quvchi"},
+        pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+        authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"preferred"},
+        timeout:60000
+      }});
+      if(!c) return false;
+      localStorage.setItem(KEY, btoa(String.fromCharCode(...new Uint8Array(c.rawId))));
+      return true;
+    }
+    const id = Uint8Array.from(atob(saved), ch=>ch.charCodeAt(0));
+    const a = await navigator.credentials.get({publicKey:{
+      challenge: rnd(32), allowCredentials:[{type:"public-key",id}],
+      userVerification:"required", timeout:60000
+    }});
+    return !!a;
+  }catch(e){ return false; }
+}
+
+/* ---------------------------------------------------------------------
+   4) SAQLASH QATLAMI — bulut (Firebase) yoki mahalliy
+   --------------------------------------------------------------------- */
+let DB = null;
+
+const LocalDB = {
+  mode:"local",
+  bc: ("BroadcastChannel" in window) ? new BroadcastChannel("sinf") : null,
+  subs: [],
+  k(p){ return "sinf:" + p; },
+  get(p,d){ try{ return JSON.parse(localStorage.getItem(this.k(p))) ?? d; }catch(e){ return d; } },
+  set(p,v){ localStorage.setItem(this.k(p), JSON.stringify(v)); this.ping(p); },
+  ping(p){ if(this.bc) this.bc.postMessage(p); this.subs.forEach(f=>f(p)); },
+  start(){ if(this.bc) this.bc.onmessage = e => this.subs.forEach(f=>f(e.data));
+           window.addEventListener("storage", e => { if(e.key&&e.key.startsWith("sinf:")) this.subs.forEach(f=>f(e.key.slice(5))); }); },
+  sub(path, run){ const f = p => { if (p===path) run(); };
+    this.subs.push(f); run(); return ()=>{ this.subs = this.subs.filter(x=>x!==f); }; },
+  on(path, cb){ return this.sub(path, ()=>cb(this.get(path,null))); },
+  onList(path, cb){ return this.sub(path, ()=>cb(Object.values(this.get(path,{})))); },
+
+  async auth(){ let u=localStorage.getItem("sinf:uid");
+    if(!u){ u = IN_TG ? ("tg"+TG.initDataUnsafe.user.id) : ("u"+Math.random().toString(36).slice(2,10));
+      localStorage.setItem("sinf:uid",u);} return u; },
+  async getClass(c){ const d=this.get(`c/${c}`,null); if(!d) return null; const {pin,...pub}=d; return pub; },
+  async saveClass(c,d){ const cur=this.get(`c/${c}`,{})||{}; this.set(`c/${c}`,{...cur,...d}); },
+  async createClass(c,d,pin,key){
+    const adm=localStorage.getItem("sinf:admin");
+    if(adm==null) localStorage.setItem("sinf:admin",key);     /* birinchi marta — kalit belgilanadi */
+    else if(adm!==key) return false;
+    this.set(`c/${c}`,{...d,pin}); return true; },
+  async teacherLogin(c,pin){ const d=this.get(`c/${c}`,null); return !!d && String(d.pin)===String(pin); },
+  async setProfile(c,uid,d){ const all=this.get(`c/${c}/pr`,{}); all[uid]={...(all[uid]||{}),...d,uid}; this.set(`c/${c}/pr`,all); },
+  async delStudent(c,sid){
+    const st=this.get(`c/${c}/st`,{}); delete st[sid]; this.set(`c/${c}/st`,st);
+    const pr=this.get(`c/${c}/pr`,{}); delete pr[sid]; this.set(`c/${c}/pr`,pr);
+    localStorage.removeItem(this.k(`c/${c}/e/${sid}`)); },
+  async hasImport(c,id){ return !!this.get(`c/${c}/imp`,{})[id]; },
+  async addImport(c,id,meta){ const all=this.get(`c/${c}/imp`,{}); all[id]={...meta,id}; this.set(`c/${c}/imp`,all); },
+  async addTask(c,t){ const all=this.get(`c/${c}/tk`,{}); const id="t"+Date.now().toString(36);
+    all[id]={...t,id}; this.set(`c/${c}/tk`,all); },
+  async delTask(c,id){ const all=this.get(`c/${c}/tk`,{}); delete all[id]; this.set(`c/${c}/tk`,all); },
+  watchTasks(c,cb){ return this.onList(`c/${c}/tk`,cb); },
+  async teacherResetPin(c,key,pin){
+    if(localStorage.getItem("sinf:admin")!==key) return false;
+    const d=this.get(`c/${c}`,null); if(!d) return false;
+    this.set(`c/${c}`,{...d,pin}); return true; },
+  watchProfiles(c,cb){ return this.sub(`c/${c}/pr`, ()=>cb(this.get(`c/${c}/pr`,{}))); },
+  async listStudents(c){ return Object.values(this.get(`c/${c}/st`,{})); },
+  watchMyProfile(c,uid,cb){ return this.sub(`c/${c}/pr`, ()=>cb((this.get(`c/${c}/pr`,{})||{})[uid]||null)); },
+  watchClass(c,cb){ return this.on(`c/${c}`,cb); },
+  watchStudents(c,cb){ return this.onList(`c/${c}/st`,cb); },
+  async setStudent(c,uid,d){ const all=this.get(`c/${c}/st`,{}); all[uid]={...(all[uid]||{}),...d,uid}; this.set(`c/${c}/st`,all); },
+  async bumpPoints(c,uid,n,wk){ const all=this.get(`c/${c}/st`,{}); const s=all[uid]||{uid};
+    s.pts=(s.pts||0)+n; s.wkPts=(s.wk===wk?(s.wkPts||0):0)+n; s.wk=wk; all[uid]=s; this.set(`c/${c}/st`,all); },
+  watchEntries(c,uid,cb){ return this.onList(`c/${c}/e/${uid}`,cb); },
+  async addEntry(c,uid,e){ const all=this.get(`c/${c}/e/${uid}`,{}); const id="e"+Date.now()+Math.random().toString(36).slice(2,6);
+    all[id]={...e,id}; this.set(`c/${c}/e/${uid}`,all); },
+  async setLive(c,l){ this.set(`c/${c}/live`,l); },
+  watchLive(c,cb){ return this.on(`c/${c}/live`,cb); },
+  async setAnswer(c,key,uid,d){ const all=this.get(`c/${c}/a/${key}`,{}); all[uid]={...d,uid}; this.set(`c/${c}/a/${key}`,all); },
+  watchAnswers(c,key,cb){ return this.onList(`c/${c}/a/${key}`,cb); }
+};
+/* Sinf hujjatida PIN yo'q (hamma o'qiydi). PIN faqat private/auth da, uni
+   faqat muallim o'qiydi; muallim bo'lish = to'g'ri PIN bilan teachers/{uid}
+   hujjatini yasash — buni Firestore qoidalari tekshiradi. */
+
+async function makeCloudDB(cfg){
+  const A = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+  const U = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+  const F = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+  const app = A.initializeApp(cfg);
+  const auth = U.getAuth(app);
+  const fs = F.getFirestore(app);
+  const {doc,setDoc,getDoc,updateDoc,onSnapshot,collection,increment,serverTimestamp} = F;
+  const D = (...p)=>doc(fs,...p), C = (...p)=>collection(fs,...p);
+  return {
+    mode:"cloud", fs, F,
+    async auth(){ if(!auth.currentUser) await U.signInAnonymously(auth); return auth.currentUser.uid; },
+    async getClass(c){ const s=await getDoc(D("classes",c)); return s.exists()?s.data():null; },
+    async saveClass(c,d){ await setDoc(D("classes",c), d, {merge:true}); },
+    async createClass(c,d,pin,key){
+      const me = auth.currentUser.uid;
+      /* 1) bosh kalit: birinchi marta yasaladi, keyin faqat mos kelishi tekshiriladi.
+            config/admin ni mijoz o'qiy olmaydi — qoidalar get() bilan solishtiradi. */
+      try { await setDoc(D("config","admin"), {key:String(key), by:me, at:serverTimestamp()}); } catch(e){}
+      /* 2) private/auth — kalit mos kelmasa qoidalar rad etadi */
+      try { await setDoc(D("classes",c,"private","auth"), {pin:String(pin), key:String(key), owner:me}); }
+      catch(e){ return false; }
+      /* 3) sinf hujjati faqat private/auth egasi tomonidan */
+      await setDoc(D("classes",c), d);
+      await setDoc(D("classes",c,"teachers",me), {pin:String(pin), at:serverTimestamp()});
+      return true;   /* bosh kalit private/auth da qoladi — PIN ni tiklash uchun; uni faqat muallim o'qiydi */
+    },
+    async teacherLogin(c,pin){
+      try { await setDoc(D("classes",c,"teachers",auth.currentUser.uid), {pin:String(pin), at:serverTimestamp()}); return true; }
+      catch(e){ return false; }          /* qoidalar rad etdi = PIN noto'g'ri */
+    },
+    async setProfile(c,uid,d){ await setDoc(D("classes",c,"profiles",uid), {...d,uid}, {merge:true}); },
+    async delStudent(c,sid){
+      await F.deleteDoc(D("classes",c,"students",sid)).catch(()=>{});
+      await F.deleteDoc(D("classes",c,"profiles",sid)).catch(()=>{}); },
+    async hasImport(c,id){ return (await getDoc(D("classes",c,"imports",id))).exists(); },
+    async addImport(c,id,meta){ await setDoc(D("classes",c,"imports",id), {...meta, ts:serverTimestamp()}); },
+    async addTask(c,t){ await setDoc(D("classes",c,"tasks","t"+Date.now().toString(36)), {...t, ts:serverTimestamp()}); },
+    async delTask(c,id){ await F.deleteDoc(D("classes",c,"tasks",id)); },
+    watchTasks(c,cb){ return onSnapshot(C("classes",c,"tasks"), q=>cb(q.docs.map(d=>({...d.data(),id:d.id})))); },
+    async teacherResetPin(c,key,pin){
+      try {
+        await setDoc(D("classes",c,"private","auth"), {pin:String(pin), key:String(key)}, {merge:true});
+        return await this.teacherLogin(c,pin);
+      } catch(e){ return false; }
+    },
+    watchProfiles(c,cb){ return onSnapshot(C("classes",c,"profiles"), q=>{ const m={}; q.docs.forEach(d=>m[d.id]=d.data()); cb(m); }); },
+    async listStudents(c){ const q=await F.getDocs(C("classes",c,"students")); return q.docs.map(d=>({...d.data(),uid:d.id})); },
+    watchMyProfile(c,uid,cb){ return onSnapshot(D("classes",c,"profiles",uid), s=>cb(s.exists()?s.data():null)); },
+    watchClass(c,cb){ return onSnapshot(D("classes",c), s=>cb(s.exists()?s.data():null)); },
+    watchStudents(c,cb){ return onSnapshot(C("classes",c,"students"), q=>cb(q.docs.map(d=>({...d.data(),uid:d.id})))); },
+    async setStudent(c,uid,d){ await setDoc(D("classes",c,"students",uid), {...d,uid,seen:serverTimestamp()}, {merge:true}); },
+    async bumpPoints(c,uid,n,wk){
+      /* Ikkala hisoblagich ham atomik oshadi — bir vaqtda ikkita ball
+         tushsa ham (masalan vazifa va duel) biri yo'qolmaydi. */
+      const r=D("classes",c,"students",uid); const s=await getDoc(r);
+      const sameWeek = s.exists() && s.data().wk===wk;
+      await setDoc(r,{pts:increment(n), wk, wkPts: sameWeek?increment(n):n},{merge:true}); },
+    watchEntries(c,uid,cb){ return onSnapshot(C("classes",c,"students",uid,"entries"), q=>cb(q.docs.map(d=>({...d.data(),id:d.id})))); },
+    async addEntry(c,uid,e){ await setDoc(D("classes",c,"students",uid,"entries","e"+Date.now()+Math.random().toString(36).slice(2,6)),
+      {...e, ts:serverTimestamp()}); },
+    async setLive(c,l){ await setDoc(D("classes",c,"live","now"), l); },
+    watchLive(c,cb){ return onSnapshot(D("classes",c,"live","now"), s=>cb(s.exists()?s.data():null)); },
+    async setAnswer(c,key,uid,d){ await setDoc(D("classes",c,"answers",key,"votes",uid), {...d,uid,key}); },
+    watchAnswers(c,key,cb){ return onSnapshot(C("classes",c,"answers",key,"votes"), q=>cb(q.docs.map(d=>d.data()))); }
+  };
+}
+
+/* ---------------------------------------------------------------------
+   5) HOLAT VA YORDAMCHILAR
+   --------------------------------------------------------------------- */
+const S = {
+  screen:"boot", tab:"darslar", role:"", code:"",
+  uid:"",            /* qurilma (Firebase anonim kirish) */
+  sid:"",            /* hisob — o'quvchining doimiy identifikatori */
+  cls:null, me:null, students:[], entries:[], live:null,
+  lesson:null, imp:null, reg:{photo:null}, answered:null, teacherOk:false, unsub:[],
+  profiles:{}, myProfile:null, tasks:[], pendingSid:"", quiz:{scores:{},names:{}},
+  bd:0               /* muallim ko'rib turgan doska — 0 bo'lsa hozirgi ochiq dars */
+};
+const app = document.getElementById("app");
+const _svg = d => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const I = {
+  cap:   _svg("M12 3 1 9l11 6 9-4.9V17h2V9L12 3zm0 14.5-6-3.3V11l6 3.3 6-3.3v3.2l-6 3.3z"),
+  book:  _svg("M4 4h7v16H4zm9 0h7v16h-7zM6 7h3v1.5H6zm9 0h3v1.5h-3z"),
+  bolt:  _svg("M13 2 3 14h7l-1 8 10-12h-7l1-8z"),
+  trophy:_svg("M6 3h12v3h3v2a5 5 0 0 1-5 5h-.3a6 6 0 0 1-2.7 2v2h3v3H8v-3h3v-2a6 6 0 0 1-2.7-2H8a5 5 0 0 1-5-5V6h3V3zM5 8a3 3 0 0 0 3 3V8H5zm14 0h-3v3a3 3 0 0 0 3-3z"),
+  user:  _svg("M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0H4z"),
+  check: _svg("M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"),
+  game:  _svg("M6 8h12a4 4 0 0 1 4 4v3a3 3 0 0 1-5.6 1.5L15 15H9l-1.4 1.5A3 3 0 0 1 2 15v-3a4 4 0 0 1 4-4zm1 3v2H5v1h2v2h1v-2h2v-1H8v-2H7zm9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm2 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"),
+  list:  _svg("M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.7 0-6 1.3-6 4v2h8v-2c0-1 .4-2 1.2-2.8C10.3 13.5 9 13 8 13zm8 0c-2.7 0-6 1.3-6 4v2h12v-2c0-2.7-3.3-4-6-4z"),
+  flame: _svg("M12 2c1 3 4 5 4 9a4 4 0 0 1-8 0c0-1 .3-2 .8-2.8.2 1 .8 1.8 1.7 2A6 6 0 0 1 12 2z"),
+  target:_svg("M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"),
+  puzzle:_svg("M10 3a2 2 0 0 1 2 2v1h3a1 1 0 0 1 1 1v3h1a2 2 0 1 1 0 4h-1v3a1 1 0 0 1-1 1h-3v-1a2 2 0 1 0-4 0v1H5a1 1 0 0 1-1-1v-3h1a2 2 0 1 0 0-4H4V7a1 1 0 0 1 1-1h3V5a2 2 0 0 1 2-2z")
+};
+const streak = n => n ? ` · ${I.flame}${n}` : "";
+const ACT = {};
+const SES = {
+  get(k){ try{ return JSON.parse(localStorage.getItem("sinf:"+k)) || null; }catch(e){ return null; } },
+  set(k,v){ localStorage.setItem("sinf:"+k, JSON.stringify(v)); },
+  clear(k){ localStorage.removeItem("sinf:"+k); }
+};
+/* Ismlarni solishtirish uchun: katta-kichik harf, apostrof turlari va
+   ortiqcha bo'shliqlar farqi hisobga olinmaydi. */
+const normName = n => String(n||"").toLowerCase()
+  .replace(/[\u2018\u2019\u02bb\u02bc\u0060\u00b4']/g,"'")
+  .replace(/\s+/g," ").trim();
+const newSid = () => IN_TG ? ("tg"+TG.initDataUnsafe.user.id)
+                           : ("d"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4));
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const nl2br = s => esc(s).replace(/\n/g,"<br>");
+
+function h(html){
+  app.innerHTML = html;
+  app.querySelectorAll("[data-a]").forEach(n=>{
+    n.addEventListener("click", ev=>{
+      const f = ACT[n.dataset.a];
+      if (f) f(n, ev);
+    });
+  });
+}
+function toast(msg, bad){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = "toast show" + (bad?" bad":"");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.className="toast",2200);
+  if (TG && TG.HapticFeedback) { try{ TG.HapticFeedback.notificationOccurred(bad?"error":"success"); }catch(e){} }
+}
+function weekNo(){ const d=new Date(); const a=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+"-"+Math.ceil(((d-a)/86400000 + a.getDay()+1)/7); }
+function brand(sub){
+  return `<div class="brand"><div class="mark">${I.cap}</div><div>
+    <div class="eyebrow">O'quvchilar uchun</div>
+    <h1>AI kursi · 13 dars</h1>
+    ${sub?`<small>${esc(sub)}</small>`:""}</div></div>`;
+}
+const photoOf = uid => (S.profiles[uid]||{}).photo || "";
+const tgOf    = uid => (S.profiles[uid]||{}).tgUser || "";
+const openCount = () => (S.cls && S.cls.open) ? S.cls.open : 0;
+const isOpen  = n => n <= openCount();
+const lessonOf = n => COURSE.lessons.find(l=>l.n===n);
+/* Jonli o'yin ikki to'plamdan o'ynaydi: "duel" — dars savollari,
+   "rep" — takrorlash. Ikkalasining tuzilishi bir xil. */
+const qsOf = (n,set) => ((lessonOf(n)||{})[set==="rep"?"rep":"duel"]) || [];
+const doneIds = () => new Set(S.entries.map(e=>e.lesson+":"+e.task));
+function taskCount(lesson, task){ return S.entries.filter(e=>e.lesson===lesson && e.task===task).length; }
+function isDone(lesson, task){ return taskCount(lesson,task)>0; }
+
+/* ---------------------------------------------------------------------
+   6) KIRISH: rol tanlash → ro'yxatdan o'tish → tasdiqlash
+   --------------------------------------------------------------------- */
+function screenGate(){
+  const tgu = IN_TG ? TG.initDataUnsafe.user : null;
+  const L = COURSE.lessons;
+  const teaser = arr => `<ol class="teaser">${arr.map(x=>`<li><span>${x.n}</span>${esc(x.t)}</li>`).join("")}</ol>`;
+  h(`<div class="wrap">
+    <div class="topbar">
+      <div class="brand compact"><div class="mark">${I.cap}</div><b>AI kursi</b></div>
+      <button class="tlink" data-a="goTeacher">Muallim →</button>
+    </div>
+    <section class="hero">
+      <div class="eyebrow">O'quvchilar uchun · 13 dars</div>
+      <h1>AI'ni ishlatishni o'rganasan.<br>Lekin AI'ga o'ylashni topshirmaysan.</h1>
+      <p>Guruhing bitta loyiha quradi — har kim uning bir bo'lagining egasi bo'ladi. Oxirgi darsda uni ota-onang va mehmonlar oldida himoya qilasan.</p>
+      ${tgu ? `<p class="small">Salom, ${esc(tgu.first_name||"")}! Sen uchun joy tayyor.</p>` : ""}
+      <button class="btn big" data-a="goReg">Boshlash →</button>
+      <small>Sinf kodi · rasm · muallim tasdig'i — 1 daqiqa</small>
+      <button class="btn ghost" style="margin-top:12px" data-a="goLogin">Ro'yxatdan o'tganman — kirish</button>
+    </section>
+    <section class="feats">
+      <div class="feat"><i>${I.target}</i><b>Ball ishdan chiqadi</b><span>Muammo topding, vazifa yozding, AI yolg'onini ushlading — ball shu zahoti tushadi.</span></div>
+      <div class="feat"><i>${I.bolt}</i><b>Jonli duel</b><span>Har dars boshida 7 daqiqa. To'g'ri va tez javob — bonus.</span></div>
+      <div class="feat"><i>${I.puzzle}</i><b>Guruh loyihasi</b><span>Har darsda 15 daqiqa. Qarorlar jurnalga yoziladi — himoyada shundan gapirasan.</span></div>
+      <div class="feat"><i>${I.trophy}</i><b>Daraja va reyting</b><span>Har dushanba reyting noldan — har hafta yangi imkon.</span></div>
+    </section>
+    <section class="card flat"><h2>Daraja yo'li</h2>
+      <div class="lvls">${LEVELS.map(l=>`<b>${esc(l.n)}</b>`).join("")}</div></section>
+    <section class="card flat"><h2>13 dars</h2>
+      <small>1–6 · Fikrlash va birinchi qadamlar</small>${teaser(L.slice(0,6))}
+      <small>7–13 · Asbob, himoya va chiqish</small>${teaser(L.slice(6))}
+      <p class="small">Darslar muallim ochgan sari birin-ketin ochiladi.</p></section>
+    <section class="card"><h2>Bu kurs nima va'da qilmaydi</h2>
+      <p class="small">Darhol pul topish — buni ochiq aytamiz. Beradigan narsasi: tugallangan loyiha, portfolio va odamlar oldida chiqish tajribasi.</p>
+      <button class="btn" data-a="goReg">Boshlash</button>
+      <button class="btn ghost" style="margin-top:8px" data-a="goLogin">Kirish</button></section>
+  </div>`);
+}
+ACT.goReg = ()=>{ S.screen="reg"; render(); };
+ACT.goLogin = ()=>{ S.screen="login"; S.loginList=null; render(); };
+ACT.goTeacher = ()=>{ S.screen="tgate"; render(); };
+
+function screenLogin(){
+  const list = S.loginList;
+  h(`<div class="wrap">
+    ${brand("Kirish")}
+    ${!list ? `<div class="card">
+        <h2>Sinf kodi</h2>
+        <p class="small">Muallim aytgan kod. Ro'yxatdan o'tgan bo'lsang, ismingni ro'yxatdan topasan.</p>
+        <input id="l-code" class="field-code" maxlength="8" value="${esc(S.code||"")}" placeholder="AI13">
+        <button class="btn" style="margin-top:10px" data-a="loadClass">Davom etish</button></div>`
+    : list.length ? `<div class="card flat"><h2>${esc(S.code)} — ismingni top</h2>
+        <p class="small">Boshqa qurilmadan kirsang, muallim tasdiqlaydi.</p></div>
+      ${list.map(st=>`<div class="rank" data-a="pickMe" data-s="${esc(st.uid)}" style="cursor:pointer">
+        <div class="n">${esc((st.name||"?").trim()[0]||"?")}</div>
+        <div class="nm">${esc(st.name)}<div class="st">${esc(st.group||"")}</div></div>
+        <div class="st">${st.authUid===S.uid?"shu qurilma":""}</div></div>`).join("")}`
+    : `<div class="card"><h2>Bu sinfda hali hech kim yo'q</h2>
+        <p class="small">Avval ro'yxatdan o'tish kerak.</p>
+        <button class="btn" data-a="goReg">Ro'yxatdan o'tish</button></div>`}
+    <button class="btn ghost" data-a="back">Orqaga</button></div>`);
+}
+ACT.loadClass = async (btn)=>{
+  const c=(document.getElementById("l-code").value||"").toUpperCase().trim();
+  if(c.length<3) return toast("Sinf kodini kiriting",true);
+  btn.disabled=true; btn.textContent="Tekshirilmoqda...";
+  if(!(await DB.getClass(c))){ btn.disabled=false; btn.textContent="Davom etish"; return toast("Bunday sinf topilmadi",true); }
+  S.code=c; S.loginList=(await DB.listStudents(c)).filter(x=>x&&x.name);
+  render();
+};
+ACT.pickMe = async (n)=>{
+  const st=(S.loginList||[]).find(x=>x.uid===n.dataset.s); if(!st) return;
+  const myTg = IN_TG ? "tg"+TG.initDataUnsafe.user.id : "";
+  const mine = st.authUid===S.uid || (myTg && st.uid===myTg) || !st.authUid;
+  try {
+    if (mine) await DB.setStudent(S.code, st.uid, {authUid:S.uid, claimUid:""});
+    else      await DB.setStudent(S.code, st.uid, {claimUid:S.uid});
+  } catch(e){ return toast("Kirishda xato — muallimga ayting",true); }
+  S.sid=st.uid; S.role="student";
+  SES.set("stu",{code:S.code, sid:st.uid});
+  S.screen="app"; await attach(S.code);
+  toast(mine?"Xush kelibsan!":"So'rov yuborildi — muallim tasdiqlaydi");
+  render();
+};
+
+function screenDup(){
+  const d = S.reg.dupes||[];
+  h(`<div class="wrap">
+    ${brand("Bir daqiqa")}
+    <div class="card accent">
+      <h2>Shu ismda hisob bor</h2>
+      <p class="small">${esc(S.code)} sinfida <b>${esc(S.reg.name)}</b> allaqachon ro'yxatdan o'tgan.
+        Agar bu sen bo'lsang, yangi hisob ochma — ballaring yo'qoladi. Quyidan o'zingni tanla.</p>
+    </div>
+    ${d.map(st=>`<div class="rank" data-a="dupMine" data-s="${esc(st.uid)}" style="cursor:pointer">
+      <div class="n">${esc((st.name||"?").trim()[0]||"?")}</div>
+      <div class="nm">${esc(st.name)}<div class="st">${esc(st.group||"guruhsiz")} · ${st.pts||0} ball${st.ok?"":" · tasdiq kutmoqda"}</div></div>
+      <div class="st">bu men →</div></div>`).join("")}
+    <div class="card">
+      <h3>Bu men emasman</h3>
+      <p class="small">Sinfda xuddi shu ismli boshqa bola bo'lsa, yangi hisob ochamiz. Muallim ikkovingni rasmdan ajratadi.</p>
+      <button class="btn ghost" data-a="dupNew">Baribir yangi hisob ochish</button>
+    </div>
+    <button class="btn ghost" data-a="back">Orqaga</button>
+  </div>`);
+}
+ACT.dupMine = async (n)=>{
+  const st=(S.reg.dupes||[]).find(x=>x.uid===n.dataset.s); if(!st) return;
+  const myTg = IN_TG ? "tg"+TG.initDataUnsafe.user.id : "";
+  const mine = st.authUid===S.uid || (myTg && st.uid===myTg) || !st.authUid;
+  try {
+    if (mine) await DB.setStudent(S.code, st.uid, {authUid:S.uid, claimUid:""});
+    else      await DB.setStudent(S.code, st.uid, {claimUid:S.uid});
+  } catch(e){ return toast("Kirishda xato — muallimga ayting",true); }
+  S.sid=st.uid; S.role="student"; SES.set("stu",{code:S.code, sid:st.uid});
+  S.screen="app"; await attach(S.code);
+  toast(mine?"Xush kelibsan!":"So'rov yuborildi — muallim tasdiqlaydi");
+  render();
+};
+ACT.dupNew = ()=>{ S.reg.forceNew=true; S.screen="reg"; render();
+  setTimeout(()=>{ const b=document.querySelector('[data-a="doReg"]'); if(b) b.click(); }, 60); };
+
+function screenReg(){
+  const tgu = IN_TG ? TG.initDataUnsafe.user : null;
+  const nm = S.reg.name ?? (tgu ? ((tgu.first_name||"")+" "+(tgu.last_name||"")).trim() : "");
+  const okCode = (S.reg.code||S.code||"").length>=3, okName=(nm||"").trim().length>=4, okPhoto=!!S.reg.photo;
+  h(`<div class="wrap">
+    ${brand("Ro'yxatdan o'tish — 4 qadam")}
+
+    <div class="card step ${okCode?"ready":""}">
+      <h2><span class="num">${okCode?"✓":"1"}</span> Sinf kodi</h2>
+      <label>Muallim aytgan kodni yoz
+        <span class="hint">Masalan: OSCAR</span></label>
+      <input id="f-code" class="field-code" maxlength="8" value="${esc(S.reg.code||S.code||"")}" placeholder="OSCAR">
+    </div>
+
+    <div class="card step ${okName?"ready":""}">
+      <h2><span class="num">${okName?"✓":"2"}</span> Isming</h2>
+      <label>Familiya va ism
+        <span class="hint">Haqiqiy ismingni yoz — muallim shu ism bilan topadi</span></label>
+      <input id="f-name" value="${esc(nm)}" placeholder="Karimov Jasur">
+      <label>Loyiha guruhing
+        <span class="hint">Bilmasang «Hali yo'q» qoldir, keyin muallim aytadi</span></label>
+      <select id="f-group">
+        ${["","1-guruh","2-guruh","3-guruh","4-guruh","5-guruh","6-guruh"].map(g=>
+          `<option value="${g}" ${S.reg.group===g?"selected":""}>${g||"Hali yo'q"}</option>`).join("")}
+      </select>
+    </div>
+
+    <div class="card step ${okPhoto?"ready":""}">
+      <h2><span class="num">${okPhoto?"✓":"3"}</span> Rasmga tushish</h2>
+      <p class="small">Rasm faqat muallim seni tanishi uchun. Boshqa hech kim ko'rmaydi.</p>
+      ${S.reg.photo
+        ? `<img src="${esc(S.reg.photo)}" style="width:130px;height:130px;object-fit:cover;border-radius:18px;border:2px solid var(--ok);display:block;margin:10px auto">`
+        : `<div style="height:130px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border:1px dashed var(--line);border-radius:18px;margin:10px 0;color:var(--muted);font-size:.85rem">rasm hali yo'q</div>`}
+      <div class="btn-row">
+        <button class="btn ghost" data-a="cam">${S.reg.photo?"Qayta olish":"Kamera"}</button>
+        <button class="btn ghost" data-a="pick">Fayldan</button>
+      </div>
+      <input type="file" id="f-file" accept="image/*" capture="user" class="hide">
+    </div>
+
+    <div class="card step accent">
+      <h2><span class="num">4</span> Tugatish</h2>
+      <p class="small">Telefoning ${esc(Bio.kind==="yo'q"?"parolini":Bio.kind+"ni")} so'raydi — sening nomingdan boshqa hech kim kira olmaydi.
+        Keyin muallim tasdiqlaydi va darslar ochiladi.</p>
+      <button class="btn" data-a="doReg">Ro'yxatdan o'tish</button>
+    </div>
+    <button class="btn ghost" data-a="back">Orqaga</button>
+  </div>`);
+  const f = document.getElementById("f-file");
+  f.addEventListener("change", async e=>{
+    const file = e.target.files[0]; if(!file) return;
+    S.reg.photo = await shrink(await fileToUrl(file)); keepReg(); render();
+  });
+}
+ACT.back = ()=>{ S.screen="gate"; render(); };
+ACT.pick = ()=>document.getElementById("f-file").click();
+ACT.cam  = ()=>{ keepReg(); openCamera(); };
+function keepReg(){
+  S.reg.code = (document.getElementById("f-code")||{}).value?.toUpperCase().trim() || S.reg.code;
+  S.reg.name = (document.getElementById("f-name")||{}).value || S.reg.name;
+  S.reg.group= (document.getElementById("f-group")||{}).value ?? S.reg.group;
+}
+function fileToUrl(f){ return new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); }); }
+function shrink(url, size=220){
+  return new Promise(res=>{ const im=new Image(); im.onload=()=>{
+    const c=document.createElement("canvas"); c.width=c.height=size;
+    const k=Math.min(im.width,im.height);
+    const g=c.getContext("2d");
+    g.drawImage(im,(im.width-k)/2,(im.height-k)/2,k,k,0,0,size,size);
+    res(c.toDataURL("image/jpeg",0.72));
+  }; im.src=url; });
+}
+async function openCamera(){
+  let stream;
+  try{ stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:480}}); }
+  catch(e){ toast("Kamera ochilmadi — \"Fayldan\" tugmasidan foydalaning", true); return; }
+  h(`<div class="wrap"><div class="card">
+      <h2>Kameraga qara</h2>
+      <video id="v" autoplay playsinline muted style="width:100%;border-radius:16px;background:#000;transform:scaleX(-1)"></video>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn" data-a="snap">Rasmga olish</button>
+        <button class="btn ghost" data-a="closeCam">Bekor</button>
+      </div></div></div>`);
+  const v = document.getElementById("v"); v.srcObject = stream; S._stream = stream;
+  ACT.snap = async ()=>{
+    const c=document.createElement("canvas"); c.width=v.videoWidth; c.height=v.videoHeight;
+    c.getContext("2d").drawImage(v,0,0);
+    S.reg.photo = await shrink(c.toDataURL("image/jpeg",0.9));
+    stopCam(); render();
+  };
+  ACT.closeCam = ()=>{ stopCam(); render(); };
+}
+function stopCam(){ if(S._stream){ S._stream.getTracks().forEach(t=>t.stop()); S._stream=null; } }
+
+ACT.doReg = async (btn)=>{
+  keepReg();
+  const code = (S.reg.code||"").toUpperCase().trim();
+  if (code.length < 3) return toast("Sinf kodini kiriting", true);
+  if (!(S.reg.name||"").trim() || S.reg.name.trim().length<4) return toast("To'liq ismingizni yozing", true);
+  if (!S.reg.photo) return toast("Rasmga tushing — muallim sizni tanishi kerak", true);
+  btn.disabled = true; btn.textContent = "Tekshirilmoqda...";
+  const cls = await DB.getClass(code);
+  if (!cls){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; return toast("Bunday sinf topilmadi", true); }
+  S.code = code;
+  const ok = await Bio.verify("Ro'yxatdan o'tishni tasdiqlang");
+  if (!ok){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; return toast("Tasdiqlanmadi", true); }
+  const tgu = IN_TG ? TG.initDataUnsafe.user : null;
+  /* Hisob identifikatori qurilmaga emas, shaxsga bog'lanadi: Telegram'da —
+     Telegram raqami (istalgan qurilmadan qaytib kiriladi), aks holda doimiy
+     tasodifiy identifikator. authUid — hozir qaysi qurilma egalik qilyapti. */
+  const sid = newSid();
+  let list;
+  try { list = await DB.listStudents(code); }
+  catch(e){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; return toast("Bazaga ulanmadi — muallimga ayting",true); }
+  const already = list.find(x=>x && x.uid===sid);
+  /* Shu ismda hisob bormi? Bolalar tasdiq kutib turib, "ishlamadi" deb
+     qayta-qayta ro'yxatdan o'tadi va bitta bola bir necha hisobga bo'linadi. */
+  if (!already && !S.reg.forceNew){
+    const dupes = list.filter(x=>x && normName(x.name)===normName(S.reg.name));
+    if (dupes.length){
+      S.reg.dupes = dupes; S.screen = "dup"; btn.disabled=false; render(); return;
+    }
+  }
+  if (already){
+    await DB.setStudent(code, sid, {authUid:S.uid, claimUid:""});
+    toast("Sen allaqachon ro'yxatdasan — kirdik");
+  } else {
+   try {
+    await DB.setStudent(code, sid, {
+      name:S.reg.name.trim(), group:S.reg.group||"", authUid:S.uid, claimUid:"",
+      ok:false, pts:0, wkPts:0, wk:weekNo(), streak:0, lastLesson:0,
+      joined: Date.now(), bio: Bio.kind
+    });
+    /* rasm va Telegram ma'lumoti — hamma ko'radigan reyting hujjatida emas,
+       faqat muallim va egasi o'qiy oladigan alohida hujjatda */
+    await DB.setProfile(code, sid, {
+      photo:S.reg.photo, tgId: tgu?String(tgu.id):"", tgUser: tgu?(tgu.username||""):""
+    });
+   } catch(e){ btn.disabled=false; btn.textContent="Ro'yxatdan o'tish";
+     return toast("Yozib bo'lmadi — muallimga ayting",true); }
+  }
+  S.sid = sid; S.role="student"; S.screen="app";
+  SES.set("stu",{code, sid});
+  await attach(code);
+  render();
+};
+
+function screenPending(){
+  const me=S.me||{};
+  const rejected = !!me.rejected;
+  const otherDevice = me.ok && me.authUid && me.authUid!==S.uid;
+  const title = rejected ? "Rad etildi" : otherDevice ? "Qurilma almashtirish" : "Tasdiqlash kutilmoqda";
+  const body = rejected
+    ? "Muallim bu hisobni tasdiqlamadi. Muallimga murojaat qiling — u qayta tasdiqlashi mumkin."
+    : otherDevice
+      ? "So'rov yuborildi. Muallim «Tasdiq» bo'limida tasdiqlagach, shu qurilmadan kirasan. Sahifa o'zi ochiladi."
+      : "Muallim ro'yxatdan o'tishingni tasdiqlashi kerak. Tasdiqlangach bu sahifa o'zi ochiladi.";
+  h(`<div class="wrap">
+    ${brand(title)}
+    <div class="card accent" style="text-align:center">
+      ${S.myProfile&&S.myProfile.photo?`<img src="${esc(S.myProfile.photo)}" style="width:120px;height:120px;border-radius:20px;object-fit:cover;border:2px solid var(--accent)">`:""}
+      <h2 style="margin-top:10px">${esc(me.name||"")}</h2>
+      <p class="small">${esc(S.code)} · ${esc(me.group||"guruh tayinlanmagan")}</p>
+      <div class="sep"></div>
+      <p>${esc(body)}</p>
+    </div>
+    <button class="btn ghost" data-a="logout">Chiqish</button>
+  </div>`);
+}
+ACT.logout = ()=>{ SES.clear("stu"); SES.clear("tea");
+  S.code=""; S.me=null; S.sid=""; S.role=""; S.loginList=null; S.bd=0;
+  S.screen="gate"; detach(); render(); };
+
+/* ---------------------------------------------------------------------
+   7) O'QUVCHI PANELI
+   --------------------------------------------------------------------- */
+/* Yagona tayyor yozuv — loyiha jurnali (kursning o'z mexanikasi: har darsda
+   15 daqiqa loyiha, qarorlar jurnalga yoziladi, himoyada shundan gapiriladi).
+   Qolgan hamma vazifani muallim o'z qo'li bilan yozadi. */
+const JOURNAL = {id:"jurnal", t:"Loyiha jurnali", pts:15, min:40,
+  d:"Bugun guruhing qanday qaror qabul qildi va NEGA? Himoya kunida aynan shu yozuvdan gapirasan.",
+  ph:"Qaror: ...  Sabab: ...  Mening qismim: ..."};
+const tasksOf = l => [...S.tasks.filter(t=>+t.lesson===l.n)
+                        .sort((a,b)=>String(a.id).localeCompare(String(b.id))), JOURNAL];
+
+function hud(){
+  const p = (S.me&&S.me.pts)||0, lv = levelOf(p);
+  const pct = lv.next ? Math.round((p-lv.cur)/(lv.next-lv.cur)*100) : 100;
+  return `<div class="hud">
+    <div class="lvl">${lv.i}<span>DARAJA</span></div>
+    <div class="who"><b>${esc(S.me?S.me.name:"")}</b>
+      <small>${esc(lv.name)}${streak(S.me&&S.me.streak)}</small>
+      <div class="bar"><i style="width:${pct}%"></i></div></div>
+    <div><div class="pts">${p}</div><small>ball</small></div>
+  </div>`;
+}
+function nav(){
+  const t=[["darslar",I.book,"Darslar"],["bugun",I.bolt,"Bugun"],["reyting",I.trophy,"Reyting"],["men",I.user,"Men"]];
+  return `<div class="nav">${t.map(([k,i,n])=>
+    `<button data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}"><i>${i}</i>${n}</button>`).join("")}</div>`;
+}
+ACT.tab = n => { S.tab = n.dataset.k; S.lesson=null; render(); };
+
+function liveBanner(){
+  if (!S.live || S.live.mode==="off" || !S.live.mode) return "";
+  const names={duel:"Jonli duel",hunt:"Yolg'on ovi",poll:"Ovoz berish",result:"Natijalar",kahoot:"Kahoot boshlandi"};
+  return `<div class="live-banner" data-a="goLive">
+    <b>${names[S.live.mode]||"Jonli o'yin"} boshlandi</b>
+    <div class="small" style="color:#ffe8d2">Qo'shilish uchun bosing →</div></div>`;
+}
+ACT.goLive = ()=>{ S.tab="live"; render(); };
+
+function screenStudent(){
+  if (S.tab==="live") return screenLive();
+  if (S.tab==="qiymat") return screenQiymat();
+  let body="";
+  if (S.tab==="darslar") body = viewLessons();
+  else if (S.tab==="bugun") body = S.lesson ? viewLesson(S.lesson) : viewLesson(openCount()||1);
+  else if (S.tab==="reyting") body = viewRank();
+  else body = viewMe();
+  h(`<div class="wrap">${hud()}${liveBanner()}${body}</div>${nav()}`);
+}
+
+function viewLessons(){
+  const open = openCount();
+  return `<div class="card flat"><h2>Kurs xaritasi</h2>
+    <p class="small">${open} / 13 dars ochilgan. Yopiq darslar muallim ochganda o'zi paydo bo'ladi.</p></div>` +
+    COURSE.lessons.map(l=>{
+      const o = isOpen(l.n);
+      const done = tasksOf(l).filter(t=>isDone(l.n,t.id)).length, all = tasksOf(l).length;
+      return `<div class="card ${o?"":"flat"}" ${o?`data-a="openLesson" data-n="${l.n}" style="cursor:pointer"`:`style="opacity:.55"`}>
+        <h3>${o?"":"🔒 "}${l.n}. ${esc(l.t)}</h3>
+        ${o ? `<p class="small">${esc(l.learn.slice(0,90))}...</p>
+               <div class="bar"><i style="width:${Math.round(done/all*100)}%"></i></div>
+               <small>${done}/${all} vazifa bajarildi</small>`
+            : `<p class="small">Bu dars hali o'tilmagan.</p>`}
+      </div>`;
+    }).join("");
+}
+ACT.openLesson = n => { S.lesson = +n.dataset.n; S.tab="bugun"; render(); };
+
+function boardHtml(l){
+  if (!l.board) return "";
+  return l.board.map(b=>`<div class="bd">
+    <div class="cap">${esc(b.t)}</div>
+    ${b.big?`<div class="big">${esc(b.big)}</div>`:""}
+    ${b.map?`<div class="map">
+      ${b.map.head?`<div class="r h"><div>${esc(b.map.head[0])}</div><div>${esc(b.map.head[1])}</div></div>`:""}
+      ${b.map.rows.map(([a,c])=>`<div class="r"><div>${esc(a)}</div><div>${esc(c)}</div></div>`).join("")}
+    </div>`:""}
+    ${b.two?`<div class="two ${b.tone==="warn"?"warn":""}">${b.two.map(([t,d])=>
+      `<div><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("")}</div>`:""}
+    ${b.num?`<ol>${b.num.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:""}
+    ${b.list?`<ul>${b.list.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}
+    ${b.d?`<div class="sub">${esc(b.d)}</div>`:""}
+  </div>`).join("");
+}
+function viewLesson(n){
+  const l = lessonOf(n);
+  if (!l || !isOpen(n)) return `<div class="card"><h2>Hali ochilmagan</h2>
+    <p class="small">Muallim bu darsni ochganda bu yerda paydo bo'ladi.</p></div>`;
+  return `<div class="card accent">
+      <small class="small">${l.n}-DARS</small><h2>${esc(l.t)}</h2>
+      <div class="sep"></div>
+      <h3>O'rganasan</h3><p class="small">${esc(l.learn)}</p>
+      <h3 style="margin-top:10px">Qayerda ishlatasan</h3><p class="small">${esc(l.where)}</p>
+    </div>
+    ${l.board ? boardHtml(l) : `<div class="card"><h2>Asosiy fikrlar</h2>
+      <ul class="items">${l.key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul></div>`}
+    ${l.game==="qiymat"?qmCard():""}
+    ${tasksOf(l).map(t=>taskCard(l,t)).join("")}
+    <div class="card flat"><p class="small">Ball ishdan chiqadi. Jonli o'yin — qo'shimcha, asosiy emas.</p></div>`;
+}
+
+function taskCard(l,t){
+  const done = isDone(l.n,t.id);
+  const id = `${l.n}_${t.id}`;
+  const form = done ? myAnswer(l.n,t.id) :
+    `<textarea id="i-${id}-0" placeholder="${esc(t.ph||"Javobingni shu yerga yoz")}"></textarea>
+     <button class="btn sm" data-a="sub" data-l="${l.n}" data-t="${t.id}">Topshirish (+${t.pts})</button>`;
+  return `<div class="card task ${done?"done":""}">
+    <h3>${done?"✓":"○"} ${esc(t.t)}<span class="pill">+${t.pts}</span></h3>
+    <p class="small">${nl2br(t.d||"")}</p>${form}</div>`;
+}
+function myAnswer(ln,tid){
+  const e = S.entries.find(x=>x.lesson===ln && x.task===tid);
+  return e ? `<div class="note">${nl2br(e.text)}</div>` : "";
+}
+
+/* --- topshirish --- */
+ACT.sub = async (btn)=>{
+  const ln=+btn.dataset.l, tid=btn.dataset.t, l=lessonOf(ln);
+  const t = tasksOf(l).find(x=>x.id===tid);
+  if(!t) return;
+  const text = (document.getElementById(`i-${ln}_${tid}-0`)||{}).value?.trim()||"";
+  if (t.min && text.length < t.min) return toast(`Kamida ${t.min} belgi yozing`, true);
+  if (text.length < 10) return toast("Javob juda qisqa", true);
+  btn.disabled = true;
+  await award(ln, tid, +t.pts||10, text);
+  toast(`+${t.pts} ball`);
+};
+
+/* ---------------------------------------------------------------------
+   QIYMAT O'YINI — o'quvchi tomoni
+   Bosqich 1: 6 juft. Har juftda bitta savol so'raladi — "qaysi biriga
+   ko'proq PUL to'lashadi?" yoki "qaysi biri ko'proq FOYDA keltiradi?".
+   Javobdan keyin ikkala o'lchov ham ochiladi: bola ularning ko'pincha
+   mos kelmasligini o'z ko'zi bilan ko'radi. Darsning mag'zi shu.
+   Bosqich 2: bola o'sha sohadan BITTA muammoni o'ziga oladi. U sinf
+   devorida ismi bilan turadi va kurs oxirigacha uniki bo'ladi.
+   --------------------------------------------------------------------- */
+const domOf = id => VALUE.find(d=>d.id===id);
+function qmCard(){
+  const mine = S.myProfile && S.myProfile.problem;
+  return `<div class="card accent"><small class="small">QIYMAT O'YINI</small>
+    <h2 style="margin:6px 0">Qaysi muammoni yechish arziydi?</h2>
+    <p class="small">Jamiyatda millionlab muammo bor. Hammasi bir xil emas:
+      biriga ko'p pul to'lashadi, biri ko'p odamga foyda beradi — va bu
+      ikkisi ko'pincha bir joyda turmaydi. O'zingga qiziq sohani tanla.</p>
+    ${mine?`<div class="sep"></div><p class="small">Sening muammong:</p>
+      <b>${esc(mine.t)}</b>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn ghost sm" data-a="qmOpen">Qaytadan o'ynash</button></div>`
+     :`<button class="btn" style="margin-top:10px" data-a="qmOpen">Boshlash</button>`}
+  </div>`;
+}
+ACT.qmOpen = ()=>{ S.qm=null; S.tab="qiymat"; render(); };
+ACT.qmBack = ()=>{ S.qm=null; S.tab="bugun"; S.lesson=7; render(); };
+
+/* Juftlar: faqat farqi aniq bo'lganlari olinadi (kamida 2 ball),
+   shunda "to'g'ri javob" bahsli bo'lmaydi. */
+function qmPairs(id){
+  const list = domOf(id).p.map((x,i)=>({i, t:x[0], pul:x[1], foy:x[2]}));
+  const want = ["foy","pul","foy","pul","foy","pul"].slice(0,VAL_PAIRS);
+  const used = new Set(), out = [];
+  for (const m of want){
+    const sh = list.slice().sort(()=>Math.random()-0.5);
+    let found = null;
+    /* Avval farqi 2+ bo'lgan juftni qidiramiz — javob bahsli bo'lmasin.
+       Topilmasa chegarani 1 ga tushiramiz, chunki o'yin kalta chiqishi
+       (masalan, sohada hamma narsa bir xil bahoda bo'lsa) yomonroq. */
+    for (const need of [2,1]){
+      for (let a=0; a<sh.length && !found; a++)
+        for (let b=a+1; b<sh.length && !found; b++){
+          const k = [sh[a].i, sh[b].i].sort().join("-");
+          if (used.has(k)) continue;
+          if (Math.abs(sh[a][m]-sh[b][m]) >= need){ used.add(k); found = {a:sh[a], b:sh[b], m}; }
+        }
+      if (found) break;
+    }
+    if (found) out.push(found);
+  }
+  return out;
+}
+ACT.qmDom = n => {
+  const id = n.dataset.d;
+  S.qm = {dom:id, i:0, right:0, ans:null, phase:"pair", pairs:qmPairs(id)};
+  render();
+};
+ACT.qmAns = n => {
+  const q = S.qm, pr = q.pairs[q.i];
+  const pickA = n.dataset.i === "0";
+  const win = pr.a[pr.m] >= pr.b[pr.m] ? "a" : "b";
+  q.ans = pickA ? "a" : "b";
+  if (q.ans === win) q.right++;
+  render();
+};
+ACT.qmNext = ()=>{
+  const q = S.qm;
+  q.ans = null; q.i++;
+  if (q.i >= q.pairs.length) q.phase = "pick";
+  render();
+};
+ACT.qmMine = async n => {
+  const q = S.qm, idx = +n.dataset.i, d = domOf(q.dom);
+  const pr = d.p[idx];
+  q.phase = "done"; q.chosen = {dom:q.dom, i:idx, t:pr[0], pul:pr[1], foy:pr[2]};
+  render();
+  try { await DB.setProfile(S.code, S.sid, {problem:{dom:q.dom, t:pr[0], pul:pr[1], foy:pr[2]}}); }
+  catch(e){ console.warn("muammo saqlanmadi", e); }
+  if (!isDone(7,"qiymat")){
+    const pts = Math.round(VAL_PTS * 0.6 * q.right / Math.max(1,q.pairs.length)) + Math.round(VAL_PTS*0.4);
+    await award(7, "qiymat", pts, `Tanlagan muammosi: ${pr[0]}`);
+    toast("+"+pts+" ball");
+  }
+};
+function dots(v, kind){
+  return `<span class="dots ${kind}">${[1,2,3,4,5].map(i=>
+    `<i class="${i<=v?"on":""}"></i>`).join("")}</span>`;
+}
+function meter(o){
+  return `<div class="mt"><span>PUL</span>${dots(o.pul||o[1],"")}</div>
+    <div class="mt"><span>FOYDA</span>${dots(o.foy||o[2],"f")}</div>`;
+}
+function qmInsight(w, m){
+  if (m==="foy" && w.pul<=2) return "Foydasi katta, puli kam. Bunday muammoni bozor o'zi yechmaydi — davlat, maktab yoki ko'ngillilar yechadi.";
+  if (m==="pul" && w.foy<=2) return "Puli ko'p, foydasi kichik. Pul doim eng muhim joyga bormaydi — shuni bilib turish kerak.";
+  if (w.pul>=4 && w.foy>=4) return "Kamdan-kam uchraydigan holat: ham pul, ham foyda. Shunaqasini topgan odam baxtli.";
+  return "";
+}
+function screenQiymat(){
+  const q = S.qm;
+  if (!q) return h(`<div class="wrap">${hud()}
+    <div class="card accent"><small class="small">QIYMAT O'YINI</small>
+      <h2 style="margin:6px 0">Qaysi soha senga qiziq?</h2>
+      <p class="small">Bittasini tanla. Ichida o'sha sohaning 10 ta haqiqiy
+        muammosi bor — kattasi ham, maydasi ham.</p>
+      <div class="doms">${VALUE.map(d=>`<button class="dom" data-a="qmDom" data-d="${d.id}">
+        ${esc(d.t)}<small>${d.p.length} ta muammo</small></button>`).join("")}</div></div>
+    <button class="btn ghost" data-a="qmBack">Darsga qaytish</button></div>${nav()}`);
+
+  const d = domOf(q.dom);
+
+  if (q.phase === "pair"){
+    const pr = q.pairs[q.i];
+    const ask = pr.m==="pul" ? "Qaysi biriga ko'proq PUL to'lashadi?"
+                             : "Qaysi biri ko'proq odamga FOYDA beradi?";
+    const win = pr.a[pr.m] >= pr.b[pr.m] ? "a" : "b";
+    const shown = q.ans !== null;
+    const side = (o, key) => {
+      let c = "pr";
+      if (shown) c += (key===win ? " win" : " lose");
+      return `<button class="${c}" ${shown?"disabled":`data-a="qmAns" data-i="${key==="a"?0:1}"`}>
+        ${esc(o.t)}${shown?meter(o):""}</button>`;
+    };
+    const ins = shown ? qmInsight(pr[win], pr.m) : "";
+    return h(`<div class="wrap">${hud()}
+      <div class="card accent"><small class="small">${esc(d.t.toUpperCase())} · ${q.i+1}/${q.pairs.length}</small>
+        <h2 style="margin:6px 0">${ask}</h2></div>
+      ${side(pr.a,"a")}${side(pr.b,"b")}
+      ${shown?`${ins?`<div class="card"><h3>Diqqat</h3><p class="small">${esc(ins)}</p></div>`:""}
+        <button class="btn" data-a="qmNext">${q.i+1>=q.pairs.length?"Keyingi bosqich":"Keyingi"}</button>`:""}
+    </div>${nav()}`);
+  }
+
+  if (q.phase === "pick"){
+    return h(`<div class="wrap">${hud()}
+      <div class="card accent"><small class="small">${esc(d.t.toUpperCase())}</small>
+        <h2 style="margin:6px 0">Endi bittasini o'zingga ol</h2>
+        <p class="small">${q.right}/${q.pairs.length} to'g'ri topding. Mana shu sohaning
+          hamma muammolari — raqamlari ochiq. Qaysi birini yechishni xohlaysan?
+          Tanlaganing kurs oxirigacha seniki bo'ladi.</p></div>
+      ${d.p.map((x,i)=>`<button class="pr" data-a="qmMine" data-i="${i}">
+        ${esc(x[0])}${meter({pul:x[1],foy:x[2]})}</button>`).join("")}
+    </div>${nav()}`);
+  }
+
+  const ch = q.chosen || {};
+  return h(`<div class="wrap">${hud()}
+    <div class="card accent" style="text-align:center">
+      <small class="small">SENING MUAMMONG</small>
+      <h2 style="margin:8px 0">${esc(ch.t||"")}</h2>
+      <div style="text-align:left;max-width:280px;margin:0 auto">${meter(ch)}</div></div>
+    <div class="card"><h3>Nima bo'ldi</h3>
+      <p class="small">Juftlarda ${q.right}/${q.pairs.length} to'g'ri javob berding.
+        Muammo sinf devoriga isming bilan chiqdi. Keyingi darslarda unga qaytamiz:
+        qanday vosita kerak, kimga vazifa berasan, nimadan boshlaysan.</p></div>
+    <div class="btn-row">
+      <button class="btn ghost" data-a="qmOpen">Boshqa sohani ko'rish</button>
+      <button class="btn ghost" data-a="qmBack">Darsga qaytish</button></div>
+  </div>${nav()}`);
+}
+
+async function award(lesson, task, pts, text){
+  const wk = weekNo();
+  await DB.addEntry(S.code, S.sid, {lesson, task, pts, text, ts:Date.now()});
+  await DB.bumpPoints(S.code, S.sid, pts, wk);
+  const st = {lastLesson: lesson};
+  const today = new Date().toDateString();
+  if (S.me && S.me.lastDay !== today){ st.lastDay = today; st.streak = (S.me.streak||0)+1; }
+  await DB.setStudent(S.code, S.sid, st);
+}
+
+/* --- reyting --- */
+function viewRank(){
+  const ok = S.students.filter(s=>s.ok);
+  const wk = weekNo();
+  const wkOf = s => s.wk===wk ? (s.wkPts||0) : 0;
+  const byWeek = [...ok].sort((a,b)=>wkOf(b)-wkOf(a));
+  const groups = {};
+  ok.forEach(s=>{ const g=s.group||"guruhsiz"; groups[g]=(groups[g]||0)+(s.pts||0); });
+  const gl = Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+  const row = (s,i,val)=>`<div class="rank ${s.uid===S.sid?"me":""} top${i+1}">
+      <div class="n">${i+1}</div>
+      <div class="nm">${esc(s.name)}<div class="st">${esc(s.group||"")}${streak(s.streak)}</div></div>
+      <div class="sc">${val}</div></div>`;
+  return `<div class="card flat"><h2>Shu hafta</h2>
+      <p class="small">Har dushanba haftalik reyting noldan boshlanadi — hamma uchun yangi imkon.</p></div>
+    ${byWeek.slice(0,20).map((s,i)=>row(s,i,wkOf(s))).join("") || `<div class="card">Hali ball yo'q</div>`}
+    <div class="card flat" style="margin-top:14px"><h2>Guruhlar (umumiy)</h2></div>
+    ${gl.map(([g,v],i)=>`<div class="rank ${S.me&&S.me.group===g?"me":""} top${i+1}">
+      <div class="n">${i+1}</div><div class="nm">${esc(g)}</div><div class="sc">${v}</div></div>`).join("")}
+    <div class="card flat" style="margin-top:14px"><h2>Umumiy (butun kurs)</h2></div>
+    ${[...ok].sort((a,b)=>(b.pts||0)-(a.pts||0)).slice(0,10).map((s,i)=>row(s,i,s.pts||0)).join("")}`;
+}
+
+/* --- men / portfolio --- */
+function viewMe(){
+  const tot=(S.me&&S.me.pts)||0, lv=levelOf(tot);
+  const byLesson={}; S.entries.forEach(e=>{ (byLesson[e.lesson]=byLesson[e.lesson]||[]).push(e); });
+  const done=Object.keys(byLesson).length;
+  return `<div class="card"><h2>${esc(S.me?S.me.name:"")}</h2>
+      <p class="small">${esc(S.code)} · ${esc((S.me&&S.me.group)||"guruhsiz")} · ${esc(lv.name)}</p>
+      <div class="grid2" style="margin-top:10px">
+        <div class="stat"><b>${tot}</b><small>jami ball</small></div>
+        <div class="stat"><b>${S.entries.length}</b><small>bajarilgan ish</small></div>
+        <div class="stat"><b>${done}</b><small>dars ustida ishladim</small></div>
+        <div class="stat"><b>${(S.me&&S.me.streak)||0}</b><small>ketma-ket kun</small></div>
+      </div></div>
+    <div class="card noprint"><h2>Himoya portfoliosi</h2>
+      <p class="small">13-darsda shu sahifadan gapirasan. Chop etsang ham bo'ladi.</p>
+      <button class="btn ghost" data-a="print">Chop etish / PDF</button></div>
+    ${Object.keys(byLesson).sort((a,b)=>a-b).map(n=>{
+      const l=lessonOf(+n);
+      return `<div class="card"><h3>${n}-dars · ${esc(l?l.t:"")}</h3>
+        ${byLesson[n].map(e=>`<div class="note" style="margin-top:8px">
+          <small>${esc((tasksOf(l)||[]).find(t=>t.id===e.task)?.t || e.task)} · +${e.pts}</small>
+          <div>${nl2br(e.text)}</div></div>`).join("")}</div>`;
+    }).join("")}
+    <button class="btn ghost noprint" data-a="logout">Chiqish</button>`;
+}
+ACT.print = ()=>window.print();
+
+/* ---------------------------------------------------------------------
+   8) JONLI O'YIN (o'quvchi tomoni)
+   --------------------------------------------------------------------- */
+function screenKahoot(L){
+  const pin=String(L.pin||"").replace(/\s+/g,"");
+  const url=L.url ? String(L.url) : `https://kahoot.it/?pin=${encodeURIComponent(pin)}`;
+  h(`<div class="wrap">${hud()}
+    <div class="card accent" style="text-align:center">
+      <small class="small">KAHOOT</small>
+      <h2 style="margin:6px 0 2px">O'yin boshlandi</h2>
+      <p class="small">Tugmani bos — PIN o'zi qo'yiladi. Taxallus o'rniga
+        <b>familiya va ismingni</b> yoz, aks holda balling reytingga tushmaydi.</p>
+      ${pin?`<div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>`:""}
+      <a class="btn" href="${esc(url)}" target="_blank" rel="noopener"
+         style="display:block;text-decoration:none;text-align:center">Kahoot'ga kirish →</a>
+      ${pin?`<p class="small" style="margin-top:10px">Ochilmasa: <b>kahoot.it</b> ga kirib, shu PIN ni yoz.</p>`:""}
+    </div>
+  </div>${nav()}`);
+}
+function screenResult(L){
+  const list=(L.podium||[]), mine=list.findIndex(x=>x.uid===S.sid);
+  h(`<div class="wrap">${hud()}
+    <div class="card accent" style="text-align:center">
+      <small class="small">YAKUNIY NATIJA</small>
+      <h2 style="margin:6px 0">${esc(L.title||"Viktorina")}</h2>
+      ${mine>=0?`<p>Sening o'rning: <b>${mine+1}</b> · ${list[mine].pts} ball</p>`
+               :`<p class="small">Bu o'yinda qatnashmading</p>`}
+    </div>
+    ${list.slice(0,10).map((x,i)=>`<div class="rank ${x.uid===S.sid?"me":""} top${i+1}">
+      <div class="n">${i+1}</div><div class="nm">${esc(x.name||"?")}</div>
+      <div class="sc">${x.pts}</div></div>`).join("")}
+    <div class="card flat"><p class="small">Bu o'yin balli. Umumiy reytingga qo'shilgani —
+      «Reyting» bo'limida (bir darsda o'yindan ko'pi bilan ${LIVE_CAP} ball).</p></div>
+  </div>${nav()}`);
+}
+function screenLive(){
+  const L = S.live;
+  if (!L || !L.mode || L.mode==="off"){
+    h(`<div class="wrap">${hud()}<div class="card"><h2>Jonli o'yin tugadi</h2>
+      <button class="btn ghost" data-a="tab" data-k="bugun">Darsga qaytish</button></div></div>${nav()}`);
+    return;
+  }
+  const mine = S.answered && S.answered.key===L.key ? S.answered : null;
+  const left = Math.max(0, Math.round((L.t0 + L.dur*1000 - Date.now())/1000));
+  const opts = L.mode==="hunt" ? L.s : L.a;
+  if (L.mode==="kahoot") return screenKahoot(L);
+  if (L.mode==="result") return screenResult(L);
+  const total = L.mode==="duel" && L.lesson ? qsOf(L.lesson,L.set).length : 0;
+  const title = (L.mode==="duel" ? (L.set==="rep"?"Takrorlash":"Jonli duel") : L.mode==="hunt" ? "Yolg'on ovi" : "Ovoz berish")
+    + (total ? ` · ${(L.qi||0)+1}/${total}` : "");
+  const head = L.mode==="hunt" ? `Mavzu: ${esc(L.topic)} — to'qilgan jumlani top` : esc(L.q);
+
+  h(`<div class="wrap">${hud()}
+    <div class="card accent">
+      <small class="small">${title.toUpperCase()}</small>
+      <h2 style="margin:6px 0 0">${head}</h2>
+      ${L.reveal?"":`<div class="timer"><i style="width:${Math.round(left/L.dur*100)}%"></i></div>
+        <small>${left} soniya</small>`}
+    </div>
+    ${opts.map((o,i)=>{
+      let c="opt";
+      if (L.reveal){
+        if (L.mode!=="poll" && i===L.c) c+=" right";
+        else if (mine && mine.c===i) c+=" wrong";
+      } else if (mine && mine.c===i) c+=" picked";
+      return `<button class="${c}" ${L.reveal||mine?"disabled":`data-a="pickLive" data-i="${i}"`}>${esc(o)}</button>`;
+    }).join("")}
+    ${L.reveal && L.w ? `<div class="card"><h3>Nega</h3><p class="small">${esc(L.w)}</p></div>` : ""}
+    ${!L.reveal && mine ? `<div class="card flat"><p>Javobing qabul qilindi. Muallim ochishini kut.</p></div>`:""}
+  </div>${nav()}`);
+  clearTimeout(S._tick);
+  if (!L.reveal) S._tick = setTimeout(()=>{ if(S.tab==="live") render(); }, 1000);
+}
+ACT.pickLive = async (n)=>{
+  const L=S.live, i=+n.dataset.i;
+  S.answered = {key:L.key, c:i, ms:Date.now()-L.t0};
+  await DB.setAnswer(S.code, L.key, S.sid, {c:i, ms:S.answered.ms, name:(S.me&&S.me.name)||""});
+  render();
+};
+/* Bir darsda jonli o'yindan olinadigan ballning shifti.
+   Sababi: ball ishdan chiqishi kerak, o'yindan emas. Bitta darsdagi ish
+   ~45-100 ball beradi, o'yin esa ko'pi bilan shuncha: */
+const LIVE_CAP = 30;
+
+function liveEarned(lesson){
+  return S.entries.filter(e => e.lesson===lesson && String(e.task).startsWith("live:"))
+                  .reduce((a,e)=>a+(e.pts||0),0);
+}
+async function maybeAwardLive(){
+  const L = S.live; if (!L || !L.reveal || !L.key) return;
+  /* Belgi hisobga bog'lanadi: bitta telefonda ikki bola bo'lsa ham
+     ikkalasi ham o'z ballini oladi. */
+  const flag = "sinf:aw:"+S.code+":"+S.sid+":"+L.key;
+  if (localStorage.getItem(flag)) return;
+  const mine = S.answered && S.answered.key===L.key ? S.answered : null;
+  if (!mine) return;
+  localStorage.setItem(flag,"1");
+  let pts=0, label="";
+  if (L.mode==="poll"){ pts=5; label="Ovoz berdim"; }
+  else if (mine.c===L.c){
+    const bonus = Math.round(20 * Math.max(0,(L.dur*1000-mine.ms))/(L.dur*1000));
+    pts = (L.mode==="hunt" ? 25 : 10) + (L.mode==="hunt" ? 0 : bonus);
+    label = "To'g'ri javob";
+  }
+  const lesson = L.lesson || openCount() || 0;
+  const left = Math.max(0, LIVE_CAP - liveEarned(lesson));
+  const capped = Math.min(pts, left);
+  if (capped>0){
+    await DB.addEntry(S.code,S.sid,{lesson, task:"live:"+L.mode, pts:capped,
+      text:`${label} — ${L.mode==="hunt"?L.topic:L.q}`, ts:Date.now()});
+    await DB.bumpPoints(S.code,S.sid,capped,weekNo());
+    toast("+"+capped+" ball");
+  } else if (pts>0){
+    toast("To'g'ri! Bu darsning o'yin balli to'ldi — qolgani ishdan");
+  }
+}
+
+/* ---------------------------------------------------------------------
+   8b) KAHOOT HISOBOTINI O'QISH
+   Kahoot o'yin natijalarini API orqali bermaydi. Shuning uchun muallim
+   o'yin oxirida hisobotni yuklab oladi (xlsx/csv) yoki jadvalni nusxalaydi,
+   va shu yerga beradi — ballar o'quvchilarga tarqatiladi.
+   --------------------------------------------------------------------- */
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if (window.XLSX) return res();
+    const t=document.createElement("script"); t.src=src; t.onload=res; t.onerror=rej;
+    document.head.appendChild(t);
+  });
+}
+const NUM = v => { const n=parseFloat(String(v).replace(/[^0-9.,-]/g,"").replace(/\s/g,"").replace(",",".")); return isFinite(n)?n:NaN; };
+const isName  = h => /player|nickname|name|ism|o'?yinchi|taxallus/i.test(String(h));
+const isScore = h => /score|point|ball|total/i.test(String(h));
+
+/* Har qanday jadvaldan (massivlar massivi) ism+ball juftlarini ajratadi */
+function rowsFromTable(rows){
+  let head=-1, ni=-1, si=-1;
+  for (let r=0; r<Math.min(rows.length,40); r++){
+    const row=rows[r]||[];
+    const n=row.findIndex(isName), sc=row.findIndex(isScore);
+    if (n>=0 && sc>=0){ head=r; ni=n; si=sc; break; }
+  }
+  const out=[];
+  if (head>=0){
+    for (let r=head+1; r<rows.length; r++){
+      const nm=String((rows[r]||[])[ni]??"").trim(), v=NUM((rows[r]||[])[si]);
+      if (nm && isFinite(v)) out.push({name:nm, score:v});
+    }
+    return out;
+  }
+  /* sarlavha topilmasa: "ism ... raqam" ko'rinishidagi qatorlar */
+  rows.forEach(row=>{
+    const cells=(row||[]).map(x=>String(x??"").trim()).filter(Boolean);
+    if (cells.length<2) return;
+    const v=NUM(cells[cells.length-1]);
+    const nm=cells.slice(0,-1).join(" ").trim();
+    if (nm && isFinite(v) && !isName(nm)) out.push({name:nm, score:v});
+  });
+  return out;
+}
+function parsePasted(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  /* Ajratgichni bir marta aniqlaymiz. Aks holda ism ichidagi qo'sh bo'shliq
+     ("Bekzod  Testov") ism va familiyani ikkiga bo'lib yuboradi. */
+  const has = d => lines.filter(l=>l.includes(d)).length >= Math.max(1, lines.length/2);
+  const re = has("\t") ? /\t/
+           : has(";")  ? /;/
+           : has(",")  ? /,(?=(?:[^"]*"[^"]*")*[^"]*$)/
+           : /\s{2,}/;
+  const rows=lines.map(l=>l.split(re).map(c=>c.trim().replace(/^"|"$/g,"")));
+  return rowsFromTable(rows);
+}
+async function parseFile(file){
+  const name=(file.name||"").toLowerCase();
+  if (name.endsWith(".csv") || name.endsWith(".txt")) return parsePasted(await file.text());
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+  const wb = XLSX.read(await file.arrayBuffer(), {type:"array"});
+  /* avval "Final Scores" varag'i, topilmasa — hammasidan eng ko'p qator bergani */
+  const order = [...wb.SheetNames].sort((a,b)=>
+    (/final|score|ball/i.test(b)?1:0) - (/final|score|ball/i.test(a)?1:0));
+  let best=[];
+  for (const sn of order){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, blankrows:false});
+    const got = rowsFromTable(rows);
+    if (got.length > best.length) best = got;
+    if (best.length && /final|score|ball/i.test(sn)) break;
+  }
+  return best;
+}
+const hashOf = str => { let h=5381; for(let i=0;i<str.length;i++) h=((h*33)^str.charCodeAt(i))>>>0; return "k"+h.toString(36); };
+
+/* ---------------------------------------------------------------------
+   9) MUALLIM PANELI
+   --------------------------------------------------------------------- */
+function screenTeacherGate(){
+  h(`<div class="wrap">${brand("Muallim")}
+    <div class="card"><h2>Mavjud sinfga kirish</h2>
+      <label>Sinf kodi</label><input id="t-code" class="field-code" maxlength="8" value="${esc(S.code||"")}">
+      <label>PIN</label><input id="t-pin" type="password" placeholder="Sinf PIN i">
+      <button class="btn" style="margin-top:10px" data-a="tLogin">Kirish</button>
+      <button class="btn ghost sm" style="margin-top:8px;width:100%" data-a="tForgot">PIN esdan chiqdimi?</button></div>
+    ${S.forgot?`<div class="card accent"><h2>PIN ni tiklash</h2>
+      <p class="small">Bosh kalit — birinchi sinf ochilganda o'zingiz belgilagan kalit.</p>
+      <label>Sinf kodi</label><input id="r-code" class="field-code" maxlength="8" value="${esc(S.code||"")}">
+      <label>Bosh kalit</label><input id="r-key" type="password" placeholder="bosh kalit">
+      <label>Yangi PIN</label><input id="r-pin" type="password" placeholder="kamida 6 belgi">
+      <button class="btn" style="margin-top:10px" data-a="tReset">PIN ni yangilash</button></div>`:""}
+    <div class="card flat"><h2>Yangi sinf yasash</h2>
+      <label>Kod (o'quvchilarga aytasiz)</label><input id="n-code" class="field-code" maxlength="8" placeholder="AI13">
+      <label>Nomi</label><input id="n-name" placeholder="9-A sinf, AI kursi">
+      <label>PIN (faqat sizda qoladi)</label><input id="n-pin" type="password" placeholder="kamida 6 belgi">
+      <label>Bosh kalit</label><input id="n-key" type="password" placeholder="kamida 8 belgi">
+      <p class="small">Bosh kalit sinf yasashni himoya qiladi: birinchi marta o'zingiz o'ylab topasiz,
+        keyingi har bir sinf uchun aynan shu kalit so'raladi. Usiz hech kim sinf ocha olmaydi.</p>
+      <button class="btn ghost" style="margin-top:10px" data-a="tCreate">Sinf yasash</button></div>
+    <p class="small" style="text-align:center">Rejim: ${DB&&DB.mode==="cloud"?"bulut (hamma sinf birga)":"mahalliy (faqat shu qurilma)"}</p>
+    <button class="btn ghost" data-a="back">Orqaga</button></div>`);
+}
+ACT.tForgot = ()=>{ S.forgot=!S.forgot; render(); };
+ACT.tReset = async (btn)=>{
+  const c=(document.getElementById("r-code").value||"").toUpperCase().trim();
+  const k=(document.getElementById("r-key").value||"").trim();
+  const np=(document.getElementById("r-pin").value||"").trim();
+  if(np.length<6) return toast("Yangi PIN kamida 6 belgi",true);
+  btn.disabled=true; btn.textContent="Tekshirilmoqda...";
+  const ok = await DB.teacherResetPin(c,k,np);
+  btn.disabled=false; btn.textContent="PIN ni yangilash";
+  if(!ok) return toast("Bosh kalit noto'g'ri",true);
+  S.code=c; S.role="teacher"; S.teacherOk=true; S.forgot=false; S.screen="teacher"; S.tab="dars";
+  SES.set("tea",{code:c});
+  await attach(c); toast("PIN yangilandi"); render();
+};
+ACT.tLogin = async ()=>{
+  const c=document.getElementById("t-code").value.toUpperCase().trim();
+  const p=document.getElementById("t-pin").value.trim();
+  const cls=await DB.getClass(c);
+  if(!cls) return toast("Sinf topilmadi",true);
+  if(!(await DB.teacherLogin(c,p))) return toast("PIN noto'g'ri",true);
+  SES.set("tea",{code:c});
+  S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
+  await attach(c); render();
+};
+ACT.tCreate = async ()=>{
+  const c=document.getElementById("n-code").value.toUpperCase().trim();
+  const nm=document.getElementById("n-name").value.trim();
+  const p=document.getElementById("n-pin").value.trim();
+  const k=document.getElementById("n-key").value.trim();
+  if(c.length<3) return toast("Sinf kodi kamida 3 belgi",true);
+  if(p.length<6) return toast("PIN kamida 6 belgi bo'lsin",true);
+  if(k.length<8) return toast("Bosh kalit kamida 8 belgi bo'lsin",true);
+  if(await DB.getClass(c)) return toast("Bu kod band",true);
+  const made = await DB.createClass(c,{code:c,name:nm||c,open:0,createdBy:S.uid,created:Date.now()},p,k);
+  if(!made) return toast("Bosh kalit noto'g'ri",true);
+  await DB.setLive(c,{mode:"off"});
+  SES.set("tea",{code:c});
+  S.code=c; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
+  await attach(c); toast("Sinf yasaldi"); render();
+};
+
+function tnav(){
+  const pend = S.students.filter(s=>!s.ok).length;
+  const t=[["dars",I.book,"Dars"],["tasdiq",I.check,"Tasdiq"+(pend?" ("+pend+")":"")],
+           ["jonli",I.game,"Jonli"],["treyting",I.trophy,"Reyting"],["ruyxat",I.list,"Ro'yxat"]];
+  return `<div class="nav">${t.map(([k,i,n])=>
+    `<button data-a="tab" data-k="${k}" class="${S.tab===k?"on":""}"><i>${i}</i>${n}</button>`).join("")}</div>`;
+}
+function screenTeacher(){
+  let b="";
+  if (S.tab==="dars") b=tDars();
+  else if (S.tab==="tasdiq") b=tTasdiq();
+  else if (S.tab==="jonli") b=tJonli();
+  else if (S.tab==="treyting") b=tReyting();
+  else b=tRuyxat();
+  h(`<div class="wrap wide">${b}</div>${tnav()}`);
+}
+function tDars(){
+  const open=openCount();
+  const link = location.origin+location.pathname;
+  return `<div class="card accent"><small class="small">SINF</small>
+      <h2>${esc(S.cls?S.cls.name:"")} · <span class="mono">${esc(S.code)}</span></h2>
+      <p class="small">${S.students.filter(s=>s.ok).length} o'quvchi tasdiqlangan · ${open}/13 dars ochiq</p>
+      <p class="small mono">${esc(link)}</p></div>
+    <div class="card"><h2>Ochiq darslar</h2>
+      <p class="small">Bosing — shu darsgacha hamma darslar ochiladi. Qolganlari o'quvchida qulf bilan turadi.</p>
+      <div class="chips" style="margin-top:8px">
+        ${COURSE.lessons.map(l=>`<button class="chip ${l.n<=open?"on":""}" data-a="setOpen" data-n="${l.n}">${l.n}</button>`).join("")}
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn" data-a="setOpen" data-n="${Math.min(13,open+1)}">Keyingi darsni ochish</button>
+        <button class="btn ghost" data-a="setOpen" data-n="0">Hammasini yopish</button>
+      </div></div>
+    ${tDoska(open)}
+    <button class="btn ghost" data-a="logout">Chiqish</button>`;
+}
+ACT.setOpen = async n => { S.bd = +n.dataset.n;
+  await DB.saveClass(S.code,{open:+n.dataset.n}); toast("Darslar yangilandi"); };
+
+/* Doska — istalgan darsni bosib ko'rish mumkin. O'quvchiga ta'sir qilmaydi. */
+ACT.showBoard = n => { S.bd = +n.dataset.n; render(); };
+function tDoska(open){
+  const cur = lessonOf(S.bd) ? S.bd : (open || 1);
+  const l = lessonOf(cur);
+  if (!l) return "";
+  return `<div class="card flat"><h2>Doska</h2>
+      <p class="small">Bosing — o'sha darsning doskasi pastda chiqadi. Bu o'quvchilarga ta'sir qilmaydi.
+        Yashil nuqta — doska tayyor.</p>
+      <div class="chips" style="margin-top:8px">
+        ${COURSE.lessons.map(x=>`<button class="chip ${x.n===cur?"on":""} ${x.board?"rdy":""}"
+          data-a="showBoard" data-n="${x.n}">${x.n}</button>`).join("")}
+      </div>
+      <div class="sep"></div>
+      <h3>${l.n}-dars: ${esc(l.t)}</h3>
+      ${l.board
+        ? `<p class="small">${cur<=open
+            ? "Dars ochiq — o'quvchilarda ham shu ko'rinishda turibdi."
+            : "Bu dars hali ochilmagan — o'quvchilarda ko'rinmaydi. Siz oldindan ko'rib turibsiz."}</p>
+          <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button>`
+        : `<p class="small">Bu darsga doska hali yozilmagan. Asosiy fikrlar:</p>
+          <ul class="items">${l.key.map(k=>`<li><b>•</b><span>${esc(k)}</span></li>`).join("")}</ul>`}
+    </div>
+    ${boardHtml(l)}`;
+}
+
+function tTasdiq(){
+  const p=S.students.filter(s=>!s.ok);
+  const dev=S.students.filter(s=>s.ok && s.claimUid && s.claimUid!==s.authUid);
+  const devHtml = dev.length ? `<div class="card flat"><h2>Qurilma almashtirish (${dev.length})</h2>
+      <p class="small">Bola yangi telefondan kirmoqchi. Rasmiga qarang — o'shami?</p></div>` +
+    dev.map(s=>`<div class="card"><div style="display:flex;gap:12px;align-items:center">
+      ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:60px;height:60px;border-radius:14px;object-fit:cover">`:""}
+      <div style="flex:1"><b>${esc(s.name)}</b><div class="small">${esc(s.group||"")}</div></div></div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn" data-a="devOk" data-u="${esc(s.uid)}">Ruxsat berish</button>
+        <button class="btn danger" data-a="devNo" data-u="${esc(s.uid)}">Rad etish</button></div></div>`).join("") : "";
+  if(!p.length) return devHtml || `<div class="card"><h2>Navbat bo'sh</h2>
+    <p class="small">Yangi ro'yxatdan o'tganlar shu yerda paydo bo'ladi.</p></div>`;
+  return devHtml + `<div class="card flat"><h2>Tasdiqlash navbati (${p.length})</h2>
+      <p class="small">Rasmga qarang — shu bola sinfingizdami?</p></div>` +
+    p.map(s=>`<div class="card"><div style="display:flex;gap:12px;align-items:center">
+      ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:72px;height:72px;border-radius:16px;object-fit:cover">`:""}
+      <div style="flex:1"><b>${esc(s.name)}</b>
+        <div class="small">${esc(s.group||"guruhsiz")}${tgOf(s.uid)?" · @"+esc(tgOf(s.uid)):""}</div>
+        ${S.students.filter(x=>x.uid!==s.uid && normName(x.name)===normName(s.name)).length
+          ? `<div class="st" style="color:var(--err)">Shu ismda yana hisob bor — dublikat bo'lishi mumkin</div>`:""}</div></div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn" data-a="appr" data-u="${s.uid}">Tasdiqlash</button>
+        <button class="btn danger" data-a="rej" data-u="${s.uid}">Rad etish</button></div></div>`).join("");
+}
+ACT.appr = async n=>{ await DB.setStudent(S.code,n.dataset.u,{ok:true,rejected:false}); toast("Tasdiqlandi"); };
+ACT.rej  = async n=>{ await DB.setStudent(S.code,n.dataset.u,{ok:false,rejected:true}); toast("Rad etildi",true); };
+ACT.devOk = async n=>{ const s=S.students.find(x=>x.uid===n.dataset.u); if(!s) return;
+  await DB.setStudent(S.code,s.uid,{authUid:s.claimUid,claimUid:""}); toast("Ruxsat berildi"); };
+ACT.devNo = async n=>{ await DB.setStudent(S.code,n.dataset.u,{claimUid:""}); toast("Rad etildi",true); };
+
+function tJonli(){
+  const L=S.live||{mode:"off"};
+  const open=openCount()||1;
+  const l=lessonOf(S.qLesson||open);
+  if (L.mode && L.mode!=="off") return tLiveRunning(L);
+  return `<div class="card accent"><h2>Jonli o'yin</h2>
+      <p class="small">Dars boshida 5-7 daqiqa. Ball reytingga qo'shiladi, lekin umumiy ballning kichik qismi.</p></div>
+    <div class="card"><h3>1. Duel — ${l.n}-dars savollari</h3>
+      <div class="chips">${COURSE.lessons.filter(x=>x.n<=Math.max(open,1)).map(x=>
+        `<button class="chip ${x.n===(S.qLesson||open)?"on":""}" data-a="qL" data-n="${x.n}">${x.n}</button>`).join("")}</div>
+      <ul class="items" style="margin-top:10px">${l.duel.map((q,i)=>`<li><b>${i+1}.</b><span>${esc(q.q)}</span></li>`).join("")}</ul>
+      <button class="btn" data-a="startDuel" data-n="${l.n}" data-set="duel" data-i="0">Duelni boshlash</button></div>
+    ${l.rep?`<div class="card"><h3>Takrorlash — ${l.n}-dars</h3>
+      <p class="small">Bir hafta o'tib o'ynaladi. Tashqi bilim kerak emas: hamma javob
+        doskadagi bitta qoidadan chiqadi. Avval ${l.rep.filter(q=>q.a.length===2).length} ta tez savol
+        (ikki tugma, 15 soniya), keyin ${l.rep.filter(q=>q.a.length>2).length} tasi biroz qiyinrog'i.</p>
+      <ul class="items" style="margin-top:10px">${l.rep.map((q,i)=>`<li><b>${i+1}.</b><span>${esc(q.q)}</span></li>`).join("")}</ul>
+      <button class="btn" data-a="startDuel" data-n="${l.n}" data-set="rep" data-i="0">Takrorlashni boshlash</button></div>`:""}
+    <div class="card"><h3>2. Yolg'on ovi</h3>
+      <p class="small">Ekranda AI javobi — o'quvchilar to'qilgan jumlani topadi (+25).</p>
+      <div class="chips">${HUNTS.map((x,i)=>`<button class="chip" data-a="startHunt" data-i="${i}">${esc(x.topic)}</button>`).join("")}</div></div>
+    <div class="card"><h3>Kahoot o'yinini boshlash</h3>
+      <p class="small">Kahoot'da o'yinni ishga tushiring va ekrandagi PIN ni shu yerga yozing —
+        u hamma o'quvchining telefoniga tugma bo'lib chiqadi.</p>
+      <label>O'yin PIN i yoki havola
+        <span class="hint">Jonli o'yinda — PIN. Topshiriq (Assign) qilsangiz — kahoot.it/challenge/... havolasi</span></label>
+      <input id="kh-pin" placeholder="1234567 yoki https://kahoot.it/challenge/...">
+      <button class="btn" style="margin-top:10px" data-a="khStart">O'quvchilarga yuborish</button></div>
+    ${tDevor()}
+    ${tKahoot()}
+    <div class="card"><h3>3. Ovoz berish / bahs</h3>
+      <p class="small">To'g'ri javobi yo'q savol. Hamma ovoz beradi (+5), keyin bahslashasiz.</p>
+      <input id="p-q" placeholder="Savol"><input id="p-a" placeholder="Variantlar, vergul bilan">
+      <button class="btn ghost" style="margin-top:8px" data-a="startPoll">Ovoz berishni boshlash</button></div>`;
+}
+/* Sinf devori: qaysi bola qaysi muammoni o'ziga olgan.
+   Proyektorga chiqarib muhokama qilinadi. */
+function tDevor(){
+  const rows = S.students.filter(x=>x.ok)
+    .map(x=>({name:x.name, pr:(S.profiles[x.uid]||{}).problem}))
+    .filter(x=>x.pr)
+    .sort((a,b)=>(b.pr.foy+b.pr.pul)-(a.pr.foy+a.pr.pul));
+  const link = location.origin + location.pathname + "#qiymat";
+  if (!rows.length) return `<div class="card"><h3>Qiymat o'yini — 7-dars</h3>
+    <p class="small">O'quvchi o'ziga qiziq sohani tanlaydi, 6 juft savolda
+      «qaysi biriga ko'proq pul to'lashadi» va «qaysi biri ko'proq foyda beradi»
+      degan savolga javob beradi, keyin bitta muammoni o'ziga oladi.
+      Hali hech kim tanlamagan — tanlaganlar shu yerda ismi bilan chiqadi.</p>
+    <p class="small">O'quvchida: <b>Darslar → 7-dars → Boshlash</b>.
+      Yoki to'g'ridan-to'g'ri havola:</p>
+    <p class="small mono">${esc(link)}</p></div>`;
+  const foy = rows.reduce((a,x)=>a+x.pr.foy,0)/rows.length;
+  const pul = rows.reduce((a,x)=>a+x.pr.pul,0)/rows.length;
+  return `<div class="card"><h3>Sinf devori — tanlangan muammolar (${rows.length})</h3>
+    <p class="small">Sinf o'rtacha FOYDA ${foy.toFixed(1)} · PUL ${pul.toFixed(1)}.
+      ${foy-pul>=1 ? "Bolalar foydani puldan ustun qo'yishgan — shuni ayting, bu yaxshi belgi."
+       : pul-foy>=1 ? "Bolalar pulga qarab tanlashgan. So'rang: eng ko'p foyda beradigani qaysi edi?"
+       : "Foyda va pul muvozanatda tanlangan."}</p>
+    ${rows.map(x=>`<div class="bd" style="padding:12px;margin-bottom:8px">
+      <div class="cap">${esc(x.name)}</div>
+      <div style="margin-top:4px">${esc(x.pr.t)}</div>
+      <div class="mt"><span>PUL</span><span class="dots">${[1,2,3,4,5].map(i=>
+        `<i class="${i<=x.pr.pul?"on":""}"></i>`).join("")}</span></div>
+      <div class="mt"><span>FOYDA</span><span class="dots f">${[1,2,3,4,5].map(i=>
+        `<i class="${i<=x.pr.foy?"on":""}"></i>`).join("")}</span></div>
+    </div>`).join("")}
+    <p class="small mono" style="margin-top:10px">${esc(link)}</p>
+    <button class="btn ghost sm" data-a="proj">Proyektorga chiqarish</button></div>`;
+}
+function tKahoot(){
+  const I=S.imp;
+  if (!I) return `<div class="card"><h3>Kahoot natijasini qo'shish</h3>
+    <p class="small">Kahoot'da o'ynagach: <b>Reports</b> → o'yinni oching → <b>Download</b> →
+      jadval faylini shu yerga bering. Yoki natijalar jadvalini nusxalab, pastga qo'ying.</p>
+    <label>Hisobot fayli <span class="hint">.xlsx yoki .csv</span></label>
+    <input type="file" id="kh-file" accept=".xlsx,.xls,.csv,.txt">
+    <label>Yoki jadvalni shu yerga qo'ying
+      <span class="hint">Har qatorda: ism va ball</span></label>
+    <textarea id="kh-paste" placeholder="Karimov Jasur    8420&#10;Yusupova Malika  7310"></textarea>
+    <button class="btn" style="margin-top:10px" data-a="khRead">O'qish</button></div>`;
+
+  const ok=S.students.filter(x=>x.ok);
+  const top=Math.max(1,...I.rows.map(r=>r.score));
+  const pts=r=>{ const sid=I.map[r.name]; if(!sid) return 0;
+    return Math.max(5, Math.round(I.max * r.score / top)); };
+  const matched=I.rows.filter(r=>I.map[r.name]).length;
+  return `<div class="card accent"><h3>Kahoot natijasi — ${I.rows.length} o'yinchi</h3>
+      <p class="small">Taqqoslandi: <b>${matched}</b> ta. Topilmaganini qo'lda tanlang yoki bo'sh qoldiring.</p>
+      <label>Eng yaxshi natijaga beriladigan ball
+        <span class="hint">Qolganlari shunga nisbatan hisoblanadi, eng kami 5</span></label>
+      <input id="kh-max" inputmode="numeric" value="${I.max}">
+      <label>Qaysi darsga yozilsin</label>
+      <select id="kh-lesson">${COURSE.lessons.map(l=>
+        `<option value="${l.n}" ${l.n===I.lesson?"selected":""}>${l.n}-dars</option>`).join("")}</select>
+    </div>
+    ${I.rows.map((r,i)=>`<div class="rank">
+      <div class="nm">${esc(r.name)}<div class="st">Kahoot: ${r.score}</div></div>
+      <select data-a="khMap" data-i="${i}" style="width:auto;max-width:46%;padding:8px 10px">
+        <option value="">— tashlab ketish —</option>
+        ${ok.map(x=>`<option value="${esc(x.uid)}" ${I.map[r.name]===x.uid?"selected":""}>${esc(x.name)}</option>`).join("")}
+      </select>
+      <div class="sc">${pts(r)||"—"}</div></div>`).join("")}
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn" data-a="khApply">Ballarni qo'shish</button>
+      <button class="btn ghost" data-a="khCancel">Bekor</button></div>`;
+}
+ACT.khRead = async (btn)=>{
+  const f=document.getElementById("kh-file").files[0];
+  const txt=(document.getElementById("kh-paste").value||"").trim();
+  btn.disabled=true; btn.textContent="O'qilmoqda...";
+  let rows=[], src="";
+  try {
+    if (f){ rows=await parseFile(f); src=f.name+":"+f.size; }
+    else if (txt){ rows=parsePasted(txt); src=txt.slice(0,200); }
+  } catch(e){ rows=[]; }
+  btn.disabled=false; btn.textContent="O'qish";
+  if (!rows.length) return toast("Ism va ball ustunlari topilmadi",true);
+  /* ismlarni o'quvchilarga taqqoslash */
+  const map={}; const ok=S.students.filter(x=>x.ok);
+  rows.forEach(r=>{
+    const n=normName(r.name);
+    const hit = ok.find(x=>normName(x.name)===n)
+             || ok.find(x=>normName(x.name).startsWith(n) || n.startsWith(normName(x.name)))
+             || ok.find(x=>normName(x.name).split(" ").some(w=>w && n.split(" ").includes(w)));
+    if (hit) map[r.name]=hit.uid;
+  });
+  S.imp={rows:rows.sort((a,b)=>b.score-a.score), map, max:LIVE_CAP, lesson:openCount()||1, src};
+  render();
+};
+ACT.khMap = n=>{ const r=S.imp.rows[+n.dataset.i]; if(r){ if(n.value) S.imp.map[r.name]=n.value; else delete S.imp.map[r.name]; render(); } };
+ACT.khCancel = ()=>{ S.imp=null; render(); };
+ACT.khApply = async (btn)=>{
+  const I=S.imp; if(!I) return;
+  I.max = Math.max(1, parseInt(document.getElementById("kh-max").value,10)||LIVE_CAP);
+  I.lesson = +document.getElementById("kh-lesson").value || 1;
+  const id = hashOf(I.src + "|" + I.lesson);
+  /* Takror tekshiruvi qo'shimcha himoya: qoidalar eskirgan bo'lsa ham
+     importning o'zi to'xtab qolmasin. */
+  try { if (await DB.hasImport(S.code, id)) {
+    if(!confirm("Bu natija allaqachon qo'shilgan. Yana qo'shilsinmi?")) return; } }
+  catch(e){ console.warn("import yozuvi o'qilmadi", e); }
+  const top=Math.max(1,...I.rows.map(r=>r.score));
+  const list=I.rows.filter(r=>I.map[r.name]);
+  if (!list.length) return toast("Birorta o'quvchi tanlanmagan",true);
+  btn.disabled=true; btn.textContent="Qo'shilmoqda...";
+  let n=0;
+  for (const r of list){
+    const sid=I.map[r.name];
+    const p=Math.max(5, Math.round(I.max * r.score / top));
+    const place=I.rows.indexOf(r)+1;
+    await DB.addEntry(S.code, sid, {lesson:I.lesson, task:"kahoot", pts:p, ts:Date.now(),
+      text:`Kahoot: ${place}-o'rin · ${r.score} ball (${esc(r.name)})`});
+    await DB.bumpPoints(S.code, sid, p, weekNo());
+    n++;
+  }
+  try { await DB.addImport(S.code, id, {lesson:I.lesson, players:list.length, max:I.max}); }
+  catch(e){ console.warn("import yozuvi saqlanmadi", e); }
+  S.imp=null; toast(`${n} ta o'quvchiga ball qo'shildi`); render();
+};
+ACT.qL = n=>{ S.qLesson=+n.dataset.n; render(); };
+ACT.startDuel = async n=>{
+  const ln=+n.dataset.n, i=+n.dataset.i, set=n.dataset.set||"duel";
+  const q=qsOf(ln,set)[i];
+  if(!q) return toast("Savollar tugadi");
+  if(i===0) S.quiz={scores:{},names:{}};   /* yangi viktorina — hisob noldan */
+  await DB.setLive(S.code,{mode:"duel",set,lesson:ln,qi:i,q:q.q,a:q.a,c:null,w:null,
+    t0:Date.now(),dur:q.t||25,reveal:false,key:`${set[0]}${ln}_${i}_${Date.now()}`});
+};
+ACT.startHunt = async n=>{
+  const x=+n.dataset.i, hn=HUNTS[x];
+  await DB.setLive(S.code,{mode:"hunt",lesson:openCount()||5,hi:x,topic:hn.topic,s:hn.s,c:null,w:null,
+    t0:Date.now(),dur:60,reveal:false,key:`h${x}_${Date.now()}`});
+};
+ACT.khStart = async ()=>{
+  const raw=(document.getElementById("kh-pin").value||"").trim();
+  if(!raw) return toast("PIN yoki havolani yozing",true);
+  const isUrl = /^https?:\/\//i.test(raw);
+  if (isUrl){
+    if(!/kahoot\.it|kahoot\.com/i.test(raw)) return toast("Kahoot havolasi emas",true);
+    await DB.setLive(S.code,{mode:"kahoot", url:raw, lesson:openCount()||0, key:"kh"+Date.now()});
+  } else {
+    const pin=raw.replace(/\D/g,"");
+    if(pin.length<4) return toast("PIN ni to'liq yozing",true);
+    await DB.setLive(S.code,{mode:"kahoot", pin, lesson:openCount()||0, key:"kh"+Date.now()});
+  }
+  toast("Havola yuborildi");
+};
+ACT.startPoll = async ()=>{
+  const q=document.getElementById("p-q").value.trim();
+  const a=document.getElementById("p-a").value.split(",").map(s=>s.trim()).filter(Boolean);
+  if(!q||a.length<2) return toast("Savol va kamida 2 variant",true);
+  await DB.setLive(S.code,{mode:"poll",q,a,c:-1,w:"",t0:Date.now(),dur:40,reveal:false,key:"p"+Date.now()});
+};
+function tLiveRunning(L){
+  if(L.mode==="kahoot"){
+    const pin=String(L.pin||"");
+    return `<div class="card accent" style="text-align:center">
+        <small class="small">KAHOOT O'YINI</small>
+        <h2>O'quvchilarda havola chiqdi</h2>
+        ${pin?`<div class="pin">${esc(pin.replace(/(\d{4})(?=\d)/g,"$1 "))}</div>`
+             :`<p class="mono small" style="word-break:break-all">${esc(L.url||"")}</p>`}
+        <p class="small">O'yin tugagach hisobotni yuklab, pastdagi kartaga bering —
+          ballar reytingga o'zi tarqaladi.</p></div>
+      <div class="btn-row"><button class="btn ghost" data-a="stopLive">Yopish</button>
+        <button class="btn ghost" data-a="proj">Proyektor</button></div>
+      ${tKahoot()}`;
+  }
+  if(L.mode==="result"){
+    const list=L.podium||[];
+    return `<div class="card accent" style="text-align:center"><small class="small">YAKUNIY NATIJA</small>
+        <h2>${esc(L.title||"Viktorina")}</h2><p class="small">${list.length} ta qatnashchi</p></div>` +
+      list.slice(0,10).map((x,i)=>`<div class="rank top${i+1}">
+        <div class="n">${i+1}</div><div class="nm">${esc(x.name)}</div><div class="sc">${x.pts}</div></div>`).join("") +
+      `<div class="btn-row" style="margin-top:12px">
+        <button class="btn ghost" data-a="stopLive">Yopish</button>
+        <button class="btn ghost" data-a="proj">Proyektor</button></div>`;
+  }
+  const total=S.students.filter(s=>s.ok).length;
+  const ans=S.liveAns||[];
+  const opts = L.mode==="hunt"?L.s:L.a;
+  const counts = opts.map((_,i)=>ans.filter(a=>a.c===i).length);
+  const head = L.mode==="hunt"?`Mavzu: ${esc(L.topic)} — to'qilgan jumlani toping`:esc(L.q);
+  const qs = L.mode==="duel" && L.lesson ? qsOf(L.lesson,L.set) : [];
+  const last = L.mode==="duel" && L.qi>=qs.length-1;
+  return `<div class="card accent"><small class="small">${L.mode==="duel"?`${L.set==="rep"?"TAKRORLASH":"DUEL"} · ${(L.qi||0)+1}/${qs.length}`:L.mode==="hunt"?"YOLG'ON OVI":"OVOZ BERISH"}</small>
+      <h2>${head}</h2>
+      <p class="small">${ans.length} / ${total} javob berdi</p></div>
+    ${opts.map((o,i)=>{
+      const w = ans.length?Math.round(counts[i]/ans.length*100):0;
+      const right = L.reveal && L.mode!=="poll" && i===(L.mode==="hunt"?HUNTS[L.hi].lie:qsOf(L.lesson,L.set)[L.qi].c);
+      return `<div class="opt ${right?"right":""}">${esc(o)}
+        <div class="bar" style="margin-top:8px"><i style="width:${w}%"></i></div>
+        <small>${counts[i]} ta${L.reveal?"":""}</small></div>`;
+    }).join("")}
+    <div class="btn-row" style="margin-top:12px">
+      ${L.reveal?"":`<button class="btn" data-a="reveal">Javobni ochish</button>`}
+      ${L.mode==="duel"&&L.reveal&&!last?`<button class="btn" data-a="startDuel" data-n="${L.lesson}" data-set="${L.set||"duel"}" data-i="${L.qi+1}">Keyingi savol</button>`:""}
+      ${L.mode==="duel"&&L.reveal&&last?`<button class="btn" data-a="finishQuiz">Yakuniy natija</button>`:""}
+      <button class="btn ghost" data-a="stopLive">To'xtatish</button>
+      <button class="btn ghost" data-a="proj">Proyektor</button>
+    </div>`;
+}
+ACT.reveal = async ()=>{
+  const L=S.live;
+  let c=-1,w="";
+  if(L.mode==="duel"){ const q=qsOf(L.lesson,L.set)[L.qi]; c=q.c; w=q.w; }
+  else if(L.mode==="hunt"){ c=HUNTS[L.hi].lie; w=HUNTS[L.hi].w; }
+  /* viktorina hisobi: to'g'ri javob 10 + tezlik uchun 20 gacha */
+  if(c>=0) (S.liveAns||[]).forEach(a=>{
+    S.quiz.names[a.uid]=a.name||S.quiz.names[a.uid]||"";
+    if(a.c===c){
+      const b=Math.round(20*Math.max(0,(L.dur*1000-(a.ms||0)))/(L.dur*1000));
+      S.quiz.scores[a.uid]=(S.quiz.scores[a.uid]||0)+10+b;
+    } else if(!(a.uid in S.quiz.scores)) S.quiz.scores[a.uid]=0;
+  });
+  await DB.setLive(S.code,{...L,reveal:true,c,w});
+};
+ACT.finishQuiz = async ()=>{
+  const L=S.live;
+  const podium=Object.entries(S.quiz.scores)
+    .map(([uid,pts])=>({uid, pts, name:S.quiz.names[uid] || (S.students.find(x=>x.uid===uid)||{}).name || "?"}))
+    .sort((a,b)=>b.pts-a.pts);
+  await DB.setLive(S.code,{mode:"result", lesson:L.lesson||0, podium,
+    title:(lessonOf(L.lesson)||{}).t || "Viktorina", key:"r"+Date.now()});
+};
+ACT.stopLive = async ()=>{ await DB.setLive(S.code,{mode:"off"}); };
+ACT.proj = ()=>{ document.body.classList.toggle("proj");
+  if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); };
+
+function tReyting(){
+  const ok=S.students.filter(s=>s.ok), wk=weekNo();
+  const wkOf=s=>s.wk===wk?(s.wkPts||0):0;
+  return `<div class="card flat"><h2>Haftalik reyting</h2>
+      <button class="btn sm ghost" data-a="proj">Proyektor rejimi</button></div>` +
+    [...ok].sort((a,b)=>wkOf(b)-wkOf(a)).map((s,i)=>`<div class="rank top${i+1}">
+      <div class="n">${i+1}</div><div class="nm">${esc(s.name)}<div class="st">${esc(s.group||"")}</div></div>
+      <div class="sc">${wkOf(s)}</div></div>`).join("") +
+    `<div class="card flat" style="margin-top:14px"><h2>Umumiy</h2></div>` +
+    [...ok].sort((a,b)=>(b.pts||0)-(a.pts||0)).map((s,i)=>`<div class="rank top${i+1}">
+      <div class="n">${i+1}</div><div class="nm">${esc(s.name)}</div><div class="sc">${s.pts||0}</div></div>`).join("") +
+    `<div class="card noprint" style="margin-top:14px"><button class="btn ghost" data-a="newWeek">Haftani yakunlash (reyting noldan)</button></div>`;
+}
+ACT.newWeek = async ()=>{
+  if(!confirm("Haftalik ballar nolga tushsinmi? Umumiy ball saqlanadi.")) return;
+  for(const s of S.students) await DB.setStudent(S.code,s.uid,{wkPts:0,wk:weekNo()});
+  toast("Yangi hafta boshlandi");
+};
+function tRuyxat(){
+  const ok=S.students.filter(s=>s.ok).sort((a,b)=>(b.pts||0)-(a.pts||0));
+  if(S.viewStudent){
+    const s=S.students.find(x=>x.uid===S.viewStudent);
+    return `<div class="card"><button class="btn sm ghost" data-a="closeStudent">← Orqaga</button>
+      <h2 style="margin-top:8px">${esc(s?s.name:"")}</h2>
+      <p class="small">${esc((s&&s.group)||"")} · ${s?s.pts||0:0} ball</p>
+      <div class="sep"></div>
+      <h3>Qo'lda ball berish</h3>
+      <p class="small">Darsda ko'rsatgan ishi uchun — sababini yozing, o'quvchida ko'rinadi.</p>
+      <input id="aw-r" placeholder="Nima uchun? Masalan: bahsda kuchli dalil keltirdi">
+      <div class="btn-row" style="margin-top:8px">
+        ${[5,10,20,-5].map(v=>`<button class="btn sm ${v<0?"danger":"ghost"}" data-a="award" data-u="${esc(s?s.uid:"")}" data-v="${v}">${v>0?"+":""}${v}</button>`).join("")}
+      </div>
+      <div class="sep"></div>
+      <div class="btn-row">
+        <button class="btn sm ghost" data-a="devReset" data-u="${esc(s?s.uid:"")}">Qurilmani bo'shatish</button>
+        <button class="btn sm danger" data-a="delStu" data-u="${esc(s?s.uid:"")}">O'quvchini o'chirish</button>
+      </div></div>` +
+      (S.viewEntries||[]).sort((a,b)=>a.lesson-b.lesson).map(e=>`<div class="card">
+        <small>${e.lesson}-dars · ${esc(e.task)} · +${e.pts}</small>
+        <div class="note" style="margin-top:6px">${nl2br(e.text)}</div></div>`).join("") ||
+      `<div class="card"><p class="small">Hali ish topshirmagan.</p></div>`;
+  }
+  const groups={};
+  S.students.forEach(s=>{ const k=normName(s.name); (groups[k]=groups[k]||[]).push(s); });
+  const dupes=Object.values(groups).filter(g=>g.length>1);
+  const dupHtml = dupes.length ? `<div class="card accent"><h2>Takrorlangan ismlar (${dupes.length})</h2>
+      <p class="small">Bitta bola bir necha marta ro'yxatdan o'tgan. Ballari ko'p bo'lganini qoldiring,
+        qolganini o'chiring — shunda reytingda bir marta chiqadi.</p>
+      ${dupes.map(g=>`<div class="note" style="margin:10px 0">
+        <b>${esc(g[0].name)}</b>
+        ${g.sort((a,b)=>(b.pts||0)-(a.pts||0)).map((s,i)=>`<div class="rank" style="margin-top:6px">
+          <div class="n">${i+1}</div>
+          <div class="nm">${s.pts||0} ball<div class="st">${s.ok?"tasdiqlangan":"tasdiqlanmagan"}${i===0?" · asosiy":""}</div></div>
+          ${i===0?`<div class="st">qoldirish</div>`
+                 :`<button class="btn sm danger" data-a="delStu" data-u="${esc(s.uid)}">o'chirish</button>`}
+        </div>`).join("")}</div>`).join("")}</div>` : "";
+  return dupHtml + `<div class="card flat"><h2>O'quvchilar (${ok.length})</h2>
+      <p class="small">Ism ustiga bosing — nima yozganini ko'rasiz. Ball bor, ish yo'q bo'lsa — savol bering.</p></div>` +
+    ok.map(s=>`<div class="rank" data-a="openStudent" data-u="${s.uid}" style="cursor:pointer">
+      ${photoOf(s.uid)?`<img src="${esc(photoOf(s.uid))}" style="width:34px;height:34px;border-radius:11px;object-fit:cover">`:`<div class="n">·</div>`}
+      <div class="nm">${esc(s.name)}<div class="st">${esc(s.group||"guruhsiz")} · ${I.flame}${s.streak||0}</div></div>
+      <div class="sc">${s.pts||0}</div></div>`).join("");
+}
+ACT.award = async n=>{
+  const sid=n.dataset.u, v=+n.dataset.v;
+  const why=(document.getElementById("aw-r")||{}).value?.trim()||"";
+  if(!why) return toast("Sababini yozing",true);
+  await DB.addEntry(S.code, sid, {lesson:openCount()||0, task:"muallim", pts:v,
+    text:(v>0?"Muallim berdi: ":"Muallim oldi: ")+why, ts:Date.now()});
+  await DB.bumpPoints(S.code, sid, v, weekNo());
+  toast((v>0?"+":"")+v+" ball");
+};
+ACT.devReset = async n=>{
+  if(!confirm("Bu o'quvchi keyingi kirishda istalgan qurilmadan kira olsinmi?")) return;
+  await DB.setStudent(S.code,n.dataset.u,{authUid:"",claimUid:""}); toast("Qurilma bo'shatildi");
+};
+ACT.delStu = async n=>{
+  const s=S.students.find(x=>x.uid===n.dataset.u);
+  if(!confirm(`${s?s.name:"O'quvchi"} va uning hamma ishlari o'chirilsinmi? Qaytarib bo'lmaydi.`)) return;
+  await DB.delStudent(S.code,n.dataset.u);
+  if(S.viewStudent===n.dataset.u) S.viewStudent=null;
+  toast("O'chirildi",true); render();
+};
+ACT.openStudent = n=>{ S.viewStudent=n.dataset.u; S.viewEntries=[];
+  if(S._unsubStud) S._unsubStud();
+  S._unsubStud = DB.watchEntries(S.code,n.dataset.u,e=>{ S.viewEntries=e; if(S.tab==="ruyxat") render(); });
+  render(); };
+ACT.closeStudent = ()=>{ S.viewStudent=null; if(S._unsubStud){S._unsubStud();S._unsubStud=null;} render(); };
+
+/* ---------------------------------------------------------------------
+   10) ULANISH, RENDER, ISHGA TUSHIRISH
+   --------------------------------------------------------------------- */
+function detach(){ S.unsub.forEach(f=>{try{f();}catch(e){}}); S.unsub=[];
+  if(S._unsubAns){try{S._unsubAns();}catch(e){} S._unsubAns=null;} }
+
+async function attach(code){
+  detach();
+  S.loaded=false;
+  S.unsub.push(DB.watchClass(code, c=>{ S.cls=c; render(); }));
+  S.unsub.push(DB.watchStudents(code, list=>{
+    S.students = list.filter(s=>s && s.name);
+    const was = S.me && S.me.ok;
+    S.me = S.students.find(s=>s.uid===S.sid) || null;
+    S.loaded = true;
+    if (S.me && S.me.ok && !was && S.role==="student") toast("Tasdiqlandi — darslar ochiq");
+    render();
+  }));
+  S.unsub.push(DB.watchLive(code, l=>{
+    const prev = S.live && S.live.key;
+    S.live = l;
+    if (l && l.mode && l.mode!=="off"){
+      if (S.role==="teacher"){
+        if (S._unsubAns) S._unsubAns();
+        S.liveAns=[];
+        S._unsubAns = DB.watchAnswers(code, l.key, a=>{ S.liveAns=a; if(S.role==="teacher") render(); });
+      } else {
+        if (l.key!==prev && S.tab!=="live") S.tab="live";
+        if (l.reveal) maybeAwardLive();
+      }
+    } else if (S.tab==="live") S.tab="bugun";
+    render();
+  }));
+  S.unsub.push(DB.watchEntries(code, S.sid, e=>{ S.entries=e; render(); }));
+  S.unsub.push(DB.watchTasks(code, t=>{ S.tasks=(t||[]).filter(x=>x&&x.t); render(); }));
+  if (S.role==="teacher") S.unsub.push(DB.watchProfiles(code, m=>{ S.profiles=m||{}; render(); }));
+  else S.unsub.push(DB.watchMyProfile(code, S.sid, pr=>{ S.myProfile=pr; render(); }));
+}
+
+let _raf=null;
+function render(){
+  if (_raf) return; _raf = requestAnimationFrame(()=>{ _raf=null; draw(); });
+}
+function draw(){
+  switch(S.screen){
+    case "boot":   h(`<div class="wrap">${brand("Yuklanmoqda...")}</div>`); break;
+    case "gate":   screenGate(); break;
+    case "reg":    screenReg(); break;
+    case "login":  screenLogin(); break;
+    case "dup":    screenDup(); break;
+    case "tgate":  screenTeacherGate(); break;
+    case "teacher":
+      if (!S.cls) { h(`<div class="wrap">${brand("Yuklanmoqda...")}</div>`); break; }
+      screenTeacher(); break;
+    case "app":
+      if (!S.loaded) { h(`<div class="wrap">${brand("Yuklanmoqda...")}</div>`); break; }
+      if (!S.me) { S.screen="gate"; S.reg.code=S.code; screenGate(); break; }
+      if (!S.me.ok || (S.me.authUid && S.me.authUid!==S.uid)) { screenPending(); break; }
+      screenStudent(); break;
+    default: screenGate();
+  }
+}
+
+(async function boot(){
+  LocalDB.start();
+  try { DB = FB_CONFIG ? await makeCloudDB(FB_CONFIG) : LocalDB; }
+  catch(e){ console.warn("Bulutga ulanmadi, mahalliy rejim:", e); DB = LocalDB; }
+  S.uid = await DB.auth();
+  await Bio.init();
+
+  /* Sessiyalar alohida: bitta telefonda ham o'quvchi, ham muallim bo'lish mumkin.
+     O'quvchi sessiyasi hisob identifikatorini (sid) eslab qoladi — qurilma
+     almashsa ham hisob yo'qolmaydi, "Kirish" orqali qaytariladi. */
+  const stu = SES.get("stu"), tea = SES.get("tea");
+  let code = "";
+  const qc = new URLSearchParams(location.search).get("code");
+  if (qc) code = qc.toUpperCase();
+  if (IN_TG && TG.initDataUnsafe.start_param) code = String(TG.initDataUnsafe.start_param).toUpperCase();
+
+  /* #qiymat — o'yinga to'g'ridan-to'g'ri havola. Kirmagan bo'lsa
+     avval kirish oynasi chiqadi, kirgandan keyin o'yin ochiladi. */
+  const wantGame = (location.hash||"").toLowerCase()==="#qiymat";
+
+  if (stu && stu.sid && (!code || code===stu.code)){
+    S.code=stu.code; S.sid=stu.sid; S.role="student"; S.screen="app";
+    S.tab = wantGame ? "qiymat" : "darslar";
+    await attach(S.code);
+  } else if (tea && tea.code && !code){
+    S.code=tea.code; S.role="teacher"; S.teacherOk=true; S.screen="teacher"; S.tab="dars";
+    await attach(S.code);
+  } else if (code){
+    S.code = code; S.reg.code = code; S.screen = "gate";
+  } else S.screen = "gate";
+  render();
+
+  /* Ilova ochiq turganda ham #qiymat havolasi ishlasin: faqat hash
+     o'zgarsa brauzer sahifani qayta yuklamaydi, boot qayta ishlamaydi. */
+  addEventListener("hashchange", ()=>{
+    if ((location.hash||"").toLowerCase()==="#qiymat" && S.role==="student"){
+      S.qm=null; S.tab="qiymat"; render();
+    }
+  });
+
+  if ("serviceWorker" in navigator && location.protocol==="https:")
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>

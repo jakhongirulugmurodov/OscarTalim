@@ -1,0 +1,27 @@
+# Server (VPS) da doimiy ishlatish uchun systemd xizmati.
+#   sudo cp mutolaa-bot.service /etc/systemd/system/
+#   sudo systemctl enable --now mutolaa-bot
+#   journalctl -u mutolaa-bot -f        # loglar
+[Unit]
+Description=Mutolaa kitob do'koni Telegram boti
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/OscarTalim/mutolaa_bot
+ExecStart=/usr/bin/python3 /opt/OscarTalim/mutolaa_bot/bot.py
+Environment=BOT_TOKEN=BU_YERGA_TOKEN
+Environment=ADMIN_IDS=123456789
+Environment=DB_PATH=/var/lib/mutolaa/mutolaa.db
+Environment=DOKON_MANZIL=Toshkent sh., Chilonzor tumani, ...
+Environment=DOKON_TELEFON=+998 90 000 00 00
+#Environment=KANAL_ID=@kanal_nomi
+#Environment=BUYURTMA_CHAT_ID=-1001234567890
+#Environment=DOKON_INSTAGRAM=mutolaa.uz
+#Environment=DOKON_XARITA=https://yandex.uz/maps/...
+StateDirectory=mutolaa
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

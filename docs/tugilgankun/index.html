@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ec4899">
+<meta name="description" content="Yaqinlaringizning tug'ilgan kunini hech qachon unutmang — bepul eslatuvchi.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Tug'ilgan kunlar eslatuvchisi</title>
+<style>
+:root{
+  --primary:#ec4899; --primary-dark:#db2777; --primary-soft:#fdf2f8;
+  --accent:#8b5cf6; --bg:#fef6fb; --text:#1f2937; --muted:#6b7280;
+  --white:#fff; --border:#f6d9e8; --ok:#16a34a; --err:#dc2626; --warn:#f59e0b;
+  --radius:18px; --shadow:0 1px 2px rgba(31,41,55,.05),0 10px 26px -10px rgba(219,39,119,.25);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:linear-gradient(180deg,#fdeef7 0%,var(--bg) 260px);
+  color:var(--text); margin:0; padding:16px 14px 100px; line-height:1.6; min-height:100vh;
+}
+#app{max-width:640px;margin:0 auto}
+.hero{text-align:center;margin:14px 0 20px}
+.hero.small{margin:6px 0 14px}
+.logo{
+  width:64px;height:64px;margin:0 auto 10px;border-radius:20px;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;
+  box-shadow:0 10px 24px -8px rgba(219,39,119,.5);
+}
+.hero h1{font-size:1.4rem;margin:0 0 4px;letter-spacing:-.02em}
+.muted{color:var(--muted);font-size:.92rem;margin:0}
+.center{text-align:center}
+
+.card{background:var(--white);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+label{font-size:.85rem;font-weight:600;display:block;margin:10px 0 5px;color:#334155}
+label .hint{font-weight:400;color:var(--muted)}
+input,select{
+  width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;
+  font-size:1rem;background:var(--white);color:var(--text);appearance:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(236,72,153,.14)}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:34px;
+}
+.row3{display:grid;grid-template-columns:1.6fr 1.2fr 1fr;gap:8px}
+@media (max-width:420px){.row3{grid-template-columns:1fr 1fr}.row3>div:last-child{grid-column:1/-1}}
+
+button{font:inherit}
+.btn{
+  display:block;width:100%;padding:14px 16px;border:0;border-radius:13px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;
+  font-weight:700;font-size:1.02rem;cursor:pointer;margin-top:14px;
+  box-shadow:0 8px 20px -8px rgba(219,39,119,.5);transition:transform .12s,opacity .2s;
+}
+.btn:active{transform:scale(.98)}
+.btn:disabled,.btn.disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn.ghost{background:var(--white);color:var(--primary);border:1.5px solid #fbcfe8;box-shadow:none}
+.btn.sm{width:auto;display:inline-block;padding:9px 14px;font-size:.86rem;margin:8px 0 0 10px}
+
+.tabs2{display:flex;background:#fdf2f8;border-radius:12px;padding:4px;gap:4px;margin-bottom:6px}
+.tabs2.sub{background:#f8fafc;margin-bottom:14px}
+.tabs2 button{
+  flex:1;margin:0;padding:10px;font-size:.92rem;font-weight:600;background:transparent;
+  color:var(--muted);border:0;border-radius:9px;box-shadow:none;transition:all .2s;
+}
+.tabs2 button.active{background:var(--white);color:var(--primary-dark);box-shadow:0 2px 8px rgba(219,39,119,.15)}
+
+.msg{font-size:.9rem;margin-top:10px;min-height:1px}
+.msg.err{color:var(--err);background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:10px 13px}
+.msg.ok{color:var(--ok)}
+
+.footnote{text-align:center;font-size:.8rem;color:var(--muted);margin-top:18px}
+
+.progress-wrap{height:9px;border-radius:99px;background:#fbe3ef;overflow:hidden;margin:14px 0 6px}
+.progress-bar{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary),var(--accent));transition:width .4s ease}
+
+.list{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+.list.compact{gap:6px}
+.chip-item{
+  display:flex;align-items:center;gap:8px;background:#fdf2f8;border:1px solid var(--border);
+  border-radius:12px;padding:9px 12px;font-size:.88rem;
+}
+.chipdel{margin-left:auto;background:none;border:0;color:var(--err);font-size:.9rem;cursor:pointer;padding:2px 6px}
+
+.item{
+  display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--border);
+  border-radius:16px;padding:13px 14px;box-shadow:var(--shadow);
+}
+.item-main{flex:1;min-width:0}
+.item-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-sub{font-size:.8rem;color:var(--muted);margin-top:2px}
+.item-badge{flex:0 0 auto;font-size:.74rem;font-weight:800;padding:6px 10px;border-radius:999px;white-space:nowrap}
+.item-badge.urgent{background:#fee2e2;color:#b91c1c}
+.item-badge.soon{background:#fef3c7;color:#92400e}
+.item-badge.later{background:#f1f5f9;color:#475569}
+.item-actions{display:flex;gap:4px;flex:0 0 auto}
+.ghostsm{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:.95rem}
+
+.alerts{display:flex;flex-direction:column;gap:8px;margin:8px 0 6px}
+.alert{border-radius:14px;padding:12px 14px;font-size:.94rem;font-weight:600;box-shadow:var(--shadow)}
+.alert.today{background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff}
+.alert.tomorrow{background:linear-gradient(135deg,#fb923c,#f59e0b);color:#fff}
+.alert.soon{background:#fdf2f8;color:#9d174d;border:1px solid #fbcfe8}
+
+.notice{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:14px;padding:11px 14px;font-size:.86rem;color:#9a3412;margin-bottom:12px}
+.notice.actionable{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+
+.section-title{font-size:.92rem;font-weight:700;color:#334155;margin:18px 2px 8px}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 0 4px;margin-bottom:6px;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto}
+.brand b{display:block}
+.brand .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.iconbtn{background:var(--white);border:1.5px solid var(--border);color:var(--muted);border-radius:999px;padding:8px 14px;font-size:.82rem;cursor:pointer;flex:0 0 auto}
+
+.fab{position:fixed;right:18px;bottom:24px;width:58px;height:58px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:1.6rem;box-shadow:0 12px 28px -8px rgba(219,39,119,.55);cursor:pointer;z-index:40}
+
+.emptystate{text-align:center;color:var(--muted);padding:30px 10px;font-size:.92rem}
+
+.spinner{width:34px;height:34px;border:3px solid #fbcfe8;border-top-color:var(--primary);border-radius:50%;margin:80px auto;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:#1f2937;color:#fff;padding:11px 20px;border-radius:999px;font-size:.9rem;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.3s;z-index:99;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+footer{text-align:center;font-size:.78rem;color:#b48;opacity:.6;margin:26px 0 8px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<script>
+/* =====================================================================
+   TUG'ILGAN KUNLAR ESLATUVCHISI
+   Bitta fayl: HTML + CSS + JS. Backend: Firebase (yoki mahalliy rejim).
+   Ro'yxatdan o'tish: telefon yoki email + parol.
+   ===================================================================== */
+
+/* Shu repodagi umumiy Firebase loyihasi (docs/sinf bilan bir xil).
+   Email/Parol kirish usuli konsolda yoqilmagan bo'lsa, ilova avtomatik
+   ravishda mahalliy (shu qurilmadagi) rejimga o'tadi — baribir bepul
+   va to'liq ishlaydi. */
+const FB_CONFIG = {
+  "apiKey": "AIzaSyDJh1D_SwuZA4TtavoooeTSIPaRvzE4QzY",
+  "authDomain": "oscartalim-sinf-80da0.firebaseapp.com",
+  "projectId": "oscartalim-sinf-80da0",
+  "storageBucket": "oscartalim-sinf-80da0.firebasestorage.app",
+  "messagingSenderId": "451154934941",
+  "appId": "1:451154934941:web:28c540f7d10edff5736874"
+};
+
+const ONBOARD_MIN = 5;          // ro'yxatdan o'tgach kiritilishi shart bo'lgan eng kam son
+const REMINDER_WINDOW = 7;      // shuncha kun qolganda "yaqinlashayotgan" bo'limida chiqadi
+const NOTIFY_WINDOW = 2;        // shuncha kun qolganda brauzer bildirishnomasi yuboriladi (0,1,2)
+const FORCE_LOCAL_KEY = "tugilgankun:forceLocal";
+
+const MONTHS = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
+
+const $ = id => document.getElementById(id);
+const app = document.getElementById("app");
+
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+/* ---------------------------------------------------------------------
+   1) SAQLASH QATLAMI — mahalliy (localStorage)
+   --------------------------------------------------------------------- */
+const LocalDB = {
+  mode: "local",
+  KA: "tugilgankun:account", KI: "tugilgankun:items", KS: "tugilgankun:session",
+  getAccount(){ try { return JSON.parse(localStorage.getItem(this.KA)); } catch(e){ return null; } },
+  setAccount(a){ localStorage.setItem(this.KA, JSON.stringify(a)); },
+  hasSession(){ return localStorage.getItem(this.KS) === "1"; },
+  setSession(v){ v ? localStorage.setItem(this.KS, "1") : localStorage.removeItem(this.KS); },
+  _items(){ try { return JSON.parse(localStorage.getItem(this.KI)) || {}; } catch(e){ return {}; } },
+  _save(all){ localStorage.setItem(this.KI, JSON.stringify(all)); },
+
+  async register(contact, contactType, password){
+    if (this.getAccount()) throw { code: "local/exists" };
+    const passHash = await hashPass(password);
+    this.setAccount({ contact, contactType, passHash, createdAt: Date.now() });
+    this.setSession(true);
+    return "local";
+  },
+  async login(contact, contactType, password){
+    const acc = this.getAccount();
+    if (!acc || acc.contact !== contact || acc.contactType !== contactType) throw { code: "local/notfound" };
+    const passHash = await hashPass(password);
+    if (passHash !== acc.passHash) throw { code: "local/wrongpass" };
+    this.setSession(true);
+    return "local";
+  },
+  async logout(){ this.setSession(false); },
+  async listItems(){ return Object.values(this._items()); },
+  async addItem(uid, item){
+    const all = this._items();
+    const id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    all[id] = { ...item, id, authUid: uid };
+    this._save(all);
+    return id;
+  },
+  async updateItem(_uid, id, item){
+    const all = this._items();
+    all[id] = { ...all[id], ...item, id };
+    this._save(all);
+  },
+  async deleteItem(_uid, id){
+    const all = this._items();
+    delete all[id];
+    this._save(all);
+  },
+};
+
+async function hashPass(pw){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* ---------------------------------------------------------------------
+   2) SAQLASH QATLAMI — bulut (Firebase)
+   --------------------------------------------------------------------- */
+function phoneToEmail(phone){ return "tel" + phone.replace(/\D/g, "") + "@tugilgankun.uz"; }
+
+async function makeCloudDB(cfg){
+  const A = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+  const U = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+  const F = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+  const app_ = A.initializeApp(cfg, "tugilgankun");
+  const auth = U.getAuth(app_);
+  const fs = F.getFirestore(app_);
+  const { doc, setDoc, getDoc, deleteDoc, getDocs, collection } = F;
+  const D = (...p) => doc(fs, ...p), C = (...p) => collection(fs, ...p);
+
+  return {
+    mode: "cloud",
+    waitForAuthReady(){
+      return new Promise(res => { const un = U.onAuthStateChanged(auth, u => { un(); res(u ? u.uid : null); }); });
+    },
+    async getProfile(uid){ const s = await getDoc(D("tugilgankun", uid)); return s.exists() ? s.data() : null; },
+    async register(contact, contactType, password){
+      const email = contactType === "phone" ? phoneToEmail(contact) : contact;
+      const cred = await U.createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(D("tugilgankun", cred.user.uid), { contact, contactType, createdAt: Date.now() });
+      return cred.user.uid;
+    },
+    async login(contact, contactType, password){
+      const email = contactType === "phone" ? phoneToEmail(contact) : contact;
+      const cred = await U.signInWithEmailAndPassword(auth, email, password);
+      return cred.user.uid;
+    },
+    async logout(){ await U.signOut(auth); },
+    // "birthdays_shared" — hamma ro'yxatdan o'tgan foydalanuvchi o'qiy oladigan
+    // umumiy to'plam: kim qo'shsa, hammaga ko'rinadi. Tahrirlash/o'chirish esa
+    // faqat o'sha yozuvni qo'shgan kishiga (authUid) — buni qoidalar tekshiradi.
+    async listItems(){
+      const q = await getDocs(C("birthdays_shared"));
+      return q.docs.map(d => ({ ...d.data(), id: d.id }));
+    },
+    async addItem(uid, item){
+      const id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await setDoc(D("birthdays_shared", id), { ...item, authUid: uid, createdAt: Date.now() });
+      return id;
+    },
+    async updateItem(_uid, id, item){ await setDoc(D("birthdays_shared", id), item, { merge: true }); },
+    async deleteItem(_uid, id){ await deleteDoc(D("birthdays_shared", id)); },
+  };
+}
+
+/* ---------------------------------------------------------------------
+   3) HOLAT
+   --------------------------------------------------------------------- */
+let DB = null;
+const S = {
+  screen: "boot",       // boot | auth | onboard | dashboard
+  authAction: "login",  // login | register
+  authTab: "phone",     // phone | email
+  busy: false,
+  uid: null, contact: "", contactType: "",
+  items: [],
+  showAddForm: false, editingId: null,
+};
+
+/* ---------------------------------------------------------------------
+   4) SANA VA VALIDATSIYA YORDAMCHILARI
+   --------------------------------------------------------------------- */
+function validDate(day, month){
+  if (!day || !month) return false;
+  const d = new Date(2000, month - 1, day); // 2000 — kabisa yil, 29-fevralga ham ruxsat
+  return d.getMonth() === month - 1 && d.getDate() === day;
+}
+function daysUntil(day, month){
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const y = today.getFullYear();
+  let next = new Date(y, month - 1, day);
+  next.setHours(0, 0, 0, 0);
+  if (next < today) next = new Date(y + 1, month - 1, day);
+  return Math.round((next - today) / 86400000);
+}
+function turningAge(year, month, day){
+  if (!year) return null;
+  const today = new Date();
+  let next = new Date(today.getFullYear(), month - 1, day);
+  return next < today ? today.getFullYear() + 1 - year : today.getFullYear() - year;
+}
+function sortedItems(){
+  return S.items.map(it => ({ ...it, left: daysUntil(it.day, it.month) })).sort((a, b) => a.left - b.left);
+}
+// Ro'yxat umumiy (hammaga ko'rinadi) — lekin onboarding va tahrirlash faqat
+// shu foydalanuvchi o'zi qo'shgan yozuvlarga (authUid) tegishli bo'lishi kerak.
+function myItems(){
+  return S.items.filter(it => it.authUid === S.uid);
+}
+function normalizePhone(raw){
+  let digits = (raw || "").replace(/[^\d+]/g, "");
+  const only = digits.replace(/\D/g, "");
+  if (!only) return null;
+  let full;
+  if (digits.startsWith("+")) full = only;
+  else if (only.length === 9) full = "998" + only;          // mahalliy 9 xonali raqam
+  else full = only;
+  if (full.length < 9) return null;
+  return "+" + full;
+}
+
+/* ---------------------------------------------------------------------
+   5) AVTORIZATSIYA XATOLARI — o'zbekcha xabarlar
+   --------------------------------------------------------------------- */
+function authErrorMsg(e){
+  const code = e && e.code || "";
+  const map = {
+    "auth/email-already-in-use": "Bu telefon/email allaqachon ro'yxatdan o'tgan. \"Kirish\" bo'limidan foydalaning.",
+    "local/exists": "Bu qurilmada allaqachon hisob bor. \"Kirish\" bo'limidan foydalaning.",
+    "auth/weak-password": "Parol kamida 6 ta belgidan iborat bo'lishi kerak.",
+    "auth/invalid-email": "Email manzili noto'g'ri formatda.",
+    "auth/invalid-credential": "Login yoki parol noto'g'ri.",
+    "auth/wrong-password": "Login yoki parol noto'g'ri.",
+    "auth/user-not-found": "Bunday hisob topilmadi. Avval ro'yxatdan o'ting.",
+    "local/notfound": "Bunday hisob topilmadi. Avval ro'yxatdan o'ting.",
+    "local/wrongpass": "Login yoki parol noto'g'ri.",
+    "auth/too-many-requests": "Juda ko'p urinish bo'ldi. Birozdan keyin qayta urining.",
+    "auth/network-request-failed": "Internet aloqasi yo'q. Qayta urinib ko'ring.",
+  };
+  return map[code] || ("Xatolik: " + (e && e.message || code || "noma'lum"));
+}
+
+/* ---------------------------------------------------------------------
+   6) RENDER
+   --------------------------------------------------------------------- */
+function render(){
+  if (S.screen === "boot") app.innerHTML = `<div class="spinner"></div>`;
+  else if (S.screen === "auth") app.innerHTML = screenAuth();
+  else if (S.screen === "onboard") app.innerHTML = screenOnboard();
+  else if (S.screen === "dashboard") app.innerHTML = screenDashboard();
+}
+
+function screenAuth(){
+  return `
+  <div class="hero">
+    <div class="logo">🎂</div>
+    <h1>Tug'ilgan kunlar eslatuvchisi</h1>
+    <p class="muted">Yaqinlaringizning tug'ilgan kunini hech qachon unutmang</p>
+  </div>
+  <div class="card">
+    <div class="tabs2">
+      <button class="${S.authAction === "login" ? "active" : ""}" onclick="setAuthAction('login')">Kirish</button>
+      <button class="${S.authAction === "register" ? "active" : ""}" onclick="setAuthAction('register')">Ro'yxatdan o'tish</button>
+    </div>
+    <div class="tabs2 sub">
+      <button class="${S.authTab === "phone" ? "active" : ""}" onclick="setAuthTab('phone')">📱 Telefon</button>
+      <button class="${S.authTab === "email" ? "active" : ""}" onclick="setAuthTab('email')">✉️ Email</button>
+    </div>
+    <label>${S.authTab === "phone" ? "Telefon raqam" : "Email manzil"}</label>
+    <input id="acField" type="${S.authTab === "phone" ? "tel" : "email"}"
+      autocomplete="${S.authTab === "phone" ? "tel" : "email"}"
+      placeholder="${S.authTab === "phone" ? "+998 90 123 45 67" : "siz@example.com"}"
+      onkeydown="if(event.key==='Enter') doAuth()">
+    <label>Parol</label>
+    <input id="acPass" type="password" autocomplete="${S.authAction === "register" ? "new-password" : "current-password"}"
+      placeholder="kamida 6 ta belgi" onkeydown="if(event.key==='Enter') doAuth()">
+    ${S.authAction === "register" ? `
+    <label>Parolni takrorlang</label>
+    <input id="acPass2" type="password" autocomplete="new-password" placeholder="parolni qayta yozing"
+      onkeydown="if(event.key==='Enter') doAuth()">` : ""}
+    <button class="btn" id="authBtn" onclick="doAuth()">${S.authAction === "login" ? "Kirish" : "Ro'yxatdan o'tish"}</button>
+    <div id="authMsg" class="msg"></div>
+  </div>
+  <p class="footnote">To'liq bepul va reklamasiz. Ma'lumotlaringiz faqat sizga ko'rinadi.</p>
+  `;
+}
+
+function screenOnboard(){
+  const mine = myItems();
+  const count = mine.length;
+  const pct = Math.min(100, Math.round((count / ONBOARD_MIN) * 100));
+  return `
+  <div class="hero small">
+    <div class="logo">🎉</div>
+    <h1>Boshlaymiz!</h1>
+    <p class="muted">Yodda tutish uchun kamida ${ONBOARD_MIN} ta (10 tagacha bo'lsa yanada yaxshi) tug'ilgan kunni kiriting.
+      Kiritgan tug'ilgan kunlaringiz keyinroq <b>hammaga</b> ko'rinadi.</p>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+  <p class="center muted">${count} / ${ONBOARD_MIN} ta kiritildi</p>
+  ${count ? `<div class="list compact">${mine.map(onboardChip).join("")}</div>` : ""}
+  ${birthdayFormHTML(null)}
+  <button class="btn ${count < ONBOARD_MIN ? "disabled" : ""}" ${count < ONBOARD_MIN ? "disabled" : ""} onclick="finishOnboarding()">
+    ${count < ONBOARD_MIN ? `Yana ${ONBOARD_MIN - count} ta kerak` : "Davom etish →"}
+  </button>
+  `;
+}
+function onboardChip(it){
+  const dateStr = `${String(it.day).padStart(2, "0")}.${String(it.month).padStart(2, "0")}${it.year ? "." + it.year : ""}`;
+  return `<div class="chip-item">🎈 ${esc(it.name)} — ${dateStr}
+    <button class="chipdel" onclick="removeItem('${it.id}')" title="O'chirish">✕</button></div>`;
+}
+
+function screenDashboard(){
+  const list = sortedItems();
+  const banner = list.filter(x => x.left <= REMINDER_WINDOW);
+  return `
+  <div class="topbar">
+    <div class="brand"><div class="mark">🎂</div><div><b>Tug'ilgan kunlar</b><div class="muted">${esc(S.contact)}</div></div></div>
+    <button class="iconbtn" onclick="doLogout()">Chiqish</button>
+  </div>
+  ${DB.mode === "local" ? `<div class="notice">📴 Mahalliy rejim: ma'lumotlar faqat shu qurilmada saqlanadi va boshqalarga ko'rinmaydi. Hamma bir-birining tug'ilgan kunini ko'rishi uchun bulutli rejim yoqilgan bo'lishi kerak (README'ga qarang).</div>` : ""}
+  ${notifBannerHTML()}
+  ${banner.length ? `
+  <div class="section-title">🔔 Yaqinlashayotgan tug'ilgan kunlar</div>
+  <div class="alerts">${banner.map(alertCard).join("")}</div>` : ""}
+  <div class="section-title">📋 Hammaning tug'ilgan kunlari (${list.length})</div>
+  <div class="list">${list.length ? list.map(itemCard).join("") : `<div class="emptystate">Hozircha bo'sh. Pastdagi ➕ tugma orqali qo'shing.</div>`}</div>
+  ${S.showAddForm ? birthdayFormHTML(S.editingId ? list.find(x => x.id === S.editingId) : null) : ""}
+  <button class="fab" onclick="toggleAddForm()" title="Yangi tug'ilgan kun qo'shish">${S.showAddForm ? "✕" : "+"}</button>
+  `;
+}
+function alertCard(it){
+  const cls = it.left === 0 ? "today" : it.left === 1 ? "tomorrow" : "soon";
+  const msg = it.left === 0
+    ? `🎉 Bugun — <b>${esc(it.name)}</b> tug'ilgan kuni!`
+    : it.left === 1
+    ? `⏰ <b>${esc(it.name)}</b> tug'ilgan kuniga 1 kun qoldi!`
+    : `🔔 <b>${esc(it.name)}</b> tug'ilgan kuniga ${it.left} kun qoldi`;
+  return `<div class="alert ${cls}">${msg}</div>`;
+}
+function itemCard(it){
+  const dateStr = `${String(it.day).padStart(2, "0")}.${String(it.month).padStart(2, "0")}${it.year ? "." + it.year : ""}`;
+  const age = turningAge(it.year, it.month, it.day);
+  const leftLabel = it.left === 0 ? "Bugun!" : it.left === 1 ? "Ertaga" : `${it.left} kun qoldi`;
+  const badgeCls = it.left <= 1 ? "urgent" : it.left <= REMINDER_WINDOW ? "soon" : "later";
+  const mine = it.authUid === S.uid;
+  return `<div class="item">
+    <div class="item-main">
+      <div class="item-name">${esc(it.name)}</div>
+      <div class="item-sub">${dateStr}${age !== null ? ` · ${age} yosh to'ladi` : ""}${mine ? " · siz qo'shgansiz" : ""}</div>
+    </div>
+    <div class="item-badge ${badgeCls}">${leftLabel}</div>
+    ${mine ? `<div class="item-actions">
+      <button class="ghostsm" onclick="startEdit('${it.id}')" title="Tahrirlash">✏️</button>
+      <button class="ghostsm" onclick="removeItem('${it.id}')" title="O'chirish">🗑</button>
+    </div>` : ""}
+  </div>`;
+}
+function notifBannerHTML(){
+  if (!("Notification" in window)) return "";
+  if (Notification.permission === "granted") return "";
+  if (Notification.permission === "denied") return `<div class="notice">🔕 Bildirishnomalar brauzer sozlamalarida bloklangan.</div>`;
+  return `<div class="notice actionable">🔔 Tug'ilgan kun kelganda avtomatik eslatma olish uchun bildirishnomalarni yoqing.
+    <button class="btn sm" onclick="askNotif()">Yoqish</button></div>`;
+}
+
+function birthdayFormHTML(existing){
+  const it = existing || { name: "", day: "", month: "", year: "" };
+  return `
+    <div class="card">
+      <label>Ism va familiya</label>
+      <input id="bfName" type="text" placeholder="Masalan: Yuldashev Olimjon" value="${esc(it.name)}">
+      <div class="row3">
+        <div><label>Kun</label><select id="bfDay">${dayOptions(it.day)}</select></div>
+        <div><label>Oy</label><select id="bfMonth">${monthOptions(it.month)}</select></div>
+        <div><label>Yil <span class="hint">(ixtiyoriy)</span></label>
+          <input id="bfYear" type="number" min="1900" max="${new Date().getFullYear()}" placeholder="masalan 1990" value="${it.year || ""}"></div>
+      </div>
+      <button class="btn" onclick="${existing ? `saveEditItem('${existing.id}')` : "saveNewItem()"}">${existing ? "Saqlash" : "💾 Saqlash va qo'shish"}</button>
+      ${existing ? `<button class="btn ghost" onclick="cancelEdit()">Bekor qilish</button>` : ""}
+      <div id="formMsg" class="msg"></div>
+    </div>`;
+}
+function dayOptions(sel){
+  let s = `<option value="">Kun</option>`;
+  for (let d = 1; d <= 31; d++) s += `<option value="${d}" ${+sel === d ? "selected" : ""}>${d}</option>`;
+  return s;
+}
+function monthOptions(sel){
+  return `<option value="">Oy</option>` + MONTHS.map((m, i) => `<option value="${i + 1}" ${+sel === i + 1 ? "selected" : ""}>${m}</option>`).join("");
+}
+
+/* ---------------------------------------------------------------------
+   7) HARAKATLAR
+   --------------------------------------------------------------------- */
+function setAuthAction(a){ S.authAction = a; render(); }
+function setAuthTab(t){ S.authTab = t; render(); }
+
+function formMsg(id, msg, isErr){
+  const el = $(id);
+  if (!el) return;
+  el.textContent = msg || "";
+  el.className = "msg" + (isErr ? " err" : msg ? " ok" : "");
+}
+function setBusy(v){
+  S.busy = v;
+  const b = $("authBtn");
+  if (b){ b.disabled = v; b.textContent = v ? "Iltimos, kuting…" : (S.authAction === "login" ? "Kirish" : "Ro'yxatdan o'tish"); }
+}
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+async function loadItems(){ S.items = await DB.listItems(S.uid); }
+function decideScreen(){ S.screen = myItems().length < ONBOARD_MIN ? "onboard" : "dashboard"; }
+
+async function doAuth(){
+  if (S.busy) return;
+  const raw = ($("acField").value || "").trim();
+  const pw = $("acPass").value || "";
+  const pw2 = S.authAction === "register" ? ($("acPass2").value || "") : pw;
+
+  let contact, contactType;
+  if (S.authTab === "phone"){
+    contactType = "phone";
+    contact = normalizePhone(raw);
+    if (!contact) return formMsg("authMsg", "Telefon raqamni to'g'ri kiriting (masalan +998901234567).", true);
+  } else {
+    contactType = "email";
+    contact = raw.toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return formMsg("authMsg", "Email manzilini to'g'ri kiriting.", true);
+  }
+  if (pw.length < 6) return formMsg("authMsg", "Parol kamida 6 ta belgidan iborat bo'lishi kerak.", true);
+  if (S.authAction === "register" && pw !== pw2) return formMsg("authMsg", "Parollar mos kelmadi.", true);
+
+  setBusy(true);
+  formMsg("authMsg", "");
+  try {
+    const uid = S.authAction === "register" ? await DB.register(contact, contactType, pw) : await DB.login(contact, contactType, pw);
+    await afterAuth(uid, contact, contactType);
+  } catch (e){
+    if (DB.mode === "cloud" && e && e.code === "auth/operation-not-allowed"){
+      localStorage.setItem(FORCE_LOCAL_KEY, "1");
+      DB = LocalDB;
+      toast("Bulutli hisob hali yoqilmagan — ma'lumotlar shu qurilmada saqlanadi.");
+      try {
+        const uid = S.authAction === "register" ? await DB.register(contact, contactType, pw) : await DB.login(contact, contactType, pw);
+        await afterAuth(uid, contact, contactType);
+      } catch (e2){ formMsg("authMsg", authErrorMsg(e2), true); }
+    } else {
+      formMsg("authMsg", authErrorMsg(e), true);
+    }
+  } finally {
+    setBusy(false);
+  }
+}
+async function afterAuth(uid, contact, contactType){
+  S.uid = uid; S.contact = contact; S.contactType = contactType;
+  await loadItems();
+  decideScreen();
+  render();
+  maybeNotify();
+}
+async function doLogout(){
+  await DB.logout();
+  S.uid = null; S.items = []; S.contact = ""; S.contactType = "";
+  S.screen = "auth"; S.showAddForm = false; S.editingId = null;
+  render();
+}
+
+function readBirthdayForm(){
+  const name = ($("bfName").value || "").trim();
+  const day = +$("bfDay").value, month = +$("bfMonth").value;
+  const yearRaw = ($("bfYear").value || "").trim();
+  const year = yearRaw ? +yearRaw : null;
+  if (!name) return { err: "Ism va familiyani kiriting." };
+  if (!day || !month) return { err: "Kun va oyni tanlang." };
+  if (!validDate(day, month)) return { err: "Bunday sana mavjud emas." };
+  if (year && (year < 1900 || year > new Date().getFullYear())) return { err: "Tug'ilgan yilni to'g'ri kiriting." };
+  return { name, day, month, year };
+}
+async function saveNewItem(){
+  const r = readBirthdayForm();
+  if (r.err) return formMsg("formMsg", r.err, true);
+  try {
+    await DB.addItem(S.uid, { name: r.name, day: r.day, month: r.month, year: r.year });
+    await loadItems();
+    toast(`✅ "${r.name}" saqlandi`);
+    render();
+  } catch (e){ formMsg("formMsg", "Saqlashda xatolik: " + (e.message || e), true); }
+}
+async function saveEditItem(id){
+  const r = readBirthdayForm();
+  if (r.err) return formMsg("formMsg", r.err, true);
+  try {
+    await DB.updateItem(S.uid, id, { name: r.name, day: r.day, month: r.month, year: r.year });
+    S.editingId = null; S.showAddForm = false;
+    await loadItems();
+    toast("✅ Yangilandi");
+    render();
+  } catch (e){ formMsg("formMsg", "Saqlashda xatolik: " + (e.message || e), true); }
+}
+async function removeItem(id){
+  const it = S.items.find(x => x.id === id);
+  if (!it || it.authUid !== S.uid) return; // faqat o'zi qo'shganini o'chira oladi
+  if (!confirm("Bu tug'ilgan kunni o'chirishni tasdiqlaysizmi?")) return;
+  await DB.deleteItem(S.uid, id);
+  await loadItems();
+  render();
+}
+function toggleAddForm(){ S.showAddForm = !S.showAddForm; S.editingId = null; render(); }
+function startEdit(id){
+  const it = S.items.find(x => x.id === id);
+  if (!it || it.authUid !== S.uid) return; // faqat o'zi qo'shganini tahrirlaydi
+  S.editingId = id; S.showAddForm = true; render();
+  const f = $("bfName"); if (f) f.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function cancelEdit(){ S.editingId = null; S.showAddForm = false; render(); }
+function finishOnboarding(){
+  if (myItems().length >= ONBOARD_MIN){ S.screen = "dashboard"; render(); maybeNotify(); }
+}
+
+async function askNotif(){
+  try {
+    const p = await Notification.requestPermission();
+    render();
+    if (p === "granted") maybeNotify();
+  } catch (e){ /* e'tiborsiz */ }
+}
+function maybeNotify(){
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const today = new Date().toISOString().slice(0, 10);
+  for (const it of sortedItems()){
+    if (it.left > NOTIFY_WINDOW) break; // ro'yxat tartiblangan, shuning uchun shu yerda to'xtash mumkin
+    const key = "tgk:notified:" + today + ":" + it.id;
+    if (localStorage.getItem(key)) continue;
+    const title = it.left === 0 ? `🎉 Bugun ${it.name} tug'ilgan kuni!`
+      : it.left === 1 ? `⏰ ${it.name} tug'ilgan kuniga 1 kun qoldi`
+      : `🔔 ${it.name} tug'ilgan kuniga ${it.left} kun qoldi`;
+    try {
+      new Notification(title, { body: "Tug'ilgan kunlar eslatuvchisi", icon: "icon.svg", tag: key });
+      localStorage.setItem(key, "1");
+    } catch (e){ /* e'tiborsiz */ }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   8) ISHGA TUSHIRISH
+   --------------------------------------------------------------------- */
+async function boot(){
+  const forceLocal = localStorage.getItem(FORCE_LOCAL_KEY) === "1";
+  if (FB_CONFIG && !forceLocal){
+    try { DB = await makeCloudDB(FB_CONFIG); } catch (e){ console.warn("bulut ishga tushmadi, mahalliy rejim:", e); DB = LocalDB; }
+  } else {
+    DB = LocalDB;
+  }
+
+  if (DB.mode === "cloud"){
+    const uid = await DB.waitForAuthReady();
+    if (uid){
+      const prof = await DB.getProfile(uid).catch(() => null);
+      S.uid = uid; S.contact = (prof && prof.contact) || ""; S.contactType = (prof && prof.contactType) || "";
+      await loadItems();
+      decideScreen();
+    } else {
+      S.screen = "auth";
+    }
+  } else {
+    const acc = LocalDB.getAccount();
+    if (acc && LocalDB.hasSession()){
+      S.uid = "local"; S.contact = acc.contact; S.contactType = acc.contactType;
+      await loadItems();
+      decideScreen();
+    } else {
+      S.screen = "auth";
+    }
+  }
+  render();
+  maybeNotify();
+
+  // Ochiq turgan sahifada sanalar/eslatmalar yangilanib tursin
+  setInterval(() => { if (S.screen === "dashboard"){ render(); maybeNotify(); } }, 30 * 60 * 1000);
+}
+
+if ("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+boot().catch(e => { console.error(e); S.screen = "auth"; DB = DB || LocalDB; render(); });
+</script>
+<footer>Oscar Ta'lim jamoasi · bepul xizmat 🎂</footer>
+</body>
+</html>

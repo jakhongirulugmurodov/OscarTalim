@@ -1,0 +1,96 @@
+# «Mutolaa» kitob do'koni boti — GitHub Actions'da uzluksiz ishlaydi (server kerak emas).
+#
+# Har ishga tushish ~2 soat long polling qiladi (javoblar darhol keladi).
+# Jadval har soatda yangi ishga tushirishni navbatga qo'yadi — oldingisi
+# tugashi bilan keyingisi boshlanadi, shuning uchun bot to'xtamaydi.
+#
+# Kerak: Settings → Secrets and variables → Actions →
+#   secret    MUTOLAA_BOT_TOKEN   — BotFather bergan token
+#   secret    MUTOLAA_DB_KEY      — baza shifrlash kaliti (istalgan uzun tasodifiy so'z)
+#   variable  MUTOLAA_ADMIN_IDS   — admin(lar) Telegram ID si, vergul bilan
+#   variable  MUTOLAA_KANAL_ID    — @kanal (ixtiyoriy; bot kanalda admin bo'lishi kerak)
+#   variable  MUTOLAA_BUYURTMA_CHAT_ID — buyurtmalar tushadigan guruh ID si (ixtiyoriy)
+#   variable  DOKON_NOMI, DOKON_MANZIL, DOKON_TELEFON, DOKON_ISH_VAQTI,
+#             DOKON_XARITA, DOKON_INSTAGRAM (ixtiyoriy)
+#
+# Baza (kitobxonlar, sotuvlar) Actions keshida shifrlangan holda saqlanadi.
+# Qo'shimcha himoya: bot har kuni 23:00 da baza nusxasini adminga yuboradi.
+#
+# Eslatma: jadval faqat asosiy (main) shoxchadagi workflow uchun ishlaydi.
+
+name: Mutolaa kitob bot
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: mutolaa-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      BOT_TOKEN: ${{ secrets.MUTOLAA_BOT_TOKEN }}
+      DB_KEY: ${{ secrets.MUTOLAA_DB_KEY }}
+      ADMIN_IDS: ${{ vars.MUTOLAA_ADMIN_IDS }}
+      KANAL_ID: ${{ vars.MUTOLAA_KANAL_ID }}
+      BUYURTMA_CHAT_ID: ${{ vars.MUTOLAA_BUYURTMA_CHAT_ID }}
+      DOKON_NOMI: ${{ vars.DOKON_NOMI }}
+      DOKON_MANZIL: ${{ vars.DOKON_MANZIL }}
+      DOKON_TELEFON: ${{ vars.DOKON_TELEFON }}
+      DOKON_ISH_VAQTI: ${{ vars.DOKON_ISH_VAQTI }}
+      DOKON_XARITA: ${{ vars.DOKON_XARITA }}
+      DOKON_INSTAGRAM: ${{ vars.DOKON_INSTAGRAM }}
+      DB_PATH: ${{ github.workspace }}/state/mutolaa.db
+      PYTHONUNBUFFERED: "1"
+      # Qo'lda ishga tushirilganda adminga «ishga tushdi» xabari boradi
+      ISHGA_TUSHDI_XABARI: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bazani keshdan tiklash
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: mutolaa-db-${{ github.run_id }}
+          restore-keys: mutolaa-db-
+
+      - name: Bazani ochish
+        run: |
+          test -n "$BOT_TOKEN" || { echo "::error::MUTOLAA_BOT_TOKEN secret kiritilmagan"; exit 1; }
+          test -n "$DB_KEY" || { echo "::error::MUTOLAA_DB_KEY secret kiritilmagan"; exit 1; }
+          mkdir -p state
+          if [ -f state/mutolaa.db.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -pass env:DB_KEY \
+              -in state/mutolaa.db.enc -out state/mutolaa.db
+          else
+            echo "::warning::Saqlangan baza topilmadi — yangi baza ochiladi"
+          fi
+
+      - name: Bot
+        id: bot
+        run: python3 mutolaa_bot/bot.py --muddat 7000
+
+      - name: Bazani shifrlash
+        if: always() && (steps.bot.outcome == 'success' || steps.bot.outcome == 'failure' || steps.bot.outcome == 'cancelled')
+        run: |
+          if [ -f state/mutolaa.db ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:DB_KEY \
+              -in state/mutolaa.db -out state/mutolaa.db.enc.new
+            mv state/mutolaa.db.enc.new state/mutolaa.db.enc
+            rm -f state/mutolaa.db state/mutolaa.db-journal
+          fi
+
+      - name: Bazani keshga saqlash
+        if: always() && (steps.bot.outcome == 'success' || steps.bot.outcome == 'failure' || steps.bot.outcome == 'cancelled')
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: mutolaa-db-${{ github.run_id }}

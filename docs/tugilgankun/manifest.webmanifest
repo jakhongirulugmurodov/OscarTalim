@@ -1,0 +1,15 @@
+{
+  "name": "Tug'ilgan kunlar eslatuvchisi",
+  "short_name": "Tug'ilgan kun",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf2f8",
+  "theme_color": "#ec4899",
+  "lang": "uz",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

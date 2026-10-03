@@ -1,0 +1,175 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn(){ return request.auth != null; }
+    function me(){ return request.auth.uid; }
+    function isTeacher(c){ return signedIn() &&
+      exists(/databases/$(db)/documents/classes/$(c)/teachers/$(request.auth.uid)); }
+    function stu(c, sid){ return get(/databases/$(db)/documents/classes/$(c)/students/$(sid)).data; }
+    function same(k){ return request.resource.data[k] == resource.data[k]; }
+    function sameFlag(k){ return request.resource.data.get(k,false) == resource.data.get(k,false); }
+
+    // Bosh kalit: sinf yasash huquqi. Mijoz uni o'qiy olmaydi.
+    match /config/admin {
+      allow read, update, delete: if false;
+      allow create: if signedIn();
+    }
+
+    match /classes/{c} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == me() &&
+        get(/databases/$(db)/documents/classes/$(c)/private/auth).data.owner == me();
+      allow update: if isTeacher(c);
+
+      match /private/auth {
+        allow read:   if isTeacher(c);
+        allow create: if signedIn() &&
+          !exists(/databases/$(db)/documents/classes/$(c)) &&
+          request.resource.data.owner == me() &&
+          request.resource.data.key == get(/databases/$(db)/documents/config/admin).data.key;
+        // PIN ni tiklash: bosh kalitni bilgan odam yangi PIN qo'yadi
+        allow update: if isTeacher(c) ||
+          (signedIn() && request.resource.data.key == resource.data.key);
+      }
+      match /teachers/{uid} {
+        allow read:  if signedIn() && (me() == uid || isTeacher(c));
+        allow write: if signedIn() && me() == uid && request.resource.data.pin ==
+          get(/databases/$(db)/documents/classes/$(c)/private/auth).data.pin;
+      }
+
+      // Reyting uchun ochiq: ism, guruh, ball, streak. Egalik — authUid.
+      match /students/{sid} {
+        allow read:   if signedIn();
+        allow create: if signedIn() && request.resource.data.authUid == me()
+                      && request.resource.data.ok == false;
+        allow update: if isTeacher(c)
+          // egasi: o'z ballini yozadi, lekin o'zini tasdiqlay va egalikni o'zgartira olmaydi
+          || (signedIn() && resource.data.authUid == me()
+              && same('ok') && sameFlag('rejected') && same('authUid'))
+          // qurilma bo'sh yoki Telegram hisobi — egallanadi
+          || (signedIn() && request.resource.data.authUid == me()
+              && (resource.data.get('authUid','') == '' || sid.matches('tg[0-9]+'))
+              && same('ok') && sameFlag('rejected'))
+          // boshqa qurilmadan so'rov: faqat claimUid o'zgaradi, muallim tasdiqlaydi
+          || (signedIn() && request.resource.data.claimUid == me()
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimUid']));
+        allow delete: if isTeacher(c);
+
+        match /entries/{e} {
+          allow read:  if signedIn();
+          allow write: if isTeacher(c) || (signedIn() && stu(c,sid).authUid == me());
+        }
+      }
+
+      // Rasm va Telegram ma'lumoti: faqat egasi va muallim
+      match /profiles/{sid} {
+        allow read:  if isTeacher(c) || (signedIn() && stu(c,sid).authUid == me());
+        allow write: if isTeacher(c) || (signedIn() &&
+          (!exists(/databases/$(db)/documents/classes/$(c)/students/$(sid))
+           || stu(c,sid).authUid == me()));
+      }
+
+      // Muallim yozadigan vazifalar va Kahoot import yozuvlari
+      match /tasks/{t}   { allow read: if signedIn(); allow write: if isTeacher(c); }
+      match /imports/{i} { allow read: if signedIn(); allow write: if isTeacher(c); }
+      match /live/{d}  { allow read: if signedIn(); allow write: if isTeacher(c); }
+      match /answers/{key}/votes/{uid} {
+        allow read:  if signedIn();
+        allow write: if signedIn() && me() == uid;
+      }
+    }
+
+    // ===================================================================
+    // VIKTORINA (docs/viktorina) — mustaqil to'plamlar, sinf'dan alohida.
+    // ===================================================================
+
+    // Profil: taxallus, avatar, XP, statistika, nishonlar, reyting hisobi.
+    // Mijoz o'z hujjatiga xohlagan maydonni yozadi (server funksiyasi yo'q,
+    // shuning uchun XP/ball hisobiga to'liq ishonch talab qilinadi — xuddi
+    // sinf'dagi bumpPoints kabi).
+    match /qUsers/{uid} {
+      allow read:  if signedIn();
+      allow write: if signedIn() && me() == uid;
+
+      // Shaxsiy natijalar tarixi — faqat egasi o'qiydi/yozadi.
+      match /qResults/{rid} {
+        allow read:  if signedIn() && me() == uid;
+        allow create: if signedIn() && me() == uid;
+      }
+    }
+
+    // Testlar: muallif yaratadi/o'chiradi; o'ynalganlar soni har kim
+    // tomonidan oshiriladi (faqat 'plays' maydoni o'zgarsa ruxsat).
+    match /qQuizzes/{qid} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.authorUid == me();
+      allow update: if signedIn() && (
+        resource.data.authorUid == me() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['plays'])
+      );
+      allow delete: if signedIn() && resource.data.authorUid == me();
+    }
+
+    // Jonli xonalar: xonani faqat mezbon yaratadi/boshqaradi;
+    // o'yinchi faqat o'z hujjatiga yozadi (ball, javoblar).
+    match /qRooms/{pin} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.hostUid == me();
+      allow update: if signedIn() && resource.data.hostUid == me();
+
+      match /players/{uid} {
+        allow read:  if signedIn();
+        allow write: if signedIn() && me() == uid;
+      }
+    }
+
+    // ===== Oilaviy xarajatlar (oila) =====
+    function famMember(f){ return signedIn() &&
+      exists(/databases/$(db)/documents/families/$(f)/members/$(request.auth.uid)); }
+
+    match /families/{f} {
+      allow read:   if famMember(f);
+      allow create: if signedIn() && request.resource.data.ownerUid == me() &&
+        get(/databases/$(db)/documents/families/$(f)/private/auth).data.owner == me();
+      allow update: if famMember(f);
+
+      match /private/auth {
+        allow read:   if famMember(f);
+        allow create: if signedIn() &&
+          !exists(/databases/$(db)/documents/families/$(f)) &&
+          request.resource.data.owner == me();
+        allow update: if famMember(f) && request.resource.data.owner == resource.data.owner;
+      }
+
+      // A'zolik: faqat oila PIN ini bilgan odam qo'shilishi mumkin
+      match /members/{uid} {
+        allow read:   if famMember(f);
+        allow create: if signedIn() && uid == me() && request.resource.data.pin ==
+          get(/databases/$(db)/documents/families/$(f)/private/auth).data.pin;
+        allow update: if signedIn() && uid == me();
+        allow delete: if signedIn() && uid == me();
+      }
+
+      // Har kim o'z xarajatini yozadi; tahrir/o'chirish faqat egasiga — "kim qancha
+      // sarfladi" hisobi ishonchli qolsin
+      match /expenses/{e} {
+        allow read:   if famMember(f);
+        allow create: if famMember(f) && request.resource.data.memberUid == me();
+        allow update, delete: if famMember(f) && resource.data.memberUid == me();
+      }
+    }
+
+    // Tug'ilgan kunlar eslatuvchisi (docs/tugilgankun): profil (kontakt)
+    // faqat egasiga; tug'ilgan kunlar esa umumiy — ro'yxatdan o'tgan har kim
+    // hammaning yozuvlarini o'qiydi, lekin faqat o'zi qo'shganini (authUid)
+    // tahrirlaydi yoki o'chiradi.
+    match /tugilgankun/{uid} {
+      allow read, write: if signedIn() && me() == uid;
+    }
+    match /birthdays_shared/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.authUid == me();
+      allow update, delete: if signedIn() && resource.data.authUid == me();
+    }
+  }
+}

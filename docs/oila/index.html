@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#16a34a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<title>Oilaviy xarajatlar — Oscar Ta'lim</title>
+<style>
+  :root {
+    --primary: #16a34a;
+    --primary-dark: #15803d;
+    --primary-soft: #f0fdf4;
+    --accent: #f59e0b;
+    --bg: #f4f6fb;
+    --text: #0f172a;
+    --muted: #64748b;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --err: #dc2626;
+    --radius: 18px;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px -8px rgba(15,23,42,.10);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #eef7ef 0%, var(--bg) 240px);
+    color: var(--text); margin: 0; padding: 16px 14px 90px; line-height: 1.55;
+    min-height: 100vh;
+  }
+  .container { max-width: 640px; margin: 0 auto; }
+  header { text-align: center; margin: 6px 0 20px; }
+  .logo {
+    width: 60px; height: 60px; margin: 0 auto 8px; border-radius: 18px;
+    background: linear-gradient(135deg, #22c55e, var(--primary-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 10px 22px -8px rgba(22,163,74,.5);
+  }
+  header h1 { font-size: 1.3rem; margin: 0; letter-spacing: -.02em; }
+  header p { color: var(--muted); margin: 2px 0 0; font-size: .88rem; }
+
+  .card {
+    background: var(--white); border-radius: var(--radius); padding: 18px;
+    margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .n { color: var(--muted); font-weight: 500; font-size: .85rem; margin-left: auto; }
+
+  label { font-size: .85rem; font-weight: 600; display: block; margin: 10px 0 5px; color: #334155; }
+  input[type=text], input[type=password], input[type=number], input[type=date],
+  input[type=month], select, textarea {
+    width: 100%; padding: 12px 13px; border: 1.5px solid var(--border);
+    border-radius: 12px; font-size: 1rem; background: var(--white); color: var(--text);
+    transition: border-color .2s, box-shadow .2s; appearance: none; font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(22,163,74,.13);
+  }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+  }
+  .hint { font-size: .8rem; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+
+  button {
+    background: linear-gradient(135deg, #22c55e, var(--primary-dark));
+    color: #fff; border: 0; border-radius: 13px;
+    padding: 14px 18px; font-size: 1rem; font-weight: 700; width: 100%;
+    cursor: pointer; margin-top: 14px; box-shadow: 0 8px 20px -8px rgba(22,163,74,.5);
+    transition: transform .15s, box-shadow .2s, opacity .2s; font-family: inherit;
+  }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .55; transform: none; cursor: default; }
+  button.small { width: auto; padding: 9px 13px; font-size: .84rem; margin: 8px 6px 0 0; border-radius: 10px; }
+  button.ghost {
+    background: var(--white); color: var(--primary); border: 1.5px solid #bbf7d0; box-shadow: none;
+  }
+  button.danger { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 8px 20px -8px rgba(220,38,38,.5); }
+  button.danger.ghost { background: var(--white); color: var(--err); border: 1.5px solid #fecaca; box-shadow: none; }
+  button.icon { width: 34px; height: 34px; padding: 0; margin: 0; font-size: .95rem; border-radius: 9px; flex-shrink: 0; }
+
+  .choice2 { display: flex; gap: 10px; margin-top: 6px; }
+  .choice2 button { margin-top: 0; }
+
+  #status { font-size: .9rem; margin-top: 10px; }
+  #status.err {
+    color: var(--err); background: #fef2f2; border: 1.5px solid #fecaca;
+    border-radius: 12px; padding: 10px 13px; margin-top: 12px;
+  }
+  #status.ok {
+    color: #15803d; background: #f0fdf4; border: 1.5px solid #bbf7d0;
+    border-radius: 12px; padding: 10px 13px; margin-top: 12px;
+  }
+
+  /* ===== Summary (doim ko'rinadi) ===== */
+  .sum-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .sum-top .big { font-size: 1.5rem; font-weight: 800; }
+  .sum-top .lbl { font-size: .8rem; color: var(--muted); }
+  .sum-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0 4px; text-align: center; }
+  .sum-grid .box { background: var(--bg); border-radius: 12px; padding: 10px 6px; }
+  .sum-grid .box b { display: block; font-size: 1.02rem; }
+  .sum-grid .box span { font-size: .72rem; color: var(--muted); }
+  .pbar { height: 12px; background: #e8edf5; border-radius: 999px; overflow: hidden; margin-top: 12px; }
+  .pbar > div { height: 100%; border-radius: 999px; transition: width .4s ease; background: var(--primary); }
+  .pbar.warn > div { background: var(--warn); }
+  .pbar.err > div { background: var(--err); }
+  .pnote { font-size: .78rem; color: var(--muted); margin-top: 6px; }
+  .pnote.err { color: var(--err); font-weight: 600; }
+
+  /* ===== Header / oila ===== */
+  .fam-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .fam-head .who { flex: 1 1 100%; min-width: 0; }
+  .fam-head .who .nm { font-weight: 800; font-size: 1.1rem; }
+  .fam-head .who .me { font-size: .8rem; color: var(--muted); }
+  .fam-head input[type=month] { flex: 1; min-width: 0; }
+  .fam-head #logoutBtn { flex: 0 0 auto; }
+
+  /* ===== Tablar ===== */
+  .tabs {
+    display: flex; background: #eef2f7; border-radius: 12px; padding: 4px; gap: 4px;
+    margin-bottom: 14px; position: sticky; top: 8px; z-index: 5;
+  }
+  .tabs button {
+    flex: 1; margin: 0; padding: 9px 4px; font-size: .84rem; font-weight: 700;
+    background: transparent; color: var(--muted); border: 0; border-radius: 9px;
+    box-shadow: none; transition: all .2s;
+  }
+  .tabs button.active { background: var(--white); color: var(--primary); box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+
+  /* ===== Avatar / a'zo ===== */
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; color: #fff; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0;
+  }
+  .avatar.sm { width: 26px; height: 26px; font-size: .7rem; }
+
+  /* ===== Donut + legenda ===== */
+  .donut-wrap { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; }
+  .donut-empty { color: var(--muted); font-size: .9rem; text-align: center; padding: 30px 10px; }
+  .legend { flex: 1; min-width: 180px; list-style: none; margin: 0; padding: 0; }
+  .legend li { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: .86rem; }
+  .legend li .sw { width: 11px; height: 11px; border-radius: 4px; flex-shrink: 0; }
+  .legend li .lb { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend li .vl { font-weight: 700; font-size: .82rem; }
+
+  /* ===== Byudjet qatorlari (toifa) ===== */
+  .cat-budget-row { margin: 12px 0; }
+  .cat-budget-row .top { display: flex; justify-content: space-between; font-size: .87rem; margin-bottom: 5px; }
+  .cat-budget-row .top .nm { font-weight: 600; }
+  .cat-budget-row .top .amt { color: var(--muted); }
+
+  /* ===== A'zolar reytingi ===== */
+  .member-row { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+  .member-row .info { flex: 1; min-width: 0; }
+  .member-row .info .nm { font-weight: 700; font-size: .92rem; display: flex; gap: 6px; align-items: center; }
+  .member-row .info .role { font-size: .74rem; color: var(--muted); font-weight: 500; }
+  .member-row .bar { height: 9px; background: var(--bg); border-radius: 999px; margin-top: 6px; overflow: hidden; }
+  .member-row .bar > div { height: 100%; border-radius: 999px; }
+  .member-row .amt { font-weight: 800; font-size: .92rem; white-space: nowrap; }
+
+  /* ===== Xulosa ===== */
+  .insight-list { list-style: none; margin: 0; padding: 0; }
+  .insight-list li { display: flex; gap: 9px; padding: 7px 0; font-size: .88rem; border-bottom: 1px solid #f1f5f9; }
+  .insight-list li:last-child { border-bottom: 0; }
+  .insight-list li .ic { flex-shrink: 0; }
+
+  /* ===== Filtrlar ===== */
+  .filters { display: flex; gap: 8px; margin-bottom: 12px; }
+  .filters select { font-size: .85rem; padding: 9px 30px 9px 11px; }
+
+  /* ===== Xarajat ro'yxati ===== */
+  .exp-date-hdr { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .03em; }
+  .exp-date-hdr:first-child { margin-top: 0; }
+  .exp-row {
+    display: flex; align-items: center; gap: 11px; padding: 11px 0; border-bottom: 1px solid #f1f5f9;
+  }
+  .exp-row:last-child { border-bottom: 0; }
+  .exp-row .cic {
+    width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .exp-row .info { flex: 1; min-width: 0; }
+  .exp-row .info .t1 { font-weight: 700; font-size: .92rem; }
+  .exp-row .info .t2 { font-size: .78rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .exp-row .amt { font-weight: 800; font-size: .95rem; white-space: nowrap; }
+  .exp-row .acts { display: flex; gap: 4px; margin-left: 4px; }
+  .exp-empty { text-align: center; color: var(--muted); font-size: .9rem; padding: 30px 10px; }
+
+  /* ===== Sozlamalar: toifa ro'yxati ===== */
+  .cat-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+  .cat-row:last-child { border-bottom: 0; }
+  .cat-row .lb { flex: 1; font-size: .9rem; font-weight: 600; }
+  .cat-row input[type=number] { width: 120px; }
+
+  .code-box {
+    display: flex; align-items: center; gap: 10px; background: var(--primary-soft);
+    border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 12px 14px; margin: 10px 0;
+  }
+  .code-box .val { font-size: 1.3rem; font-weight: 800; letter-spacing: .08em; font-family: ui-monospace, monospace; flex: 1; }
+
+  details { border: 1.5px solid var(--border); border-radius: 12px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  summary {
+    list-style: none; cursor: pointer; padding: 13px 14px; font-weight: 700;
+    font-size: .95rem; display: flex; align-items: center; gap: 8px; user-select: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: ""; margin-left: auto; width: 9px; height: 9px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg); transition: transform .25s;
+  }
+  details[open] summary::after { transform: rotate(-135deg); }
+  details[open] summary { background: #f8fafc; border-bottom: 1.5px solid var(--border); }
+  .details-body { padding: 4px 14px 16px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: #0f172a; color: #fff; padding: 11px 20px; border-radius: 999px;
+    font-size: .9rem; font-weight: 600; box-shadow: 0 10px 30px rgba(15,23,42,.3);
+    opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; z-index: 50;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #loadingOverlay {
+    position: fixed; inset: 0; background: var(--bg); display: none; align-items: center;
+    justify-content: center; flex-direction: column; gap: 10px; z-index: 40; text-align: center;
+  }
+  .spin {
+    display: inline-block; width: 26px; height: 26px; border: 3px solid var(--primary);
+    border-top-color: transparent; border-radius: 50%; animation: sp .7s linear infinite;
+  }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  footer { text-align: center; font-size: .78rem; color: #94a3b8; margin: 26px 0 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===================== KIRISH EKRANI ===================== -->
+  <div id="authScreen">
+    <header>
+      <div class="logo">👨‍👩‍👧‍👦</div>
+      <h1>Oilaviy xarajatlar</h1>
+      <p>Butun oila birga — kim qancha sarflaganini ko'ring</p>
+    </header>
+
+    <div class="card">
+      <h2>🏠 Yangi oila yaratish</h2>
+      <p class="hint">Oilangiz uchun hisob oching. Boshqa a'zolar keyin kod va PIN bilan qo'shiladi.</p>
+      <form id="createForm">
+        <label>Oila nomi</label>
+        <input type="text" id="cfName" placeholder="Masalan: Aliyevlar oilasi" maxlength="60" required>
+        <div class="row">
+          <div>
+            <label>Sizning ismingiz</label>
+            <input type="text" id="cfMyName" placeholder="Ismingiz" maxlength="40" required>
+          </div>
+          <div>
+            <label>Rolingiz</label>
+            <select id="cfRole">
+              <option>Ota</option><option>Ona</option><option>Farzand</option><option>Boshqa</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Oila PIN (kamida 6 belgi)</label>
+            <input type="password" id="cfPin" placeholder="••••••" autocomplete="off" required>
+          </div>
+          <div>
+            <label>PIN ni takrorlang</label>
+            <input type="password" id="cfPin2" placeholder="••••••" autocomplete="off" required>
+          </div>
+        </div>
+        <p class="hint">PIN — begonalar oilangizga qo'shilib qolmasligi uchun. Uni faqat oila a'zolariga bering.</p>
+        <button type="submit" id="createBtn">Oila yaratish</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>🔑 Oilaga qo'shilish</h2>
+      <p class="hint">Oila egasidan olgan 6 xonali kod va PIN ni kiriting.</p>
+      <form id="joinForm">
+        <div class="row">
+          <div>
+            <label>Oila kodi</label>
+            <input type="text" id="jfCode" placeholder="AB3XQ9" maxlength="6" style="text-transform:uppercase" required>
+          </div>
+          <div>
+            <label>PIN</label>
+            <input type="password" id="jfPin" placeholder="••••••" autocomplete="off" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Sizning ismingiz</label>
+            <input type="text" id="jfMyName" placeholder="Ismingiz" maxlength="40" required>
+          </div>
+          <div>
+            <label>Rolingiz</label>
+            <select id="jfRole">
+              <option>Ota</option><option>Ona</option><option>Farzand</option><option>Boshqa</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" id="joinBtn" class="ghost">Oilaga qo'shilish</button>
+      </form>
+    </div>
+
+    <div id="authStatus"></div>
+    <footer>Oscar Ta'lim · oilaviy xarajatlar hisobchisi</footer>
+  </div>
+
+  <!-- ===================== ASOSIY DASTUR ===================== -->
+  <div id="appScreen" style="display:none">
+    <div class="card">
+      <div class="fam-head">
+        <div class="who">
+          <div class="nm" id="famName">—</div>
+          <div class="me" id="meGreeting"></div>
+        </div>
+        <input type="month" id="monthPick" style="width:auto">
+        <button type="button" class="small ghost" id="logoutBtn" style="margin:0">Chiqish</button>
+      </div>
+
+      <div class="sum-top">
+        <div>
+          <div class="big" id="sumSpent">0 so'm</div>
+          <div class="lbl">shu oy sarflandi</div>
+        </div>
+        <div style="text-align:right">
+          <div class="big" id="sumLeft">—</div>
+          <div class="lbl">qoldi</div>
+        </div>
+      </div>
+      <div class="pbar" id="sumBar"><div style="width:0%"></div></div>
+      <p class="pnote" id="sumNote"></p>
+
+      <div class="sum-grid">
+        <div class="box"><b id="sumBudget">—</b><span>Oylik byudjet</span></div>
+        <div class="box"><b id="sumCount">0</b><span>Xarajatlar soni</span></div>
+        <div class="box"><b id="sumAvg">—</b><span>O'rtacha</span></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="active" data-tab="umumiy">📊 Umumiy</button>
+      <button type="button" data-tab="xarajatlar">🧾 Xarajatlar</button>
+      <button type="button" data-tab="azolar">👥 A'zolar</button>
+      <button type="button" data-tab="sozlamalar">⚙️ Sozlama</button>
+    </div>
+
+    <!-- ---- Umumiy ---- -->
+    <div id="tabUmumiy" class="tabpane">
+      <div class="card">
+        <h2>🥧 Toifalar bo'yicha</h2>
+        <div class="donut-wrap" id="donutWrap"></div>
+      </div>
+      <div class="card" id="catBudgetCard" style="display:none">
+        <h2>📐 Toifa byudjetlari</h2>
+        <div id="catBudgetList"></div>
+      </div>
+      <div class="card">
+        <h2>📌 Oy xulosasi</h2>
+        <ul class="insight-list" id="insightList"></ul>
+      </div>
+    </div>
+
+    <!-- ---- Xarajatlar ---- -->
+    <div id="tabXarajatlar" class="tabpane" style="display:none">
+      <details id="expDetails">
+        <summary>➕ Xarajat qo'shish</summary>
+        <div class="details-body">
+          <form id="expForm">
+            <div class="row">
+              <div>
+                <label>Summasi (so'm)</label>
+                <input type="number" id="expAmount" min="1" step="1" placeholder="0" required>
+              </div>
+              <div>
+                <label>Sana</label>
+                <input type="date" id="expDate" required>
+              </div>
+            </div>
+            <label>Toifa</label>
+            <select id="expCategory"></select>
+            <label>Izoh (ixtiyoriy)</label>
+            <input type="text" id="expNote" maxlength="80" placeholder="Masalan: bozor, non...">
+            <button type="submit" id="expSubmitBtn">➕ Qo'shish</button>
+            <button type="button" class="ghost" id="expCancelBtn" style="display:none">Bekor qilish</button>
+          </form>
+        </div>
+      </details>
+
+      <div class="card">
+        <div class="filters">
+          <select id="filterCat"><option value="">Barcha toifalar</option></select>
+          <select id="filterMember"><option value="">Barcha a'zolar</option></select>
+        </div>
+        <div id="expList"></div>
+      </div>
+    </div>
+
+    <!-- ---- A'zolar ---- -->
+    <div id="tabAzolar" class="tabpane" style="display:none">
+      <div class="card">
+        <h2>👥 Kim qancha sarfladi<span class="n" id="azTotal"></span></h2>
+        <div id="memberList"></div>
+      </div>
+    </div>
+
+    <!-- ---- Sozlamalar ---- -->
+    <div id="tabSozlamalar" class="tabpane" style="display:none">
+      <div class="card">
+        <h2>💰 Oylik byudjet</h2>
+        <form id="budgetForm">
+          <label>Butun oila uchun oylik byudjet (so'm)</label>
+          <input type="number" id="budgetInput" min="0" step="1000" placeholder="0">
+          <button type="submit">Saqlash</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>🏷️ Toifalar va toifa byudjetlari</h2>
+        <div id="catSettingsList"></div>
+        <form id="catAddForm" class="row" style="margin-top:14px">
+          <div>
+            <label>Yangi toifa nomi</label>
+            <input type="text" id="catNewName" maxlength="30" placeholder="Masalan: Sog'liq">
+          </div>
+        </form>
+        <button type="button" class="small ghost" id="catAddBtn">➕ Toifa qo'shish</button>
+      </div>
+
+      <div class="card">
+        <h2>👤 Mening profilim</h2>
+        <form id="profileForm">
+          <label>Ismingiz</label>
+          <input type="text" id="profName" maxlength="40" required>
+          <label>Rolingiz</label>
+          <select id="profRole">
+            <option>Ota</option><option>Ona</option><option>Farzand</option><option>Boshqa</option>
+          </select>
+          <button type="submit">Saqlash</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>🔑 Oilaga taklif qilish</h2>
+        <p class="hint">Yangi a'zo shu kod va PIN bilan qo'shiladi.</p>
+        <div class="code-box">
+          <span class="val" id="settCode">——————</span>
+          <button type="button" class="small icon" id="copyCodeBtn" title="Nusxalash" style="margin:0">📋</button>
+        </div>
+        <div class="code-box" style="background:#fffbeb;border-color:#fde68a">
+          <span class="val" id="settPin">••••••</span>
+          <button type="button" class="small icon" id="togglePinBtn" title="Ko'rsatish" style="margin:0">👁️</button>
+          <button type="button" class="small icon" id="copyPinBtn" title="Nusxalash" style="margin:0">📋</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🚪 Oiladan chiqish</h2>
+        <p class="hint">Bu qurilmadan oila hisobingizni o'chiradi. Xarajatlaringiz tarixda qoladi, lekin siz endi a'zo bo'lmaysiz.</p>
+        <button type="button" class="danger ghost" id="leaveBtn">Oilani tark etish</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="loadingOverlay"><div class="spin"></div><p class="hint">Ulanmoqda...</p></div>
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   OILAVIY XARAJATLAR
+   Bitta fayl: HTML + CSS + JS. Backend: Firebase (yoki mahalliy rejim).
+   Firebase loyihasi "sinf" ilovasi bilan bir xil — faqat yangi
+   "families" to'plami qo'shilgan (firestore.rules'ga qarang).
+   ===================================================================== */
+
+const FB_CONFIG = {
+  "apiKey": "AIzaSyDJh1D_SwuZA4TtavoooeTSIPaRvzE4QzY",
+  "authDomain": "oscartalim-sinf-80da0.firebaseapp.com",
+  "projectId": "oscartalim-sinf-80da0",
+  "storageBucket": "oscartalim-sinf-80da0.firebasestorage.app",
+  "messagingSenderId": "451154934941",
+  "appId": "1:451154934941:web:28c540f7d10edff5736874"
+};
+
+const $ = id => document.getElementById(id);
+
+const DEFAULT_CATS = [
+  { label: "Oziq-ovqat", icon: "🍎", color: "#2563eb" },
+  { label: "Kommunal to'lovlar", icon: "💡", color: "#7c3aed" },
+  { label: "Transport va yoqilg'i", icon: "🚗", color: "#0891b2" },
+  { label: "Kiyim-kechak", icon: "👕", color: "#db2777" },
+  { label: "Ta'lim", icon: "📚", color: "#ea580c" },
+  { label: "Ko'ngilochar", icon: "🎉", color: "#0d9488" },
+  { label: "Boshqa", icon: "📦", color: "#64748b" },
+];
+const CAT_PALETTE = ["#2563eb","#7c3aed","#0891b2","#db2777","#ea580c","#0d9488","#64748b","#16a34a","#ca8a04","#9333ea"];
+const AVATAR_COLORS = ["#2563eb","#16a34a","#f59e0b","#db2777","#7c3aed","#0891b2","#ea580c"];
+
+function pul(n) {
+  n = Math.round(Number(n) || 0);
+  const s = Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return (n < 0 ? "-" : "") + s + " so'm";
+}
+function avatarColor(uid) {
+  let h = 0;
+  for (const c of String(uid)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+function initials(name) {
+  return String(name || "?").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+}
+function randCode() {
+  const AB = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 6; i++) s += AB[Math.floor(Math.random() * AB.length)];
+  return s;
+}
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function thisMonth() { return new Date().toISOString().slice(0, 7); }
+function toMillis(ts) {
+  if (!ts) return 0;
+  if (typeof ts.toMillis === "function") return ts.toMillis();
+  return Number(ts) || 0;
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+/* ---------------------------------------------------------------------
+   MA'LUMOTLAR BAZASI: Firebase (bulut) yoki localStorage (mahalliy)
+   --------------------------------------------------------------------- */
+let DB = null;
+
+const LocalDB = {
+  subs: {},
+  init() {
+    window.addEventListener("storage", e => {
+      if (!e.key || !e.key.startsWith("oila:")) return;
+      const k = e.key.slice(5);
+      (this.subs[k] || []).forEach(fn => fn());
+    });
+  },
+  _get(k) { try { return JSON.parse(localStorage.getItem("oila:" + k)); } catch (e) { return null; } },
+  _set(k, v) {
+    localStorage.setItem("oila:" + k, JSON.stringify(v));
+    (this.subs[k] || []).forEach(fn => fn());
+  },
+  _watch(k, cb) {
+    cb(this._get(k));
+    const fn = () => cb(this._get(k));
+    (this.subs[k] = this.subs[k] || []).push(fn);
+    return () => { this.subs[k] = (this.subs[k] || []).filter(f => f !== fn); };
+  },
+  async auth() {
+    let u = localStorage.getItem("oila:uid");
+    if (!u) { u = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); localStorage.setItem("oila:uid", u); }
+    return u;
+  },
+  async createFamily(code, famData, pin, memberData) {
+    this._set("fam:" + code, famData);
+    this._set("fam:" + code + ":pin", String(pin));
+    const mem = this._get("fam:" + code + ":members") || {};
+    mem[memberData.uid] = { ...memberData, joinedAt: Date.now() };
+    this._set("fam:" + code + ":members", mem);
+  },
+  async joinFamily(code, pin, memberData) {
+    const savedPin = this._get("fam:" + code + ":pin");
+    if (!this._get("fam:" + code) || String(savedPin) !== String(pin)) throw new Error("permission-denied");
+    const mem = this._get("fam:" + code + ":members") || {};
+    mem[memberData.uid] = { ...memberData, joinedAt: Date.now() };
+    this._set("fam:" + code + ":members", mem);
+  },
+  async getPin(code) { return this._get("fam:" + code + ":pin"); },
+  watchFamily(code, cb) { return this._watch("fam:" + code, cb); },
+  watchMembers(code, cb) { return this._watch("fam:" + code + ":members", v => cb(Object.entries(v || {}).map(([uid, d]) => ({ ...d, uid })))); },
+  watchExpenses(code, cb) { return this._watch("fam:" + code + ":expenses", v => cb(Object.values(v || {}))); },
+  async updateFamily(code, patch) {
+    const cur = this._get("fam:" + code) || {};
+    this._set("fam:" + code, { ...cur, ...patch });
+  },
+  async updateMember(code, uid, patch) {
+    const mem = this._get("fam:" + code + ":members") || {};
+    if (mem[uid]) mem[uid] = { ...mem[uid], ...patch };
+    this._set("fam:" + code + ":members", mem);
+  },
+  async addExpense(code, data) {
+    const id = "e" + Date.now() + Math.random().toString(36).slice(2, 6);
+    const cur = this._get("fam:" + code + ":expenses") || {};
+    cur[id] = { ...data, id, createdAt: Date.now() };
+    this._set("fam:" + code + ":expenses", cur);
+  },
+  async updateExpense(code, id, patch) {
+    const cur = this._get("fam:" + code + ":expenses") || {};
+    if (cur[id]) cur[id] = { ...cur[id], ...patch };
+    this._set("fam:" + code + ":expenses", cur);
+  },
+  async deleteExpense(code, id) {
+    const cur = this._get("fam:" + code + ":expenses") || {};
+    delete cur[id];
+    this._set("fam:" + code + ":expenses", cur);
+  },
+  async leaveFamily(code, uid) {
+    const mem = this._get("fam:" + code + ":members") || {};
+    delete mem[uid];
+    this._set("fam:" + code + ":members", mem);
+  },
+};
+
+async function makeCloudDB(cfg) {
+  const A = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+  const U = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+  const F = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+  const app = A.initializeApp(cfg, "oila");
+  const auth = U.getAuth(app);
+  const fs = F.getFirestore(app);
+  const { doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, serverTimestamp } = F;
+  const D = (...p) => doc(fs, ...p), C = (...p) => collection(fs, ...p);
+  return {
+    async auth() { if (!auth.currentUser) await U.signInAnonymously(auth); return auth.currentUser.uid; },
+    async createFamily(code, famData, pin, memberData) {
+      await setDoc(D("families", code, "private", "auth"), { pin: String(pin), owner: famData.ownerUid });
+      await setDoc(D("families", code), famData);
+      await setDoc(D("families", code, "members", memberData.uid), { ...memberData, pin: String(pin), joinedAt: serverTimestamp() });
+    },
+    async joinFamily(code, pin, memberData) {
+      await setDoc(D("families", code, "members", memberData.uid), { ...memberData, pin: String(pin), joinedAt: serverTimestamp() });
+    },
+    async getPin(code) { const s = await getDoc(D("families", code, "private", "auth")); return s.exists() ? s.data().pin : null; },
+    watchFamily(code, cb) { return onSnapshot(D("families", code), s => cb(s.exists() ? s.data() : null)); },
+    watchMembers(code, cb) { return onSnapshot(C("families", code, "members"), q => cb(q.docs.map(d => ({ ...d.data(), uid: d.id })))); },
+    watchExpenses(code, cb) { return onSnapshot(C("families", code, "expenses"), q => cb(q.docs.map(d => ({ ...d.data(), id: d.id })))); },
+    async updateFamily(code, patch) { await setDoc(D("families", code), patch, { merge: true }); },
+    async updateMember(code, uid, patch) { await updateDoc(D("families", code, "members", uid), patch); },
+    async addExpense(code, data) {
+      await setDoc(D("families", code, "expenses", "e" + Date.now() + Math.random().toString(36).slice(2, 6)),
+        { ...data, createdAt: serverTimestamp() });
+    },
+    async updateExpense(code, id, patch) { await updateDoc(D("families", code, "expenses", id), patch); },
+    async deleteExpense(code, id) { await deleteDoc(D("families", code, "expenses", id)); },
+    async leaveFamily(code, uid) { await deleteDoc(D("families", code, "members", uid)); },
+  };
+}
+
+/* ---------------------------------------------------------------------
+   HOLAT
+   --------------------------------------------------------------------- */
+let uid = null, famId = null;
+let family = null, members = [], expenses = [];
+let unsubFam = null, unsubMembers = null, unsubExp = null;
+let activeTab = "umumiy";
+let viewMonth = thisMonth();
+let editingExpId = null;
+let pinVisible = false;
+
+function categories() { return (family && family.categories && family.categories.length) ? family.categories : DEFAULT_CATS; }
+function categoryMeta(label) {
+  return categories().find(c => c.label === label) || { label, icon: "📦", color: "#64748b" };
+}
+function myMember() { return members.find(m => m.uid === uid); }
+
+function stopWatchers() {
+  try { unsubFam && unsubFam(); } catch (e) {}
+  try { unsubMembers && unsubMembers(); } catch (e) {}
+  try { unsubExp && unsubExp(); } catch (e) {}
+  unsubFam = unsubMembers = unsubExp = null;
+}
+
+/* ---------------------------------------------------------------------
+   KIRISH: OILA YARATISH / QO'SHILISH
+   --------------------------------------------------------------------- */
+function authErr(msg, ok) {
+  const s = $("authStatus");
+  s.className = ok ? "ok" : "err";
+  s.textContent = msg;
+}
+function setBusy(b) { $("createBtn").disabled = b; $("joinBtn").disabled = b; }
+
+$("createForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const name = $("cfName").value.trim();
+  const myName = $("cfMyName").value.trim();
+  const role = $("cfRole").value;
+  const pin = $("cfPin").value.trim();
+  const pin2 = $("cfPin2").value.trim();
+  if (!name) return authErr("Oila nomini kiriting.");
+  if (!myName) return authErr("Ismingizni kiriting.");
+  if (pin.length < 6) return authErr("PIN kamida 6 belgidan iborat bo'lsin.");
+  if (pin !== pin2) return authErr("Ikkala PIN bir xil bo'lishi kerak.");
+  setBusy(true);
+  authErr("Yaratilmoqda...", true);
+  try {
+    let code, ok = false, lastErr;
+    for (let i = 0; i < 5 && !ok; i++) {
+      code = randCode();
+      try {
+        await DB.createFamily(code, {
+          name, ownerUid: uid, budget: 0, catBudgets: {}, categories: DEFAULT_CATS, createdAt: Date.now(),
+        }, pin, { uid, name: myName, role });
+        ok = true;
+      } catch (e) { lastErr = e; }
+    }
+    if (!ok) throw lastErr || new Error("Kod band, qayta urining.");
+    localStorage.setItem("oila:famId", code);
+    toast("Oila yaratildi! 🎉");
+    enterFamily(code, { showCode: true });
+  } catch (e) {
+    authErr("Xatolik: " + (e.message || e));
+  } finally { setBusy(false); }
+});
+
+$("joinForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const code = $("jfCode").value.trim().toUpperCase();
+  const pin = $("jfPin").value.trim();
+  const myName = $("jfMyName").value.trim();
+  const role = $("jfRole").value;
+  if (code.length !== 6) return authErr("Oila kodi 6 belgidan iborat bo'lishi kerak.");
+  if (!pin) return authErr("PIN ni kiriting.");
+  if (!myName) return authErr("Ismingizni kiriting.");
+  setBusy(true);
+  authErr("Qo'shilmoqda...", true);
+  try {
+    await DB.joinFamily(code, pin, { uid, name: myName, role });
+    localStorage.setItem("oila:famId", code);
+    toast("Oilaga qo'shildingiz 🎉");
+    enterFamily(code);
+  } catch (e) {
+    authErr("Oila topilmadi yoki PIN noto'g'ri.");
+  } finally { setBusy(false); }
+});
+
+function enterFamily(code, opts) {
+  opts = opts || {};
+  famId = code;
+  stopWatchers();
+  family = null; members = []; expenses = [];
+  $("authScreen").style.display = "none";
+  $("appScreen").style.display = "block";
+  $("loadingOverlay").style.display = "flex";
+  let gotFam = false, gotMembers = false;
+  const ready = () => {
+    if (gotFam && gotMembers) {
+      $("loadingOverlay").style.display = "none";
+      if (opts.showCode) $("catAddBtn") && setTab("sozlamalar");
+    }
+  };
+  unsubFam = DB.watchFamily(code, d => { if (d) family = d; gotFam = true; ready(); render(); });
+  unsubMembers = DB.watchMembers(code, list => { members = list; gotMembers = true; ready(); render(); });
+  unsubExp = DB.watchExpenses(code, list => { expenses = list; render(); });
+}
+
+$("logoutBtn").addEventListener("click", () => {
+  stopWatchers();
+  localStorage.removeItem("oila:famId");
+  famId = null; family = null; members = []; expenses = [];
+  $("appScreen").style.display = "none";
+  $("authScreen").style.display = "block";
+});
+
+/* ---------------------------------------------------------------------
+   TABLAR
+   --------------------------------------------------------------------- */
+function setTab(t) {
+  activeTab = t;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+  document.querySelectorAll(".tabpane").forEach(p => p.style.display = "none");
+  $("tab" + t[0].toUpperCase() + t.slice(1)).style.display = "block";
+  render();
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+$("monthPick").value = viewMonth;
+$("monthPick").addEventListener("change", () => { viewMonth = $("monthPick").value || thisMonth(); render(); });
+
+/* ---------------------------------------------------------------------
+   XARAJAT QO'SHISH / TAHRIRLASH
+   --------------------------------------------------------------------- */
+$("expDate").value = todayISO();
+
+$("expForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const amount = Number($("expAmount").value);
+  const date = $("expDate").value;
+  const category = $("expCategory").value;
+  const note = $("expNote").value.trim();
+  if (!amount || amount <= 0) return toast("Summani kiriting.");
+  if (!date) return toast("Sanani tanlang.");
+  const me = myMember();
+  try {
+    if (editingExpId) {
+      await DB.updateExpense(famId, editingExpId, { amount, date, category, note });
+      toast("Xarajat yangilandi ✏️");
+    } else {
+      await DB.addExpense(famId, { memberUid: uid, memberName: me ? me.name : "?", amount, date, category, note });
+      toast("Xarajat qo'shildi ✅");
+    }
+    resetExpForm();
+  } catch (e) { toast("Xatolik: " + (e.message || e)); }
+});
+$("expCancelBtn").addEventListener("click", resetExpForm);
+function resetExpForm() {
+  editingExpId = null;
+  $("expForm").reset();
+  $("expDate").value = todayISO();
+  $("expSubmitBtn").textContent = "➕ Qo'shish";
+  $("expCancelBtn").style.display = "none";
+  $("expDetails").open = false;
+}
+function startEditExp(id) {
+  const e = expenses.find(x => x.id === id);
+  if (!e) return;
+  editingExpId = id;
+  $("expAmount").value = e.amount;
+  $("expDate").value = e.date;
+  $("expCategory").value = e.category;
+  $("expNote").value = e.note || "";
+  $("expSubmitBtn").textContent = "💾 Saqlash";
+  $("expCancelBtn").style.display = "block";
+  $("expDetails").open = true;
+  $("expDetails").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+async function deleteExp(id) {
+  if (!confirm("Bu xarajat o'chirilsinmi?")) return;
+  await DB.deleteExpense(famId, id);
+  toast("O'chirildi 🗑");
+}
+$("filterCat").addEventListener("change", render);
+$("filterMember").addEventListener("change", render);
+
+/* ---------------------------------------------------------------------
+   SOZLAMALAR: byudjet, toifalar, profil, kod/PIN, tark etish
+   --------------------------------------------------------------------- */
+$("budgetForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  await DB.updateFamily(famId, { budget: Number($("budgetInput").value) || 0 });
+  toast("Byudjet saqlandi 💾");
+});
+
+$("catAddBtn").addEventListener("click", async () => {
+  const name = $("catNewName").value.trim();
+  if (!name) return toast("Toifa nomini kiriting.");
+  if (categories().some(c => c.label.toLowerCase() === name.toLowerCase())) return toast("Bunday toifa allaqachon bor.");
+  const color = CAT_PALETTE[categories().length % CAT_PALETTE.length];
+  const next = [...categories(), { label: name, icon: "🏷️", color }];
+  await DB.updateFamily(famId, { categories: next });
+  $("catNewName").value = "";
+  toast("Toifa qo'shildi ✅");
+});
+async function removeCategory(label) {
+  if (!confirm(`"${label}" toifasi o'chirilsinmi? Avvalgi xarajatlar saqlanib qoladi.`)) return;
+  const next = categories().filter(c => c.label !== label);
+  const catBudgets = { ...(family.catBudgets || {}) };
+  delete catBudgets[label];
+  await DB.updateFamily(famId, { categories: next, catBudgets });
+}
+async function saveCatBudget(label, val) {
+  const catBudgets = { ...(family.catBudgets || {}), [label]: Number(val) || 0 };
+  await DB.updateFamily(famId, { catBudgets });
+}
+
+$("profileForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const name = $("profName").value.trim();
+  const role = $("profRole").value;
+  if (!name) return toast("Ismingizni kiriting.");
+  await DB.updateMember(famId, uid, { name, role });
+  toast("Profil saqlandi 💾");
+});
+
+$("copyCodeBtn").addEventListener("click", () => { navigator.clipboard.writeText(famId).then(() => toast("Kod nusxalandi 📋")); });
+$("togglePinBtn").addEventListener("click", async () => {
+  pinVisible = !pinVisible;
+  if (pinVisible) $("settPin").textContent = (await DB.getPin(famId)) || "—";
+  else $("settPin").textContent = "••••••";
+});
+$("copyPinBtn").addEventListener("click", async () => {
+  const pin = await DB.getPin(famId);
+  navigator.clipboard.writeText(pin || "").then(() => toast("PIN nusxalandi 📋"));
+});
+$("leaveBtn").addEventListener("click", async () => {
+  if (!confirm("Haqiqatan ham oilani tark etmoqchimisiz?")) return;
+  await DB.leaveFamily(famId, uid);
+  $("logoutBtn").click();
+  toast("Oiladan chiqdingiz");
+});
+
+/* ---------------------------------------------------------------------
+   HISOB-KITOB
+   --------------------------------------------------------------------- */
+function monthExpenses(month) { return expenses.filter(e => (e.date || "").slice(0, 7) === month); }
+function categoryTotals(list) { const m = {}; list.forEach(e => { m[e.category] = (m[e.category] || 0) + Number(e.amount || 0); }); return m; }
+function memberTotals(list) { const m = {}; list.forEach(e => { m[e.memberUid] = (m[e.memberUid] || 0) + Number(e.amount || 0); }); return m; }
+
+/* ---------------------------------------------------------------------
+   RENDER
+   --------------------------------------------------------------------- */
+function render() {
+  if (!family) return;
+  $("famName").textContent = family.name || "Oila";
+  const me = myMember();
+  $("meGreeting").textContent = me ? `Salom, ${me.name}${me.role ? " (" + me.role + ")" : ""}` : "";
+
+  populateCategorySelects();
+  renderSummary();
+  if (activeTab === "umumiy") renderUmumiy();
+  if (activeTab === "xarajatlar") renderXarajatlar();
+  if (activeTab === "azolar") renderAzolar();
+  if (activeTab === "sozlamalar") renderSozlamalar();
+}
+
+function populateCategorySelects() {
+  const cats = categories();
+  [$("expCategory"), $("filterCat")].forEach(sel => {
+    const keepFirst = sel.id === "filterCat";
+    const prevVal = sel.value;
+    sel.innerHTML = (keepFirst ? '<option value="">Barcha toifalar</option>' : "") +
+      cats.map(c => `<option value="${esc(c.label)}">${c.icon} ${esc(c.label)}</option>`).join("");
+    if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
+  });
+  const fm = $("filterMember");
+  const prevM = fm.value;
+  fm.innerHTML = '<option value="">Barcha a\'zolar</option>' +
+    members.map(m => `<option value="${esc(m.uid)}">${esc(m.name)}</option>`).join("");
+  if ([...fm.options].some(o => o.value === prevM)) fm.value = prevM;
+}
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function renderSummary() {
+  const list = monthExpenses(viewMonth);
+  const spent = list.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const budget = Number(family.budget || 0);
+  $("sumSpent").textContent = pul(spent);
+  $("sumCount").textContent = list.length;
+  $("sumAvg").textContent = list.length ? pul(spent / list.length) : "—";
+  $("sumBudget").textContent = budget > 0 ? pul(budget) : "belgilanmagan";
+
+  const bar = $("sumBar"), inner = bar.firstElementChild, note = $("sumNote");
+  if (budget > 0) {
+    const pct = Math.min(100, (spent / budget) * 100);
+    inner.style.width = pct + "%";
+    bar.className = "pbar" + (spent > budget ? " err" : pct >= 80 ? " warn" : "");
+    const left = budget - spent;
+    $("sumLeft").textContent = pul(Math.abs(left));
+    if (left < 0) { note.textContent = `⚠️ Byudjetdan ${pul(Math.abs(left))} ga oshib ketdi`; note.className = "pnote err"; }
+    else { note.textContent = `Byudjetning ${Math.round(pct)}% i ishlatildi`; note.className = "pnote"; }
+  } else {
+    inner.style.width = "0%";
+    bar.className = "pbar";
+    $("sumLeft").textContent = "—";
+    note.textContent = "Byudjetni Sozlamalar bo'limida belgilang.";
+    note.className = "pnote";
+  }
+}
+
+function renderUmumiy() {
+  const list = monthExpenses(viewMonth);
+  const totals = categoryTotals(list);
+  const items = categories().map(c => ({ label: c.label, color: c.color, icon: c.icon, value: totals[c.label] || 0 }))
+    .filter(i => i.value > 0).sort((a, b) => b.value - a.value);
+  const total = items.reduce((s, i) => s + i.value, 0);
+
+  $("donutWrap").innerHTML = total === 0
+    ? '<div class="donut-empty">Bu oy uchun hali xarajat kiritilmagan.</div>'
+    : donutSVG(items, total) + legendHTML(items, total);
+
+  const catBudgets = family.catBudgets || {};
+  const withBudget = categories().filter(c => Number(catBudgets[c.label]) > 0);
+  $("catBudgetCard").style.display = withBudget.length ? "block" : "none";
+  $("catBudgetList").innerHTML = withBudget.map(c => {
+    const spent = totals[c.label] || 0;
+    const b = Number(catBudgets[c.label]);
+    const pct = Math.min(100, (spent / b) * 100);
+    const over = spent > b;
+    return `<div class="cat-budget-row">
+      <div class="top"><span class="nm">${c.icon} ${esc(c.label)}</span>
+        <span class="amt">${pul(spent)} / ${pul(b)}</span></div>
+      <div class="pbar${over ? " err" : pct >= 80 ? " warn" : ""}"><div style="width:${pct}%"></div></div>
+    </div>`;
+  }).join("");
+
+  $("insightList").innerHTML = insightsHTML(list, totals);
+}
+
+function donutSVG(items, total) {
+  const r = 62, C = 2 * Math.PI * r;
+  let offset = 0;
+  const circles = items.map(i => {
+    const dash = (i.value / total) * C;
+    const html = `<circle cx="80" cy="80" r="${r}" fill="none" stroke="${i.color}" stroke-width="26"
+      stroke-dasharray="${dash} ${C - dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 80 80)"/>`;
+    offset += dash;
+    return html;
+  }).join("");
+  return `<svg viewBox="0 0 160 160" width="160" height="160">${circles}<circle cx="80" cy="80" r="49" fill="var(--white)"/>
+    <text x="80" y="76" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="inherit">Jami</text>
+    <text x="80" y="94" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)" font-family="inherit">${pul(total).replace(" so'm","")}</text>
+    </svg>`;
+}
+function legendHTML(items, total) {
+  return `<ul class="legend">${items.map(i => `<li>
+      <span class="sw" style="background:${i.color}"></span>
+      <span class="lb">${i.icon} ${esc(i.label)}</span>
+      <span class="vl">${Math.round(i.value / total * 100)}%</span>
+    </li>`).join("")}</ul>`;
+}
+
+function insightsHTML(list, totals) {
+  if (!list.length) return `<li><span class="ic">💤</span><span>Bu oy uchun hali xarajat kiritilmagan.</span></li>`;
+  const items = [];
+  const topCat = Object.entries(totals).sort((a, b) => b[1] - a[1])[0];
+  if (topCat) items.push(`<li><span class="ic">🏆</span><span>Eng ko'p sarflangan toifa: <b>${esc(topCat[0])}</b> — ${pul(topCat[1])}</span></li>`);
+
+  const mTotals = memberTotals(list);
+  const topMember = Object.entries(mTotals).sort((a, b) => b[1] - a[1])[0];
+  if (topMember) {
+    const m = members.find(x => x.uid === topMember[0]);
+    items.push(`<li><span class="ic">🥇</span><span>Eng ko'p xarajat qilgan: <b>${esc(m ? m.name : "?")}</b> — ${pul(topMember[1])}</span></li>`);
+  }
+
+  const catBudgets = family.catBudgets || {};
+  const overs = categories().filter(c => Number(catBudgets[c.label]) > 0 && (totals[c.label] || 0) > Number(catBudgets[c.label]));
+  if (overs.length) {
+    items.push(`<li><span class="ic">⚠️</span><span>Byudjetdan oshgan toifalar: <b>${overs.map(c => esc(c.label)).join(", ")}</b></span></li>`);
+  } else {
+    items.push(`<li><span class="ic">✅</span><span>Hozircha hech bir toifa o'z byudjetidan oshmagan.</span></li>`);
+  }
+
+  const budget = Number(family.budget || 0);
+  const spent = list.reduce((s, e) => s + Number(e.amount || 0), 0);
+  if (budget > 0) {
+    items.push(spent > budget
+      ? `<li><span class="ic">🔴</span><span>Umumiy byudjetdan <b>${pul(spent - budget)}</b> ga oshib ketildi.</span></li>`
+      : `<li><span class="ic">🟢</span><span>Umumiy byudjetdan <b>${pul(budget - spent)}</b> qoldi.</span></li>`);
+  }
+  return items.join("");
+}
+
+function renderXarajatlar() {
+  const catF = $("filterCat").value, memF = $("filterMember").value;
+  let list = monthExpenses(viewMonth).filter(e => (!catF || e.category === catF) && (!memF || e.memberUid === memF));
+  list = list.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || toMillis(b.createdAt) - toMillis(a.createdAt));
+
+  if (!list.length) { $("expList").innerHTML = '<p class="exp-empty">Bu filtrga mos xarajat topilmadi.</p>'; return; }
+
+  let html = "", lastDate = null;
+  for (const e of list) {
+    if (e.date !== lastDate) { html += `<div class="exp-date-hdr">${sanaFmt(e.date)}</div>`; lastDate = e.date; }
+    const c = categoryMeta(e.category);
+    const mine = e.memberUid === uid;
+    html += `<div class="exp-row">
+      <div class="cic" style="background:${c.color}22">${c.icon}</div>
+      <div class="info">
+        <div class="t1">${esc(e.category)}${e.note ? " · " + esc(e.note) : ""}</div>
+        <div class="t2">${esc(e.memberName || "?")}</div>
+      </div>
+      <div class="amt">${pul(e.amount)}</div>
+      ${mine ? `<div class="acts">
+        <button type="button" class="icon ghost" onclick="startEditExp('${e.id}')" title="Tahrirlash">✏️</button>
+        <button type="button" class="icon ghost" onclick="deleteExp('${e.id}')" title="O'chirish">🗑</button>
+      </div>` : ""}
+    </div>`;
+  }
+  $("expList").innerHTML = html;
+}
+function sanaFmt(iso) {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  const oylar = ["yanvar","fevral","mart","aprel","may","iyun","iyul","avgust","sentabr","oktabr","noyabr","dekabr"];
+  return `${d.getDate()}-${oylar[d.getMonth()]}`;
+}
+
+function renderAzolar() {
+  const list = monthExpenses(viewMonth);
+  const totals = memberTotals(list);
+  const total = Object.values(totals).reduce((s, v) => s + v, 0);
+  $("azTotal").textContent = total ? pul(total) : "";
+  const max = Math.max(1, ...Object.values(totals));
+
+  const sorted = members.slice().sort((a, b) => (totals[b.uid] || 0) - (totals[a.uid] || 0));
+  $("memberList").innerHTML = sorted.map(m => {
+    const v = totals[m.uid] || 0;
+    const pct = Math.round((v / max) * 100);
+    const col = avatarColor(m.uid);
+    return `<div class="member-row">
+      <div class="avatar" style="background:${col}">${initials(m.name)}</div>
+      <div class="info">
+        <div class="nm">${esc(m.name)} <span class="role">${esc(m.role || "")}</span></div>
+        <div class="bar"><div style="width:${pct}%;background:${col}"></div></div>
+      </div>
+      <div class="amt">${pul(v)}</div>
+    </div>`;
+  }).join("") || '<p class="exp-empty">A\'zolar topilmadi.</p>';
+}
+
+function renderSozlamalar() {
+  $("budgetInput").value = family.budget || "";
+  const me = myMember();
+  if (me) { $("profName").value = me.name || ""; $("profRole").value = me.role || "Ota"; }
+  $("settCode").textContent = famId;
+  $("settPin").textContent = pinVisible ? $("settPin").textContent : "••••••";
+
+  const catBudgets = family.catBudgets || {};
+  $("catSettingsList").innerHTML = categories().map(c => `<div class="cat-row">
+      <span class="lb">${c.icon} ${esc(c.label)}</span>
+      <input type="number" min="0" step="1000" placeholder="byudjet" value="${catBudgets[c.label] || ""}"
+        onchange="saveCatBudget('${esc(c.label).replace(/'/g,"\\'")}', this.value)">
+      <button type="button" class="icon ghost" onclick="removeCategory('${esc(c.label).replace(/'/g,"\\'")}')" title="O'chirish">🗑</button>
+    </div>`).join("");
+}
+
+/* ---------------------------------------------------------------------
+   ISHGA TUSHIRISH
+   --------------------------------------------------------------------- */
+async function boot() {
+  LocalDB.init();
+  try { DB = FB_CONFIG ? await makeCloudDB(FB_CONFIG) : LocalDB; }
+  catch (e) { console.warn("Bulutga ulanmadi, mahalliy rejim:", e); DB = LocalDB; }
+  uid = await DB.auth();
+  const saved = localStorage.getItem("oila:famId");
+  if (saved) enterFamily(saved);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
+}
+boot();
+</script>
+</body>
+</html>
