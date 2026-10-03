@@ -334,11 +334,6 @@
     background: var(--oyin-fon); border: 1px solid var(--border);
     touch-action: none; cursor: none;
   }
-  .tayyorBanner {
-    display: flex; align-items: center; gap: 8px; background: var(--ok-soft);
-    border: 1.5px solid var(--ok-border); border-radius: 12px; padding: 10px 12px;
-    color: var(--ok); font-weight: 600; font-size: .88rem; margin-bottom: 12px;
-  }
   .markaz { text-align: center; }
   .markaz .btn { margin: 10px 4px 0; }
 
@@ -638,11 +633,6 @@
 
   <div class="card" id="oyinCard" hidden>
     <h2><svg class="ic"><use href="#i-oyin"/></svg> G'ishtlar</h2>
-    <div class="tayyorBanner" id="oyinTayyorBanner" hidden>
-      <svg class="ic ic-sm"><use href="#i-tayyor"/></svg>
-      Transkripsiya tayyor —
-      <a href="#" onclick="natijagaOt(); return false;">natijani ko'rish</a>
-    </div>
     <div class="oyinTepa">
       <span>Ball: <b id="oyinBall">0</b></span>
       <span>Rekord: <b id="oyinRekord">0</b></span>
@@ -1369,17 +1359,11 @@ function oyinYop() {
   cancelAnimationFrame(Oyin.raf);
   Oyin.rekordSaqla();
   $("oyinCard").hidden = true;
-  $("oyinTayyorBanner").hidden = true;
   oyinOchiq = false;
   if ($("pill").classList.contains("ko")) $("oyinTaklif").hidden = false;
 }
 
 function oyinQayta() { Oyin.qayta(); Oyin.yur(); }
-
-function natijagaOt() {
-  oyinYop();
-  $("resultCard").scrollIntoView({ behavior: "smooth" });
-}
 
 /* ===== Kunlik so'rov hisobi (bepul limitni kuzatish) ===== */
 const KUNLIK_LIMIT = 20; // bepul tarifda gemini-2.5-flash uchun
@@ -1751,9 +1735,9 @@ function korsat(seglar, nom, id) {
   }).join("");
   $("resultCard").hidden = false;
   tarixKorsat();
-  // O'ynayotgan bo'lsa yulqib olmaymiz — o'yin ustida havola chiqadi
-  if (oyinOchiq) $("oyinTayyorBanner").hidden = false;
-  else $("resultCard").scrollIntoView({ behavior: "smooth" });
+  // Natija tayyor — o'yin ochiq bo'lsa yopiladi, natija darhol ko'rsatiladi
+  if (oyinOchiq) oyinYop();
+  $("resultCard").scrollIntoView({ behavior: "smooth" });
 }
 
 /* ===== Segmentni joyida tahrirlash =====
