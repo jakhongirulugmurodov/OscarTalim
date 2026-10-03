@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563eb">
+<title>Kutish animatsiyasi — variantlar</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f4f6fb;
+    --text: #0f172a;
+    --muted: #64748b;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --radius: 18px;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px -8px rgba(15,23,42,.10);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #eef3fb 0%, var(--bg) 240px);
+    color: var(--text); margin: 0; padding: 16px 14px 40px; line-height: 1.6;
+  }
+  .container { max-width: 640px; margin: 0 auto; }
+  header { text-align: center; margin: 10px 0 20px; }
+  header h1 { font-size: 1.25rem; margin: 0 0 4px; letter-spacing: -.02em; }
+  header p { color: var(--muted); margin: 0; font-size: .88rem; }
+  .card {
+    background: var(--white); border-radius: var(--radius); padding: 18px;
+    margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 2px; }
+  .card .izoh { font-size: .82rem; color: var(--muted); margin: 0 0 14px; }
+  .nomer {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 8px; background: #eff6ff;
+    color: var(--primary); font-size: .8rem; font-weight: 700; margin-right: 8px;
+  }
+  .status { font-size: .92rem; color: #334155; margin-top: 10px; }
+
+  /* ===== Umumiy o'zak ===== */
+  .wrap {
+    height: 8px; background: #e8edf5; border-radius: 999px;
+    overflow: hidden; position: relative;
+  }
+  .wrap.glow { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+
+  /* ===== 1. OQIM — cheksiz oqayotgan gradient ===== */
+  .v1 .bar {
+    height: 100%; width: 100%; border-radius: 999px;
+    background: linear-gradient(90deg,
+      #bfdbfe 0%, #3b82f6 20%, #6366f1 40%, #3b82f6 60%, #bfdbfe 80%, #3b82f6 100%);
+    background-size: 250% 100%;
+    animation: oqim 2.6s linear infinite;
+  }
+  @keyframes oqim { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+
+  /* ===== 2. KOMETA — yumshoq suzuvchi bo'lak + iz ===== */
+  .v2 .bar {
+    position: absolute; top: 0; bottom: 0; width: 38%; border-radius: 999px;
+    background: linear-gradient(90deg, rgba(59,130,246,0), #3b82f6 45%, #6366f1 75%, rgba(99,102,241,0));
+    animation: kometa 1.8s cubic-bezier(.45,.05,.35,1) infinite;
+    filter: drop-shadow(0 0 6px rgba(59,130,246,.45));
+  }
+  @keyframes kometa {
+    0%   { left: -40%; width: 38%; }
+    50%  { width: 52%; }
+    100% { left: 102%; width: 38%; }
+  }
+
+  /* ===== 3. NAFAS — to'liq chiziq, yorqinligi nafas oladi ===== */
+  .v3 .bar {
+    height: 100%; width: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #60a5fa, #6366f1, #60a5fa);
+    background-size: 200% 100%;
+    animation: nafasRang 3s ease-in-out infinite, nafasYorug 2.2s ease-in-out infinite;
+  }
+  @keyframes nafasRang { 0%,100% { background-position: 0 0; } 50% { background-position: 100% 0; } }
+  @keyframes nafasYorug { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+
+  /* ===== 4. SHIMMER — to'liq chiziq + yorug'lik sayri ===== */
+  .v4 .bar {
+    height: 100%; width: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    position: relative; overflow: hidden;
+  }
+  .v4 .bar::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 45%;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.75), rgba(255,255,255,0));
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes shimmer { from { left: -45%; } to { left: 100%; } }
+
+  /* ===== Matn: nuqtalar jonli ===== */
+  .nuqta span {
+    opacity: .25; animation: nuqta 1.4s infinite;
+  }
+  .nuqta span:nth-child(2) { animation-delay: .2s; }
+  .nuqta span:nth-child(3) { animation-delay: .4s; }
+  @keyframes nuqta { 0%,60%,100% { opacity: .25; } 30% { opacity: 1; } }
+
+  .spin {
+    display: inline-block; width: 13px; height: 13px; border: 2px solid var(--primary);
+    border-top-color: transparent; border-radius: 50%; vertical-align: -2px;
+    animation: sp .7s linear infinite; margin-right: 7px;
+  }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  footer { text-align: center; font-size: .8rem; color: #94a3b8; margin-top: 24px; }
+  .tanla {
+    background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 14px;
+    padding: 14px; font-size: .9rem; margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Kutish animatsiyasi — 4 variant</h1>
+    <p>Qaysi biri ko'zga yoqadi? Raqamini ayting.</p>
+  </header>
+
+  <div class="tanla">
+    Har bir variant hozir jonli ishlab turibdi — pastga aylantirib taqqoslang.
+    Yoqqanini tanlasangiz, asosiy sahifaga o'shani qo'yaman.
+  </div>
+
+  <div class="card v1">
+    <h2><span class="nomer">1</span>Oqim</h2>
+    <p class="izoh">Cheksiz oqayotgan gradient — suv oqimi kabi, tinimsiz va yumshoq.
+      Eng «premium» ko'rinish.</p>
+    <div class="wrap"><div class="bar"></div></div>
+    <div class="status"><span class="spin"></span>Gemini transkripsiya qilmoqda<span class="nuqta"><span>.</span><span>.</span><span>.</span></span></div>
+  </div>
+
+  <div class="card v2">
+    <h2><span class="nomer">2</span>Kometa</h2>
+    <p class="izoh">Yorug' bo'lak chapdan o'ngga suzadi, o'rtada biroz kengayadi va
+      yumshoq nur qoldiradi. Jonli va dinamik.</p>
+    <div class="wrap"><div class="bar"></div></div>
+    <div class="status"><span class="spin"></span>Gemini transkripsiya qilmoqda<span class="nuqta"><span>.</span><span>.</span><span>.</span></span></div>
+  </div>
+
+  <div class="card v3">
+    <h2><span class="nomer">3</span>Nafas</h2>
+    <p class="izoh">To'liq chiziq sekin «nafas oladi» — yorqinligi va rangi
+      asta o'zgaradi. Eng tinch va bezovta qilmaydigan.</p>
+    <div class="wrap"><div class="bar"></div></div>
+    <div class="status"><span class="spin"></span>Gemini transkripsiya qilmoqda<span class="nuqta"><span>.</span><span>.</span><span>.</span></span></div>
+  </div>
+
+  <div class="card v4">
+    <h2><span class="nomer">4</span>Shimmer</h2>
+    <p class="izoh">To'liq ko'k chiziq ustidan yorug'lik sayr qiladi —
+      zamonaviy ilovalardagi klassik «yuklanmoqda» effekti.</p>
+    <div class="wrap"><div class="bar"></div></div>
+    <div class="status"><span class="spin"></span>Gemini transkripsiya qilmoqda<span class="nuqta"><span>.</span><span>.</span><span>.</span></span></div>
+  </div>
+
+  <footer>Oscar Ta'lim · faqat tanlash uchun namuna sahifa</footer>
+</div>
+</body>
+</html>
