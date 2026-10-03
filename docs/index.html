@@ -171,20 +171,70 @@
   }
 
   /* ===== Jarayon ===== */
-  .progress-wrap {
-    height: 8px; background: #e8edf5; border-radius: 999px; margin-top: 16px;
-    overflow: hidden; display: none;
+  /* Kutish kapsulasi: ichida pastel nurlar suzadi */
+  .pill {
+    position: relative; overflow: hidden; border-radius: 999px;
+    height: 52px; display: none; align-items: center; justify-content: center;
+    isolation: isolate; margin-top: 16px;
+    background: var(--white); border: 1.5px solid var(--border);
+    box-shadow: 0 4px 16px -8px rgba(15,23,42,.2);
   }
-  .progress-bar {
-    height: 100%; width: 0%; border-radius: 999px;
-    background: linear-gradient(90deg, #3b82f6, #6366f1);
-    transition: width .35s ease;
+  .pill.ko { display: flex; animation: fadeUp .35s both; }
+  .pill .matn {
+    position: relative; z-index: 3; color: #1e293b; font-size: .98rem;
+    font-weight: 600; letter-spacing: -.01em; padding: 0 18px; text-align: center;
   }
-  .progress-wrap.indet .progress-bar {
-    width: 40%; animation: slide 1.3s ease-in-out infinite;
+  .blob {
+    position: absolute; border-radius: 50%; will-change: transform;
+    width: 150px; height: 150px; top: 50%; left: 50%; margin: -75px 0 0 -75px;
+    opacity: .85;
   }
-  @keyframes slide {
-    0% { margin-left: -40%; } 100% { margin-left: 100%; }
+  .b1 { background: #93c5fd; filter: blur(22px); animation: yur1 9s ease-in-out infinite; }
+  .b2 { background: #a5f3fc; filter: blur(22px); animation: yur2 12s ease-in-out infinite; }
+  .b3 { background: #c4b5fd; filter: blur(22px); animation: yur3 8s ease-in-out infinite; }
+  .b4 { background: #fbcfe8; filter: blur(26px); opacity: .8; animation: yur4 14s ease-in-out infinite; }
+  @keyframes yur1 {
+    0%,100% { transform: translate(-130%, 30%) scale(1); }
+    33%     { transform: translate(40%, -20%) scale(1.3); }
+    66%     { transform: translate(150%, 25%) scale(.9); }
+  }
+  @keyframes yur2 {
+    0%,100% { transform: translate(120%, -25%) scale(1.1); }
+    40%     { transform: translate(-60%, 20%) scale(1.4); }
+    75%     { transform: translate(30%, -30%) scale(.95); }
+  }
+  @keyframes yur3 {
+    0%,100% { transform: translate(60%, 25%) scale(1.2); }
+    50%     { transform: translate(-120%, -20%) scale(1); }
+  }
+  @keyframes yur4 {
+    0%,100% { transform: translate(-40%, -30%) scale(1); }
+    50%     { transform: translate(110%, 30%) scale(1.3); }
+  }
+  /* Foiz rejimi: kapsula to'lib boradi */
+  .pill .toldir {
+    position: absolute; left: 0; top: 0; bottom: 0; z-index: 2; width: 0;
+    background: linear-gradient(100deg, #bfdbfe, #c7d2fe, #ddd6fe);
+    border-radius: 999px; transition: width .35s ease; display: none;
+  }
+  .pill.foiz .toldir { display: block; }
+  .pill.foiz .blob { display: none; }
+  /* Jonli nuqtalar */
+  .nuqta span { opacity: .3; animation: nuqta 1.4s infinite; }
+  .nuqta span:nth-child(2) { animation-delay: .2s; }
+  .nuqta span:nth-child(3) { animation-delay: .4s; }
+  @keyframes nuqta { 0%,60%,100% { opacity: .3; } 30% { opacity: 1; } }
+
+  /* ===== O'yin (sodda, oq-qora) ===== */
+  .oyinTepa {
+    display: flex; justify-content: space-between; font-size: .82rem;
+    color: #6b7280; margin-bottom: 10px; font-variant-numeric: tabular-nums;
+  }
+  .oyinTepa b { color: #111827; }
+  #oyinCanvas {
+    width: 100%; display: block; border-radius: 12px;
+    background: #fafafa; border: 1px solid #e5e7eb;
+    touch-action: none; cursor: none;
   }
   #status { font-size: .92rem; margin-top: 10px; white-space: pre-line; color: #334155; }
   #status.err {
@@ -358,8 +408,39 @@
 
     <p class="hint" id="sorovHisob" style="margin-top:14px"></p>
     <button id="startBtn" onclick="tugmaBosildi()">✨ Transkripsiya qilish</button>
-    <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="pill" id="pill">
+      <div class="blob b1"></div><div class="blob b2"></div>
+      <div class="blob b3"></div><div class="blob b4"></div>
+      <div class="toldir" id="pillToldir"></div>
+      <span class="matn" id="pillMatn"></span>
+    </div>
     <div id="status"></div>
+    <p class="hint" id="oyinTaklif" style="display:none; text-align:center; margin-top:12px">
+      Kutish zerikarlimi? <a href="#" onclick="oyinOch(); return false;">🎮 O'yin o'ynang</a>
+    </p>
+  </div>
+
+  <div class="card" id="oyinCard" style="display:none">
+    <h2>🎮 G'ishtlar</h2>
+    <p class="hint" id="oyinTayyorBanner" style="display:none; background:#f0fdf4;
+       border:1.5px solid #bbf7d0; border-radius:12px; padding:10px 12px; color:#15803d;
+       font-weight:600; margin-bottom:10px">
+      ✅ Transkripsiya tayyor —
+      <a href="#" onclick="natijagaOt(); return false;">natijani ko'rish</a>
+    </p>
+    <div class="oyinTepa">
+      <span>Ball: <b id="oyinBall">0</b></span>
+      <span>Rekord: <b id="oyinRekord">0</b></span>
+      <span>Jon: <b id="oyinJon">♥♥♥</b></span>
+    </div>
+    <canvas id="oyinCanvas"></canvas>
+    <p class="hint" id="oyinIzoh" style="text-align:center">
+      Tayoqchani barmoq yoki sichqoncha bilan suring
+    </p>
+    <div style="text-align:center">
+      <button class="small ghost" onclick="oyinQayta()">↻ Qayta boshlash</button>
+      <button class="small ghost" onclick="oyinYop()">✕ Yopish</button>
+    </div>
   </div>
 
   <div class="card" id="resultCard" style="display:none">
@@ -595,22 +676,45 @@ ${segmentQoida}
 8. Hech bir gapni tashlab ketma va o'zingdan hech narsa qo'shma.${sozlovchiQoida}${tilQoida}`;
 }
 
-/* ===== Holat va jarayon ko'rsatkichi ===== */
+/* ===== Holat va jarayon ko'rsatkichi =====
+   Ish ketayotganda matn kapsula ichida, aks holda oddiy qatorda chiqadi. */
+const NUQTA = '<span class="nuqta"><span>.</span><span>.</span><span>.</span></span>';
+
 function holat(msg, xato = false, spinner = false) {
   const s = $("status");
-  s.className = xato ? "err" : "";
-  s.innerHTML = (spinner ? '<span class="spin"></span>' : "") + msg;
-  if (xato) jarayon(null);
+  if (xato) {
+    jarayon(null);
+    s.className = "err";
+    s.innerHTML = msg;
+    return;
+  }
+  if ($("pill").classList.contains("ko")) {
+    // Oxiridagi uch nuqtani jonli nuqtalarga almashtiramiz
+    $("pillMatn").innerHTML = String(msg).replace(/\.\.\.$/, "") +
+      (/\.\.\.$/.test(msg) ? NUQTA : "");
+    s.className = "";
+    s.innerHTML = "";
+  } else {
+    s.className = "";
+    s.innerHTML = msg;
+  }
 }
-// foiz: 0-100 aniq qiymat, "indet": noaniq (suzuvchi), null: yashirish
+
+// foiz: 0-100 aniq qiymat, "indet": noaniq (nurlar suzadi), null: yashirish
 function jarayon(foiz) {
-  const w = $("progressWrap");
-  if (foiz === null) { w.style.display = "none"; w.classList.remove("indet"); return; }
-  w.style.display = "block";
-  if (foiz === "indet") { w.classList.add("indet"); }
-  else {
-    w.classList.remove("indet");
-    $("progressBar").style.width = foiz + "%";
+  const p = $("pill");
+  if (foiz === null) {
+    p.classList.remove("ko", "foiz");
+    $("oyinTaklif").style.display = "none";
+    return;
+  }
+  p.classList.add("ko");
+  $("oyinTaklif").style.display = $("oyinCard").style.display === "none" ? "block" : "none";
+  if (foiz === "indet") {
+    p.classList.remove("foiz");
+  } else {
+    p.classList.add("foiz");
+    $("pillToldir").style.width = foiz + "%";
   }
 }
 function toast(msg) {
@@ -653,6 +757,268 @@ function youtubeTozala(url) {
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|live\/|embed\/|v\/))([A-Za-z0-9_-]{11})/i
   );
   return m ? `https://www.youtube.com/watch?v=${m[1]}` : String(url).trim();
+}
+
+/* ===== «G'ishtlar» o'yini — kutish paytida =====
+   Sodda oq-qora uslub: ko'zni charchatmaydi, diqqatni talab qilmaydi. */
+const Oyin = {
+  cv: null, ctx: null, raf: 0, oxirgi: 0, holat: "stop",
+  en: 0, bo: 0, pm: 1,
+  tayoq: { x: 0, w: 0, h: 0 },
+  top: { x: 0, y: 0, r: 0, vx: 0, vy: 0 },
+  gishtlar: [], ball: 0, jon: 3, tezlik: 0,
+
+  olcham() {
+    const cv = this.cv;
+    const en = cv.clientWidth || 320;
+    const bo = Math.round(Math.min(Math.max(en * 0.72, 240), 380));
+    this.pm = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(en * this.pm);
+    cv.height = Math.round(bo * this.pm);
+    cv.style.height = bo + "px";
+    this.ctx.setTransform(this.pm, 0, 0, this.pm, 0, 0);
+    this.en = en; this.bo = bo;
+  },
+
+  gishtQur() {
+    const ustun = this.en < 360 ? 6 : 8, qator = 5;
+    const chet = 10, oraliq = 5;
+    const gEn = (this.en - chet * 2 - oraliq * (ustun - 1)) / ustun;
+    const gBo = Math.max(12, this.bo * 0.045);
+    this.gishtlar = [];
+    for (let q = 0; q < qator; q++) {
+      for (let u = 0; u < ustun; u++) {
+        this.gishtlar.push({
+          x: chet + u * (gEn + oraliq), y: 44 + q * (gBo + oraliq),
+          w: gEn, h: gBo, tirik: true,
+          // Yuqori qatorlar to'qroq — sodda kulrang shkala
+          rang: `rgba(17,24,39,${0.88 - q * 0.14})`,
+        });
+      }
+    }
+  },
+
+  topQoy() {
+    this.top.r = Math.max(5, this.en * 0.013);
+    this.top.x = this.en / 2;
+    this.top.y = this.bo - this.tayoq.h - 26;
+    const burchak = (-60 - Math.random() * 60) * Math.PI / 180;
+    this.top.vx = Math.cos(burchak) * this.tezlik;
+    this.top.vy = Math.sin(burchak) * this.tezlik;
+  },
+
+  qayta() {
+    this.olcham();
+    this.tezlik = this.bo * 0.9;           // soniyasiga piksel
+    this.tayoq.w = Math.max(60, this.en * 0.2);
+    this.tayoq.h = Math.max(8, this.bo * 0.028);
+    this.tayoq.x = this.en / 2 - this.tayoq.w / 2;
+    this.ball = 0; this.jon = 3;
+    this.gishtQur();
+    this.topQoy();
+    this.holat = "kutmoqda";
+    this.sanoq();
+    this.chiz();
+  },
+
+  sanoq() {
+    $("oyinBall").textContent = this.ball;
+    $("oyinJon").textContent = "♥".repeat(Math.max(this.jon, 0)) || "—";
+    const r = Math.max(+(localStorage.getItem("oyin_rekord") || 0), this.ball);
+    $("oyinRekord").textContent = r;
+  },
+
+  rekordSaqla() {
+    const eski = +(localStorage.getItem("oyin_rekord") || 0);
+    if (this.ball > eski) {
+      try { localStorage.setItem("oyin_rekord", String(this.ball)); } catch (e) { /* e'tiborsiz */ }
+    }
+  },
+
+  yur() {
+    if (this.holat === "stop") return;
+    cancelAnimationFrame(this.raf);
+    this.oxirgi = performance.now();
+    const qadam = (hozir) => {
+      if (this.holat === "stop") return;
+      const dt = Math.min((hozir - this.oxirgi) / 1000, 0.05);
+      this.oxirgi = hozir;
+      if (this.holat === "oynamoqda") this.yangila(dt);
+      this.chiz();
+      this.raf = requestAnimationFrame(qadam);
+    };
+    this.raf = requestAnimationFrame(qadam);
+  },
+
+  yangila(dt) {
+    const t = this.top;
+    t.x += t.vx * dt;
+    t.y += t.vy * dt;
+
+    // Devorlar
+    if (t.x - t.r < 0) { t.x = t.r; t.vx = Math.abs(t.vx); }
+    if (t.x + t.r > this.en) { t.x = this.en - t.r; t.vx = -Math.abs(t.vx); }
+    if (t.y - t.r < 0) { t.y = t.r; t.vy = Math.abs(t.vy); }
+
+    // Tayoqcha
+    const ty = this.bo - this.tayoq.h - 10;
+    if (t.vy > 0 && t.y + t.r >= ty && t.y - t.r <= ty + this.tayoq.h &&
+        t.x >= this.tayoq.x - t.r && t.x <= this.tayoq.x + this.tayoq.w + t.r) {
+      t.y = ty - t.r;
+      // Urilish joyiga qarab burchak — o'yin boshqariladigan bo'lsin
+      const nisbat = (t.x - (this.tayoq.x + this.tayoq.w / 2)) / (this.tayoq.w / 2);
+      const burchak = Math.max(Math.min(nisbat, 1), -1) * (Math.PI / 3);
+      const tez = Math.hypot(t.vx, t.vy);
+      t.vx = Math.sin(burchak) * tez;
+      t.vy = -Math.abs(Math.cos(burchak) * tez);
+    }
+
+    // Pastga tushdi
+    if (t.y - t.r > this.bo) {
+      this.jon--;
+      this.sanoq();
+      if (this.jon <= 0) {
+        this.rekordSaqla();
+        this.holat = "tugadi";
+        this.sanoq();
+      } else {
+        this.topQoy();
+        this.holat = "kutmoqda";
+      }
+      return;
+    }
+
+    // G'ishtlar
+    for (const g of this.gishtlar) {
+      if (!g.tirik) continue;
+      if (t.x + t.r > g.x && t.x - t.r < g.x + g.w &&
+          t.y + t.r > g.y && t.y - t.r < g.y + g.h) {
+        g.tirik = false;
+        this.ball += 10;
+        this.sanoq();
+        // Qaysi tomondan urilgani: yon yoki ust/ost
+        const chapO = Math.abs(t.x - g.x), ongO = Math.abs(t.x - (g.x + g.w));
+        const ustO = Math.abs(t.y - g.y), ostO = Math.abs(t.y - (g.y + g.h));
+        if (Math.min(chapO, ongO) < Math.min(ustO, ostO)) t.vx = -t.vx;
+        else t.vy = -t.vy;
+        break;
+      }
+    }
+
+    // Hammasi yig'ildi — yangi bosqich, biroz tezroq
+    if (this.gishtlar.every(g => !g.tirik)) {
+      this.tezlik *= 1.08;
+      this.gishtQur();
+      this.topQoy();
+      this.holat = "kutmoqda";
+      this.rekordSaqla();
+      this.sanoq();
+    }
+  },
+
+  chiz() {
+    const c = this.ctx;
+    if (!c) return;
+    c.clearRect(0, 0, this.en, this.bo);
+
+    // G'ishtlar
+    for (const g of this.gishtlar) {
+      if (!g.tirik) continue;
+      c.fillStyle = g.rang;
+      c.beginPath();
+      c.roundRect(g.x, g.y, g.w, g.h, 4);
+      c.fill();
+    }
+
+    // Tayoqcha
+    c.fillStyle = "#111827";
+    c.beginPath();
+    c.roundRect(this.tayoq.x, this.bo - this.tayoq.h - 10, this.tayoq.w, this.tayoq.h, 999);
+    c.fill();
+
+    // Top
+    c.beginPath();
+    c.arc(this.top.x, this.top.y, this.top.r, 0, Math.PI * 2);
+    c.fill();
+
+    // Matn
+    if (this.holat === "kutmoqda" || this.holat === "tugadi") {
+      c.fillStyle = "rgba(250,250,250,.86)";
+      c.fillRect(0, this.bo / 2 - 30, this.en, 60);
+      c.fillStyle = "#374151";
+      c.textAlign = "center";
+      c.font = "600 15px 'Segoe UI', Roboto, sans-serif";
+      c.fillText(this.holat === "tugadi"
+        ? `O'yin tugadi · ${this.ball} ball`
+        : "Boshlash uchun bosing", this.en / 2, this.bo / 2 - 2);
+      c.font = "400 12.5px 'Segoe UI', Roboto, sans-serif";
+      c.fillStyle = "#9ca3af";
+      c.fillText(this.holat === "tugadi"
+        ? "Qayta boshlash uchun bosing"
+        : "Tayoqchani surib topni qaytaring", this.en / 2, this.bo / 2 + 18);
+    }
+  },
+
+  bosildi() {
+    if (this.holat === "kutmoqda") { this.holat = "oynamoqda"; this.yur(); }
+    else if (this.holat === "tugadi") { this.qayta(); this.yur(); }
+  },
+
+  surildi(x) {
+    const yarim = this.tayoq.w / 2;
+    this.tayoq.x = Math.max(0, Math.min(x - yarim, this.en - this.tayoq.w));
+    if (this.holat === "kutmoqda") {
+      this.top.x = this.tayoq.x + yarim;
+      this.chiz();
+    }
+  },
+};
+
+let oyinOchiq = false;
+
+function oyinOch() {
+  $("oyinCard").style.display = "block";
+  $("oyinTaklif").style.display = "none";
+  oyinOchiq = true;
+  if (!Oyin.cv) {
+    Oyin.cv = $("oyinCanvas");
+    Oyin.ctx = Oyin.cv.getContext("2d");
+    const nuqta = e => {
+      const r = Oyin.cv.getBoundingClientRect();
+      return (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    };
+    Oyin.cv.addEventListener("pointerdown", e => { Oyin.surildi(nuqta(e)); Oyin.bosildi(); });
+    Oyin.cv.addEventListener("pointermove", e => { e.preventDefault(); Oyin.surildi(nuqta(e)); });
+    window.addEventListener("keydown", e => {
+      if (!oyinOchiq) return;
+      const q = Oyin.tayoq.w * 0.5;
+      if (e.key === "ArrowLeft") { Oyin.surildi(Oyin.tayoq.x + Oyin.tayoq.w / 2 - q); e.preventDefault(); }
+      if (e.key === "ArrowRight") { Oyin.surildi(Oyin.tayoq.x + Oyin.tayoq.w / 2 + q); e.preventDefault(); }
+      if (e.key === " ") { Oyin.bosildi(); e.preventDefault(); }
+    });
+    window.addEventListener("resize", () => { if (oyinOchiq) Oyin.qayta(); });
+  }
+  Oyin.qayta();
+  Oyin.holat = "kutmoqda";
+  Oyin.yur();
+  $("oyinCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function oyinYop() {
+  Oyin.holat = "stop";
+  cancelAnimationFrame(Oyin.raf);
+  Oyin.rekordSaqla();
+  $("oyinCard").style.display = "none";
+  $("oyinTayyorBanner").style.display = "none";
+  oyinOchiq = false;
+  if ($("pill").classList.contains("ko")) $("oyinTaklif").style.display = "block";
+}
+
+function oyinQayta() { Oyin.qayta(); Oyin.yur(); }
+
+function natijagaOt() {
+  oyinYop();
+  $("resultCard").scrollIntoView({ behavior: "smooth" });
 }
 
 /* ===== Kunlik so'rov hisobi (bepul limitni kuzatish) ===== */
@@ -1016,7 +1382,9 @@ function korsat(seglar, nom) {
       `</div>`;
   }).join("");
   $("resultCard").style.display = "block";
-  $("resultCard").scrollIntoView({ behavior: "smooth" });
+  // O'ynayotgan bo'lsa yulqib olmaymiz — o'yin ustida havola chiqadi
+  if (oyinOchiq) $("oyinTayyorBanner").style.display = "block";
+  else $("resultCard").scrollIntoView({ behavior: "smooth" });
 }
 
 function yuklab(fmt) {
