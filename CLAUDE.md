@@ -25,6 +25,8 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
   o'yinlar, yozish/gapirish/tinglash, AI ustoz). PWA, build'siz.
 - `docs/index.html` — transkripsiya sahifasi.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
+- `kitoblar_olami/` — «Kitoblar olami» do'kon boti: ro'yxat, tavsiya, onlayn
+  buyurtma, olish kodi, juma aksiyasi (foiz yoki 1+1). `.github/workflows/kitoblar-olami-bot.yml`.
 - `mutolaa_bot/` — «Mutolaa» kitob do'koni boti: ro'yxat + so'rovnoma, katalog
   (sotildi/qoldi), juma aksiyasi, sovg'alar, admin paneli. SQLite, standart
   kutubxona. `.github/workflows/mutolaa-bot.yml` orqali ishlaydi. Batafsil:
