@@ -259,7 +259,8 @@
   .ishQator { display: flex; gap: 8px; align-items: stretch; }
   .bekorBtn { height: 52px; flex-shrink: 0; }
   .limit { text-align: center; font-size: .78rem; color: var(--muted); margin-top: 9px; font-variant-numeric: tabular-nums; }
-  .limit.tugadi { color: var(--err); font-weight: 600; }
+  .limit .ogoh { color: var(--time-fg); font-weight: 600; }
+  .limit a { white-space: nowrap; }
 
   /* Kutish kapsulasi: ichida pastel nurlar suzadi */
   .pill {
@@ -1379,16 +1380,24 @@ const KUNLIK_LIMIT = { "gemini-2.5-flash": 20 };
 function googleKuni() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
 }
-// Limit yangilanadigan payt — foydalanuvchining mahalliy vaqtida, "12:00" ko'rinishida
-function yangilanishVaqti() {
-  const hozir = new Date();
+// Limit yangilanishiga qancha qolgani (ms) — Tinch okeani vaqti bilan yarim tungacha
+function yangilanishgaMs() {
   const q = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Los_Angeles", hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit",
-  }).formatToParts(hozir).map(x => [x.type, x.value]));
-  const otgan = ((+q.hour % 24) * 3600 + +q.minute * 60 + +q.second) * 1000;
-  const keyingi = new Date(hozir.getTime() + 864e5 - otgan);
+  }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  return 864e5 - ((+q.hour % 24) * 3600 + +q.minute * 60 + +q.second) * 1000;
+}
+// Yangilanish payti foydalanuvchining mahalliy soatida: "12:00"
+function yangilanishVaqti() {
+  const keyingi = new Date(Date.now() + yangilanishgaMs());
   const p = n => String(n).padStart(2, "0");
   return `${p(keyingi.getHours())}:${p(keyingi.getMinutes())}`;
+}
+// "4 soat 23 daq" ko'rinishida qolgan vaqt
+function qolganVaqtMatn() {
+  const daq = Math.ceil(yangilanishgaMs() / 60000);
+  const soat = Math.floor(daq / 60), d = daq % 60;
+  return soat ? `${soat} soat ${d} daq` : `${d} daq`;
 }
 function hisobOl() {
   try {
@@ -1423,19 +1432,22 @@ function sorovKorsat() {
   const model = (typeof sozOl === "function" ? sozOl().model : "gemini-2.5-flash");
   const x = hisobOl().m[model] || { n: 0 };
   const limit = KUNLIK_LIMIT[model];
-  const vaqt = yangilanishVaqti();
   const el = $("sorovHisob");
-  el.classList.toggle("tugadi", !!x.tugadi);
+  const vaqt = `yangilanishga <b>${qolganVaqtMatn()}</b> (soat ${yangilanishVaqti()})`;
+  const havola = ` · <a href="https://ai.dev/rate-limit" target="_blank" rel="noopener">aniq qoldiq ↗</a>`;
   if (x.tugadi) {
-    el.textContent = `${modelNomi(model)} limiti tugadi — zaxira model bilan ishlaydi · soat ${vaqt} da yangilanadi`;
+    el.innerHTML = `<span class="ogoh">${esc(modelNomi(model))} limiti tugadi — zaxira model ishlaydi</span><br>${vaqt}${havola}`;
   } else if (limit) {
-    el.textContent = `Taxminan ${Math.max(limit - x.n, 0)}/${limit} qoldi · soat ${vaqt} da yangilanadi`;
+    el.innerHTML = `Taxminan ${Math.max(limit - x.n, 0)}/${limit} qoldi · ${vaqt}${havola}`;
   } else {
-    el.textContent = `Bugun ${x.n} ta so'rov · soat ${vaqt} da yangilanadi`;
+    el.innerHTML = `Bugun ${x.n} ta so'rov · ${vaqt}${havola}`;
   }
-  el.title = "Limit kalit bo'yicha sanaladi: shu kalit boshqa qurilma yoki botda " +
+  el.title = "Limit kalit (loyiha) bo'yicha sanaladi: shu kalit boshqa qurilma yoki botda " +
     "ham ishlatilsa, ular ham shu limitdan sarflaydi. Bu hisob faqat shu qurilmadagilar.";
 }
+// Qolgan vaqt jonli yangilanib tursin; yarim tun o'tsa hisob ham o'zi tozalanadi
+setInterval(() => { if (!document.hidden) sorovKorsat(); }, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) sorovKorsat(); });
 sorovKorsat();
 
 /* Google xatosi qaysi limitga tegishli: "kunlik", "daqiqalik", "yoq" (model bepul emas) */
@@ -1772,7 +1784,8 @@ async function boshla() {
       if (kvotaTuri(e) === "daqiqalik") {
         msg = "Daqiqalik limit hali bo'shamadi. Bir daqiqadan keyin qayta urining.";
       } else {
-        msg = `Bugungi bepul limit barcha mos modellarda tugadi — soat ${vaqt} da yangilanadi.\n` +
+        msg = `Bugungi bepul limit barcha mos modellarda tugadi.\n` +
+          `Yangilanishga ${qolganVaqtMatn()} qoldi (soat ${vaqt} da).\n` +
           "Limit kalit bo'yicha sanaladi: shu kalit boshqa qurilma yoki Telegram botda ham " +
           "ishlatilsa, ular ham shu limitdan sarflaydi.\n" +
           "Ko'proq kerak bo'lsa — aistudio.google.com da billing ulang.";
