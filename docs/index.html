@@ -758,8 +758,11 @@ function kalitKorinish() { $("kalitKarta").hidden = !!kalitOl(); }
 function kalitSaqla(v) {
   v = String(v || "").trim();
   if (!v) { toast("Kalitni kiriting"); return false; }
+  // Boshqa kalit — boshqa loyiha bo'lishi mumkin: eski limit hisobini tozalaymiz
+  if (v !== kalitOl()) localStorage.removeItem("sorov_hisob2");
   localStorage.setItem("gemini_key", v);
   $("apiKey").value = "";
+  if (typeof sorovKorsat === "function") sorovKorsat();
   kalitKorinish();
   toast("Kalit saqlandi");
   return true;
@@ -777,6 +780,7 @@ function kalitOynaSaqla() { if (kalitSaqla($("apiKey2").value)) kalitOynaYop(); 
 function kalitOchir() {
   if (!confirm("API kalit shu qurilmadan o'chirilsinmi?")) return;
   localStorage.removeItem("gemini_key");
+  localStorage.removeItem("sorov_hisob2");
   kalitOynaYop();
   kalitKorinish();
   toast("Kalit o'chirildi");
