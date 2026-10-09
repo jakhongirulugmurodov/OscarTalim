@@ -826,6 +826,7 @@ function chiplarYangila() {
   $("sozPanel").addEventListener("change", () => {
     try { localStorage.setItem("sozlamalar", JSON.stringify(sozOl())); } catch (e) { /* e'tiborsiz */ }
     chiplarYangila();
+    if (typeof sorovKorsat === "function") sorovKorsat();
   });
 })();
 
@@ -1365,40 +1366,111 @@ function oyinYop() {
 
 function oyinQayta() { Oyin.qayta(); Oyin.yur(); }
 
-/* ===== Kunlik so'rov hisobi (bepul limitni kuzatish) ===== */
-const KUNLIK_LIMIT = 20; // bepul tarifda gemini-2.5-flash uchun
+/* ===== Kunlik so'rov hisobi (bepul limitni kuzatish) =====
+   Google bepul limitni KALIT bo'yicha sanaydi (boshqa qurilma va botlar ham
+   shu limitdan sarflaydi) va Tinch okeani vaqti bilan yarim tunda yangilaydi.
+   Shu qurilmadagi hisob taxminiy; Google «tugadi» desa, shunga ishonamiz. */
+const KUNLIK_LIMIT = { "gemini-2.5-flash": 20 };
 
-function bugun() {
-  return new Date().toISOString().slice(0, 10);
+function googleKuni() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
 }
-function sorovOl() {
+// Limit yangilanadigan payt — foydalanuvchining mahalliy vaqtida, "12:00" ko'rinishida
+function yangilanishVaqti() {
+  const hozir = new Date();
+  const q = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles", hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(hozir).map(x => [x.type, x.value]));
+  const otgan = ((+q.hour % 24) * 3600 + +q.minute * 60 + +q.second) * 1000;
+  const keyingi = new Date(hozir.getTime() + 864e5 - otgan);
+  const p = n => String(n).padStart(2, "0");
+  return `${p(keyingi.getHours())}:${p(keyingi.getMinutes())}`;
+}
+function hisobOl() {
   try {
-    const d = JSON.parse(localStorage.getItem("sorov_hisob")) || {};
-    return d.kun === bugun() ? d.soni : 0;
-  } catch { return 0; }
+    const d = JSON.parse(localStorage.getItem("sorov_hisob2"));
+    if (d && d.kun === googleKuni() && d.m) return d;
+  } catch (e) { /* yangisini boshlaymiz */ }
+  return { kun: googleKuni(), m: {} };
 }
-function sorovQosh() {
-  const soni = sorovOl() + 1;
-  try { localStorage.setItem("sorov_hisob", JSON.stringify({ kun: bugun(), soni })); }
-  catch (e) { /* e'tiborsiz */ }
+function hisobYoz(d) {
+  try { localStorage.setItem("sorov_hisob2", JSON.stringify(d)); } catch (e) { /* e'tiborsiz */ }
   sorovKorsat();
 }
+function sorovQosh(model) {
+  const d = hisobOl();
+  const x = d.m[model] || (d.m[model] = { n: 0 });
+  x.n++;
+  hisobYoz(d);
+}
+function modelTugadi(model) {
+  const d = hisobOl();
+  (d.m[model] || (d.m[model] = { n: 0 })).tugadi = true;
+  hisobYoz(d);
+}
+function modelTugaganmi(model) { return !!hisobOl().m[model]?.tugadi; }
+
+function modelNomi(n) {
+  return String(n).replace(/^gemini-/, "Gemini ").replace(/-flash/, " Flash").replace(/-pro/, " Pro")
+    .replace(/-lite/, "-Lite").replace(/-latest$/, "").replace(/-/g, " ").replace("Flash Lite", "Flash-Lite");
+}
+
 function sorovKorsat() {
-  const qolgan = Math.max(KUNLIK_LIMIT - sorovOl(), 0);
+  const model = (typeof sozOl === "function" ? sozOl().model : "gemini-2.5-flash");
+  const x = hisobOl().m[model] || { n: 0 };
+  const limit = KUNLIK_LIMIT[model];
+  const vaqt = yangilanishVaqti();
   const el = $("sorovHisob");
-  el.classList.toggle("tugadi", !qolgan);
-  el.textContent = qolgan
-    ? `Bugungi bepul limit: ${qolgan}/${KUNLIK_LIMIT}`
-    : "Bugungi bepul limit tugadi — ertaga yangilanadi";
+  el.classList.toggle("tugadi", !!x.tugadi);
+  if (x.tugadi) {
+    el.textContent = `${modelNomi(model)} limiti tugadi — zaxira model bilan ishlaydi · soat ${vaqt} da yangilanadi`;
+  } else if (limit) {
+    el.textContent = `Taxminan ${Math.max(limit - x.n, 0)}/${limit} qoldi · soat ${vaqt} da yangilanadi`;
+  } else {
+    el.textContent = `Bugun ${x.n} ta so'rov · soat ${vaqt} da yangilanadi`;
+  }
+  el.title = "Limit kalit bo'yicha sanaladi: shu kalit boshqa qurilma yoki botda " +
+    "ham ishlatilsa, ular ham shu limitdan sarflaydi. Bu hisob faqat shu qurilmadagilar.";
 }
 sorovKorsat();
+
+/* Google xatosi qaysi limitga tegishli: "kunlik", "daqiqalik", "yoq" (model bepul emas) */
+function kvotaTuri(e) {
+  const t = (e?.message || "") + " " + (e?.tafsil || "");
+  if (!/quota|RESOURCE_EXHAUSTED|429/i.test(t)) return null;
+  if (/limit:\s*0\b/.test(t)) return "yoq";
+  if (/PerDay/i.test(t)) return "kunlik";
+  if (/PerMinute/i.test(t)) return "daqiqalik";
+  return /per_day|free_tier_requests/i.test(t) ? "kunlik" : "daqiqalik";
+}
+
+/* Kunlik limit tugasa o'tiladigan bepul modellar.
+   Ro'yxat Google'dan olinadi — model nomlari o'zgarsa ham ishlayveradi.
+   Flash-Lite birinchi: bepul tarifda uning kunlik limiti ancha katta. */
+async function zaxiraModellar(key, chiqarib) {
+  try {
+    const r = await fetch(`${API}/v1beta/models?pageSize=200&key=${key}`, { signal: joriyAbort?.signal });
+    const j = await r.json();
+    const nomlar = (j.models || [])
+      .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map(m => m.name.replace(/^models\//, ""))
+      .filter(n => /flash/i.test(n) && !/image|tts|audio|live|embed|thinking|exp|preview|8b/i.test(n))
+      .filter(n => !chiqarib.includes(n) && !modelTugaganmi(n));
+    nomlar.sort((a, b) => (/lite/i.test(b) - /lite/i.test(a)) ||
+      b.localeCompare(a, undefined, { numeric: true }));
+    if (nomlar.length) return nomlar.slice(0, 4);
+  } catch (e) {
+    if (bekorQilindi) throw e;
+  }
+  return ["gemini-2.5-flash-lite", "gemini-2.0-flash"].filter(n => !chiqarib.includes(n));
+}
 
 /* ===== Gemini so'rovlari ===== */
 async function generate(key, model, parts, schema) {
   const URINISH = 5;
   for (let urinish = 1; urinish <= URINISH; urinish++) {
     try {
-      sorovQosh();
+      sorovQosh(model);
       const r = await fetch(`${API}/v1beta/models/${model}:generateContent?key=${key}`, {
         method: "POST",
         signal: joriyAbort?.signal,
@@ -1413,16 +1485,29 @@ async function generate(key, model, parts, schema) {
         }),
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error?.message || `HTTP ${r.status}`);
+      if (!r.ok) {
+        const xato = new Error(j.error?.message || `HTTP ${r.status}`);
+        xato.tafsil = JSON.stringify(j.error?.details || "");
+        throw xato;
+      }
       const text = j.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
       const seglar = JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, ""));
       if (!Array.isArray(seglar)) throw new Error("Javob ro'yxat emas");
       seglar.forEach(s => { s.start = soniyaga(s.start); s.end = soniyaga(s.end); });
       return seglar;
     } catch (e) {
-      // Kvota tugaganda qayta urinish foydasiz — darrov to'xtaymiz
-      const kvota = /quota|RESOURCE_EXHAUSTED|429/i.test(e.message);
-      if (bekorQilindi || e.name === "AbortError" || kvota || urinish === URINISH) throw e;
+      if (bekorQilindi || e.name === "AbortError") throw e;
+      const kvota = kvotaTuri(e);
+      // Kunlik limit yoki model bepul emas — kutish foydasiz, yuqorida zaxira modelga o'tiladi
+      if (kvota === "kunlik" || kvota === "yoq" || urinish === URINISH) throw e;
+      // Daqiqalik limit — Google aytgan vaqtcha kutib, o'zimiz qayta urinamiz
+      if (kvota === "daqiqalik") {
+        const s0 = +((e.message.match(/retry in ([\d.]+)s/i) || [])[1] || 20);
+        const kut = Math.min(Math.ceil(s0) + 1, 65);
+        holat(`Daqiqalik limit — ${kut} s kutib, o'zi davom etadi...`, false, true);
+        await new Promise(res => setTimeout(res, kut * 1000));
+        continue;
+      }
       // Server bandligida (503/overloaded) uzoqroq kutamiz — tez urinish yordam bermaydi
       const band = /high demand|overloaded|UNAVAILABLE|503/i.test(e.message);
       const kutish = band ? Math.min(8000 * urinish, 30000) : 2000 * urinish;
@@ -1605,19 +1690,44 @@ async function boshla() {
     holat("Gemini transkripsiya qilmoqda...", false, true);
     const aralashTil = s.til === "aralash";
     const schema = schemaTuz(s.sozlovchi, aralashTil);
-    const soragich = () => generate(key, s.model,
+    const soragich = model => generate(key, model,
       [mediaPart, { text: prompt1(s.yozuv, s.segment, s.sozlovchi, aralashTil) }], schema);
+
+    // Tanlangan model limiti bugun tugagan bo'lsa, so'rov yubormay zaxiradan boshlaymiz
+    const sinalgan = [];
+    let zaxira = null;
+    let model = s.model;
+    if (modelTugaganmi(model)) {
+      sinalgan.push(model);
+      zaxira = await zaxiraModellar(key, sinalgan);
+      model = zaxira.shift() || model;
+    }
     let seglar;
-    try {
-      seglar = await soragich();
-    } catch (e) {
-      // Ba'zi videolarda tejamkor rejim (fps) qabul qilinmaydi — usiz qayta urinamiz
-      if (!bekorQilindi && mediaPart.videoMetadata && /invalid argument/i.test(e.message)) {
-        console.warn("videoMetadata qabul qilinmadi, usiz urinilmoqda:", e);
-        holat("Tejamkor rejimsiz qayta urinilmoqda...", false, true);
-        delete mediaPart.videoMetadata;
-        seglar = await soragich();
-      } else {
+    while (true) {
+      try {
+        seglar = await soragich(model);
+        break;
+      } catch (e) {
+        if (bekorQilindi) throw e;
+        const kvota = kvotaTuri(e);
+        // Kunlik limit tugadi (yoki model bepul emas) — limiti alohida boshqa bepul modelga o'tamiz
+        if (kvota === "kunlik" || kvota === "yoq") {
+          if (kvota === "kunlik") modelTugadi(model);
+          sinalgan.push(model);
+          if (!zaxira) zaxira = await zaxiraModellar(key, sinalgan);
+          const keyingi = zaxira.shift();
+          if (!keyingi) { e.hammasiTugadi = true; throw e; }
+          holat(`${modelNomi(model)} limiti tugadi — ${modelNomi(keyingi)} bilan davom etamiz...`, false, true);
+          model = keyingi;
+          continue;
+        }
+        // Ba'zi videolarda tejamkor rejim (fps) qabul qilinmaydi — usiz qayta urinamiz
+        if (mediaPart.videoMetadata && /invalid argument/i.test(e.message)) {
+          console.warn("videoMetadata qabul qilinmadi, usiz urinilmoqda:", e);
+          holat("Tejamkor rejimsiz qayta urinilmoqda...", false, true);
+          delete mediaPart.videoMetadata;
+          continue;
+        }
         throw e;
       }
     }
@@ -1629,7 +1739,12 @@ async function boshla() {
     jarayon(null);
     holat("");
     korsat(seglar, nom, id);
-    toast("Tayyor — tarixga saqlandi");
+    if (model !== s.model) {
+      $("natijaStat").textContent += ` · ${modelNomi(model)} bilan`;
+      toast(`Tayyor — ${modelNomi(model)} bilan bajarildi`);
+    } else {
+      toast("Tayyor — tarixga saqlandi");
+    }
   } catch (e) {
     if (bekorQilindi) {
       jarayon(null);
@@ -1648,17 +1763,15 @@ async function boshla() {
     } else if (/Cannot fetch content/i.test(e.message)) {
       msg = "Gemini bu havoladagi videoni ocholmadi. Havola ochiq (public) YouTube " +
         "videosi ekanini tekshiring. Boshqa platforma videolarini fayl sifatida yuklang.";
-    } else if (/quota|RESOURCE_EXHAUSTED|429/i.test(e.message)) {
-      const limit = (e.message.match(/limit:\s*(\d+)/) || [])[1];
-      if (limit === "0") {
-        msg = "Bepul tarifda bu model ishlamaydi. Sozlamalardan «Flash» modelini tanlab, qayta urining.";
-      } else if (/per_day|free_tier_requests/i.test(e.message)) {
-        msg = `Bugungi bepul limit tugadi (kuniga ${limit || "20"} so'rov) — ertaga yangilanadi.\n` +
-          `Tezroq kerak bo'lsa, aistudio.google.com da billing ulasangiz limit ancha oshadi.`;
+    } else if (kvotaTuri(e)) {
+      const vaqt = yangilanishVaqti();
+      if (kvotaTuri(e) === "daqiqalik") {
+        msg = "Daqiqalik limit hali bo'shamadi. Bir daqiqadan keyin qayta urining.";
       } else {
-        const kut = (e.message.match(/retry in ([\d.]+)s/i) || [])[1];
-        msg = `Daqiqalik limit tugadi. ${kut ? Math.ceil(+kut) + " soniyadan" : "Bir daqiqadan"} ` +
-          `keyin qayta urining.`;
+        msg = `Bugungi bepul limit barcha mos modellarda tugadi — soat ${vaqt} da yangilanadi.\n` +
+          "Limit kalit bo'yicha sanaladi: shu kalit boshqa qurilma yoki Telegram botda ham " +
+          "ishlatilsa, ular ham shu limitdan sarflaydi.\n" +
+          "Ko'proq kerak bo'lsa — aistudio.google.com da billing ulang.";
       }
     }
     holat(msg, true);
