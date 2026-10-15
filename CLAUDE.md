@@ -29,6 +29,8 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
   (sotildi/qoldi), juma aksiyasi, sovg'alar, admin paneli. SQLite, standart
   kutubxona. `.github/workflows/mutolaa-bot.yml` orqali ishlaydi. Batafsil:
   `mutolaa_bot/README.md`.
+- `elektr/` — uy elektr balansini HET kabinetidan oluvchi Mac serveri
+  (Playwright + launchd). Batafsil: `elektr/README.md`.
 - `.github/workflows/` — bot, Firebase sozlash, Pages shoxchasini sinxronlash.
 
 Batafsil: `docs/sinf/README.md`.

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elektr balansi</title>
+<style>
+  :root { --bg:#f6f5f2; --kart:#fff; --matn:#1d1d1f; --xira:#6e6e73; --chiziq:#e3e1dc;
+          --yashil:#1f7a4d; --qizil:#b42318; --sariq:#a15c00; --tugma:#1d1d1f; --tugma-matn:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111113; --kart:#1c1c1f; --matn:#f2f2f2; --xira:#9a9aa0; --chiziq:#2c2c30;
+            --yashil:#4cc38a; --qizil:#ff6b5e; --sariq:#f0b44c; --tugma:#f2f2f2; --tugma-matn:#111113; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px;
+         background:var(--bg); color:var(--matn);
+         font:16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { width:100%; max-width:420px; background:var(--kart); border:1px solid var(--chiziq);
+         border-radius:20px; padding:28px 24px; }
+  h1 { margin:0 0 20px; font-size:15px; font-weight:600; color:var(--xira); letter-spacing:.02em; }
+  #summa { font-size:44px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  #summa small { font-size:18px; font-weight:500; color:var(--xira); margin-left:6px; }
+  #izoh { margin-top:6px; color:var(--xira); font-size:14px; min-height:20px; }
+  #izoh.ok { color:var(--yashil); } #izoh.xato { color:var(--qizil); } #izoh.ogoh { color:var(--sariq); }
+  button { margin-top:24px; width:100%; padding:14px; border:0; border-radius:12px;
+           background:var(--tugma); color:var(--tugma-matn); font:inherit; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  details { margin-top:18px; font-size:13px; color:var(--xira); }
+  pre { white-space:pre-wrap; word-break:break-word; font-size:12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>⚡ ELEKTR BALANSI</h1>
+  <div id="summa">—</div>
+  <div id="izoh">Yuklanmoqda…</div>
+  <button id="tugma">Hozir tekshirish</button>
+  <details><summary>Tafsilotlar</summary><pre id="xom"></pre></details>
+</main>
+<script>
+const k = new URLSearchParams(location.search).get("k");
+const sarlavha = k ? { "X-Kalit": k } : {};
+const $ = id => document.getElementById(id);
+
+function chiz(n) {
+  $("xom").textContent = JSON.stringify(n, null, 2);
+  const izoh = $("izoh");
+  izoh.className = "";
+  if (n.holat === "ok") {
+    const s = Math.round(n.summa).toLocaleString("ru-RU");
+    $("summa").innerHTML = `${s}<small>so'm</small>`;
+    izoh.textContent = `Tekshirildi: ${n.vaqt}`;
+    izoh.className = "ok";
+  } else {
+    $("summa").textContent = "—";
+    const matnlar = {
+      hali_yoq: "Hali tekshirilmagan.",
+      kirish_kerak: "Sessiya tugagan. Mac'da: python3 tekshir.py kirish",
+      topilmadi: "Sahifa ochildi, lekin summa topilmadi — tafsilotlarni ko'ring.",
+      xato: "Kabinetga ulanib bo'lmadi.",
+    };
+    izoh.textContent = (matnlar[n.holat] || n.holat) + (n.vaqt ? ` (${n.vaqt})` : "");
+    izoh.className = n.holat === "kirish_kerak" ? "ogoh" : "xato";
+  }
+}
+
+async function yukla() {
+  const r = await fetch("/api/holat", { headers: sarlavha });
+  chiz(await r.json());
+}
+
+$("tugma").onclick = async () => {
+  const t = $("tugma");
+  t.disabled = true; t.textContent = "Tekshirilmoqda…";
+  try {
+    const r = await fetch("/api/tekshir", { method: "POST", headers: sarlavha });
+    chiz(await r.json());
+  } catch (e) {
+    $("izoh").textContent = "Server javob bermadi."; $("izoh").className = "xato";
+  }
+  t.disabled = false; t.textContent = "Hozir tekshirish";
+};
+
+yukla();
+</script>
+</body>
+</html>
