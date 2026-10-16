@@ -658,7 +658,7 @@
 
     <div class="asboblar">
       <button class="btn btn-asosiy" onclick="nusxala(true)">
-        <svg class="ic ic-sm"><use href="#i-soat"/></svg> Timecode bilan<span class="keng-ekran">&nbsp;nusxalash</span>
+        <svg class="ic ic-sm"><use href="#i-soat"/></svg> <span>Timecode bilan<span class="keng-ekran"> nusxalash</span></span>
       </button>
       <button class="btn btn-ghost" onclick="nusxala(false)">
         <svg class="ic ic-sm"><use href="#i-nusxa"/></svg> Faqat matn
@@ -961,7 +961,7 @@ function soniyaga(t) {
   return p.reduce((acc, x) => acc * 60 + x, 0);
 }
 
-function prompt1(yozuv, rejim, sozlovchi, aralashTil) {
+function prompt1(yozuv, rejim, sozlovchi, aralashTil, qoshimcha = "") {
   const y = yozuv === "lotin" ? "lotin (oʻzbek alifbosi)" : "kirill (ўзбек алифбоси)";
   const sozlovchiQoida = sozlovchi ? `
 9. Audioda nechta har xil odam gapirayotganini ovoz tembri, ohangi va
@@ -1019,7 +1019,7 @@ ${segmentQoida}
 5. Punktuatsiyani to'g'ri qo'y.
 6. Ruscha yoki inglizcha aytilgan so'zlarni aynan aytilganidek yoz.
 7. Musiqa, pauza va shovqinlarni yozma — faqat nutqni yoz.
-8. Hech bir gapni tashlab ketma va o'zingdan hech narsa qo'shma.${sozlovchiQoida}${tilQoida}`;
+8. Hech bir gapni tashlab ketma va o'zingdan hech narsa qo'shma.${sozlovchiQoida}${tilQoida}${qoshimcha}`;
 }
 
 /* ===== Holat va jarayon ko'rsatkichi =====
@@ -1504,7 +1504,14 @@ async function generate(key, model, parts, schema) {
       if (!r.ok) {
         const xato = new Error(j.error?.message || `HTTP ${r.status}`);
         xato.tafsil = JSON.stringify(j.error?.details || "");
+        xato.status = r.status;
         throw xato;
+      }
+      // Javob hajm chegarasiga urildi — qism kichraytiriladi (yuqorida)
+      if (j.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+        const x = new Error("Javob juda uzun chiqdi");
+        x.uzun = true;
+        throw x;
       }
       const text = j.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
       const seglar = JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, ""));
@@ -1512,7 +1519,9 @@ async function generate(key, model, parts, schema) {
       seglar.forEach(s => { s.start = soniyaga(s.start); s.end = soniyaga(s.end); });
       return seglar;
     } catch (e) {
-      if (bekorQilindi || e.name === "AbortError") throw e;
+      if (bekorQilindi || e.name === "AbortError" || e.uzun) throw e;
+      // So'rovning o'zida xato (400, 403, 404) — qayta urinish tuzatmaydi
+      if (e.status >= 400 && e.status < 500 && e.status !== 429) throw e;
       const kvota = kvotaTuri(e);
       // Kunlik limit yoki model bepul emas — kutish foydasiz, yuqorida zaxira modelga o'tiladi
       if (kvota === "kunlik" || kvota === "yoq" || urinish === URINISH) throw e;
@@ -1535,7 +1544,7 @@ async function generate(key, model, parts, schema) {
   }
 }
 
-async function faylYuklash(key, file) {
+async function faylYuklash(key, file, jim) {
   const start = await fetch(`${API}/upload/v1beta/files?key=${key}`, {
     method: "POST",
     signal: joriyAbort?.signal,
@@ -1560,7 +1569,7 @@ async function faylYuklash(key, file) {
     x.setRequestHeader("X-Goog-Upload-Command", "upload, finalize");
     x.setRequestHeader("X-Goog-Upload-Offset", "0");
     x.upload.onprogress = e => {
-      if (e.lengthComputable) {
+      if (e.lengthComputable && !jim) {
         const foiz = Math.round(e.loaded / e.total * 100);
         jarayon(foiz);
         holat(`Yuklanmoqda: ${foiz}% (${(e.loaded / 1048576).toFixed(0)}/${(e.total / 1048576).toFixed(0)} MB)`, false, true);
@@ -1575,8 +1584,10 @@ async function faylYuklash(key, file) {
 
   while (info.state === "PROCESSING") {
     if (bekorQilindi) throw new Error("bekor qilindi");
-    jarayon("indet");
-    holat("Google faylni qayta ishlamoqda...", false, true);
+    if (!jim) {
+      jarayon("indet");
+      holat("Google faylni qayta ishlamoqda...", false, true);
+    }
     await new Promise(res => setTimeout(res, 3000));
     const r = await fetch(`${API}/v1beta/${info.name}?key=${key}`, { signal: joriyAbort?.signal });
     info = await r.json();
@@ -1602,28 +1613,56 @@ function yuklaSkript(src) {
   return skriptKesh[src];
 }
 
-async function audioAjrat(file) {
-  jarayon("indet");
-  holat("Audio ajratish vositasi yuklanmoqda...", false, true);
+/* ffmpeg.wasm'ni yuklaydi (birinchi marta ~30 MB, keyin brauzer keshida).
+   Ichki ishchi «module» turida ochiladi, shuning uchun yadro ESM formatida
+   bo'lishi shart — UMD yadro bilan yuklash jim osilib qoladi. */
+async function ffYukla() {
+  holat("Audio vositasi yuklanmoqda...", false, true);
   const FF_BASE = "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd";
-  const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+  const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
   await yuklaSkript(FF_BASE + "/ffmpeg.js");
   await yuklaSkript("https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js");
   const { FFmpeg } = FFmpegWASM;
   const { toBlobURL } = FFmpegUtil;
   const ff = new FFmpeg();
   joriyFF = ff;
-  await ff.load({
+  const yuklash = (async () => ff.load({
     coreURL: await toBlobURL(CORE_BASE + "/ffmpeg-core.js", "text/javascript"),
     wasmURL: await toBlobURL(CORE_BASE + "/ffmpeg-core.wasm", "application/wasm"),
     classWorkerURL: await toBlobURL(FF_BASE + "/814.ffmpeg.js", "text/javascript"),
-  });
+  }))();
+  // Har ehtimolga qarshi: yuklanish osilib qolsa, ish to'xtab qolmasin
+  let taymer;
   try {
-    await ff.mount("WORKERFS", { files: [file] }, "/mnt");
+    await Promise.race([yuklash, new Promise((_, rad) => {
+      taymer = setTimeout(() => rad(new Error("audio vositasi yuklanmadi (vaqt tugadi)")), 90000);
+    })]);
+  } catch (e) {
+    joriyFF = null;
+    try { ff.terminate(); } catch (x) { /* e'tiborsiz */ }
+    throw e;
+  } finally {
+    clearTimeout(taymer);
+  }
+  return ff;
+}
+
+// Faylni ffmpeg ichiga nusxalamasdan ulaydi (2 GB ham xotirani to'ldirmaydi)
+async function ffUla(ff, file) {
+  try { await ff.createDir("/mnt"); } catch (e) { /* allaqachon bor */ }
+  await ff.mount("WORKERFS", { files: [file] }, "/mnt");
+  return "/mnt/" + file.name;
+}
+
+async function audioAjrat(file) {
+  jarayon("indet");
+  const ff = await ffYukla();
+  try {
+    const kirish = await ffUla(ff, file);
     holat("Videodan audio ajratilmoqda...", false, true);
     const webm = /webm/i.test(file.type);
     const out = webm ? "audio.webm" : "audio.m4a";
-    const ret = await ff.exec(["-i", "/mnt/" + file.name, "-vn", "-acodec", "copy", out]);
+    const ret = await ff.exec(["-i", kirish, "-vn", "-acodec", "copy", out]);
     if (ret !== 0) throw new Error("ffmpeg kodi " + ret);
     const data = await ff.readFile(out);
     if (!data.length) throw new Error("audio bo'sh chiqdi");
@@ -1650,13 +1689,178 @@ async function faylTayyorla(file) {
   }
 }
 
+/* ===== Uzun yozuvlarni qismlab ishlash =====
+   Bitta so'rovda 2 soatlik nutq javob chegarasiga sig'maydi va model
+   aylanib qolib, yozganini qayta yozadi. Shuning uchun yozuv 15 daqiqalik
+   qismlarga bo'linadi, har biri alohida transkripsiya qilinib, vaqtlari
+   to'g'rilanadi va bitta natijaga ulanadi. */
+const QISM = 15 * 60;            // bitta so'rov — 15 daqiqa
+const QISM_CHEGARA = 18 * 60;    // bundan uzun fayllar qismlab qilinadi
+const QISM_ENG_KAM = 120;        // javob baribir sig'masa, qism shu darajagacha kichraytiriladi
+const YT_ENG_UZUN = 6 * 3600;    // YouTube uchun xavfsizlik chegarasi
+
+// Fayl davomiyligi (soniya) — brauzerning o'zi o'qiydi; aniqlanmasa null
+function davomiylikOl(file) {
+  return new Promise(res => {
+    const el = document.createElement(/^video\//.test(file.type || "") ? "video" : "audio");
+    const url = URL.createObjectURL(file);
+    let tugadi = false;
+    const bitir = v => {
+      if (tugadi) return;
+      tugadi = true;
+      URL.revokeObjectURL(url);
+      el.removeAttribute("src");
+      res(v);
+    };
+    el.preload = "metadata";
+    el.onloadedmetadata = () => bitir(isFinite(el.duration) && el.duration > 0 ? el.duration : null);
+    el.onerror = () => bitir(null);
+    setTimeout(() => bitir(null), 15000);
+    el.src = url;
+  });
+}
+
+// Kesilgan bo'lak qaysi formatda saqlanadi (kodek o'zgarmaydi — faqat nusxa)
+function bolakTuri(f) {
+  const t = `${f.type || ""} ${f.name || ""}`.toLowerCase();
+  if (/mpeg|\.mp3/.test(t)) return ["mp3", "audio/mpeg"];
+  if (/webm/.test(t)) return ["webm", "audio/webm"];
+  if (/ogg|opus/.test(t)) return ["ogg", "audio/ogg"];
+  if (/wav/.test(t)) return ["wav", "audio/wav"];
+  if (/flac/.test(t)) return ["flac", "audio/flac"];
+  return ["m4a", "audio/mp4"];
+}
+
+// Audiodan kerakli oraliqni kesib beradi (qayta kodlamasdan — tez)
+async function audioBolakchi(file) {
+  const ff = await ffYukla();
+  let kirish;
+  try {
+    kirish = await ffUla(ff, file);
+  } catch (e) {
+    joriyFF = null;
+    try { ff.terminate(); } catch (x) { /* e'tiborsiz */ }
+    throw e;
+  }
+  const [ext, mime] = bolakTuri(file);
+  return {
+    async kes(boshi, uzunlik) {
+      const out = `qism.${ext}`;
+      const ret = await ff.exec(["-ss", String(boshi), "-t", String(uzunlik), "-i", kirish,
+        "-vn", "-acodec", "copy", "-avoid_negative_ts", "make_zero", out]);
+      if (ret !== 0) throw new Error("audio kesilmadi (ffmpeg kodi " + ret + ")");
+      const data = await ff.readFile(out);
+      try { await ff.deleteFile(out); } catch (e) { /* e'tiborsiz */ }
+      if (!data.length) throw new Error("kesilgan qism bo'sh");
+      return new File([data], `qism-${Math.round(boshi)}.${ext}`, { type: mime });
+    },
+    yop() {
+      joriyFF = null;
+      try { ff.terminate(); } catch (e) { /* e'tiborsiz */ }
+    },
+  };
+}
+
+/* Qism natijasini butun yozuv vaqtiga keltiradi.
+   nisbiy=true — vaqtlar qism boshidan (alohida kesilgan audio);
+   nisbiy=null — noma'lum (YouTube kesimi): qiymatlariga qarab aniqlanadi. */
+function qismniMosla(seglar, boshi, oxiri, nisbiy) {
+  if (!seglar.length) return [];
+  let qosh = 0;
+  if (nisbiy === true) qosh = boshi;
+  else if (boshi > 0) {
+    const maxEnd = Math.max(...seglar.map(x => x.end));
+    const minStart = Math.min(...seglar.map(x => x.start));
+    if (maxEnd <= oxiri - boshi + 5 && minStart < boshi - 5) qosh = boshi;
+  }
+  const out = [];
+  seglar
+    .map(x => ({ ...x, start: x.start + qosh, end: x.end + qosh }))
+    .filter(x => x.end > boshi - 1 && x.start < oxiri + 1 && x.end >= x.start)
+    .sort((a, b) => a.start - b.start)
+    .forEach(x => {
+      // Ketma-ket aynan bir xil gap — model takrorlagan
+      const old = out[out.length - 1];
+      if (old && old.text.trim() === x.text.trim()) return;
+      out.push(x);
+    });
+  return out;
+}
+
+/* Model aylanib qolib, bir gapni qayta-qayta yozganmi */
+function qismBuzuqmi(seglar) {
+  if (seglar.length < 8) return false;
+  const noyob = new Set(seglar.map(x => x.text.trim().toLowerCase())).size;
+  return noyob / seglar.length < 0.6;
+}
+
+/* Yangi qismni umumiy natijaga ulaydi; chegarada takrorlangan joyini tashlaydi */
+function qismQosh(jami, yangi) {
+  const oxirgi = jami.length ? jami[jami.length - 1].end : -Infinity;
+  const yaqin = new Set(jami.slice(-5).map(x => x.text.trim().toLowerCase()));
+  for (const x of yangi) {
+    if (x.end <= oxirgi + 0.2) continue;
+    if (x.start < oxirgi + 3 && yaqin.has(x.text.trim().toLowerCase())) continue;
+    jami.push(x);
+  }
+  return jami;
+}
+
+/* So'zlovchilar qismdan qismga bir xil nomlansin — oldingilarini eslatamiz */
+function sozlovchiEslatma(seglar, yoqilgan) {
+  if (!yoqilgan || !seglar.length) return "";
+  const namuna = {};
+  for (const x of seglar) if (x.speaker && !namuna[x.speaker]) namuna[x.speaker] = x.text.slice(0, 70);
+  const r = Object.entries(namuna).map(([k, v]) => `"${k}" (masalan: "${v}")`).join(", ");
+  return r ? `\nOldingi qismlarda aniqlangan so'zlovchilar: ${r}. Ovozi mos kelsa, aynan shu ` +
+    `belgilarni ishlat; yangi ovoz bo'lsa — keyingi raqamni.` : "";
+}
+
+/* Bitta so'rov: kunlik limit tugasa zaxira modelga o'tadi.
+   ish.model keyingi qismlar uchun eslab qolinadi — qayta-qayta sinab o'tirmaymiz. */
+async function modelBilan(ish, parts, schema, media) {
+  while (true) {
+    try {
+      return await generate(ish.key, ish.model, parts, schema);
+    } catch (e) {
+      if (bekorQilindi) throw e;
+      const kvota = kvotaTuri(e);
+      if (kvota === "kunlik" || kvota === "yoq") {
+        if (kvota === "kunlik") modelTugadi(ish.model);
+        ish.sinalgan.push(ish.model);
+        if (!ish.zaxira) ish.zaxira = await zaxiraModellar(ish.key, ish.sinalgan);
+        const keyingi = ish.zaxira.shift();
+        if (!keyingi) throw e;
+        holat(`${modelNomi(ish.model)} limiti tugadi — ${modelNomi(keyingi)} bilan davom etamiz...`, false, true);
+        ish.model = keyingi;
+        continue;
+      }
+      // Ba'zi videolarda tejamkor rejim (fps) qabul qilinmaydi — usiz qayta urinamiz
+      if (media?.videoMetadata?.fps !== undefined && /invalid argument/i.test(e.message)) {
+        console.warn("fps qabul qilinmadi, usiz urinilmoqda:", e);
+        delete media.videoMetadata.fps;
+        if (!Object.keys(media.videoMetadata).length) delete media.videoMetadata;
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+
 /* ===== Asosiy jarayon ===== */
-async function boshla() {
+let davomHolat = null;   // to'xtab qolgan uzun ishni davom ettirish uchun
+
+function davomEt() {
+  if (davomHolat && !ishlayapti) boshla(davomHolat);
+}
+
+async function boshla(davom) {
   if (ishlayapti) return;
+  davom = davom && Array.isArray(davom.seglar) ? davom : null;
   const key = kalitOl();
-  const yt = joriyTab === "yt" ? $("ytUrl").value.trim() : "";
-  const file = joriyTab === "fayl" ? tanlanganFayl : null;
-  const s = sozOl();
+  const yt = davom ? davom.yt : (joriyTab === "yt" ? $("ytUrl").value.trim() : "");
+  const file = davom ? davom.file : (joriyTab === "fayl" ? tanlanganFayl : null);
+  const s = davom ? davom.s : sozOl();
 
   if (!key) {
     kalitKorinish();
@@ -1678,98 +1882,213 @@ async function boshla() {
   tugmaHolati(true);
   holat("");
   jarayon("indet");
-  holat("Tayyorlanmoqda...", false, true);
+  holat(davom ? `${vaqtQisqa(davom.keyingi)} dan davom etilmoqda...` : "Tayyorlanmoqda...", false, true);
   $("resultCard").hidden = true;
-  try {
-    const nom = file ? file.name : yt;
-    let mediaPart, videoMi;
-    if (yt) {
-      // Kuzatuv parametrlarini (?si=..., &t=...) tozalaymiz — Gemini ularni qabul qilmaydi
-      mediaPart = { fileData: { fileUri: youtubeTozala(yt) } };
-      videoMi = true;
-    } else {
-      if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
-      const yubor = await faylTayyorla(file);
-      jarayon(0);
-      holat(`Yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
-      const f = await faylYuklash(key, yubor);
-      mediaPart = { fileData: { fileUri: f.uri, mimeType: f.mime } };
-      videoMi = (f.mime || "").startsWith("video");
-    }
-    // Tejamkor rejim: kadrlar deyarli olinmaydi (10 soniyada 1 kadr),
-    // token sarfi ~5x kamayadi — uzun videolar bepul limitga sig'adi
-    if (s.tejamkor && videoMi) {
-      mediaPart.videoMetadata = { fps: 0.1 };
-    }
 
-    jarayon("indet");
-    holat("Gemini transkripsiya qilmoqda...", false, true);
+  const nom = davom ? davom.nom : (file ? file.name : youtubeTozala(yt));
+  const toplangan = davom ? davom.seglar.slice() : [];
+  let keyingi = davom ? davom.keyingi : 0;   // shu joydan oldingisi tayyor
+  let id = davom ? davom.id : null;
+  let yubor = davom?.yubor || null;
+  let dav = davom?.dav ?? null;
+  let ogohlantirish = "";
+  const ish = { key, model: s.model, sinalgan: [], zaxira: null };
+
+  try {
+    // Tanlangan model limiti bugun tugagan bo'lsa, so'rov yubormay zaxiradan boshlaymiz
+    if (modelTugaganmi(ish.model)) {
+      ish.sinalgan.push(ish.model);
+      ish.zaxira = await zaxiraModellar(key, ish.sinalgan);
+      ish.model = ish.zaxira.shift() || ish.model;
+    }
     const aralashTil = s.til === "aralash";
     const schema = schemaTuz(s.sozlovchi, aralashTil);
-    const soragich = model => generate(key, model,
-      [mediaPart, { text: prompt1(s.yozuv, s.segment, s.sozlovchi, aralashTil) }], schema);
+    const promptOl = qoshimcha => prompt1(s.yozuv, s.segment, s.sozlovchi, aralashTil,
+      qoshimcha + sozlovchiEslatma(toplangan, s.sozlovchi));
+    // Qism kichraytirilishi kerak bo'lgan holatlar
+    const bolinsinmi = (e, b, o) => e.uzun && o - b > QISM_ENG_KAM;
 
-    // Tanlangan model limiti bugun tugagan bo'lsa, so'rov yubormay zaxiradan boshlaymiz
-    const sinalgan = [];
-    let zaxira = null;
-    let model = s.model;
-    if (modelTugaganmi(model)) {
-      sinalgan.push(model);
-      zaxira = await zaxiraModellar(key, sinalgan);
-      model = zaxira.shift() || model;
-    }
-    let seglar;
-    while (true) {
-      try {
-        seglar = await soragich(model);
-        break;
-      } catch (e) {
-        if (bekorQilindi) throw e;
-        const kvota = kvotaTuri(e);
-        // Kunlik limit tugadi (yoki model bepul emas) — limiti alohida boshqa bepul modelga o'tamiz
-        if (kvota === "kunlik" || kvota === "yoq") {
-          if (kvota === "kunlik") modelTugadi(model);
-          sinalgan.push(model);
-          if (!zaxira) zaxira = await zaxiraModellar(key, sinalgan);
-          const keyingi = zaxira.shift();
-          if (!keyingi) { e.hammasiTugadi = true; throw e; }
-          holat(`${modelNomi(model)} limiti tugadi — ${modelNomi(keyingi)} bilan davom etamiz...`, false, true);
-          model = keyingi;
+    if (yt) {
+      /* ---- YouTube: Google'ning o'zi videodan kerakli oraliqni kesib beradi ---- */
+      const uri = youtubeTozala(yt);
+      const navbat = [[keyingi, keyingi + QISM]];
+      while (navbat.length) {
+        const [b, o] = navbat.shift();
+        jarayon("indet");
+        holat(`Transkripsiya: ${vaqtQisqa(b)}–${vaqtQisqa(o)} qismi...`, false, true);
+        const media = { fileData: { fileUri: uri },
+          videoMetadata: { startOffset: `${Math.round(b)}s`, endOffset: `${Math.round(o)}s` } };
+        if (s.tejamkor) media.videoMetadata.fps = 0.1;
+        let qism;
+        try {
+          qism = await modelBilan(ish, [media, { text: promptOl(
+            `\n\nMUHIM: senga videoning faqat ${vaqtQisqa(b)}–${vaqtQisqa(o)} oralig'i berilgan. ` +
+            `Faqat shu oraliqdagi nutqni yoz. "start" va "end" ni butun video boshidan hisobla.`) }],
+            schema, media);
+        } catch (e) {
+          if (bekorQilindi) throw e;
+          if (bolinsinmi(e, b, o)) {
+            const m = Math.round((b + o) / 2);
+            navbat.unshift([b, m], [m, o]);
+            continue;
+          }
+          if (/invalid argument/i.test(e.message)) {
+            // Video oxiridan keyingi oraliq so'ralgan — demak video tugadi
+            if (b > 0 && toplangan.length) break;
+            // Google oraliq kesishni qabul qilmadi — butun video bitta so'rovda (eski usul)
+            if (b === 0 && !toplangan.length) {
+              const butun = { fileData: { fileUri: uri } };
+              if (s.tejamkor) butun.videoMetadata = { fps: 0.1 };
+              holat("Gemini transkripsiya qilmoqda...", false, true);
+              const q = await modelBilan(ish, [butun, { text: promptOl("") }], schema, butun);
+              qismQosh(toplangan, qismniMosla(q, 0, Infinity, false));
+              ogohlantirish = "Video qismlab ishlanmadi — uzun bo'lsa, oxiri chala chiqishi mumkin.";
+              break;
+            }
+          }
+          throw e;
+        }
+        qism = qismniMosla(qism, b, o, null);
+        if (qismBuzuqmi(qism) && o - b > QISM_ENG_KAM) {
+          const m = Math.round((b + o) / 2);
+          navbat.unshift([b, m], [m, o]);
           continue;
         }
-        // Ba'zi videolarda tejamkor rejim (fps) qabul qilinmaydi — usiz qayta urinamiz
-        if (mediaPart.videoMetadata && /invalid argument/i.test(e.message)) {
-          console.warn("videoMetadata qabul qilinmadi, usiz urinilmoqda:", e);
-          holat("Tejamkor rejimsiz qayta urinilmoqda...", false, true);
-          delete mediaPart.videoMetadata;
-          continue;
+        if (!qism.length) {
+          if (navbat.length) continue;   // o'rtadagi jimlik
+          break;                          // video tugadi
         }
-        throw e;
+        qismQosh(toplangan, qism);
+        keyingi = o;
+        if (!navbat.length) {
+          // Nutq qism oxiridan ancha oldin tugagan bo'lsa — video ham tugagan
+          if (qism[qism.length - 1].end < o - 45 || o >= YT_ENG_UZUN) break;
+          navbat.push([o, o + QISM]);
+        }
+      }
+    } else {
+      /* ---- Fayl ---- */
+      if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
+      if (!yubor) yubor = await faylTayyorla(file);
+      if (dav == null) {
+        holat("Davomiyligi aniqlanmoqda...", false, true);
+        dav = await davomiylikOl(yubor);
+        if (!dav && yubor !== file) dav = await davomiylikOl(file);
+      }
+
+      const butunFayl = async () => {
+        jarayon(0);
+        holat(`Yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
+        const f = await faylYuklash(key, yubor);
+        const media = { fileData: { fileUri: f.uri, mimeType: f.mime } };
+        // Tejamkor rejim: kadrlar deyarli olinmaydi — token sarfi ~5x kamayadi
+        if (s.tejamkor && (f.mime || "").startsWith("video")) media.videoMetadata = { fps: 0.1 };
+        jarayon("indet");
+        holat("Gemini transkripsiya qilmoqda...", false, true);
+        const q = await modelBilan(ish, [media, { text: promptOl("") }], schema, media);
+        qismQosh(toplangan, qismniMosla(q, 0, Infinity, false));
+      };
+
+      let kesgich = null;
+      if (dav && dav > QISM_CHEGARA) {
+        try {
+          kesgich = await audioBolakchi(yubor);
+        } catch (e) {
+          if (bekorQilindi) throw e;
+          console.warn("Bo'laklab bo'lmadi:", e);
+          ogohlantirish = "Fayl qismlarga bo'linmadi — uzun bo'lsa, oxiri chala chiqishi mumkin.";
+        }
+      }
+
+      if (!kesgich) {
+        await butunFayl();
+      } else {
+        try {
+          const navbat = [];
+          for (let b = keyingi; b < dav; b += QISM) navbat.push([b, Math.min(b + QISM, dav)]);
+          // Oxirgi juda qisqa qismni oldingisiga qo'shamiz — ortiqcha so'rov bo'lmasin
+          if (navbat.length > 1 && navbat[navbat.length - 1][1] - navbat[navbat.length - 1][0] < 120) {
+            navbat.pop();
+            navbat[navbat.length - 1][1] = dav;
+          }
+          const jami = Math.ceil((dav - QISM / 8) / QISM);
+          while (navbat.length) {
+            const [b, o] = navbat.shift();
+            const tartib = Math.min(Math.floor(b / QISM) + 1, jami);
+            jarayon(Math.round(b / dav * 100));
+            holat(`Qism ${tartib}/${jami} · ${vaqtQisqa(b)}–${vaqtQisqa(o)} qayta ishlanmoqda...`, false, true);
+            const bolak = await kesgich.kes(b, o - b);
+            const f = await faylYuklash(key, bolak, true);
+            const media = { fileData: { fileUri: f.uri, mimeType: f.mime } };
+            let qism;
+            try {
+              qism = await modelBilan(ish, [media, { text: promptOl(
+                "\n\nMUHIM: bu uzun yozuvning bir bo'lagi — boshi va oxiridagi gap chala bo'lishi " +
+                "mumkin. Eshitilganini yoz, o'zingdan to'ldirma. Vaqtni shu bo'lak boshidan hisobla.") }],
+                schema, media);
+            } catch (e) {
+              if (!bekorQilindi && bolinsinmi(e, b, o)) {
+                const m = Math.round((b + o) / 2);
+                navbat.unshift([b, m], [m, o]);
+                continue;
+              }
+              throw e;
+            }
+            qism = qismniMosla(qism, b, o, true);
+            if (qismBuzuqmi(qism) && o - b > QISM_ENG_KAM) {
+              const m = Math.round((b + o) / 2);
+              navbat.unshift([b, m], [m, o]);
+              continue;
+            }
+            qismQosh(toplangan, qism);
+            keyingi = o;
+          }
+          jarayon(100);
+        } finally {
+          kesgich.yop();
+        }
       }
     }
-    seglar = segmentTozala(seglar);
 
+    const seglar = segmentTozala(toplangan);
     if (!seglar.length) throw new Error("Videoda nutq topilmadi.");
     natija = seglar;
-    const id = tarixgaSaqla(nom, seglar);
+    if (id) { tarixYangila(id, seglar); tarixKorsat(); }
+    else id = tarixgaSaqla(nom, seglar);
+    davomHolat = null;
     jarayon(null);
-    holat("");
+    holat(ogohlantirish);
     korsat(seglar, nom, id);
-    if (model !== s.model) {
-      $("natijaStat").textContent += ` · ${modelNomi(model)} bilan`;
-      toast(`Tayyor — ${modelNomi(model)} bilan bajarildi`);
+    if (ish.model !== s.model) {
+      $("natijaStat").textContent += ` · ${modelNomi(ish.model)} bilan`;
+      toast(`Tayyor — ${modelNomi(ish.model)} bilan bajarildi`);
     } else {
       toast("Tayyor — tarixga saqlandi");
     }
   } catch (e) {
+    // Uzun ish o'rtada to'xtasa — tayyor qismini yo'qotmaymiz va davom ettirish mumkin
+    let qismanMatn = "";
+    if (toplangan.length) {
+      const qisman = segmentTozala(toplangan);
+      natija = qisman;
+      if (id) { tarixYangila(id, qisman); tarixKorsat(); }
+      else id = tarixgaSaqla(nom, qisman);
+      davomHolat = { yt, file, yubor, dav, s, nom, id, keyingi, seglar: toplangan.slice() };
+      korsat(qisman, nom, id, true);
+      qismanMatn = `\n\n<b>${vaqtQisqa(keyingi)} gacha tayyor va tarixga saqlandi.</b> ` +
+        `<button class="btn btn-ghost" style="margin-top:8px" onclick="davomEt()">` +
+        `${ikon("qayta", "ic ic-sm")} ${vaqtQisqa(keyingi)} dan davom ettirish</button>`;
+    }
     if (bekorQilindi) {
       jarayon(null);
-      holat("Bekor qilindi. Sozlamalar joyida — xohlaganda qayta boshlang.");
+      holat("Bekor qilindi. Sozlamalar joyida — xohlaganda qayta boshlang." + qismanMatn);
       toast("Bekor qilindi");
       return;
     }
     let msg = "Xato: " + esc(e.message);
-    if (/high demand|overloaded|UNAVAILABLE|503/i.test(e.message)) {
+    if (e.uzun) {
+      msg = "Javob juda uzun chiqdi. Sozlamalarda «Standart» timecode'ni tanlab qayta urining.";
+    } else if (/high demand|overloaded|UNAVAILABLE|503/i.test(e.message)) {
       msg = "Google serverlari hozir juda band (vaqtinchalik holat, kalitingizga aloqasi yo'q). " +
         "Bir necha daqiqadan keyin qayta urining yoki Sozlamalardan boshqa modelni tanlang.";
     } else if (/invalid argument/i.test(e.message)) {
@@ -1791,7 +2110,7 @@ async function boshla() {
           "Ko'proq kerak bo'lsa — aistudio.google.com da billing ulang.";
       }
     }
-    holat(msg, true);
+    holat(msg + qismanMatn, true);
   } finally {
     ishlayapti = false;
     joriyAbort = null;
@@ -1838,7 +2157,7 @@ function natijaStat(seglar) {
   return qism.join(" · ");
 }
 
-function korsat(seglar, nom, id) {
+function korsat(seglar, nom, id, jim) {
   joriyNom = nom || "";
   joriyId = id ?? null;
   $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
@@ -1867,7 +2186,7 @@ function korsat(seglar, nom, id) {
   tarixKorsat();
   // Natija tayyor — o'yin ochiq bo'lsa yopiladi, natija darhol ko'rsatiladi
   if (oyinOchiq) oyinYop();
-  $("resultCard").scrollIntoView({ behavior: "smooth" });
+  if (!jim) $("resultCard").scrollIntoView({ behavior: "smooth" });
 }
 
 /* ===== Segmentni joyida tahrirlash =====
