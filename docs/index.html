@@ -1546,6 +1546,16 @@ async function generate(key, model, parts, schema) {
         xato.status = r.status;
         throw xato;
       }
+      // Gemini javob berishdan bosh tortdi (mualliflik huquqi, xavfsizlik) — qayta so'rash
+      // foydasiz: yuqorida qism bo'linadi yoki o'tkazib yuboriladi
+      const sabab = j.promptFeedback?.blockReason ||
+        (/^(SAFETY|RECITATION|PROHIBITED_CONTENT|BLOCKLIST|SPII|OTHER|IMAGE_SAFETY|LANGUAGE)$/.test(j.candidates?.[0]?.finishReason || "")
+          ? j.candidates[0].finishReason : "");
+      if (sabab || !j.candidates?.length) {
+        const x = new Error(`Gemini bu qismga javob bermadi (${sabab || "bo'sh javob"})`);
+        x.bloklandi = true;
+        throw x;
+      }
       // Javob hajm chegarasiga urildi — qism kichraytiriladi (yuqorida)
       if (j.candidates?.[0]?.finishReason === "MAX_TOKENS") {
         const x = new Error("Javob juda uzun chiqdi");
@@ -1553,12 +1563,21 @@ async function generate(key, model, parts, schema) {
         throw x;
       }
       const text = j.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+      if (!text.trim()) {
+        const x = new Error("Gemini bo'sh javob qaytardi");
+        x.bloklandi = true;
+        throw x;
+      }
       const seglar = JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, ""));
       if (!Array.isArray(seglar)) throw new Error("Javob ro'yxat emas");
       seglar.forEach(s => { s.start = soniyaga(s.start); s.end = soniyaga(s.end); });
+      // Model eshitgan audio uzunligi (Gemini har soniyani 32 token qiladi) — YouTube
+      // videosi so'ralgan oraliqdan oldin tugaganini shundan bilamiz
+      const audio = j.usageMetadata?.promptTokensDetails?.find(d => d.modality === "AUDIO")?.tokenCount;
+      if (audio > 0) seglar.audioSek = audio / 32;
       return seglar;
     } catch (e) {
-      if (bekorQilindi || e.name === "AbortError" || e.uzun) throw e;
+      if (bekorQilindi || e.name === "AbortError" || e.uzun || e.bloklandi) throw e;
       // Model «o'ylash»ni o'chirishni qabul qilmadi — usiz bir marta qayta
       if (e.status === 400 && fikr.length && /think/i.test(e.message)) { fikr.shift(); urinish--; continue; }
       // So'rovning o'zida xato (400, 403, 404) — qayta urinish tuzatmaydi
@@ -1685,6 +1704,11 @@ async function ffYukla() {
   } finally {
     clearTimeout(taymer);
   }
+  if (bekorQilindi) {
+    joriyFF = null;
+    try { ff.terminate(); } catch (x) { /* e'tiborsiz */ }
+    throw new Error("bekor qilindi");
+  }
   return ff;
 }
 
@@ -1732,7 +1756,7 @@ async function faylTayyorla(file) {
 
 /* ===== Uzun yozuvlarni qismlab ishlash =====
    Bitta so'rovda 2 soatlik nutq javob chegarasiga sig'maydi va model
-   aylanib qolib, yozganini qayta yozadi. Shuning uchun yozuv 15 daqiqalik
+   aylanib qolib, yozganini qayta yozadi. Shuning uchun yozuv bir necha daqiqalik
    qismlarga bo'linadi, har biri alohida transkripsiya qilinib, vaqtlari
    to'g'rilanadi va bitta natijaga ulanadi. */
 // Qism uzunligi sozlamada tanlanadi (3/5/10/15 daq). Qisqa qism — vaqt belgilari
@@ -1868,10 +1892,11 @@ function qismniMosla(seglar, boshi, oxiri, nisbiy) {
   if (!seglar.length) return [];
   let qosh = 0;
   if (nisbiy === true) qosh = boshi;
-  else if (boshi > 0) {
-    const maxEnd = Math.max(...seglar.map(x => x.end));
-    const minStart = Math.min(...seglar.map(x => x.start));
-    if (maxEnd <= oxiri - boshi + 5 && minStart < boshi - 5) qosh = boshi;
+  else if (nisbiy === null && boshi > 0) {
+    // Ikkala talqinda ham nechta gap oynaga tushishini sanaymiz (Gemini vaqti biroz
+    // oshib ketsa ham to'g'ri tanlansin). Teng bo'lsa — prompt so'ragan asl vaqt.
+    const sig = q => seglar.filter(x => x.start + q >= boshi - 1 && x.start + q < oxiri + 1).length;
+    if (sig(boshi) > sig(0)) qosh = boshi;
   }
   const out = [];
   seglar
@@ -1889,10 +1914,8 @@ function qismniMosla(seglar, boshi, oxiri, nisbiy) {
 
 /* ===== Qismlarni ulash =====
    Har qism qo'shnisidan CHEKKA soniya ortiq audio oladi, shuning uchun chegaradagi
-   gaplar ikki marta yoziladi. Har gapning qaysi nusxasi qolishini «o'z qismining
-   o'rtasiga yaqinligi» hal qiladi: chekkada kesilgan nusxa doim yutqazadi
-   (HF/NeMo/Groq usuli). Matnlar yozuv, apostrof va tinish belgisidan qat'i nazar
-   solishtiriladi. */
+   gaplar ikki marta yoziladi. Ikki nusxa so'zma-so'z tekislanib, o'rtasidan ulanadi
+   (qismUla). Matnlar yozuv, apostrof va tinish belgisidan qat'i nazar solishtiriladi. */
 const KIRILL_LOTIN = { "а": "a", "б": "b", "в": "v", "г": "g", "ғ": "g'", "д": "d", "е": "e", "ё": "yo",
   "ж": "j", "з": "z", "и": "i", "й": "y", "к": "k", "қ": "q", "л": "l", "м": "m", "н": "n", "о": "o",
   "ў": "o'", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u", "ф": "f", "х": "x", "ҳ": "h", "ц": "ts",
@@ -1928,37 +1951,66 @@ function qamrov(a, b) {
   return c / qisqa.length;
 }
 
-// Ikki nusxa bitta gapmi (vaqt yaqin + matn o'xshash, yoki biri chekkada kesilgan)
-function bittaGapmi(p, s) {
-  const ov = Math.min(p.end, s.end) - Math.max(p.start, s.start);
-  const yaqin = ov > 0.3 * Math.min(p.end - p.start, s.end - s.start) || Math.abs(p.start - s.start) < 1.5;
-  if (!yaqin) return false;
-  const kesik = Math.min(p.ctx, s.ctx) < -1e5 && ov > 0.6 * Math.min(p.end - p.start, s.end - s.start);
-  if (kesik) return true;
-  // «ha», «rahmat» kabi qisqa takrorlar adashtirmasin: qisqa gap faqat aynan mos kelsa
-  if (normSozlar(p.text).length < 3 || normSozlar(s.text).length < 3)
-    return solNorm(p.text) === solNorm(s.text) && Math.abs(p.start - s.start) < 1;
-  return oxshashlik(p.text, s.text) >= 0.6;
+/* Segment matnini so'zlarga yoyadi: har so'z uchun normal shakli, segmenti, o'rni
+   va taxminiy vaqti (segment ichida so'zlar teng taqsimlangan deb) */
+function sozRoyxat(segs) {
+  const w = [];
+  segs.forEach((x, si) => {
+    const raw = x.text.trim().split(/\s+/);
+    raw.forEach((r, wi) => {
+      const n = solNorm(r);
+      if (n) w.push({ n, si, wi, t: x.start + (x.end - x.start) * (wi + 0.5) / raw.length });
+    });
+  });
+  return w;
 }
 
-/* Yangi qismning so'zlovchi belgilarini oldingilariga moslaydi:
-   ustma-ust qismdagi bir xil gaplar kim tomonidan aytilgani bo'yicha. */
-function sozlovchiMoslash(jami, yangi, s0) {
-  const dum = jami.filter(p => p.speaker && p.end > s0 - 3);
-  if (!dum.length) return;
-  const og = {};   // og[yangiBelgi][eskiBelgi] = ustma-ust soniyalar
-  for (const s of yangi) {
-    if (!s.speaker || s.start > s0 + 3 * CHEKKA) continue;
-    for (const p of dum) {
-      const ov = Math.min(p.end, s.end) - Math.max(p.start, s.start);
-      // Chegaradagi nusxalar ko'pincha chala — shuning uchun «ichida bormi» ham hisobga olinadi
-      const mos = oxshashlik(p.text, s.text) >= 0.6 ||
-        (Math.min(normSozlar(p.text).length, normSozlar(s.text).length) >= 3 && qamrov(p.text, s.text) >= 0.8);
-      if (ov > 0 && mos) {
-        (og[s.speaker] ||= {})[p.speaker] = (og[s.speaker][p.speaker] || 0) + ov;
+/* Ikki so'z ro'yxatidagi eng uzun umumiy uzluksiz zanjir. So'zlar vaqti tol soniyadan
+   ko'p farq qilsa — bu boshqa joyda aytilgan so'z, hisoblanmaydi. Teng uzunlikdagi
+   zanjirlardan vaqti eng mosi tanlanadi («ha, to'g'ri» ikki marta aytilsa ham adashmasin). */
+function engUzunUmumiy(A, B, tol = Infinity) {
+  let eng = { uz: 0, i: 0, j: 0, farq: Infinity };
+  let old = new Array(B.length + 1).fill(0);
+  for (let i = 1; i <= A.length; i++) {
+    const cur = new Array(B.length + 1).fill(0);
+    for (let j = 1; j <= B.length; j++) {
+      const a = A[i - 1], b = B[j - 1];
+      if (a.n !== b.n) continue;
+      const farq = Math.abs(a.t - b.t);
+      if (farq > tol) continue;
+      cur[j] = old[j - 1] + 1;
+      if (cur[j] > eng.uz || cur[j] === eng.uz && farq < eng.farq) {
+        eng = { uz: cur[j], i: i - cur[j], j: j - cur[j], farq };
       }
     }
+    old = cur;
   }
+  return eng;
+}
+
+/* Segmentning [dan, gacha) so'zlarini qoldiradi; vaqt so'zlar soniga mutanosib.
+   Hech narsa qolmasa — null. */
+function segKes(x, dan, gacha) {
+  const raw = x.text.trim().split(/\s+/);
+  const qism = raw.slice(dan, Math.min(gacha, raw.length));
+  if (!qism.some(w => solNorm(w))) return null;
+  const d = x.end - x.start, n = raw.length;
+  return { ...x, text: qism.join(" "),
+    start: x.start + d * dan / n, end: x.start + d * Math.min(gacha, n) / n };
+}
+
+// Segmentning T vaqtgacha (oldingi=true) yoki T dan keyin aytilgan so'zlari (vaqti taxminiy)
+function vaqtBolagi(x, T, oldingi) {
+  const n = x.text.trim().split(/\s+/).length, d = x.end - x.start;
+  const k = d > 0 ? Math.min(n, Math.max(0, Math.ceil((T - x.start) / d * n - 0.5))) : (x.start < T ? n : 0);
+  return oldingi ? segKes(x, 0, k) : segKes(x, k, Infinity);
+}
+
+/* So'zlovchi belgilari xaritasi. og[yangi][eski] — moslik dalili (soniyalarda).
+   1) dalili kuchlisidan boshlab juftlaymiz; 2) dalilsiz belgi bo'sh bo'lsa — o'zi qoladi;
+   3) to'qnashganiga avval almashinuv sherigini, keyin eng ko'p gapirgan bo'sh eski
+   belgini, bo'lmasa yangi belgi beramiz (model belgilarni almashtirib qo'ygan bo'lishi mumkin). */
+function belgiXarita(og, jami, yangi) {
   const juft = [];
   for (const a in og) for (const b in og[a]) juft.push([a, b, og[a][b]]);
   juft.sort((x, y) => y[2] - x[2]);
@@ -1967,96 +2019,144 @@ function sozlovchiMoslash(jami, yangi, s0) {
     if (w < 1.5 || a in xarita || band.has(b)) continue;
     xarita[a] = b; band.add(b);
   }
-  if (!Object.keys(xarita).length) return;
-  // Dalilsiz qolgan belgi band belgiga to'g'ri kelsa — to'qnashmasin. Ko'pincha bu
-  // model belgilarni almashtirib qo'ygani: bo'shab qolgan eski belgini beramiz
-  // (eng ko'p gapirganidan boshlab). Bo'sh eski belgi qolmasa — yangi belgi.
-  const hamma = new Set([...jami.map(p => p.speaker), ...yangi.map(x => x.speaker)].filter(Boolean));
+  if (!Object.keys(xarita).length) return null;
+  const yangiBelgilar = [...new Set(yangi.map(x => x.speaker).filter(Boolean))];
+  for (const a of yangiBelgilar) if (!(a in xarita) && !band.has(a)) { xarita[a] = a; band.add(a); }
   const ulush = {};
   for (const p of jami) if (p.speaker) ulush[p.speaker] = (ulush[p.speaker] || 0) + (p.end - p.start);
   const eskilar = Object.keys(ulush).sort((x, y) => ulush[y] - ulush[x]);
+  const hamma = new Set([...Object.keys(ulush), ...yangiBelgilar]);
   let n = hamma.size;
-  for (const a of new Set(yangi.map(x => x.speaker).filter(Boolean))) {
+  for (const a of yangiBelgilar) {
     if (a in xarita) continue;
-    if (band.has(a)) {
-      let nom = eskilar.find(e => !band.has(e));
-      if (!nom) do { nom = `${++n}-so'zlovchi`; } while (hamma.has(nom) || band.has(nom));
-      xarita[a] = nom;
-    } else xarita[a] = a;
-    band.add(xarita[a]);
+    // Almashinuv sherigi: kimdir a ning eski belgisiga o'tgan bo'lsa, a o'shaning eski belgisini oladi
+    const sherik = Object.keys(xarita).find(x => xarita[x] === a && x !== a && !band.has(x) && x in ulush);
+    let nom = sherik || eskilar.find(e => !band.has(e));
+    if (!nom) do { nom = `${++n}-so'zlovchi`; } while (hamma.has(nom) || band.has(nom));
+    xarita[a] = nom; band.add(nom);
   }
-  for (const x of yangi) if (x.speaker) x.speaker = xarita[x.speaker] ?? x.speaker;
+  return xarita;
 }
 
-/* Ikki chala nusxani bitta to'liq gapga ulaydi: chap nusxaning oxiri kesilgan,
-   o'ng nusxaning boshi kesilgan. Ikkalasida ham bor eng uzun so'zlar ketma-ketligi
-   «langar» bo'ladi: undan oldingisi chapdan, o'zi va keyingisi o'ngdan olinadi. */
-function gapUla(p, x) {
-  const P = p.text.trim().split(/\s+/), X = x.text.trim().split(/\s+/);
-  const Pn = P.map(solNorm), Xn = X.map(solNorm);
-  let eng = { uz: 0, i: 0, j: 0 };
-  for (let i = 0; i < Pn.length; i++) {
-    for (let j = 0; j < Xn.length; j++) {
-      let r = 0;
-      while (i + r < Pn.length && j + r < Xn.length && Pn[i + r] && Pn[i + r] === Xn[j + r]) r++;
-      if (r > eng.uz) eng = { uz: r, i, j };
+// Ikki matn bitta gapmi (biri chala bo'lsa ham — «ichida bormi» bilan)
+const matnMosmi = (a, b) => oxshashlik(a, b) >= 0.6 ||
+  (Math.min(normSozlar(a).length, normSozlar(b).length) >= 3 && qamrov(a, b) >= 0.8);
+
+// Ustma-ust gaplar juftligidan dalil
+function juftDalil(og, jami, yangi, s0) {
+  const dum = jami.filter(p => p.speaker && p.end > s0 - 3);
+  for (const x of yangi) {
+    if (!x.speaker || x.start > s0 + 3 * CHEKKA) continue;
+    for (const p of dum) {
+      const ov = Math.min(p.end, x.end) - Math.max(p.start, x.start);
+      if (ov > 0 && matnMosmi(p.text, x.text)) (og[x.speaker] ||= {})[p.speaker] = (og[x.speaker][p.speaker] || 0) + ov;
     }
   }
-  const birlashgan = eng.uz >= 2
-    ? [...P.slice(0, eng.i), ...X.slice(eng.j)].join(" ")
-    : ((p.end - p.start) >= (x.end - x.start) ? p.text : x.text);   // langar topilmadi — uzunrog'i
-  return { ...p, text: birlashgan, start: p.start, end: Math.max(p.end, x.end), k: x.k,
-    ctx: 0, kesikC: p.kesikC, kesikO: x.kesikO };
 }
 
-/* Yangi qismni umumiy natijaga ulaydi.
-   q: { k — qism raqami, s0/s1 — yuborilgan audio oralig'i (asl vaqtda),
-        chap/ong — shu tomonda qo'shni qism bormi } */
+/* Yangi qismni umumiy natijaga ulaydi — SO'Z darajasida (HF / Groq usuli).
+   Ustma-ust oraliqda ikkala qism ham bir xil nutqni eshitgan: ikkalasidagi eng uzun
+   umumiy so'zlar zanjiri topiladi va uning o'rtasidan kesiladi — oldingisi eski
+   qismdan, keyingisi yangisidan. Gemini gapni har qismda boshqacha bo'lsa ham,
+   vaqtlari siljigan bo'lsa ham, gap chala kelgan bo'lsa ham so'z yo'qolmaydi va
+   takrorlanmaydi.
+   q: { s0 — yangi qism audiosining boshi, oldS1 — oldingi qism audiosining oxiri
+        (birinchi qismda null), sozlovchi } */
 function qismUla(jami, yangi, q) {
   const tayyor = yangi
     .filter(x => solNorm(x.text))
-    .map(x => {
-      const start = x.start, end = Math.max(x.end, x.start + 0.2), mid = (start + end) / 2;
-      // Audio boshida/oxirida kesilgan bo'lishi mumkin bo'lgan gaplar
-      const kesikC = q.chap && start < q.s0 + 0.5, kesikO = q.ong && end > q.s1 - 0.5;
-      const ctx = Math.min(q.chap ? mid - q.s0 : 1e9, q.ong ? q.s1 - mid : 1e9) - (kesikC || kesikO ? 1e6 : 0);
-      return { ...x, end, k: q.k, ctx, kesikC, kesikO };
-    });
-  if (q.sozlovchi) sozlovchiMoslash(jami, tayyor, q.s0);
-
-  // Oldingi qismlarning dumi bilan solishtiramiz (o'z qismi ichida hech qachon emas)
-  const dum = [];
-  for (let i = jami.length - 1; i >= 0 && jami[i].end > q.s0 - 3; i--) dum.push(i);
-  const qoshiladi = [];
-  for (const x of tayyor) {
-    const i = dum.find(j => jami[j].k !== x.k && bittaGapmi(jami[j], x));
-    if (i === undefined) qoshiladi.push(x);
-    // Gap ustma-ust oraliqdan uzun: oldingisida oxiri, yangisida boshi kesilgan — ulaymiz
-    else if (jami[i].kesikO && x.kesikC) jami[i] = gapUla(jami[i], x);
-    else if (x.ctx > jami[i].ctx) jami[i] = x;      // to'liqroq eshitilgan nusxa qoladi
-  }
-  jami.push(...qoshiladi);
-  jami.sort((a, b) => a.start - b.start);
-
-  // Qism chegarasida ikki nusxa birlashsa, takrorlangan 2–8 so'zni kesamiz; vaqt orqaga ketmasin
-  for (let i = 1; i < jami.length; i++) {
-    const p = jami[i - 1], x = jami[i];
-    if (x.end < q.s0 - 3) continue;
-    if (p.k !== x.k) {
-      const P = p.text.trim().split(/\s+/), X = x.text.trim().split(/\s+/);
-      const Pn = P.map(solNorm), Xn = X.map(solNorm);
-      for (let j = Math.min(P.length, X.length - 1, 8); j >= 2; j--) {
-        if (Pn.slice(-j).join(" ") === Xn.slice(0, j).join(" ")) { x.text = X.slice(j).join(" "); break; }
-      }
+    .map(x => ({ ...x, end: Math.max(x.end, x.start + 0.2) }))
+    .sort((a, b) => a.start - b.start);
+  // Vaqt orqaga ketmasin (ichki qisqa gaplar o'z joyida qoladi)
+  const yakunla = (dan = 1) => {
+    for (let i = Math.max(1, dan); i < jami.length; i++) {
+      const p = jami[i - 1], x = jami[i];
+      if (x.start < p.end) x.start = Math.max(p.start, Math.min(p.end, Math.max(x.start, x.end - 0.2)));
+      if (x.end < x.start + 0.1) x.end = x.start + 0.2;
     }
-    if (x.start < p.end) x.start = Math.min(p.end, x.end - 0.2);
+    return jami;
+  };
+  if (!jami.length || q.oldS1 == null || q.oldS1 <= q.s0) {
+    jami.push(...tayyor);
+    jami.sort((a, b) => a.start - b.start);
+    return yakunla();
   }
-  for (let i = jami.length - 1; i >= 0; i--) if (!solNorm(jami[i].text)) jami.splice(i, 1);
-  return jami;
+
+  // Oldingi qismning ustma-ust oraliqqa tegadigan dumi (uzun gaplar ham, ichidagi «ha»lar ham)
+  let iO = jami.length;
+  for (let i = jami.length - 1; i >= 0 && jami[i].start > q.s0 - 120; i--) if (jami[i].end > q.s0 - 0.5) iO = i;
+  const O = jami.slice(iO);
+  let jN = 0;
+  while (jN < tayyor.length && tayyor[jN].start < q.oldS1 + 0.5) jN++;
+  const N = tayyor.slice(0, jN), keyin = tayyor.slice(jN);
+  const OW = sozRoyxat(O), NW = sozRoyxat(N);
+  const m = engUzunUmumiy(OW, NW, 20);
+
+  // So'zlovchilar: tekislangan so'zlar eng ishonchli dalil (har so'z ~0.5 s), qo'shimcha — juftliklar
+  if (q.sozlovchi) {
+    const og = {};
+    for (let t = 0; t < m.uz && m.uz >= 2; t++) {
+      const a = N[NW[m.j + t].si].speaker, b = O[OW[m.i + t].si].speaker;
+      if (a && b) (og[a] ||= {})[b] = (og[a][b] || 0) + 0.5;
+    }
+    juftDalil(og, jami, tayyor, q.s0);
+    const xarita = belgiXarita(og, jami, tayyor);
+    if (xarita) for (const x of tayyor) if (x.speaker) x.speaker = xarita[x.speaker] ?? x.speaker;
+  }
+
+  let eski, yangiBosh;
+  if (m.uz >= 2) {
+    const yarim = Math.floor(m.uz / 2);
+    const oc = OW[m.i + yarim], nc = NW[m.j + yarim];
+    eski = O.slice(0, oc.si);
+    yangiBosh = N.slice(nc.si + 1);
+    const eKes = segKes(O[oc.si], 0, oc.wi), yKes = segKes(N[nc.si], nc.wi, Infinity);
+    // Kesish ikkala tomonda ham gapning o'rtasiga tushdi — bo'laklarni yana bitta gapga ulaymiz
+    if (eKes && yKes && oc.wi > 0 && nc.wi > 0 && (eKes.speaker || "") === (yKes.speaker || "")) {
+      eski.push({ ...eKes, text: `${eKes.text} ${yKes.text}`, end: Math.max(eKes.end, yKes.end) });
+    } else {
+      if (eKes) eski.push(eKes);
+      if (yKes) yangiBosh.unshift(yKes);
+    }
+    // Uzun gap ichidagi qisqa gaplar (masalan, boshqa odamning «ha»si) tartibda undan keyin
+    // turadi — ular uchun tartib emas, vaqt va nusxa hal qiladi: eski qismdagisi yo'qolmasin;
+    // ikkala qismda ham bo'lsa, bittasi qolsin (kesish joyidan oldin — eskisi, keyin — yangisi)
+    const nusxa = (a, b) => Math.abs(a.start - b.start) < 3 && matnMosmi(a.text, b.text);
+    const band = new Set(), olib = new Set();
+    for (const x of O.filter((x, i) => i > oc.si && (x.end <= oc.t + 0.3 || x.end < O[oc.si].end - 0.3))) {
+      const y = yangiBosh.find(y => !band.has(y) && nusxa(x, y));
+      const oldin = x.end <= oc.t + 0.3;
+      if (y) band.add(y);
+      if (!y || oldin) eski.push(x);
+      if (y && oldin) olib.add(y);
+    }
+    yangiBosh = yangiBosh.filter(y => !olib.has(y) && !(y.end <= nc.t + 0.3 && eski.some(x => nusxa(x, y))));
+  } else {
+    // Umumiy so'z zanjiri yo'q (ustma-ust oraliqda nutq bo'lmagan yoki uni faqat bittasi
+    // yozgan). Eski qism eshitganining hammasi uning audiosi ichida — o'zi qoladi;
+    // yangisidan eski yozuv tugagan joydan keyingi so'zlar olinadi.
+    const T = Math.min(q.oldS1, Math.max(q.s0, ...O.map(x => x.end)));
+    eski = O;
+    // Chegaradagi bitta so'z ikkala qismda ham chiqqan bo'lsa («...shu yerda» | «yerda endi...»),
+    // o'sha so'zdan ulaymiz (eski qism vaqti oxirida biroz cho'zilgan bo'lishi mumkin)
+    const e = OW[OW.length - 1];
+    const y = e && NW.filter(x => x.t >= T - 6).slice(0, 3).find(x => x.n === e.n && Math.abs(x.t - e.t) < 6);
+    if (y) {
+      const qoldiq = segKes(N[y.si], y.wi + 1, Infinity);
+      yangiBosh = [...(qoldiq ? [qoldiq] : []), ...N.slice(y.si + 1)];
+    } else {
+      yangiBosh = N.map(x => vaqtBolagi(x, T, false)).filter(Boolean);
+    }
+  }
+  // Tartib: eski qism, keyin yangisi. Butunlay qayta saralamaymiz — qismlar vaqti bir-biridan
+  // biroz siljigan bo'lishi mumkin, saralash so'zlar tartibini buzadi
+  eski.sort((a, b) => a.start - b.start);
+  jami.splice(iO, jami.length - iO, ...eski, ...yangiBosh, ...keyin);
+  return yakunla(iO);
 }
 
 // Natijaga ichki maydonlar (k, ctx) chiqmasin
-const tozaSeg = arr => arr.map(({ k, ctx, kesikC, kesikO, ...x }) => x);
+const tozaSeg = arr => arr.map(({ k, ctx, kesikC, kesikO, ...x }) => x);   // eski davom ma'lumotlari uchun ham
 
 /* Model aylanib qolib, bir gapni qayta-qayta yozganmi */
 function qismBuzuqmi(seglar) {
@@ -2080,8 +2180,12 @@ function qismQosh(jami, yangi) {
 /* So'zlovchilar qismdan qismga bir xil nomlansin — oldingilarini eslatamiz */
 function sozlovchiEslatma(seglar, yoqilgan) {
   if (!yoqilgan || !seglar.length) return "";
+  // Har so'zlovchining eng oxirgi gapi — chegaraga yaqin, model kimligini osonroq topadi
   const namuna = {};
-  for (const x of seglar) if (x.speaker && !namuna[x.speaker]) namuna[x.speaker] = x.text.slice(0, 70);
+  for (let i = seglar.length - 1; i >= 0; i--) {
+    const x = seglar[i];
+    if (x.speaker && !namuna[x.speaker]) namuna[x.speaker] = x.text.trim().slice(-70);
+  }
   const r = Object.entries(namuna).map(([k, v]) => `"${k}" (masalan: "${v}")`).join(", ");
   return r ? `\nOldingi qismlarda aniqlangan so'zlovchilar: ${r}. Ovozi mos kelsa, aynan shu ` +
     `belgilarni ishlat; yangi ovoz bo'lsa — keyingi raqamni.` : "";
@@ -2092,7 +2196,9 @@ function sozlovchiEslatma(seglar, yoqilgan) {
 async function modelBilan(ish, parts, schema, media) {
   while (true) {
     try {
-      return await generate(ish.key, ish.model, parts, schema);
+      const r = await generate(ish.key, ish.model, parts, schema);
+      if (media?.videoMetadata?.fps !== undefined) ish.fpsBor = true;
+      return r;
     } catch (e) {
       if (bekorQilindi) throw e;
       const kvota = kvotaTuri(e);
@@ -2109,7 +2215,8 @@ async function modelBilan(ish, parts, schema, media) {
         continue;
       }
       // Ba'zi videolarda tejamkor rejim (fps) qabul qilinmaydi — usiz qayta urinamiz
-      if (media?.videoMetadata?.fps !== undefined && /invalid argument/i.test(e.message)) {
+      // (oldingi qismlarda fps ishlagan bo'lsa, sabab boshqa — masalan, video tugagan)
+      if (!ish.fpsBor && media?.videoMetadata?.fps !== undefined && /invalid argument/i.test(e.message)) {
         console.warn("fps qabul qilinmadi, usiz urinilmoqda:", e);
         delete media.videoMetadata.fps;
         if (!Object.keys(media.videoMetadata).length) delete media.videoMetadata;
@@ -2165,7 +2272,8 @@ async function boshla(davom) {
   let yubor = davom?.yubor || null;
   let dav = davom?.dav ?? null;
   let ogohlantirish = "";
-  let k = davom?.k ?? 0;                             // qism tartib raqami (ulash uchun)
+  // Oldingi qism audiosi tugagan joy — keyingi qism bilan ustma-ust oraliqni bilish uchun
+  let oxirgiS1 = davom?.oxirgiS1 ?? (davom ? davom.keyingi + CHEKKA : null);
   const ish = { key, model: s.model, sinalgan: [], zaxira: null };
 
   try {
@@ -2198,10 +2306,18 @@ async function boshla(davom) {
     // Qism kichraytirilishi kerak bo'lgan holatlar
     const bolinsinmi = (e, b, o) => e.uzun && o - b > QISM_ENG_KAM;
 
+    // Bekor qilingan bo'lsa, keyingi og'ir ishni (ffmpeg, yuklash) boshlamaymiz
+    const bekorTekshir = () => { if (bekorQilindi) throw new Error("bekor qilindi"); };
+    const otkazilgan = [];                            // Gemini rad etgan oraliqlar (ogohlantirish uchun)
+
     /* Bitta qismni ishlaydi: [a, c] — o'zi javob beradigan oraliq. Javob sig'masa yoki
-       model aylanib qolsa, ikkiga bo'lib qayta so'raydi. Natija toplangan'ga ulanadi. */
+       model aylanib qolsa, ikkiga bo'lib qayta so'raydi; Gemini rad etsa (masalan,
+       mualliflik huquqi) — bir marta bo'lib ko'radi, baribir bo'lmasa o'tkazib yuboradi,
+       shunda «davom ettirish» o'sha joyda qotib qolmaydi. Natija toplangan'ga ulanadi.
+       Qaytaradi: oxirgi bo'lak «jim» bo'lganmi va video shu yerda tugaganmi (YouTube uchun). */
     const qismIshla = async (a, c, sorov, bolishNuqta) => {
       const stek = [[a, c]];
+      let jim = false, tugadi = false;
       // Qismni ikkiga bo'lish joyi: imkon bo'lsa o'rtadagi pauza
       const ortasi = async (b, o) => {
         const m = (b + o) / 2;
@@ -2209,14 +2325,23 @@ async function boshla(davom) {
         return Math.min(Math.max(t, b + (o - b) * 0.3), o - (o - b) * 0.3);
       };
       while (stek.length) {
+        bekorTekshir();
         const [b, o] = stek.shift();
         let r;
         try {
           r = await sorov(b, o);
         } catch (e) {
-          if (!bekorQilindi && bolinsinmi(e, b, o)) {
+          if (bekorQilindi) throw e;
+          if (bolinsinmi(e, b, o) || (e.bloklandi && o - b >= uz * 0.9)) {
             const m = await ortasi(b, o);
             stek.unshift([b, m], [m, o]);
+            continue;
+          }
+          if (e.bloklandi) {
+            console.warn("Gemini oraliqni rad etdi, o'tkazildi:", b, o, e.message);
+            const ox = otkazilgan[otkazilgan.length - 1];
+            if (ox && Math.abs(ox[1] - b) < 0.5) ox[1] = o; else otkazilgan.push([b, o]);
+            keyingi = o;
             continue;
           }
           throw e;
@@ -2226,24 +2351,31 @@ async function boshla(davom) {
           stek.unshift([b, m], [m, o]);
           continue;
         }
-        qismUla(toplangan, r.seglar, { k: ++k, s0: r.s0, s1: r.s1, chap: r.chap, ong: r.ong, sozlovchi: s.sozlovchi });
+        qismUla(toplangan, r.seglar, { s0: r.s0, oldS1: toplangan.length ? oxirgiS1 : null, sozlovchi: s.sozlovchi });
+        oxirgiS1 = r.s1;
         keyingi = o;
-        if (r.tugadi) return true;
+        jim = !!r.jim;
+        tugadi = !!r.tugadi;
       }
-      return false;
+      return { jim, tugadi };
     };
 
     if (yt) {
-      /* ---- YouTube: Google'ning o'zi videodan kerakli oraliqni kesib beradi ---- */
+      /* ---- YouTube: Google'ning o'zi videodan kerakli oraliqni kesib beradi ----
+         Video uzunligini oldindan bilmaymiz. Tugadi deymiz, agar: qism oxiri jim va
+         Gemini so'ralganidan ancha qisqa audio eshitgan bo'lsa (video shu yerda tugagan);
+         yoki ketma-ket ikki qism nutqsiz; yoki Google video oxiridan keyingi oraliqni rad
+         etsa. Bitta jim qismda to'xtamaymiz: tanaffus, musiqa, ekranda yozish bo'lishi mumkin. */
       const uri = youtubeTozala(yt);
       let a = keyingi;
-      let videoTugadi = false;
-      while (!videoTugadi && a < YT_ENG_UZUN) {
+      let jimQator = 0;
+      while (a < YT_ENG_UZUN) {
+        bekorTekshir();
         const c = a + uz;
         jarayon("indet");
         holat(`Transkripsiya: ${vaqtQisqa(a)}–${vaqtQisqa(c)} qismi...`, false, true);
         try {
-          videoTugadi = await qismIshla(a, c, async (b, o) => {
+          const { jim, tugadi } = await qismIshla(a, c, async (b, o) => {
             const s0 = Math.max(0, Math.floor(b - CHEKKA)), s1 = Math.ceil(o + CHEKKA);
             const media = { fileData: { fileUri: uri },
               videoMetadata: { startOffset: `${s0}s`, endOffset: `${s1}s` } };
@@ -2251,17 +2383,22 @@ async function boshla(davom) {
             const q = await modelBilan(ish, [media, { text: promptOl(qismKorsatma(s0, s1, b > 0, true, true)) }],
               schema, media);
             const seglar = qismniMosla(q, s0, s1, null);
-            // Nutq qism oxiridan ancha oldin tugagan bo'lsa (yoki umuman yo'q) — video tugagan
-            const tugadi = o === c && (!seglar.length || seglar[seglar.length - 1].end < o - 45);
-            return { seglar, s0, s1, chap: b > 0, ong: !tugadi, tugadi };
+            const ox = seglar.length ? Math.max(...seglar.map(x => x.end)) : -Infinity;
+            const jim = o === c && ox < o - 45;
+            // Klip so'ralganidan ancha qisqa va nutq o'sha klip ichida tugagan — video tugadi
+            const klip = q.audioSek;
+            const tugadi = jim && klip != null && klip < (s1 - s0) * 0.8 - 10 && ox <= s0 + klip + 5;
+            return { seglar, s0, s1, jim, tugadi };
           });
+          jimQator = jim ? jimQator + 1 : 0;
+          if (tugadi || jimQator >= 2) break;
         } catch (e) {
           if (bekorQilindi) throw e;
           if (/invalid argument/i.test(e.message)) {
             // Video oxiridan keyingi oraliq so'ralgan — demak video tugadi
-            if (a > 0 && toplangan.length) break;
+            if (keyingi > 0) break;
             // Google oraliq kesishni qabul qilmadi — butun video bitta so'rovda (eski usul)
-            if (a === 0 && !toplangan.length) {
+            if (!toplangan.length) {
               const butun = { fileData: { fileUri: uri } };
               if (s.tejamkor) butun.videoMetadata = { fps: 0.1 };
               holat("Gemini transkripsiya qilmoqda...", false, true);
@@ -2279,6 +2416,7 @@ async function boshla(davom) {
       /* ---- Fayl ---- */
       if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
       if (!yubor) yubor = await faylTayyorla(file);
+      bekorTekshir();
       if (dav == null) {
         holat("Davomiyligi aniqlanmoqda...", false, true);
         dav = await davomiylikOl(yubor);
@@ -2302,6 +2440,7 @@ async function boshla(davom) {
       if (qismlanadimi(dav, uz) && qismRejasi(keyingi, dav, uz).length > 1 || (davom && keyingi > 0)) {
         try {
           kesgich = await audioBolakchi(yubor);
+          bekorTekshir();
         } catch (e) {
           if (bekorQilindi) throw e;
           console.warn("Bo'laklab bo'lmadi:", e);
@@ -2316,6 +2455,7 @@ async function boshla(davom) {
           const jami = qismRejasi(0, dav, uz).length;
           let a = keyingi;
           while (a < dav - 0.5) {
+            bekorTekshir();
             // Oxirgi qism: qolgani qisqa bo'lsa, shu qismga qo'shiladi
             let c = dav;
             if (dav - a > uz + dumChegara(uz)) {
@@ -2335,7 +2475,7 @@ async function boshla(davom) {
               const media = { fileData: { fileUri: f.uri, mimeType: f.mime } };
               const q = await modelBilan(ish, [media, { text: promptOl(qismKorsatma(s0, s1, chap, ong, false)) }],
                 schema, media);
-              return { seglar: qismniMosla(q, s0, s1, true), s0, s1, chap, ong, tugadi: false };
+              return { seglar: qismniMosla(q, s0, s1, true), s0, s1 };
             }, (t, oyna) => kesgich.jimlikTop(t, oyna));
             a = c;
           }
@@ -2346,6 +2486,11 @@ async function boshla(davom) {
       }
     }
 
+    if (otkazilgan.length) {
+      ogohlantirish = (ogohlantirish ? ogohlantirish + "\n" : "") + "⚠️ Gemini quyidagi oraliqlarni yozib berishdan " +
+        "bosh tortdi (ko'pincha mualliflik huquqi bilan himoyalangan qo'shiq yoki matn sababli): " +
+        otkazilgan.map(([b, o]) => `${vaqtQisqa(b)}–${vaqtQisqa(o)}`).join(", ");
+    }
     const seglar = tozaSeg(segmentTozala(toplangan));
     if (!seglar.length) throw new Error("Videoda nutq topilmadi.");
     natija = seglar;
@@ -2369,7 +2514,7 @@ async function boshla(davom) {
       natija = qisman;
       if (id) { tarixYangila(id, qisman); tarixKorsat(); }
       else id = tarixgaSaqla(nom, qisman);
-      davomHolat = { yt, file, yubor, dav, s, nom, id, keyingi, k, seglar: toplangan.slice() };
+      davomHolat = { yt, file, yubor, dav, s, nom, id, keyingi, oxirgiS1, seglar: toplangan.slice() };
       korsat(qisman, nom, id, true);
       qismanMatn = `\n\n<b>${vaqtQisqa(keyingi)} gacha tayyor va tarixga saqlandi.</b> ` +
         `<button class="btn btn-ghost" style="margin-top:8px" onclick="davomEt()">` +
@@ -2387,6 +2532,9 @@ async function boshla(davom) {
     } else if (/high demand|overloaded|UNAVAILABLE|503/i.test(e.message)) {
       msg = "Google serverlari hozir juda band (vaqtinchalik holat, kalitingizga aloqasi yo'q). " +
         "Bir necha daqiqadan keyin qayta urining yoki Sozlamalardan boshqa modelni tanlang.";
+    } else if (e.bloklandi) {
+      msg = "Gemini bu yozuvni yozib berishdan bosh tortdi (ko'pincha mualliflik huquqi bilan " +
+        "himoyalangan qo'shiq yoki matn sababli). Boshqa yozuv bilan urinib ko'ring.";
     } else if (e.status === 404 || /no longer available/i.test(e.message)) {
       msg = "Bu model kalitingiz uchun yopilgan, mos zaxira model ham topilmadi. " +
         "Sozlamalardan boshqa modelni tanlang yoki aistudio.google.com da yangi kalit oling.";
