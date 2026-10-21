@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMART ACADEMY — Kuchli ustoz, yuqori natija</title>
+<meta name="description" content="SMART ACADEMY — Ishtixondagi zamonaviy oʻquv markazi. Ingliz tili, matematika va rus tili. Prezident maktablari va oliy taʼlimga tayyorlov. Birinchi dars bepul.">
+<meta name="theme-color" content="#003A9C">
+<meta property="og:title" content="SMART ACADEMY — Kuchli ustoz, yuqori natija">
+<meta property="og:description" content="Ingliz tili, matematika va rus tili. Prezident maktablari va oliy taʼlimga tayyorlov. Birinchi sinov darsi bepul.">
+<meta property="og:image" content="assets/logo.jpg">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/icon.png">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<script>
+if('IntersectionObserver' in window){document.documentElement.classList.add('lp-js');setTimeout(function(){if(!window.__fxOK)document.documentElement.classList.remove('lp-js')},3000)}
+</script>
+<style>
+:root{
+  --primary:#003A9C; --dark:#0E1B30; --accent:#FFB800; --tint:#F5F9FE; --tint2:#E8F0FC;
+  --muted:#4A5B78; --line:#D3E0F2; --line2:#E2EBF8; --ok:#16A34A; --ok-bg:#D9F7E3;
+  --r:22px; --r-sm:14px;
+  --h:'Montserrat',system-ui,sans-serif; --b:'Manrope',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{margin:0;font-family:var(--b);font-size:16px;line-height:1.6;color:var(--dark);background:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--h);line-height:1.15;margin:0;color:var(--dark)}
+p{margin:0}
+a{color:inherit}
+img{max-width:100%;display:block}
+svg.i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wrap{max-width:1160px;margin:0 auto}
+.sec{padding:clamp(56px,7vw,96px) clamp(16px,4vw,32px)}
+.sec.tint{background:var(--tint)}
+.sec.blue{background:var(--primary);color:#fff}
+.sec.blue h2,.sec.blue h3{color:#fff}
+section[id]{scroll-margin-top:72px}
+.head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;margin-bottom:clamp(28px,4vw,48px)}
+.tag{display:inline-block;background:var(--accent);color:var(--dark);font-family:var(--h);font-weight:800;font-size:13px;letter-spacing:.06em;padding:7px 16px;border-radius:10px;transform:rotate(-2deg);box-shadow:0 5px 0 var(--primary)}
+.sec.blue .tag{box-shadow:0 5px 0 var(--dark)}
+.head h2{font-weight:900;font-size:clamp(26px,3.8vw,42px)}
+.head p{color:var(--muted);max-width:640px;font-size:17px}
+.sec.blue .head p{color:#D6E3FA}
+.lp-mark{padding:0 10px;border-radius:8px;color:var(--dark);background:linear-gradient(var(--accent),var(--accent)) no-repeat 0 0/100% 100%;transition:background-size .8s .3s cubic-bezier(.22,.61,.36,1);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.lp-js .lp-rv:not(.lp-in) .lp-mark{background-size:0% 100%}
+
+/* tugmalar */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:12px 24px;border-radius:14px;font-family:var(--h);font-weight:800;font-size:16px;text-decoration:none;border:2px solid transparent;cursor:pointer;transition:transform .2s,box-shadow .2s,background .2s,color .2s;white-space:nowrap}
+.btn:active{transform:translateY(2px)}
+.btn-acc{background:var(--accent);color:var(--dark);box-shadow:0 6px 0 #C98F00}
+.btn-acc:hover{box-shadow:0 4px 0 #C98F00;transform:translateY(2px)}
+.btn-pri{background:var(--primary);color:#fff;box-shadow:0 6px 0 var(--dark)}
+.btn-out{background:#fff;color:var(--primary);border-color:var(--line)}
+.btn-out:hover{border-color:var(--primary)}
+.btn-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.45)}
+.btn-ghost:hover{border-color:#fff}
+.btn-lg{min-height:60px;font-size:17px;padding:14px 28px}
+/* qoʻngʻiroq tugmasi: toʻlqin + trubka silkinadi (gradientsiz) */
+.lp-call{position:relative;animation:lp-pulse 2.4s ease-out infinite}
+.lp-call svg{animation:lp-ring 3s ease-in-out infinite;transform-origin:50% 50%}
+@keyframes lp-pulse{0%{box-shadow:0 6px 0 #C98F00,0 0 0 0 rgba(255,184,0,.55)}70%,100%{box-shadow:0 6px 0 #C98F00,0 0 0 16px rgba(255,184,0,0)}}
+@keyframes lp-ring{0%,30%,100%{rotate:0deg}5%,15%,25%{rotate:-14deg}10%,20%{rotate:14deg}}
+
+/* header */
+.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--line2)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px clamp(16px,4vw,32px);max-width:1224px}
+.logo img{height:44px;width:auto}
+.lp-nav{display:flex;gap:4px}
+.lp-nav a{font-family:var(--h);font-weight:700;font-size:14.5px;text-decoration:none;color:var(--dark);padding:8px 12px;border-radius:10px}
+.lp-nav a:hover{background:var(--tint2);color:var(--primary)}
+.top-act{display:flex;gap:8px;align-items:center}
+.top-act .btn{min-height:44px;padding:8px 16px;font-size:14.5px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;border:2px solid var(--line);color:var(--primary);text-decoration:none}
+
+/* hero */
+.hero{padding:clamp(32px,5vw,72px) clamp(16px,4vw,32px) clamp(56px,7vw,96px);background:#fff}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(28px,4vw,56px);align-items:center}
+.lp-hero{display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+.hero h1{font-weight:900;font-size:clamp(32px,5vw,58px);letter-spacing:-.01em}
+.hero h1 .acc{color:var(--primary)}
+.hero .sub{font-size:clamp(17px,1.6vw,19px);color:var(--muted);max-width:560px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{display:inline-flex;align-items:center;gap:7px;background:var(--tint2);color:var(--primary);font-weight:700;font-size:14px;padding:7px 13px;border-radius:999px}
+.chips svg.i{width:17px;height:17px}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+.deal{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--dark);color:#fff;border-radius:18px;padding:14px 18px;width:100%;max-width:560px}
+.deal .lbl{font-size:13px;font-weight:700;color:#AFC3E6;letter-spacing:.04em;text-transform:uppercase}
+.deal .price{font-family:var(--h);font-weight:800;font-size:18px}
+.deal s{color:#8DA2C6;font-weight:600;margin-right:6px}
+.deal .new{color:var(--accent)}
+.timer{display:inline-flex;align-items:center;gap:8px;font-family:var(--h);font-weight:900;font-variant-numeric:tabular-nums}
+.timer b{display:inline-block;min-width:2ch;text-align:center;background:var(--accent);color:var(--dark);border-radius:10px;padding:6px 10px;font-size:24px;line-height:1}
+.timer i{font-style:normal;font-size:22px;color:var(--accent)}
+.deal .timer{margin-left:auto}
+.timer.done b{background:#3A4A66;color:#C9D5EA}
+.timer.done i{color:#8DA2C6}
+.heroimg{position:relative;aspect-ratio:4/5;border-radius:28px;overflow:hidden;background:var(--primary)}
+.heroimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.heroimg .ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;text-align:center;padding:24px}
+.heroimg .ph svg{width:46%;height:auto}
+.heroimg .ph b{font-family:var(--h);font-weight:900;font-size:clamp(26px,3vw,36px);letter-spacing:.04em}
+.heroimg .ph span{font-family:var(--h);font-weight:600;font-size:20px;color:#CFE0FF;margin-top:-14px}
+.hero-badge{position:absolute;left:16px;bottom:16px;right:16px;display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 14px 30px rgba(14,27,48,.22)}
+.hero-badge .ic{width:44px;height:44px;border-radius:12px;background:var(--tint2);color:var(--primary);display:flex;align-items:center;justify-content:center;flex:none}
+.hero-badge b{display:block;font-family:var(--h);font-weight:800;font-size:15px;line-height:1.25}
+.hero-badge small{color:var(--muted);font-size:13px}
+
+/* kurslar */
+.courses{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.course{display:flex;flex-direction:column;background:#fff;border:2px solid var(--line2);border-radius:var(--r);overflow:hidden}
+.course .pic{position:relative;aspect-ratio:4/3;background:var(--tint2);color:var(--primary);display:flex;align-items:center;justify-content:center}
+.course .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.course .pic .glyph{font-family:var(--h);font-weight:900;font-size:64px;line-height:1}
+.course .num{position:absolute;top:14px;left:14px;z-index:1;background:var(--accent);color:var(--dark);font-family:var(--h);font-weight:900;font-size:14px;padding:4px 10px;border-radius:8px}
+.course .body{padding:22px;display:flex;flex-direction:column;gap:14px;flex:1}
+.course h3{font-weight:800;font-size:22px}
+.course ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.course li{display:flex;gap:10px;align-items:flex-start;font-size:15px;color:var(--muted)}
+.course li svg.i{width:20px;height:20px;color:var(--primary);margin-top:2px}
+.course li b{color:var(--dark);font-weight:700}
+.course .btn{margin-top:auto;width:100%}
+
+/* nega biz */
+.why{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.card{background:#fff;border:2px solid var(--line2);border-radius:var(--r);padding:26px 22px;display:flex;flex-direction:column;gap:14px}
+.card h3{font-weight:800;font-size:19px}
+.card p{color:var(--muted);font-size:15px}
+.lp-ic{width:56px;height:56px;border-radius:16px;background:var(--tint2);color:var(--primary);display:flex;align-items:center;justify-content:center}
+.lp-ic svg.i{width:28px;height:28px}
+
+/* oʻrtadagi band */
+.band{background:var(--accent);padding:clamp(36px,5vw,56px) clamp(16px,4vw,32px)}
+.band .wrap{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.band h2{font-weight:900;font-size:clamp(22px,3vw,34px)}
+.band p{font-weight:600;color:#3A2E00;margin-top:6px}
+
+/* ustozlar */
+.teachers{display:flex;flex-direction:column;gap:24px}
+.teacher{display:grid;grid-template-columns:300px 1fr;gap:clamp(20px,4vw,48px);align-items:center;background:#fff;border:2px solid var(--line2);border-radius:28px;padding:clamp(18px,3vw,30px);position:relative;overflow:hidden}
+.teacher:nth-child(even){grid-template-columns:1fr 300px}
+.teacher:nth-child(even) .t-photo{order:2}
+.t-photo{position:relative;aspect-ratio:4/5;border-radius:22px;overflow:hidden;background:var(--tint2)}
+.t-photo>span:first-child{position:absolute;width:78%;aspect-ratio:1;border-radius:50%;background:var(--accent);left:11%;bottom:-18%;animation:lp-disc 2.4s ease-out infinite}
+.teacher:nth-child(2) .t-photo>span:first-child{animation-delay:.8s}
+.t-photo img{position:relative;width:100%;height:100%;object-fit:cover}
+.t-photo .noimg{position:absolute;inset:0 0 auto;height:58%;z-index:1;display:flex;align-items:center;justify-content:center;color:var(--primary)}
+.t-photo .noimg svg.i{width:72px;height:72px;stroke-width:1.3}
+.t-big{position:absolute;right:0;top:-18px;font-family:var(--h);font-weight:900;font-size:clamp(70px,9vw,120px);color:var(--tint2);line-height:1;pointer-events:none}
+.t-info{position:relative;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.subj{background:var(--primary);color:#fff;font-family:var(--h);font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;padding:6px 12px;border-radius:8px}
+.t-info h3{font-weight:900;font-size:clamp(24px,3vw,32px)}
+.t-facts{display:flex;flex-wrap:wrap;gap:10px}
+.t-facts span{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-weight:700;font-size:14.5px}
+.t-facts svg.i{width:18px;height:18px;color:var(--primary)}
+.t-info p{color:var(--muted);font-size:16px;max-width:520px}
+@keyframes lp-disc{0%{box-shadow:0 0 0 0 rgba(255,184,0,.7),0 0 0 0 rgba(255,184,0,.4)}70%,100%{box-shadow:0 0 0 26px rgba(255,184,0,0),0 0 0 52px rgba(255,184,0,0)}}
+.leader{margin-top:clamp(36px,5vw,56px);display:grid;grid-template-columns:260px 1fr;gap:clamp(20px,4vw,44px);align-items:center;background:var(--dark);color:#fff;border-radius:28px;padding:clamp(20px,3.5vw,36px)}
+.leader .ph{aspect-ratio:1;border-radius:22px;overflow:hidden;border:4px solid var(--accent)}
+.leader .ph img{width:100%;height:100%;object-fit:cover}
+.leader .role{display:inline-block;background:var(--accent);color:var(--dark);font-family:var(--h);font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;padding:6px 12px;border-radius:8px;transform:rotate(-2deg)}
+.leader h3{color:#fff;font-weight:900;font-size:clamp(26px,3.4vw,38px);margin:14px 0 10px}
+.leader p{color:#C5D3EC;font-size:16.5px;max-width:600px}
+.leader q{display:block;margin-top:18px;font-family:var(--h);font-weight:800;font-size:clamp(18px,2.2vw,22px);color:#fff;quotes:"«" "»";border-left:4px solid var(--accent);padding-left:14px}
+
+/* galereya / fikrlar */
+.lp-scroller{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:4px 2px 8px}
+.lp-scroller::-webkit-scrollbar{display:none}
+.gal-item{flex:0 0 min(80vw,360px);scroll-snap-align:start;position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;background:#0B2F78;border:2px solid rgba(255,255,255,.18)}
+.gal-item img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gal-item .ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#BFD3F7;font-weight:700;text-align:center;padding:16px}
+.gal-item .ph svg.i{width:44px;height:44px;stroke-width:1.4;color:var(--accent)}
+.gal-cap{position:absolute;left:12px;bottom:12px;z-index:1;background:var(--accent);color:var(--dark);font-family:var(--h);font-weight:800;font-size:13px;padding:5px 10px;border-radius:8px}
+.arrows{display:flex;justify-content:center;gap:12px;margin-top:20px}
+.arrows button{width:52px;height:52px;border-radius:14px;border:2px solid rgba(255,255,255,.45);background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.arrows button:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+.arrows.dark button{border-color:var(--line);color:var(--primary)}
+.arrows.dark button:hover{border-color:var(--primary);background:#fff}
+.rev{flex:0 0 min(86vw,440px);scroll-snap-align:start;background:#fff;border:2px dashed var(--line);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;gap:14px}
+.rev .stars{display:flex;gap:4px;color:var(--accent)}
+.rev .stars svg.i{width:20px;height:20px;fill:var(--accent);stroke:var(--accent)}
+.rev p{color:var(--muted);font-style:italic}
+.rev .who{display:flex;align-items:center;gap:12px;margin-top:auto}
+.rev .av{width:44px;height:44px;border-radius:50%;background:var(--tint2);color:var(--primary);display:flex;align-items:center;justify-content:center}
+.rev .who b{display:block;font-family:var(--h);font-size:15px}
+.rev .who small{color:var(--muted)}
+
+/* narxlar */
+.price-box{display:grid;grid-template-columns:1.1fr .9fr;gap:0;max-width:980px;margin:0 auto;background:#fff;border:2px solid var(--line2);border-radius:28px;overflow:hidden;box-shadow:0 18px 40px rgba(0,58,156,.08)}
+.pb-main{padding:clamp(22px,4vw,40px);display:flex;flex-direction:column;gap:18px}
+.pb-main .per{font-weight:700;color:var(--muted);font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.pb-old{font-family:var(--h);font-weight:700;font-size:22px;color:#8A99B4;text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:#E04848}
+.pb-new{font-family:var(--h);font-weight:900;font-size:clamp(40px,6vw,60px);color:var(--primary);line-height:1}
+.pb-new small{font-size:.4em;color:var(--dark);font-weight:800}
+.pb-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.pb-list li{display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.pb-list svg.i{color:var(--ok);width:22px;height:22px;margin-top:1px}
+.pb-side{background:var(--primary);color:#fff;padding:clamp(22px,4vw,40px);display:flex;flex-direction:column;gap:18px;justify-content:center}
+.pb-side h3{color:#fff;font-weight:800;font-size:20px}
+.pb-side p{color:#D6E3FA;font-size:15px}
+.pb-side .timer b{font-size:34px;padding:10px 14px}
+.pb-side .timer i{font-size:30px}
+.pb-side .btn{width:100%}
+.free{display:flex;gap:14px;align-items:center;background:var(--tint);border:2px solid var(--line2);border-radius:18px;padding:14px 16px}
+.free .lp-ic{width:48px;height:48px;flex:none;background:var(--accent);color:var(--dark)}
+.free b{font-family:var(--h);font-weight:800}
+.free span{display:block;color:var(--muted);font-size:14.5px}
+.expired-note{display:none;font-size:14px;color:#FFE08A;font-weight:600}
+.is-expired .expired-note{display:block}
+
+/* FAQ */
+.faq{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.faq details{background:#fff;border:2px solid var(--line2);border-radius:18px;overflow:hidden;transition:border-color .25s}
+.faq details[open]{border-color:var(--primary)}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;font-family:var(--h);font-weight:800;font-size:17px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .pm{width:36px;height:36px;border-radius:10px;background:var(--tint2);color:var(--primary);display:flex;align-items:center;justify-content:center;flex:none;transition:transform .3s,background .3s}
+.faq details[open] .pm{transform:rotate(45deg);background:var(--accent);color:var(--dark)}
+.faq details p{padding:0 20px 20px;color:var(--muted);font-size:16px}
+
+/* aloqa */
+.cta-big{background:var(--accent);border-radius:28px;padding:clamp(24px,4vw,44px);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.cta-big h2{font-weight:900;font-size:clamp(26px,4vw,44px)}
+.cta-big p{font-weight:600;color:#3A2E00;margin-top:6px}
+.cta-big .btns .btn-pri{box-shadow:0 6px 0 var(--dark)}
+.contact{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.c-list{background:#fff;color:var(--dark);border-radius:var(--r);padding:clamp(20px,3vw,30px);display:flex;flex-direction:column;gap:6px}
+.c-row{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line2);text-decoration:none}
+.c-row:last-child{border-bottom:0}
+.c-row .lp-ic{width:46px;height:46px;flex:none;border-radius:13px}
+.c-row .lp-ic svg.i{width:22px;height:22px}
+.c-row small{display:block;color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.c-row b{font-family:var(--h);font-weight:800;font-size:16.5px}
+a.c-row:hover b{color:var(--primary)}
+.c-map{background:#0B2F78;border-radius:var(--r);padding:clamp(20px,3vw,30px);display:flex;flex-direction:column;gap:16px;justify-content:space-between;border:2px solid rgba(255,255,255,.15)}
+.c-map .pin{width:64px;height:64px;border-radius:18px;background:var(--accent);color:var(--dark);display:flex;align-items:center;justify-content:center}
+.c-map .pin svg.i{width:32px;height:32px}
+.c-map h3{color:#fff;font-size:22px;font-weight:800}
+.c-map p{color:#C9D9F6}
+.c-map .btns .btn{flex:1 1 200px}
+footer{background:var(--dark);color:#9FB0CC;padding:28px clamp(16px,4vw,32px) 28px;font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+footer b{color:#fff;font-family:var(--h)}
+footer a{color:#fff;text-decoration:none;font-weight:700}
+
+/* telefondagi pastki panel */
+.lp-callbar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:60;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line2);box-shadow:0 -8px 24px rgba(14,27,48,.1)}
+.lp-callbar .btn{flex:1;min-height:50px;font-size:15px;padding:10px 12px}
+
+/* ochilish effektlari */
+.lp-rv{transition:opacity .7s cubic-bezier(.22,.61,.36,1),translate .7s cubic-bezier(.22,.61,.36,1),border-color .35s,scale .45s cubic-bezier(.22,.61,.36,1),background-color .45s,box-shadow .45s}
+.lp-js .lp-rv{opacity:0;translate:0 28px}
+.lp-js .lp-rv.lp-in{opacity:1;translate:0 0}
+.lp-stagger>.lp-rv:nth-child(2){transition-delay:.08s,.08s,0s}
+.lp-stagger>.lp-rv:nth-child(3){transition-delay:.16s,.16s,0s}
+.lp-stagger>.lp-rv:nth-child(4){transition-delay:.24s,.24s,0s}
+.lp-stagger>.lp-card.lp-on{scale:1.04;position:relative;z-index:2;box-shadow:0 22px 46px rgba(0,58,156,.18)}
+.lp-rv.lp-card.lp-on{background-color:var(--lit,#fff)}
+.lp-stagger>:nth-child(1){--lit:#EAF1FF}.lp-stagger>:nth-child(2){--lit:#FFF6DC}
+.lp-stagger>:nth-child(3){--lit:#EAF1FF}.lp-stagger>:nth-child(4){--lit:#FFF6DC}
+.lp-card.lp-on,.lp-card:hover{border-color:var(--primary)}
+.lp-ic{--g:0,58,156;transition:background-color .35s,color .35s,scale .35s;animation:lp-glow 2.6s ease-out infinite}
+.lp-card.lp-on .lp-ic,.lp-card:hover .lp-ic{--g:255,184,0;background:var(--accent);color:var(--dark);scale:1.08}
+@keyframes lp-glow{0%{box-shadow:0 0 0 0 rgba(var(--g),.45)}70%,100%{box-shadow:0 0 0 14px rgba(var(--g),0)}}
+.lp-photo{transition:scale .6s cubic-bezier(.22,.61,.36,1)}.lp-on .lp-photo{scale:1.06}
+@keyframes lp-ok{0%{box-shadow:0 0 0 0 rgba(22,163,74,.55)}100%{box-shadow:0 0 0 18px rgba(22,163,74,0)}}
+.lp-tap{animation:lp-ok .8s ease-out both!important}
+.lp-rv.lp-card.lp-tap,article.lp-tap{background-color:var(--ok-bg)!important;border-color:var(--ok)!important}
+.lp-tap .lp-ic,.lp-ic.lp-tap{background:var(--ok)!important;color:#fff!important;--g:22,163,74}
+@keyframes lp-up{from{opacity:0;translate:0 24px}}
+.lp-hero>*{animation:lp-up .7s cubic-bezier(.22,.61,.36,1) both}
+.lp-hero>*:nth-child(2){animation-delay:.1s}.lp-hero>*:nth-child(3){animation-delay:.2s}
+.lp-hero>*:nth-child(4){animation-delay:.3s}.lp-hero>*:nth-child(5){animation-delay:.4s}.lp-hero>*:nth-child(6){animation-delay:.5s}
+.heroimg{animation:lp-up .9s .3s cubic-bezier(.22,.61,.36,1) both}
+
+/* ===== roʻyxat chiptasi ===== */
+#royxat{scroll-margin-top:72px}
+.lp-tk{position:relative;max-width:900px;margin:0 auto}
+.lp-tk-top{background:var(--accent);border-radius:26px 26px 0 0;padding:14px clamp(16px,3vw,28px);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lp-tk-top b{font-family:var(--h);font-weight:900;font-size:clamp(13px,1.8vw,16px);letter-spacing:.06em;color:var(--dark)}
+.lp-dots{display:flex;gap:6px}.lp-dots i{display:block;width:30px;height:10px;border-radius:6px;background:rgba(14,27,48,.2);transition:background .3s,transform .3s}.lp-dots i.on{background:var(--dark);transform:scaleY(1.25)}
+.lp-tk-main{position:relative;background:#fff;display:grid;grid-template-columns:1.55fr 1fr;border-radius:0 0 26px 26px;box-shadow:0 10px 0 rgba(0,58,156,.25)}
+.lp-tk-fields{padding:clamp(20px,3.5vw,34px)}
+.lp-tk-stub{position:relative;border-left:3px dashed var(--line);background:#F3F7FD;border-radius:0 0 26px 0;padding:clamp(20px,3vw,28px);display:flex;flex-direction:column;gap:14px}
+.lp-tk-stub::before,.lp-tk-stub::after{content:"";position:absolute;left:-15px;width:27px;height:27px;border-radius:50%;background:var(--tint);z-index:2}
+.lp-tk-stub::before{top:-14px}.lp-tk-stub::after{bottom:-14px;display:none}
+.lp-f{display:flex;flex-direction:column;gap:2px;margin-bottom:26px}
+.lp-f-l{display:flex;align-items:center;gap:10px;font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lp-f-l em{font-style:normal;background:var(--accent);color:var(--dark);border-radius:6px;padding:2px 8px;font-weight:900;transform:rotate(-4deg);display:inline-block}
+.lp-inp{width:100%;border:0;border-bottom:3px solid var(--line);background:transparent;font-family:var(--h);font-weight:800;font-size:clamp(20px,3vw,26px);color:var(--dark);padding:10px 0 8px;outline:0;border-radius:0;transition:border-color .25s,box-shadow .25s}
+.lp-inp::placeholder{color:#A9BCDC;font-weight:700}.lp-inp:focus{border-bottom-color:var(--primary);box-shadow:0 5px 0 -2px var(--accent)}
+.lp-f.lp-fok .lp-inp{border-bottom-color:var(--ok)}.lp-f.lp-fok .lp-f-l em{background:var(--ok);color:#fff}
+.lp-subs{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.lp-sub{flex:1 1 160px;display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 14px;border-radius:18px;border:3px solid var(--line);background:var(--tint);color:var(--dark);font-family:var(--h);font-weight:800;font-size:15.5px;cursor:pointer;text-align:left;transition:transform .25s cubic-bezier(.3,1.6,.5,1),background .25s,border-color .25s,box-shadow .25s,color .25s;-webkit-tap-highlight-color:transparent}
+.lp-sub .g{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:13px;background:#fff;color:var(--primary);font-weight:900;font-size:20px;flex:none;transition:background .25s,color .25s,transform .35s}
+.lp-sub .t{display:flex;flex-direction:column;line-height:1.2}.lp-sub .t small{font-family:var(--b);font-weight:700;font-size:11.5px;color:var(--muted)}
+.lp-sub .s-on{display:none}.lp-sub:active{transform:scale(.96)}
+.lp-sub[aria-pressed=true]{background:var(--primary);border-color:var(--dark);color:#fff;transform:rotate(-1.4deg) scale(1.03);box-shadow:0 7px 0 rgba(14,27,48,.45)}
+.lp-sub[aria-pressed=true] .g{background:var(--accent);color:var(--dark);transform:rotate(-10deg) scale(1.1)}
+.lp-sub[aria-pressed=true] .t small{color:#FFE08A}.lp-sub[aria-pressed=true] .s-on{display:inline}.lp-sub[aria-pressed=true] .s-off{display:none}
+.lp-sl{font-weight:800;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.lp-sv{font-family:var(--h);font-weight:900;font-size:clamp(16px,2vw,19px);color:var(--dark);line-height:1.25;word-break:break-word;min-height:1.25em}.lp-sv.lp-empty{color:#A9BCDC}
+.lp-chips{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}.lp-chips span{background:var(--primary);color:#fff;font-weight:800;font-size:12px;padding:5px 10px;border-radius:999px;animation:lp-chip .35s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes lp-chip{0%{scale:.2;opacity:0}100%{scale:1;opacity:1}}
+.lp-bar{height:34px;border-radius:4px;margin-top:auto;background:repeating-linear-gradient(90deg,var(--dark) 0 3px,transparent 3px 6px,var(--dark) 6px 7px,transparent 7px 11px,var(--dark) 11px 15px,transparent 15px 17px);opacity:.8}
+.lp-send{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:64px;border:0;border-radius:18px;background:var(--line);color:var(--muted);font-family:var(--h);font-weight:900;font-size:clamp(16px,2.2vw,19px);cursor:pointer;transition:background .3s,color .3s,box-shadow .3s,transform .2s}
+.lp-send.lp-ready{background:var(--accent);color:var(--dark);box-shadow:0 7px 0 #C98F00}.lp-send:active{transform:translateY(3px)}
+.lp-shake{animation:lp-shake .45s both}@keyframes lp-shake{0%,100%{translate:0}20%{translate:-9px}40%{translate:8px}60%{translate:-6px}80%{translate:4px}}
+.lp-err{display:none;margin:12px 0 0;font-weight:700;font-size:14px;color:#B42318}
+.lp-stamp{display:none;position:absolute;left:calc(100% - 178px);top:70%;z-index:5;pointer-events:none;white-space:nowrap;border:6px solid var(--ok);color:var(--ok);background:rgba(255,255,255,.92);border-radius:16px;padding:10px clamp(14px,3vw,30px);font-family:var(--h);font-weight:900;font-size:clamp(20px,5.4vw,26px);letter-spacing:.03em;translate:-50% -50%;rotate:-9deg}
+.lp-thanks{display:none;flex-direction:column;gap:10px;margin-top:14px;padding:16px 18px;border-radius:18px;background:var(--ok-bg);border:3px solid var(--ok);color:#0B4F27;font-weight:700;font-size:15px}
+.lp-thanks b{font-family:var(--h);font-weight:900;font-size:17px}.lp-thanks button{align-self:flex-start;border:2px solid var(--ok);background:transparent;color:#0B4F27;border-radius:12px;font-family:inherit;font-weight:800;font-size:14px;padding:10px 16px;cursor:pointer;min-height:44px}
+.lp-sent .lp-stamp{display:block;animation:lp-slam .55s cubic-bezier(.2,.9,.3,1.2) both}.lp-sent .lp-thanks{display:flex}.lp-sent .lp-send{display:none}.lp-sent .lp-f{opacity:.5}
+.lp-sent .lp-tk-main{animation:lp-ok .9s ease-out both;box-shadow:0 10px 0 var(--ok)}.lp-sent .lp-tk-top{background:var(--ok)}.lp-sent .lp-tk-top b{color:#fff}
+@keyframes lp-slam{0%{scale:3;opacity:0}60%{scale:.9;opacity:1}100%{scale:1;opacity:1}}
+
+/* moslashuv */
+@media (max-width:1020px){
+  .lp-nav{display:none}
+  .why{grid-template-columns:repeat(2,1fr)}
+  .courses{grid-template-columns:1fr 1fr}
+}
+@media (max-width:820px){
+  .lp-callbar{display:flex}
+  body{padding-bottom:76px}
+  .top-call-text{display:none}
+  .hero .wrap{grid-template-columns:1fr}
+  .heroimg{aspect-ratio:4/3;order:-1}
+  .courses{grid-template-columns:1fr}
+  .teacher,.teacher:nth-child(even){grid-template-columns:1fr}
+  .teacher:nth-child(even) .t-photo{order:0}
+  .t-photo{max-width:340px;width:100%;margin:0 auto}
+  .leader{grid-template-columns:1fr;text-align:left}
+  .leader .ph{max-width:240px}
+  .price-box{grid-template-columns:1fr}
+  .contact{grid-template-columns:1fr}
+}
+@media (max-width:720px){
+  .lp-tk-main{grid-template-columns:1fr}.lp-tk-stub{border-left:0;border-top:3px dashed var(--line);border-radius:0 0 26px 26px}
+  .lp-tk-stub::before{top:-14px;left:-14px}.lp-tk-stub::after{display:block;top:-14px;bottom:auto;left:auto;right:-14px}
+  .lp-bar{height:26px;margin-top:4px}.lp-stamp{left:50%;top:auto;bottom:-6px;translate:-50% 0}
+}
+@media (max-width:560px){
+  .why{grid-template-columns:1fr}
+  .btns{width:100%}
+  .btns .btn{flex:1 1 100%}
+  .deal .timer{margin-left:0}
+  .top-act .btn-acc{padding:8px 12px;font-size:13.5px}
+  .logo img{height:38px}
+  .band .btn{width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .lp-ic,.lp-call,.lp-call svg,.lp-tap,.t-photo>span:first-child,.lp-shake,.lp-chips span,.lp-sent .lp-stamp,.lp-sent .lp-tk-main{animation:none!important}
+  .lp-js .lp-rv{opacity:1;translate:0 0}.lp-rv,.lp-mark,.lp-ic{transition:none}
+  .lp-hero>*,.heroimg{animation:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Chiziqli ikonkalar -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4"/><path d="M4 4h12l-2 4 2 4H4"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M8.2 13 7 22l5-3 5 3-1.2-9"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-4h6v4M8 7h2M14 7h2M8 11h2M14 11h2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><path d="M8 2v16M16 6v16"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="SMART ACADEMY — bosh sahifa"><img src="assets/logo.jpg" alt="SMART ACADEMY logotipi" width="560" height="218"></a>
+    <nav class="lp-nav" aria-label="Asosiy menyu">
+      <a href="#kurslar">Kurslar</a>
+      <a href="#nega-biz">Nega biz</a>
+      <a href="#ustozlar">Ustozlar</a>
+      <a href="#narxlar">Narxlar</a>
+      <a href="#savollar">Savollar</a>
+      <a href="#aloqa">Aloqa</a>
+    </nav>
+    <div class="top-act">
+      <a class="icon-btn" href="tel:+998955777209" aria-label="Qoʻngʻiroq qilish"><svg class="i"><use href="#i-phone"/></svg></a>
+      <a class="btn btn-acc" href="#royxat">Roʻyxatdan oʻtish</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- 1. BOSH EKRAN -->
+<section class="hero">
+  <div class="wrap">
+    <div class="lp-hero">
+      <span class="tag">7–17 YOSH UCHUN QABUL OCHIQ</span>
+      <h1>Farzandingiz bilimini <span class="acc">yangi bosqichga</span> olib chiqing</h1>
+      <p class="sub">Universitet va Prezident maktablariga tayyorlov — tajribali ustozlar bilan, darajasiga mos guruhlarda.</p>
+      <div class="chips">
+        <span><svg class="i"><use href="#i-book"/></svg>Ingliz tili</span>
+        <span><svg class="i"><use href="#i-trend"/></svg>Matematika</span>
+        <span><svg class="i"><use href="#i-chat"/></svg>Rus tili</span>
+      </div>
+      <div class="btns">
+        <a class="btn btn-acc btn-lg lp-call" href="tel:+998955777209"><svg class="i"><use href="#i-phone"/></svg>Qoʻngʻiroq qilish</a>
+        <a class="btn btn-out btn-lg" href="#kurslar">Kurslarni koʻrish<svg class="i"><use href="#i-arrow"/></svg></a>
+      </div>
+      <div class="deal" data-deal>
+        <div>
+          <div class="lbl">Chegirma tugashiga</div>
+          <div class="price"><s>350 000</s><span class="new">250 000 soʻm</span></div>
+        </div>
+        <div class="timer" data-timer role="timer" aria-live="off"><b data-m>20</b><i>:</i><b data-s>00</b></div>
+      </div>
+    </div>
+    <div class="heroimg">
+      <div class="ph" aria-hidden="true">
+        <svg viewBox="0 0 100 100"><path d="M50 2C53 36 64 47 98 50 64 53 53 64 50 98 47 64 36 53 2 50 36 47 47 36 50 2Z" fill="#fff"/></svg>
+        <b>SMART</b><span>academy</span>
+      </div>
+      <img src="assets/hero.jpg" alt="SMART ACADEMY oʻquv markazi" onerror="this.remove()">
+      <div class="hero-badge">
+        <span class="ic"><svg class="i"><use href="#i-gift"/></svg></span>
+        <span><b>1-sinov darsi BEPUL</b><small>Yoqsa davom ettirasiz, yoqmasa — toʻlamaysiz</small></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. KURSLAR -->
+<section class="sec tint" id="kurslar">
+  <div class="wrap">
+    <div class="head lp-rv">
+      <span class="tag">KURSLARIMIZ</span>
+      <h2>Darajasiga mos <span class="lp-mark">guruhlar</span></h2>
+      <p>Maktab oʻquvchilari va abituriyentlar uchun chuqur bilim, sertifikat va imtihonlarga tayyorlov.</p>
+    </div>
+    <div class="courses lp-stagger">
+      <article class="course lp-rv">
+        <div class="pic"><span class="num">01</span><span class="glyph" aria-hidden="true">∑</span><img src="assets/kurs-1.jpg" alt="Matematika darsi" loading="lazy" onerror="this.remove()"></div>
+        <div class="body">
+          <h3>Matematika</h3>
+          <ul>
+            <li><svg class="i"><use href="#i-users"/></svg><span><b>2–4, 5–7, 8–11-sinf</b> oʻquvchilari</span></li>
+            <li><svg class="i"><use href="#i-cal"/></svg><span>Haftasiga <b>3 marta</b></span></li>
+            <li><svg class="i"><use href="#i-book"/></svg><span>Maxsus dastur va metodika asosida</span></li>
+          </ul>
+          <a class="btn btn-pri" href="#royxat">Kursga yozilish</a>
+        </div>
+      </article>
+      <article class="course lp-rv">
+        <div class="pic"><span class="num">02</span><span class="glyph" aria-hidden="true">Aa</span><img src="assets/kurs-2.jpg" alt="Ingliz tili darsi" loading="lazy" onerror="this.remove()"></div>
+        <div class="body">
+          <h3>Ingliz tili</h3>
+          <ul>
+            <li><svg class="i"><use href="#i-users"/></svg><span><b>2–4, 5–7, 8–11-sinf</b> oʻquvchilari</span></li>
+            <li><svg class="i"><use href="#i-cal"/></svg><span>Haftasiga <b>3 marta</b></span></li>
+            <li><svg class="i"><use href="#i-book"/></svg><span>Noldan boshlab soʻzlashuv, grammatika va CEFR/IELTSʼga tayyorlov</span></li>
+          </ul>
+          <a class="btn btn-pri" href="#royxat">Kursga yozilish</a>
+        </div>
+      </article>
+      <article class="course lp-rv">
+        <div class="pic"><span class="num">03</span><span class="glyph" aria-hidden="true">Яя</span><img src="assets/kurs-3.jpg" alt="Rus tili darsi" loading="lazy" onerror="this.remove()"></div>
+        <div class="body">
+          <h3>Rus tili</h3>
+          <ul>
+            <!-- TODO: kimlar uchun va haftasiga necha marta ekanini yozing -->
+            <li><svg class="i"><use href="#i-users"/></svg><span>Guruhlar — <b>qoʻngʻiroq orqali aniqlang</b></span></li>
+            <li><svg class="i"><use href="#i-cal"/></svg><span>Dars jadvali — <b>qoʻngʻiroq orqali aniqlang</b></span></li>
+            <li><svg class="i"><use href="#i-book"/></svg><span>Soʻzlashuv, grammatika va imtihonga tayyorlov</span></li>
+          </ul>
+          <a class="btn btn-pri" href="#royxat">Kursga yozilish</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 3. NEGA BIZ -->
+<section class="sec" id="nega-biz">
+  <div class="wrap">
+    <div class="head lp-rv">
+      <span class="tag">NEGA AYNAN BIZ</span>
+      <h2>Kuchli ustoz — <span class="lp-mark">yuqori natija</span></h2>
+      <p>SMART ACADEMY — 2026-yilda ochilgan zamonaviy oʻquv markazi. Sertifikat olishga, oliy taʼlim muassasalariga va Prezident maktablariga tayyorlaymiz.</p>
+    </div>
+    <div class="why lp-stagger">
+      <div class="card lp-card lp-rv"><span class="lp-ic"><svg class="i"><use href="#i-flag"/></svg></span><h3>0 dan natijagacha</h3><p>Har qanday darajadan boshlab, natijaga erishguncha tayyorlaymiz.</p></div>
+      <div class="card lp-card lp-rv"><span class="lp-ic"><svg class="i"><use href="#i-award"/></svg></span><h3>Ragʻbatlantirish tizimi</h3><p>Oʻqishga qiziqishni oshirish uchun oylik natijalarga koʻra sertifikat va sovgʻalar bilan ragʻbatlantiramiz.</p></div>
+      <div class="card lp-card lp-rv"><span class="lp-ic"><svg class="i"><use href="#i-chat"/></svg></span><h3>Ota-onalar bilan aloqa</h3><p>Har oy farzandingiz natijalari haqida hisobot beramiz.</p></div>
+      <div class="card lp-card lp-rv"><span class="lp-ic"><svg class="i"><use href="#i-building"/></svg></span><h3>Zamonaviy sharoit</h3><p>Yangi, qulay va jihozlangan sinfxonalar.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Oʻrtadagi tugma bandi -->
+<div class="band">
+  <div class="wrap">
+    <div>
+      <h2>Joyingizni hoziroq band qiling</h2>
+      <p>Guruhlarda joylar soni cheklangan. Birinchi dars — bepul.</p>
+    </div>
+    <a class="btn btn-pri btn-lg" href="#royxat">Roʻyxatdan oʻtish<svg class="i"><use href="#i-arrow"/></svg></a>
+  </div>
+</div>
+
+<!-- 4. USTOZLAR -->
+<section class="sec tint" id="ustozlar">
+  <div class="wrap">
+    <div class="head lp-rv">
+      <span class="tag">USTOZLARIMIZ</span>
+      <h2>Tajribali <span class="lp-mark">ustozlar</span> jamoasi</h2>
+      <p>Har bir ustoz oʻz fanining ustasi va farzandingizga individual yondashadi.</p>
+    </div>
+    <div class="teachers">
+      <!-- TODO: ism, tajriba, yutuq va jumlani yozing -->
+      <article class="teacher lp-rv lp-watch">
+        <div class="t-photo"><span></span><img class="lp-photo" src="assets/ustoz-1.jpg" alt="Matematika ustozi" loading="lazy"></div>
+        <div class="t-info">
+          <span class="t-big" aria-hidden="true">01</span>
+          <span class="subj">Matematika</span>
+          <h3>[Ism Familiya]</h3>
+          <div class="t-facts">
+            <span><svg class="i"><use href="#i-clock"/></svg>[ ] yil tajriba</span>
+            <span><svg class="i"><use href="#i-award"/></svg>[Sertifikat / yutuq]</span>
+          </div>
+          <p>[Ustoz haqida 1 jumla]</p>
+        </div>
+      </article>
+      <article class="teacher lp-rv lp-watch">
+        <div class="t-photo"><span></span><span class="noimg"><svg class="i"><use href="#i-user"/></svg></span><img class="lp-photo" src="assets/ustoz-2.jpg" alt="Ingliz tili ustozi" loading="lazy" onerror="this.remove()"></div>
+        <div class="t-info">
+          <span class="t-big" aria-hidden="true">02</span>
+          <span class="subj">Ingliz tili</span>
+          <h3>[Ism Familiya]</h3>
+          <div class="t-facts">
+            <span><svg class="i"><use href="#i-clock"/></svg>[ ] yil tajriba</span>
+            <span><svg class="i"><use href="#i-award"/></svg>[Masalan: IELTS 7.5]</span>
+          </div>
+          <p>[Ustoz haqida 1 jumla]</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="leader lp-rv">
+      <div class="ph"><img src="assets/rahbar.jpg" alt="Xoliqulov Sohibjon — SMART ACADEMY rahbari" loading="lazy"></div>
+      <div>
+        <span class="role">Oʻquv markaz rahbari</span>
+        <h3>Xoliqulov Sohibjon</h3>
+        <p>SMART ACADEMY jamoasini boshqaradi. Markazning maqsadi — har bir oʻquvchiga chuqur bilim berish va uni oliy taʼlim muassasalari hamda Prezident maktablariga ishonchli tayyorlash.</p>
+        <q>Kuchli ustoz — yuqori natija</q>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. OLIMPIADA GʻOLIBLARIMIZ -->
+<section class="sec blue" id="goliblar">
+  <div class="wrap">
+    <div class="head lp-rv">
+      <span class="tag">FAXRIMIZ</span>
+      <h2>Olimpiada gʻoliblarimiz</h2>
+      <p>Oʻquvchilarimizning yutuqlari — bizning eng katta natijamiz.</p>
+    </div>
+    <div class="lp-scroller lp-rv" id="lp-gal">
+      <div class="gal-item"><div class="ph"><svg class="i"><use href="#i-trophy"/></svg>Rasm tez orada</div><img src="assets/galereya-1.jpg" alt="Olimpiada gʻolibi" loading="lazy" onerror="this.remove()"></div>
+      <div class="gal-item"><div class="ph"><svg class="i"><use href="#i-trophy"/></svg>Rasm tez orada</div><img src="assets/galereya-2.jpg" alt="Olimpiada gʻolibi" loading="lazy" onerror="this.remove()"></div>
+      <div class="gal-item"><div class="ph"><svg class="i"><use href="#i-trophy"/></svg>Rasm tez orada</div><img src="assets/galereya-3.jpg" alt="Olimpiada gʻolibi" loading="lazy" onerror="this.remove()"></div>
+      <div class="gal-item"><div class="ph"><svg class="i"><use href="#i-trophy"/></svg>Rasm tez orada</div><img src="assets/galereya-4.jpg" alt="Olimpiada gʻolibi" loading="lazy" onerror="this.remove()"></div>
+    </div>
+    <div class="arrows">
+      <button type="button" data-slide="lp-gal" data-dir="-1" aria-label="Oldingi rasm"><svg class="i"><use href="#i-left"/></svg></button>
+      <button type="button" data-slide="lp-gal" data-dir="1" aria-label="Keyingi rasm"><svg class="i"><use href="#i-right"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<!-- 6. OʻQUVCHILAR FIKRI (hozircha joy qoldirilgan) -->
+<section class="sec" id="fikrlar">
+  <div class="wrap">
+    <div class="head lp-rv">
+      <span class="tag">FIKRLAR</span>
+      <h2>Oʻquvchilar va ota-onalar <span class="lp-mark">fikri</span></h2>
+      <p>Birinchi oʻquvchilarimiz fikrlari tez orada shu yerda boʻladi.</p>
+    </div>
+    <div class="lp-scroller lp-rv" id="lp-rev">
+      <div class="rev"><div class="stars"><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg></div><p>Bu yerda ota-onalar fikri boʻladi.</p><div class="who"><span class="av"><svg class="i"><use href="#i-user"/></svg></span><span><b>Ota-ona</b><small>Matematika kursi</small></span></div></div>
+      <div class="rev"><div class="stars"><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg></div><p>Bu yerda oʻquvchi fikri boʻladi.</p><div class="who"><span class="av"><svg class="i"><use href="#i-user"/></svg></span><span><b>Oʻquvchi</b><small>Ingliz tili kursi</small></span></div></div>
+      <div class="rev"><div class="stars"><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg><svg class="i"><use href="#i-star"/></svg></div><p>Bu yerda ota-onalar fikri boʻladi.</p><div class="who"><span class="av"><svg class="i"><use href="#i-user"/></svg></span><span><b>Ota-ona</b><small>Rus tili kursi</small></span></div></div>
+    </div>
+    <div class="arrows dark">
+      <button type="button" data-slide="lp-rev" data-dir="-1" aria-label="Oldingi fikr"><svg class="i"><use href="#i-left"/></svg></button>
+      <button type="button" data-slide="lp-rev" data-dir="1" aria-label="Keyingi fikr"><svg class="i"><use href="#i-right"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<!-- 7. NARXLAR -->
+<section class="sec tint" id="narxlar">
+  <div class="wrap">
+    <div class="head lp-rv">
+      <span class="tag">NARXLAR</span>
+      <h2>Faqat 20 daqiqa ichida — <span class="lp-mark">chegirma</span></h2>
+      <p>Bogʻlanib, kursga yozilganlar uchun maxsus narx.</p>
+    </div>
+    <div class="price-box lp-rv" data-deal>
+      <div class="pb-main">
+        <span class="per">Oylik toʻlov · har bir kurs</span>
+        <div>
+          <div class="pb-old">350 000 soʻm</div>
+          <div class="pb-new">250 000 <small>soʻm / oy</small></div>
+        </div>
+        <ul class="pb-list">
+          <li><svg class="i"><use href="#i-check"/></svg>Haftasiga 3 marta dars</li>
+          <li><svg class="i"><use href="#i-check"/></svg>Darajasiga mos guruh</li>
+          <li><svg class="i"><use href="#i-check"/></svg>Har oy test va ota-onalarga hisobot</li>
+          <li><svg class="i"><use href="#i-check"/></svg>Oylik natijalarga koʻra sertifikat va sovgʻalar</li>
+        </ul>
+        <div class="free">
+          <span class="lp-ic"><svg class="i"><use href="#i-gift"/></svg></span>
+          <div><b>1-darsga qatnashib koʻrish — BEPUL</b><span>Yoqsa davom ettirasiz, yoqmasa pul toʻlamaysiz.</span></div>
+        </div>
+      </div>
+      <div class="pb-side">
+        <h3>Chegirma tugashiga qoldi:</h3>
+        <div class="timer" data-timer role="timer" aria-live="off"><b data-m>20</b><i>:</i><b data-s>00</b></div>
+        <p>Shart: faqat 20 daqiqa ichida bogʻlanib, kursga yozilganlar uchun.</p>
+        <p class="expired-note">Vaqt tugadi. Qoʻngʻiroq qilib, joriy narxni aniqlang.</p>
+        <a class="btn btn-acc btn-lg lp-call" href="tel:+998955777209"><svg class="i"><use href="#i-phone"/></svg>Qoʻngʻiroq qilish</a>
+        <a class="btn btn-ghost" href="#royxat">Onlayn ariza qoldirish</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. FAQ -->
+<section class="sec" id="savollar">
+  <div class="wrap">
+    <div class="head lp-rv">
+      <span class="tag">SAVOLLAR</span>
+      <h2>Koʻp beriladigan <span class="lp-mark">savollar</span></h2>
+    </div>
+    <div class="faq lp-rv">
+      <details open><summary>Birinchi dars pullikmi?<span class="pm"><svg class="i"><use href="#i-plus"/></svg></span></summary><p>Yoʻq, birinchi sinov darsi bepul.</p></details>
+      <details><summary>Darslar qachon boʻladi?<span class="pm"><svg class="i"><use href="#i-plus"/></svg></span></summary><p>Maktab smenasiga moslab, ertalab va tushdan keyingi guruhlar bor.</p></details>
+      <details><summary>Farzandimning natijasini qanday bilaman?<span class="pm"><svg class="i"><use href="#i-plus"/></svg></span></summary><p>Har oy test oʻtkazib, ota-onalarga hisobot beramiz.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- 9. ROʻYXAT FORMASI -->
+<section id="royxat" class="sec tint">
+<div class="wrap" style="display:flex;flex-direction:column;gap:clamp(28px,4vw,44px)">
+<div class="head lp-rv" style="margin-bottom:0">
+<span class="tag">3 QADAMDA ROʻYXATDAN OʻTING</span>
+<h2>Ariza <span class="lp-mark">qoldiring</span></h2>
+<p>Maʼlumotlar talonda jonli koʻrinadi. Ariza qoldirganingizdan soʻng tez orada siz bilan bogʻlanamiz.</p>
+</div>
+<form id="lp-form" class="lp-tk lp-rv" novalidate autocomplete="on">
+<div class="lp-tk-top"><b>SMART ACADEMY · ARIZA</b>
+<span style="display:flex;align-items:center;gap:12px;font-family:var(--h);font-weight:900;font-size:14px"><span class="lp-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>№ <span id="lp-no">0000</span></span></span></div>
+<div class="lp-tk-main">
+<div class="lp-stamp" aria-hidden="true">ARIZA QABUL QILINDI</div>
+<div class="lp-tk-fields">
+<div class="lp-f" id="lp-f1"><label class="lp-f-l" for="lp-name"><em>01</em> Ism</label><input class="lp-inp" id="lp-name" name="name" type="text" autocomplete="name" placeholder="Masalan: Aziz" maxlength="60"></div>
+<div class="lp-f" id="lp-f2"><label class="lp-f-l" for="lp-phone"><em>02</em> Telefon</label><input class="lp-inp" id="lp-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" maxlength="17"></div>
+<div class="lp-f" id="lp-f3" style="margin-bottom:22px"><span class="lp-f-l"><em>03</em> Qiziqtirgan kurs</span>
+<div class="lp-subs" role="group" aria-label="Kurslar">
+<button type="button" class="lp-sub" data-v="Matematika" aria-pressed="false"><span class="g">∑</span><span class="t">Matematika<small><span class="s-off">Bosib tanlang</span><span class="s-on">Tanlandi</span></small></span></button>
+<button type="button" class="lp-sub" data-v="Ingliz tili" aria-pressed="false"><span class="g">Aa</span><span class="t">Ingliz tili<small><span class="s-off">Bosib tanlang</span><span class="s-on">Tanlandi</span></small></span></button>
+<button type="button" class="lp-sub" data-v="Rus tili" aria-pressed="false"><span class="g">Яя</span><span class="t">Rus tili<small><span class="s-off">Bosib tanlang</span><span class="s-on">Tanlandi</span></small></span></button>
+</div></div>
+<input type="text" id="lp-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+<button type="submit" class="lp-send" id="lp-send" aria-disabled="true"><span id="lp-sendtxt">Arizani toʻldiring (0/3)</span></button>
+<p class="lp-err" id="lp-err" role="alert">Yuborib boʻlmadi. Iltimos, telefon orqali qoʻngʻiroq qiling: +998 95 577 72 09</p>
+<div class="lp-thanks" id="lp-thanks" role="status"><b id="lp-thx">Rahmat!</b><span>Arizangiz qabul qilindi. Administratorimiz tez orada koʻrsatilgan raqamga bogʻlanadi.</span><button type="button" id="lp-again">Yana bitta ariza</button></div>
+</div>
+<div class="lp-tk-stub" aria-live="polite">
+<span style="align-self:flex-start;background:var(--accent);color:var(--dark);font-family:var(--h);font-weight:900;font-size:12px;letter-spacing:.06em;padding:5px 10px;border-radius:6px;transform:rotate(-3deg)">TALON</span>
+<div><div class="lp-sl">Ism</div><div class="lp-sv lp-empty" id="lp-sname">— — —</div></div>
+<div><div class="lp-sl">Telefon</div><div class="lp-sv lp-empty" id="lp-sphone">+998 — — —</div></div>
+<div><div class="lp-sl">Kurs</div><div class="lp-chips" id="lp-schips"><span style="background:var(--line);color:var(--muted)">— — —</span></div></div>
+<div class="lp-bar" aria-hidden="true"></div>
+</div></div></form></div></section>
+
+<!-- 10. ALOQA -->
+<section class="sec blue" id="aloqa">
+  <div class="wrap">
+    <div class="cta-big lp-rv">
+      <div>
+        <h2>Kursga yoziling</h2>
+        <p>Qoʻngʻiroq qiling yoki Telegram orqali yozing — barcha savollaringizga javob beramiz.</p>
+      </div>
+      <div class="btns">
+        <a class="btn btn-pri btn-lg" href="tel:+998955777209"><svg class="i"><use href="#i-phone"/></svg>+998 95 577 72 09</a>
+        <a class="btn btn-out btn-lg" href="#royxat">Yoki onlayn ariza qoldiring</a>
+      </div>
+    </div>
+    <div class="contact">
+      <div class="c-list lp-rv">
+        <a class="c-row" href="tel:+998955777209"><span class="lp-ic"><svg class="i"><use href="#i-phone"/></svg></span><span><small>Telefon</small><b>+998 95 577 72 09</b></span></a>
+        <a class="c-row" href="https://t.me/smart_academy_ishtixon" target="_blank" rel="noopener"><span class="lp-ic"><svg class="i"><use href="#i-send"/></svg></span><span><small>Telegram</small><b>@smart_academy_ishtixon</b></span></a>
+        <div class="c-row"><span class="lp-ic"><svg class="i"><use href="#i-pin"/></svg></span><span><small>Manzil</small><b>Ishtixon tumani, Yangiravot MFY, Oʻrtaqishloq qishlogʻi</b></span></div>
+        <div class="c-row"><span class="lp-ic"><svg class="i"><use href="#i-building"/></svg></span><span><small>Moʻljal</small><b>Stadion va Karcher yonidagi 2 qavatli bino, 1-qavat</b></span></div>
+        <div class="c-row"><span class="lp-ic"><svg class="i"><use href="#i-clock"/></svg></span><span><small>Ish vaqti</small><b>Du–Sha, 09:00–19:00</b></span></div>
+      </div>
+      <div class="c-map lp-rv">
+        <span class="pin"><svg class="i"><use href="#i-map"/></svg></span>
+        <div>
+          <h3>Bizni oson topasiz</h3>
+          <p style="margin-top:8px">Stadion va Karcher yonidagi 2 qavatli bino, 1-qavat. Ishtixon tumani, Yangiravot MFY.</p>
+        </div>
+        <div class="btns">
+          <!-- TODO: aniq Google Maps havolasini qoʻying -->
+          <a class="btn btn-acc" href="https://www.google.com/maps/search/?api=1&amp;query=Ishtixon%20Yangiravot%20O%CA%BBrtaqishloq" target="_blank" rel="noopener"><svg class="i"><use href="#i-pin"/></svg>Xaritada ochish</a>
+          <a class="btn btn-ghost" href="https://t.me/smart_academy_ishtixon" target="_blank" rel="noopener"><svg class="i"><use href="#i-send"/></svg>Telegram</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><b>SMART ACADEMY</b> · Kuchli ustoz — yuqori natija · © 2026</span>
+    <span><a href="tel:+998955777209">+998 95 577 72 09</a> · <a href="https://t.me/smart_academy_ishtixon" target="_blank" rel="noopener">Telegram</a></span>
+  </div>
+</footer>
+
+<div class="lp-callbar">
+  <a class="btn btn-acc lp-call" href="tel:+998955777209"><svg class="i"><use href="#i-phone"/></svg>Qoʻngʻiroq</a>
+  <a class="btn btn-pri" href="#royxat">Roʻyxatdan oʻtish</a>
+</div>
+
+<!-- Effektlar -->
+<script>
+(function(){
+var pauseUntil=0;
+function slide(id,dir){var el=document.getElementById(id);if(!el)return;var f=el.firstElementChild;var step=f?f.getBoundingClientRect().width+18:320;el.scrollBy({left:dir*step,behavior:'smooth'});if(id==='lp-rev')pauseUntil=Date.now()+9000}
+document.querySelectorAll('[data-slide]').forEach(function(b){b.addEventListener('click',function(){slide(b.getAttribute('data-slide'),+b.getAttribute('data-dir'))})});
+setInterval(function(){
+if(document.hidden||Date.now()<pauseUntil)return;
+var el=document.getElementById('lp-rev');
+if(!el||el.scrollWidth<=el.clientWidth+4)return;
+if(el.scrollLeft+el.clientWidth>=el.scrollWidth-6)el.scrollTo({left:0,behavior:'smooth'});
+else el.scrollBy({left:(el.firstElementChild?el.firstElementChild.getBoundingClientRect().width:300)+18,behavior:'smooth'})
+},4200);
+document.addEventListener('pointerdown',function(e){
+if(e.target.closest&&e.target.closest('#lp-rev'))pauseUntil=Date.now()+9000;
+var t=e.target.closest?e.target.closest('.lp-card, article, .lp-ic'):null;if(!t)return;
+t.classList.remove('lp-tap');void t.offsetWidth;t.classList.add('lp-tap');
+clearTimeout(t._tap);t._tap=setTimeout(function(){t.classList.remove('lp-tap')},1400);
+try{if(navigator.vibrate)navigator.vibrate(18)}catch(x){}
+},{passive:true});
+if('IntersectionObserver' in window){
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('lp-in');io.unobserve(e.target)}})},{threshold:0.08,rootMargin:'0px 0px -5% 0px'});
+document.querySelectorAll('.lp-rv').forEach(function(el){io.observe(el)});
+var io2=new IntersectionObserver(function(es){es.forEach(function(e){e.target.classList.toggle('lp-on',e.isIntersecting)})},{rootMargin:'-46% 0px -46% 0px'});
+document.querySelectorAll('.lp-card, .lp-watch').forEach(function(el){io2.observe(el)});
+}
+window.__fxOK=true;
+})();
+</script>
+
+<!-- 20 daqiqalik chegirma taymeri: ikkala joyda bir xil vaqt.
+     Har bir tashrif buyuruvchi uchun birinchi kirgan paytdan hisoblanadi;
+     24 soatdan keyin qaytib kirsa, yangidan boshlanadi. -->
+<script>
+(function(){
+var KEY='sa_deal_start',LEN=20*60*1000,DAY=24*3600*1000,now=Date.now(),start=now;
+try{var v=+localStorage.getItem(KEY);if(v&&now-v<DAY&&v<=now)start=v;else localStorage.setItem(KEY,String(now))}catch(e){}
+var timers=document.querySelectorAll('[data-timer]'),deals=document.querySelectorAll('[data-deal]'),id;
+function pad(n){return (n<10?'0':'')+n}
+function tick(){
+  var left=Math.max(0,LEN-(Date.now()-start)),s=Math.ceil(left/1000),m=Math.floor(s/60),done=left<=0;
+  timers.forEach(function(t){t.querySelector('[data-m]').textContent=pad(m);t.querySelector('[data-s]').textContent=pad(s%60);t.classList.toggle('done',done)});
+  deals.forEach(function(d){d.classList.toggle('is-expired',done)});
+  if(done&&id){clearInterval(id);id=0}
+}
+tick();id=setInterval(tick,1000);
+})();
+</script>
+
+<!-- Ariza formasi -->
+<script>
+(function(){
+var ENDPOINT='';/* Arizalar Telegram'ga borishi uchun Worker manzili: https://NOM.USER.workers.dev/ */
+var $=function(i){return document.getElementById(i)};
+var f=$('lp-form');if(!f)return;
+var nm=$('lp-name'),ph=$('lp-phone'),send=$('lp-send'),subs=f.querySelectorAll('.lp-sub'),dots=f.querySelectorAll('.lp-dots i');
+$('lp-no').textContent=String(1000+Math.floor(Math.random()*9000));
+var buzz=function(n){try{if(navigator.vibrate)navigator.vibrate(n)}catch(e){}};
+function digits(){var v=ph.value,d;
+if(v.lastIndexOf('+998')>0)v=v.slice(v.lastIndexOf('+998'));
+if(v.charAt(0)==='+'&&v.indexOf('+998')!==0)return '';
+if(v.indexOf('+998')===0)v=v.slice(4);
+d=v.replace(/\D/g,'');
+if(v.charAt(0)!=='+'&&d.length>9&&d.indexOf('998')===0)d=d.slice(3);
+return d.slice(0,9)}
+function fmt(d){var s='+998';if(d.length)s+=' '+d.slice(0,2);if(d.length>2)s+=' '+d.slice(2,5);if(d.length>5)s+=' '+d.slice(5,7);if(d.length>7)s+=' '+d.slice(7,9);return s}
+function picked(){var a=[];subs.forEach(function(b){if(b.getAttribute('aria-pressed')==='true')a.push(b.getAttribute('data-v'))});return a}
+function status(){var name=nm.value.trim().replace(/\s+/g,' ');return{name:name,nameOk:name.length>=2,d:digits(),phOk:digits().length===9,subjects:picked()}}
+function setText(el,t,e){el.textContent=t;el.classList.toggle('lp-empty',!!e)}
+function update(){var st=status(),ok=[st.nameOk,st.phOk,st.subjects.length>0],n=ok.filter(Boolean).length;
+$('lp-f1').classList.toggle('lp-fok',ok[0]);$('lp-f2').classList.toggle('lp-fok',ok[1]);
+dots.forEach(function(d,i){d.classList.toggle('on',i<n)});
+setText($('lp-sname'),st.name||'— — —',!st.name);setText($('lp-sphone'),st.d.length?fmt(st.d):'+998 — — —',!st.d.length);
+var chips=$('lp-schips'),have=Array.prototype.map.call(chips.children,function(c){return c.textContent}).join('|');
+if(have!==st.subjects.join('|')&&!(have==='— — —'&&!st.subjects.length)){chips.innerHTML='';
+if(!st.subjects.length){var e=document.createElement('span');e.style.cssText='background:#D3E0F2;color:#4A5B78';e.textContent='— — —';chips.appendChild(e)}
+st.subjects.forEach(function(t){var c=document.createElement('span');c.textContent=t;chips.appendChild(c)})}
+var ready=n===3;send.classList.toggle('lp-ready',ready);send.setAttribute('aria-disabled',ready?'false':'true');
+$('lp-sendtxt').textContent=ready?'Ariza qoldirish':'Arizani toʻldiring ('+n+'/3)';return st}
+nm.addEventListener('input',update);
+ph.addEventListener('input',function(){var d=digits();ph.value=d.length?fmt(d):(ph.value.charAt(0)==='+'?'+998 ':'');update()});
+ph.addEventListener('focus',function(){if(!ph.value)ph.value='+998 '});
+ph.addEventListener('blur',function(){if(!digits().length)ph.value='';update()});
+subs.forEach(function(b){b.addEventListener('click',function(){b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');buzz(18);update()})});
+function shake(){send.classList.remove('lp-shake');void send.offsetWidth;send.classList.add('lp-shake');buzz([30,40,30])}
+var sending=false;
+f.addEventListener('submit',function(ev){ev.preventDefault();var st=update();
+if(sending||f.classList.contains('lp-sent'))return;
+if(!st.nameOk){shake();nm.focus();return}
+if(!st.phOk){shake();ph.focus();return}
+if(!st.subjects.length){shake();$('lp-f3').scrollIntoView({block:'center',behavior:'smooth'});return}
+var payload={name:st.name,phone:fmt(st.d),subjects:st.subjects,website:($('lp-hp')||{}).value||'',ticket:$('lp-no').textContent,page:location.href,time:new Date().toISOString()};
+var done=function(){sending=false;f.classList.add('lp-sent');$('lp-thx').textContent='Rahmat, '+st.name+'!';nm.readOnly=true;ph.readOnly=true;subs.forEach(function(b){b.disabled=true});buzz([60,40,90])};
+if(!ENDPOINT){try{console.info('Ariza (endpoint ulanmagan):',payload)}catch(e){}done();return}
+sending=true;$('lp-sendtxt').textContent='Yuborilmoqda...';$('lp-err').style.display='none';
+fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+.then(function(r){if(!r.ok)throw new Error('http '+r.status);done()})
+.catch(function(){sending=false;$('lp-err').style.display='block';update()})});
+$('lp-again').addEventListener('click',function(){f.classList.remove('lp-sent');nm.readOnly=false;ph.readOnly=false;nm.value='';ph.value='';subs.forEach(function(b){b.disabled=false;b.setAttribute('aria-pressed','false')});$('lp-no').textContent=String(1000+Math.floor(Math.random()*9000));update();nm.focus()});
+document.addEventListener('click',function(e){var a=e.target.closest?e.target.closest('a[href="#royxat"]'):null;if(!a)return;setTimeout(function(){if(!nm.value&&window.matchMedia&&window.matchMedia('(pointer:fine)').matches){try{nm.focus({preventScroll:true})}catch(x){}}},800)});
+update();
+})();
+</script>
+</body>
+</html>
