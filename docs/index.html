@@ -600,7 +600,8 @@
           </div>
         </div>
         <p class="hint">Aralash tilda o'zbek, rus, ingliz o'z yozuvida, tarjimasiz yoziladi.
-          Yangi — 2026-yilgi alifbo (oʻ, gʻ, sh, ch oʻrniga ö, ğ, ş, ç).
+          Yangi — 2026-yilgi qonun bo'yicha alifbo (oʻ, gʻ, sh, ch oʻrniga ö, ğ, ş, ç;
+          rasman 2027-yil 22-apreldan).
           Nozik — har nuqta va vergulda timecode. Pro uchun billing kerak.</p>
 
         <div class="guruh">
@@ -1078,57 +1079,122 @@ ${segmentQoida}
 const TUTUQ = "ʼ";                         // tutuq belgisi (U+02BC)
 const YANGI_HARF = { O: "Ö", o: "ö", G: "Ğ", g: "ğ", S: "Ş", s: "ş", C: "Ç", c: "ç" };
 const SOZ_RE = /[\p{L}\p{M}'ʻʼ‘’`´]+/gu;
+// Havola, email, @nik, #teg va sayt nomlari o'girilmaydi (shop.uz, @shoxrux_uz)
+const KORUV_RE = /(?:https?:\/\/|www\.)\S+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+|(?<![\p{L}\p{N}_])[@#][\p{L}\p{N}_.]+|(?<![\p{L}\p{N}_])[\w-]+(?:\.[\w-]+)*\.(?:uz|ru|com|org|net|me|io|asia|info|edu|gov|tv|app|ai)\b\S*/giu;
+// O'zbek alifbosida yo'q harflar (ü, é, ı, ñ ...) — xorijiy nom (Gülşen, François)
+const XORIJIY_HARF = /[àáâãäåæèéêëìíîïñòóôõøùúûüýÿıłßœÀÁÂÃÄÅÆÈÉÊËÌÍÎÏÑÒÓÔÕØÙÚÛÜÝŸİŁŒ]/u;
+// O'zbekcha qisqartmalar (ichida bosh harf bo'lsa ham): OʻzMU, ToshDU, MChJ, AQSh
+const UZ_QISQA = /^(?:O['ʻʼ‘’`´]z|Tosh|Qo['ʻʼ‘’`´]q|Farg['ʻʼ‘’`´]|Sam|Bux|Nam|Xor|Nav|Jiz|Qash|Ter|And)[A-ZÖĞŞÇ]|^(?:MChJ|AQSh|JCh|YaTT|XDP)$/u;
 // O'zbek imlosida bo'lmaydigan harf/birikma yoki so'z ichida bosh harf — xorijiy so'z
-const xorijiymi = soz => /c(?!h)|w|th|ph|ck|ee|oo|ou|ea|ie|^chr/i.test(soz) || /\p{Ll}\p{Lu}/u.test(soz);
+function xorijiymi(soz) {
+  if (UZ_QISQA.test(soz)) return false;
+  if (/c(?!h)|w|th|ph|ck|^chr/i.test(soz) || XORIJIY_HARF.test(soz) || /\p{Ll}\p{Lu}/u.test(soz)) return true;
+  // Kuchsiz belgilar — o'zbekcha qo'shimchali so'zlarda emas (reallashtirish, okeanshunoslik)
+  return /ee|oo|ou|ea|ie/i.test(soz) && !/lash|shunos|chi/i.test(soz);
+}
 // O'zbekcha segmentmi (aralash tilda — lang bo'yicha; kirill matn o'girilmaydi)
 const ozbekSeg = x => !x.lang || /^uz/i.test(x.lang);
+// Matnning himoyalanmagan bo'laklariga f ni qo'llaydi
+function himoyala(matn, f) {
+  let out = "", i = 0;
+  for (const m of matn.matchAll(KORUV_RE)) { out += f(matn.slice(i, m.index)) + m[0]; i = m.index + m[0].length; }
+  return out + f(matn.slice(i));
+}
 
-/* Bitta matnni yangi alifboga o'giradi. qatiy=true — oʻ/gʻ faqat ʻ (‘) bilan yozilgan
-   (Gemini shunday yozadi); unda «blog'ga» dagi apostrof harf emas, tutuq deb qaraladi. */
-function yangiMatn(matn, qatiy) {
-  const harf = qatiy ? /([OoGg])[ʻ‘]/g : /([OoGg])['ʻ‘’`´]/g;
-  return String(matn).replace(SOZ_RE, soz => xorijiymi(soz) ? soz : soz
-    .replace(harf, (m, h) => YANGI_HARF[h])
+/* Bitta so'zni yangi alifboga o'giradi. qatiy=true — bu matnda gʻ ʻ (‘) bilan yozilgan
+   (Gemini shunday yozadi); unda «blogʼga» dagi boshqa apostrof harf emas, tutuq. */
+function sozYangi(soz, qatiy, holat) {
+  // Qo'shtirnoq so'zga kirmaydi: boshidagisi va (qo'shtirnoq ochilgan bo'lsa) oxiridagi yopuvchisi
+  const b = soz.match(/^['ʻʼ‘’`´]*/)[0];
+  let oz = soz.slice(b.length), ox = "";
+  if (b) holat.ochiq = true;
+  if (holat.ochiq && /['ʻʼ‘’`´]$/.test(oz)) { ox = oz.slice(-1); oz = oz.slice(0, -1); holat.ochiq = false; }
+  // Shu so'zning o'zida oʻ oddiy apostrof bilan yozilgan bo'lsa — gʻ ham shunday (bo’lg’usi)
+  if (/[Oo]['ʼ’`´](?=\p{L})/u.test(oz)) qatiy = false;
+  // Alohida turgan «Sh», «Oʻ» — odatda harfning o'zi haqida gap, tegilmaydi
+  if (!oz || xorijiymi(oz) || /^(?:sh|ch|[og]['ʻʼ‘’`´])$/i.test(oz)) return soz;
+  oz = oz
+    // oʻ: o dan keyin har qanday apostrof va harf (o'zbek imlosida o dan keyin tutuq kelmaydi)
+    .replace(/([Oo])['ʻʼ‘’`´](?=\p{L})/gu, (m, h) => YANGI_HARF[h])
+    // gʻ: ʻ (‘) bilan — doim; boshqa apostrof bilan — yumshoq rejimda (…ing'ga dan tashqari)
+    .replace(qatiy ? /([Gg])[ʻ‘]/g : /(?<!in)([Gg])['ʻʼ‘’`´]/gi, (m, h) => YANGI_HARF[h])
     // s va h alohida tovush bo'lgan so'zlar tutuqsiz yozilgan bo'lsa ham ş bo'lmasin (Isʼhoq, asʼhob)
     .replace(/^(is|as|mus)(h(?:oq|ob|af))/i, "$1" + TUTUQ + "$2")
     .replace(/([SsCc])[Hh]/g, (m, h) => YANGI_HARF[h])
     // Qolgan apostroflar — tutuq belgisi (maʼno, sanʼat), bir xil ko'rinishda
-    .replace(/(\p{L})['ʻ‘’`´ʼ](?=\p{L})/gu, "$1" + TUTUQ));
+    .replace(/(\p{L})['ʻ‘’`´ʼ](?=\p{L})/gu, "$1" + TUTUQ);
+  return b + oz + ox;
+}
+function yangiMatn(matn, qatiy) {
+  const holat = { ochiq: false };
+  return himoyala(String(matn).normalize("NFC"), t => t.replace(SOZ_RE, soz => sozYangi(soz, qatiy, holat)));
 }
 
 // Teskari: yangi alifbodan amaldagi lotinga
 function eskiMatn(matn) {
-  return String(matn).replace(SOZ_RE, soz => {
-    const katta = soz.length > 1 && soz === soz.toUpperCase();
-    return soz.replace(/[ÖöĞğŞşÇç]/g, h => ({ Ö: "Oʻ", ö: "oʻ", Ğ: "Gʻ", ğ: "gʻ", ş: "sh", ç: "ch",
-      Ş: katta ? "SH" : "Sh", Ç: katta ? "CH" : "Ch" })[h]);
+  const kattami = s => !!s && s.length > 1 && s === s.toUpperCase() && s !== s.toLowerCase();
+  return himoyala(String(matn).normalize("NFC"), t => {
+    const sozlar = [...t.matchAll(SOZ_RE)];
+    let out = "", i = 0;
+    sozlar.forEach((m, k) => {
+      const soz = m[0];
+      // Bitta harf (Ş. Mirziyoyev) — qo'shni so'zga qarab: SH yoki Sh
+      const katta = soz.length > 1 ? kattami(soz) : kattami(sozlar[k + 1]?.[0]) || kattami(sozlar[k - 1]?.[0]);
+      out += t.slice(i, m.index) + (XORIJIY_HARF.test(soz) ? soz : soz.replace(/[ÖöĞğŞşÇç]/g, h =>
+        ({ Ö: "Oʻ", ö: "oʻ", Ğ: "Gʻ", ğ: "gʻ", ş: "sh", ç: "ch", Ş: katta ? "SH" : "Sh", Ç: katta ? "CH" : "Ch" })[h]));
+      i = m.index + soz.length;
+    });
+    return out + t.slice(i);
   });
 }
 
-// Natija qaysi alifboda: "yangi" | "eski" | null (kirill yoki o'zbekcha lotin matn yo'q)
+// Natija qaysi alifboda (ko'pchilik harflarga qarab): "yangi" | "eski" | null
 function alifboHolati(seglar) {
-  const m = seglar.filter(ozbekSeg).map(x => x.text).join(" ");
+  const m = seglar.filter(ozbekSeg).map(x => x.text).join(" ").normalize("NFC");
   const kir = (m.match(/[а-яёўқғҳ]/gi) || []).length, lot = (m.match(/[a-z]/gi) || []).length;
   if (!lot || kir > lot) return null;
-  if (/[ÖöĞğŞşÇç]/.test(m)) return "yangi";
-  return /[OoGg]['ʻ‘’`]|sh|ch/i.test(m) ? "eski" : null;
+  let yangi = 0, eski = 0;
+  himoyala(m, t => {
+    for (const [soz] of t.matchAll(SOZ_RE)) {
+      const oz = soz.replace(/^['ʻʼ‘’`´]+|['ʻʼ‘’`´]+$/g, "");
+      if (!oz || xorijiymi(oz) || /^(?:sh|ch|[og]['ʻʼ‘’`´]?|[öğşç])$/i.test(oz)) continue;
+      yangi += (oz.match(/[ÖöĞğŞşÇç]/g) || []).length;
+      eski += (oz.match(/[Oo]['ʻʼ‘’`´](?=\p{L})|[Gg]['ʻʼ‘’`´]|sh|ch/giu) || []).length;
+    }
+    return t;
+  });
+  return yangi > eski ? "yangi" : eski ? "eski" : null;
 }
 
 /* Segmentlarni yangi alifboga o'giradi: o'zbekcha matn va so'zlovchi nomlari (nomlar
-   hamma segmentda bir xil bo'lishi kerak — ruscha segmentda ham). Gemini oʻ/gʻ ni ʻ bilan
-   yozgan bo'lsa (deyarli hammasi shunday) — qat'iy rejim; aralash yozgan bo'lsa — yumshoq. */
+   hamma segmentda bir xil bo'lishi kerak — ruscha segmentda ham). gʻ ning apostrofi
+   har segmentda alohida aniqlanadi: Gemini ʻ bilan yozgan bo'lsa — qat'iy; oddiy
+   apostrof bilan yozilgan yoki qo'lda tuzatilgan segment — yumshoq. Asl matn qaytarib
+   bo'lmaydigan joyda saqlanadi (asl) — «Amaldagi lotinga» uni aynan tiklaydi. */
 function yangiAlifboga(seglar) {
   const m = seglar.filter(ozbekSeg).map(x => x.text).join(" ");
-  const A = (m.match(/[OoGg][ʻ‘]/g) || []).length, B = (m.match(/[OoGg]['’`´]/g) || []).length;
-  const qatiy = A > 0 && B <= A * 0.2;
-  return seglar.map(x => ({ ...x,
-    ...(ozbekSeg(x) ? { text: yangiMatn(x.text, qatiy) } : {}),
-    ...(x.speaker ? { speaker: yangiMatn(x.speaker, false) } : {}) }));
+  const A = (m.match(/[OoGg][ʻ‘]/g) || []).length, B = (m.match(/[OoGg]['’`´ʼ]/g) || []).length;
+  const umumiy = A > 0 && B <= A * 0.2;
+  const rejim = x => x.tahrir || /[Oo]['’`´ʼ]\p{L}/u.test(x.text) ? false : /[OoGg][ʻ‘]/.test(x.text) ? true : umumiy;
+  return seglar.map(x => {
+    const y = { ...x };
+    delete y.asl;
+    if (ozbekSeg(x)) {
+      y.text = yangiMatn(x.text, rejim(x));
+      if (y.text !== x.text && eskiMatn(y.text) !== x.text) y.asl = { eski: x.text, yangi: y.text };
+    }
+    if (x.speaker) y.speaker = yangiMatn(x.speaker, false);
+    return y;
+  });
 }
 function eskiAlifboga(seglar) {
-  return seglar.map(x => ({ ...x,
-    ...(ozbekSeg(x) ? { text: eskiMatn(x.text) } : {}),
-    ...(x.speaker ? { speaker: eskiMatn(x.speaker) } : {}) }));
+  return seglar.map(x => {
+    const y = { ...x };
+    delete y.asl;
+    if (ozbekSeg(x)) y.text = x.asl && x.asl.yangi === x.text ? x.asl.eski : eskiMatn(x.text);
+    if (x.speaker) y.speaker = eskiMatn(x.speaker);
+    return y;
+  });
 }
 
 // Tanlangan yozuvga keltiradi (ichki ish — qismlarni ulash, davom ettirish — amaldagi lotinda)
@@ -2914,6 +2980,10 @@ function alifboAlmashtir() {
   if (!ah || ishlayapti) return;
   natija = ah === "eski" ? yangiAlifboga(natija) : eskiAlifboga(natija);
   if (joriyId) tarixYangila(joriyId, natija);
+  // Chala natija davom ettirilsa — foydalanuvchi tanlagan alifboda tugasin
+  if (davomHolat && davomHolat.id === joriyId) {
+    davomHolat.s = { ...davomHolat.s, yozuv: ah === "eski" ? "yangi" : "lotin" };
+  }
   korsat(natija, joriyNom, joriyId, true);
   toast(ah === "eski" ? "Yangi alifboga o'tkazildi" : "Amaldagi lotinga qaytarildi");
 }
