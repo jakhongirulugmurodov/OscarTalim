@@ -8,6 +8,7 @@ Ishlatish:
     export GEMINI_API_KEY="..."
     python transcriber.py "https://youtube.com/watch?v=..." --format srt,txt
     python transcriber.py video.mp4 --yozuv kirill -o natijalar/
+    python transcriber.py video.mp4 --yozuv yangi      # 2026-yilgi yangi alifbo
 
 Bosqichlar:
     1. yt-dlp bilan videoni yuklab olish (yoki lokal faylni olish)
@@ -28,6 +29,8 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+
+from alifbo import segmentlarni_yangila
 
 try:
     from google import genai
@@ -56,7 +59,9 @@ Berilgan audiodagi barcha nutqni to'liq va so'zma-so'z matnga o'tkaz.
 
 Qoidalar:
 1. Matnni {yozuv} yozuvida yoz.
-2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz.
+2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz. Tutuq belgisi
+   (maʼno, sanʼat) va xorijiy so'zga qo'shimcha (meetingʼga) uchun esa ʼ belgisini ishlat.
+   Xorijiy nom va so'zlarni (YouTube, Facebook, iPhone) asl yozilishida qoldir.
 3. Har bir segment 3-8 soniya bo'lsin — caption uchun qulay uzunlikda.
 4. "start" va "end" — audio boshidan hisoblangan soniyalar, kasr son bo'lishi mumkin.
 5. Punktuatsiyani (nuqta, vergul, so'roq) to'g'ri qo'y.
@@ -181,7 +186,8 @@ def gemini_sorov(client: genai.Client, model: str, contents, urinishlar: int = 3
 def transkript_qilish(client, model: str, audio: Path, yozuv: str, tahrir: bool) -> list[dict]:
     dav = davomiylik(audio)
     fayl = faylni_yuklash(client, audio)
-    yozuv_nomi = "lotin (o'zbek alifbosi)" if yozuv == "lotin" else "kirill (ўзбек алифбоси)"
+    # Yangi alifbo uchun ham Gemini amaldagi lotinda yozadi — natija keyin o'giriladi
+    yozuv_nomi = "kirill (ўзбек алифбоси)" if yozuv == "kirill" else "lotin (o'zbek alifbosi)"
     prompt = TRANSKRIPSIYA_PROMPT.format(yozuv=yozuv_nomi, davomiylik=dav)
     segmentlar = gemini_sorov(client, model, [fayl, prompt])
 
@@ -241,8 +247,9 @@ def main():
     p.add_argument("manba", help="YouTube/Instagram havolasi yoki lokal video/audio fayl")
     p.add_argument("--model", default=STANDART_MODEL,
                    help=f"Gemini modeli (standart: {STANDART_MODEL})")
-    p.add_argument("--yozuv", choices=["lotin", "kirill"], default="lotin",
-                   help="Chiqish yozuvi (standart: lotin)")
+    p.add_argument("--yozuv", choices=["yangi", "lotin", "kirill"], default="yangi",
+                   help="Chiqish yozuvi: yangi (2026-yilgi alifbo: ö, ğ, ş, ç), lotin "
+                        "(amaldagi: oʻ, gʻ, sh, ch) yoki kirill (standart: yangi)")
     p.add_argument("--format", default="srt,txt",
                    help="Chiqish formatlari, vergul bilan: srt,vtt,txt (standart: srt,txt)")
     p.add_argument("-o", "--chiqish", default=".", help="Natija fayllar papkasi")
@@ -303,6 +310,8 @@ def main():
 
     if not segmentlar:
         xato("Audioda nutq topilmadi.")
+    if args.yozuv == "yangi":
+        segmentlar = segmentlarni_yangila(segmentlar)
 
     print("4/4 Fayllar yozilmoqda...")
     yozuvchilar = {"srt": srt_yozish, "vtt": vtt_yozish, "txt": txt_yozish}

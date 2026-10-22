@@ -339,8 +339,16 @@
   .markaz .btn { margin: 10px 4px 0; }
 
   /* ===== Natija ===== */
-  .natijaBosh { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .natijaBosh { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 10px; }
+  .natijaBosh > div { flex: 1 1 200px; }
   .natijaBosh h2 { margin-bottom: 4px; }
+  .alifboBtn {
+    flex-shrink: 0; font: inherit; font-size: .76rem; font-weight: 600; color: var(--text2);
+    background: var(--soft2); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 11px; cursor: pointer; white-space: nowrap;
+  }
+  .alifboBtn:hover { color: var(--text); border-color: var(--text2); }
+  .alifboBtn b { font-weight: 800; margin-right: 3px; }
   #natijaNom {
     font-size: .84rem; color: var(--text2); font-weight: 600; margin: 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -571,7 +579,8 @@
           <div class="guruh">
             <span class="nom">O'zbekcha yozuvi</span>
             <div class="tanlov" role="radiogroup" aria-label="O'zbekcha yozuvi">
-              <label><input type="radio" name="yozuv" value="lotin"><span>Lotin</span></label>
+              <label title="2026-yilgi yangi alifbo: ö, ğ, ş, ç"><input type="radio" name="yozuv" value="yangi"><span>Yangi</span></label>
+              <label title="Amaldagi lotin: oʻ, gʻ, sh, ch"><input type="radio" name="yozuv" value="lotin"><span>Lotin</span></label>
               <label><input type="radio" name="yozuv" value="kirill"><span>Kirill</span></label>
             </div>
           </div>
@@ -591,6 +600,7 @@
           </div>
         </div>
         <p class="hint">Aralash tilda o'zbek, rus, ingliz o'z yozuvida, tarjimasiz yoziladi.
+          Yangi — 2026-yilgi alifbo (oʻ, gʻ, sh, ch oʻrniga ö, ğ, ş, ç).
           Nozik — har nuqta va vergulda timecode. Pro uchun billing kerak.</p>
 
         <div class="guruh">
@@ -666,6 +676,7 @@
         <p id="natijaNom"></p>
         <p id="natijaStat"></p>
       </div>
+      <button class="alifboBtn" id="alifboBtn" onclick="alifboAlmashtir()" hidden></button>
     </div>
 
     <div class="asboblar">
@@ -805,7 +816,7 @@ kalitKorinish();
 
 /* ===== Sozlamalar: yonma-yon tanlovlar, eslab qolinadi ===== */
 const SOZ_STANDART = {
-  model: "gemini-2.5-flash", yozuv: "lotin", til: "aralash", segment: "nozik",
+  model: "gemini-2.5-flash", yozuv: "yangi", til: "aralash", segment: "nozik",
   qism: "300", sozlovchi: false, tejamkor: true,
 };
 function sozOl() {
@@ -828,7 +839,7 @@ function chiplarYangila() {
   const s = sozOl();
   const chiplar = [
     s.til === "aralash" ? "Aralash til" : "O'zbekcha",
-    s.yozuv === "lotin" ? "Lotin" : "Kirill",
+    s.yozuv === "yangi" ? "Yangi alifbo" : s.yozuv === "lotin" ? "Lotin" : "Kirill",
     s.segment === "nozik" ? "Nozik timecode" : "Standart timecode",
     s.model === "gemini-2.5-pro" ? "Pro" : "Flash",
     `${Math.round(+s.qism / 60)} daq qism`,
@@ -840,6 +851,15 @@ function chiplarYangila() {
 (() => {
   let saqlangan = {};
   try { saqlangan = JSON.parse(localStorage.getItem("sozlamalar")) || {}; } catch (e) { /* standart */ }
+  // Yangi alifbo chiqqanda bir marta: avval standart «Lotin» turganlar yangi alifboga o'tadi
+  // (keyin «Lotin»ni qayta tanlasa — o'sha qoladi)
+  try {
+    if (!localStorage.getItem("alifbo2026")) {
+      if (saqlangan.yozuv === "lotin") saqlangan.yozuv = "yangi";
+      localStorage.setItem("alifbo2026", "1");
+      localStorage.setItem("sozlamalar", JSON.stringify({ ...SOZ_STANDART, ...saqlangan }));
+    }
+  } catch (e) { /* e'tiborsiz */ }
   sozQoy({ ...SOZ_STANDART, ...saqlangan });
   chiplarYangila();
   $("sozPanel").addEventListener("change", () => {
@@ -987,7 +1007,8 @@ function soniyaga(t) {
 }
 
 function prompt1(yozuv, rejim, sozlovchi, aralashTil, qoshimcha = "") {
-  const y = yozuv === "lotin" ? "lotin (oʻzbek alifbosi)" : "kirill (ўзбек алифбоси)";
+  // Yangi alifbo uchun ham Gemini amaldagi lotinda yozadi — natija keyin o'giriladi (yangiAlifboga)
+  const y = yozuv === "kirill" ? "kirill (ўзбек алифбоси)" : "lotin (oʻzbek alifbosi)";
   const sozlovchiQoida = sozlovchi ? `
 9. Audioda nechta har xil odam gapirayotganini ovoz tembri, ohangi va
    gapirish uslubiga qarab aniqla. Har bir segmentga "speaker" maydonini
@@ -1013,7 +1034,7 @@ function prompt1(yozuv, rejim, sozlovchi, aralashTil, qoshimcha = "") {
    aytilgan bo'lsa, o'sha tilda va o'sha alifboda yoz.
 12. Til almashgan joyda yangi segment boshla.
    MUHIM ISTISNO: o'zbek nutqiga singib ketgan alohida so'zlar uchun segment
-   ajratma va tilni o'zgartirma. Masalan "Men bugun meeting'ga bordim",
+   ajratma va tilni o'zgartirma. Masalan "Men bugun meetingʼga bordim",
    "konsultatsiya oldim", "okay, davom etamiz" — bular BUTUNLAY o'zbekcha
    segment ("lang": "uz"), garchi ichida inglizcha yoki ruscha so'z bo'lsa
    ham. Til faqat butun gap yoki gapning katta bo'lagi boshqa tilda
@@ -1035,7 +1056,9 @@ Berilgan video/audiodagi barcha nutqni to'liq va so'zma-so'z matnga o'tkaz.
 
 Qoidalar:
 1. O'zbekcha matnni ${y} yozuvida yoz.
-2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz.
+2. Lotin yozuvida "oʻ" va "gʻ" harflarini toʻgʻri (ʻ) belgisi bilan yoz. Tutuq belgisi
+   (maʼno, sanʼat) va xorijiy so'zga qo'shimcha (meetingʼga) uchun esa ʼ belgisini ishlat.
+   Xorijiy nom va so'zlarni (YouTube, Facebook, iPhone) asl yozilishida qoldir.
 ${segmentQoida}
 4. "start" va "end" — video boshidan hisoblangan vaqt, "MM:SS.mmm"
    formatida, millisekund bilan (masalan "00:07.250", "01:23.900";
@@ -1046,6 +1069,70 @@ ${segmentQoida}
 7. Musiqa, pauza va shovqinlarni yozma — faqat nutqni yoz.
 8. Hech bir gapni tashlab ketma va o'zingdan hech narsa qo'shma.${sozlovchiQoida}${tilQoida}${qoshimcha}`;
 }
+
+/* ===== Yangi o'zbek alifbosi (2026) =====
+   2026-yil 21-oktabrda imzolangan qonun: Oʻ → Ö, Gʻ → Ğ, Sh → Ş, Ch → Ç (28 harf va
+   tutuq belgisi). Gemini amaldagi lotin yozuvini yaxshi biladi — u shunday yozadi,
+   keyin shu yerda bir xil qoida bilan o'giriladi. Xorijiy so'z va nomlar (YouTube,
+   meetingʼga, Facebook) o'zgarmaydi. Teskari o'girish ham bor (natija oynasidagi tugma). */
+const TUTUQ = "ʼ";                         // tutuq belgisi (U+02BC)
+const YANGI_HARF = { O: "Ö", o: "ö", G: "Ğ", g: "ğ", S: "Ş", s: "ş", C: "Ç", c: "ç" };
+const SOZ_RE = /[\p{L}\p{M}'ʻʼ‘’`´]+/gu;
+// O'zbek imlosida bo'lmaydigan harf/birikma yoki so'z ichida bosh harf — xorijiy so'z
+const xorijiymi = soz => /c(?!h)|w|th|ph|ck|ee|oo|ou|ea|ie|^chr/i.test(soz) || /\p{Ll}\p{Lu}/u.test(soz);
+// O'zbekcha segmentmi (aralash tilda — lang bo'yicha; kirill matn o'girilmaydi)
+const ozbekSeg = x => !x.lang || /^uz/i.test(x.lang);
+
+/* Bitta matnni yangi alifboga o'giradi. qatiy=true — oʻ/gʻ faqat ʻ (‘) bilan yozilgan
+   (Gemini shunday yozadi); unda «blog'ga» dagi apostrof harf emas, tutuq deb qaraladi. */
+function yangiMatn(matn, qatiy) {
+  const harf = qatiy ? /([OoGg])[ʻ‘]/g : /([OoGg])['ʻ‘’`´]/g;
+  return String(matn).replace(SOZ_RE, soz => xorijiymi(soz) ? soz : soz
+    .replace(harf, (m, h) => YANGI_HARF[h])
+    // s va h alohida tovush bo'lgan so'zlar tutuqsiz yozilgan bo'lsa ham ş bo'lmasin (Isʼhoq, asʼhob)
+    .replace(/^(is|as|mus)(h(?:oq|ob|af))/i, "$1" + TUTUQ + "$2")
+    .replace(/([SsCc])[Hh]/g, (m, h) => YANGI_HARF[h])
+    // Qolgan apostroflar — tutuq belgisi (maʼno, sanʼat), bir xil ko'rinishda
+    .replace(/(\p{L})['ʻ‘’`´ʼ](?=\p{L})/gu, "$1" + TUTUQ));
+}
+
+// Teskari: yangi alifbodan amaldagi lotinga
+function eskiMatn(matn) {
+  return String(matn).replace(SOZ_RE, soz => {
+    const katta = soz.length > 1 && soz === soz.toUpperCase();
+    return soz.replace(/[ÖöĞğŞşÇç]/g, h => ({ Ö: "Oʻ", ö: "oʻ", Ğ: "Gʻ", ğ: "gʻ", ş: "sh", ç: "ch",
+      Ş: katta ? "SH" : "Sh", Ç: katta ? "CH" : "Ch" })[h]);
+  });
+}
+
+// Natija qaysi alifboda: "yangi" | "eski" | null (kirill yoki o'zbekcha lotin matn yo'q)
+function alifboHolati(seglar) {
+  const m = seglar.filter(ozbekSeg).map(x => x.text).join(" ");
+  const kir = (m.match(/[а-яёўқғҳ]/gi) || []).length, lot = (m.match(/[a-z]/gi) || []).length;
+  if (!lot || kir > lot) return null;
+  if (/[ÖöĞğŞşÇç]/.test(m)) return "yangi";
+  return /[OoGg]['ʻ‘’`]|sh|ch/i.test(m) ? "eski" : null;
+}
+
+/* Segmentlarni yangi alifboga o'giradi: o'zbekcha matn va so'zlovchi nomlari (nomlar
+   hamma segmentda bir xil bo'lishi kerak — ruscha segmentda ham). Gemini oʻ/gʻ ni ʻ bilan
+   yozgan bo'lsa (deyarli hammasi shunday) — qat'iy rejim; aralash yozgan bo'lsa — yumshoq. */
+function yangiAlifboga(seglar) {
+  const m = seglar.filter(ozbekSeg).map(x => x.text).join(" ");
+  const A = (m.match(/[OoGg][ʻ‘]/g) || []).length, B = (m.match(/[OoGg]['’`´]/g) || []).length;
+  const qatiy = A > 0 && B <= A * 0.2;
+  return seglar.map(x => ({ ...x,
+    ...(ozbekSeg(x) ? { text: yangiMatn(x.text, qatiy) } : {}),
+    ...(x.speaker ? { speaker: yangiMatn(x.speaker, false) } : {}) }));
+}
+function eskiAlifboga(seglar) {
+  return seglar.map(x => ({ ...x,
+    ...(ozbekSeg(x) ? { text: eskiMatn(x.text) } : {}),
+    ...(x.speaker ? { speaker: eskiMatn(x.speaker) } : {}) }));
+}
+
+// Tanlangan yozuvga keltiradi (ichki ish — qismlarni ulash, davom ettirish — amaldagi lotinda)
+const alifboMos = (seglar, s) => s.yozuv === "yangi" ? yangiAlifboga(seglar) : seglar;
 
 /* ===== Holat va jarayon ko'rsatkichi =====
    Ish ketayotganda matn kapsula ichida, aks holda oddiy qatorda chiqadi. */
@@ -1966,6 +2053,7 @@ const KIRILL_LOTIN = { "а": "a", "б": "b", "в": "v", "г": "g", "ғ": "g'", "
 function solNorm(t) {
   return String(t || "").toLowerCase().normalize("NFKC")
     .replace(/[а-яёўқғҳ]/g, h => KIRILL_LOTIN[h] ?? h)
+    .replace(/[öğşç]/g, h => ({ ö: "o'", ğ: "g'", ş: "sh", ç: "ch" })[h])     // yangi alifbo
     .replace(/[ʻʼ‘’`´]/g, "'")
     .replace(/[^\p{L}\p{N}' ]+/gu, " ").replace(/\s+/g, " ").trim();
 }
@@ -2652,7 +2740,7 @@ async function boshla(davom) {
     }
 
     if (otkazilgan.length) ogohlantirish = (ogohlantirish ? ogohlantirish + "\n" : "") + otkazMatn();
-    const seglar = tozaSeg(segmentTozala(toplangan));
+    const seglar = alifboMos(tozaSeg(segmentTozala(toplangan)), s);
     if (!seglar.length) {
       // Hamma qismni Gemini rad etgan bo'lsa — «nutq yo'q» emas, rad etildi deymiz
       const x = new Error(otkazilgan.length ? "Gemini barcha qismlarni rad etdi" : "Videoda nutq topilmadi.");
@@ -2678,7 +2766,7 @@ async function boshla(davom) {
     let qismanMatn = "";
     if (toplangan.length || keyingi > (davom?.keyingi ?? 0)) {
       if (toplangan.length) {
-        const qisman = tozaSeg(segmentTozala(toplangan));
+        const qisman = alifboMos(tozaSeg(segmentTozala(toplangan)), s);
         natija = qisman;
         if (id) { tarixYangila(id, qisman); tarixKorsat(); }
         else id = tarixgaSaqla(nom, qisman);
@@ -2788,6 +2876,13 @@ function korsat(seglar, nom, id, jim) {
   $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
   $("natijaNom").title = nom || "";
   $("natijaStat").textContent = natijaStat(seglar);
+  // Lotin natijani bir bosishda yangi alifboga (yoki qaytib amaldagi lotinga) o'tkazish
+  const ah = alifboHolati(seglar);
+  $("alifboBtn").hidden = !ah;
+  if (ah) {
+    $("alifboBtn").innerHTML = ah === "eski" ? "<b>Ö</b> Yangi alifboga" : "<b>Oʻ</b> Amaldagi lotinga";
+    $("alifboBtn").title = ah === "eski" ? "oʻ, gʻ, sh, ch → ö, ğ, ş, ç (2026-yilgi alifbo)" : "ö, ğ, ş, ç → oʻ, gʻ, sh, ch";
+  }
   const pauzalar = pauzaTop(seglar);
   const nomlar = [...new Set(seglar.map(s => s.speaker).filter(Boolean))];
   // Til belgisi faqat haqiqatan aralash bo'lganda ko'rsatiladi — toza qolsin
@@ -2812,6 +2907,15 @@ function korsat(seglar, nom, id, jim) {
   // Natija tayyor — o'yin ochiq bo'lsa yopiladi, natija darhol ko'rsatiladi
   if (oyinOchiq) oyinYop();
   if (!jim) $("resultCard").scrollIntoView({ behavior: "smooth" });
+}
+
+function alifboAlmashtir() {
+  const ah = alifboHolati(natija);
+  if (!ah || ishlayapti) return;
+  natija = ah === "eski" ? yangiAlifboga(natija) : eskiAlifboga(natija);
+  if (joriyId) tarixYangila(joriyId, natija);
+  korsat(natija, joriyNom, joriyId, true);
+  toast(ah === "eski" ? "Yangi alifboga o'tkazildi" : "Amaldagi lotinga qaytarildi");
 }
 
 /* ===== Segmentni joyida tahrirlash =====
@@ -2929,13 +3033,25 @@ function tarixYangila(id, seglar) {
   tarixYoz(list);
 }
 
+// Qidiruv uchun normallangan matn — har harf bosilganda qayta hisoblamaslik uchun eslab qolinadi
+const tarixNormKesh = new Map();
+function tarixNorm(t) {
+  const raw = t.seglar.map(s => s.text).join(" ");
+  const k = tarixNormKesh.get(t.id);
+  if (k && k.raw === raw) return k.n;
+  const n = solNorm(raw);
+  tarixNormKesh.set(t.id, { raw, n });
+  return n;
+}
+
 function tarixKorsat() {
   const list = tarixOl();
   const q = ($("tarixQidir").value || "").trim().toLowerCase();
-  const korinadi = q
-    ? list.filter(t => String(t.nom).toLowerCase().includes(q) ||
-        t.seglar.some(s => String(s.text).toLowerCase().includes(q)))
-    : list;
+  // Qidiruv yozuvdan qat'i nazar: «oʻzbek», «o'zbek», «özbek», «ўзбек» — bir xil
+  const qn = solNorm(q);
+  const bor = t => qn ? solNorm(t.nom).includes(qn) || tarixNorm(t).includes(qn)
+    : String(t.nom).toLowerCase().includes(q) || t.seglar.some(s => String(s.text).toLowerCase().includes(q));
+  const korinadi = q ? list.filter(bor) : list;
 
   $("tarixSoni").hidden = !list.length;
   $("tarixSoni").textContent = list.length > 99 ? "99+" : list.length;

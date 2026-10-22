@@ -47,7 +47,7 @@ python transcriber.py video.mp4 --format vtt --tahrirsiz
 | Parametr | Vazifasi | Standart |
 |----------|----------|----------|
 | `--model` | Gemini modeli | `gemini-2.5-pro` |
-| `--yozuv` | `lotin` yoki `kirill` | `lotin` |
+| `--yozuv` | `yangi` (2026-yilgi alifbo: ö, ğ, ş, ç), `lotin` (amaldagi: oʻ, gʻ, sh, ch) yoki `kirill` | `yangi` |
 | `--format` | `srt,vtt,txt` (vergul bilan) | `srt,txt` |
 | `-o` | Natija papkasi | joriy papka |
 | `--nom` | Natija fayllar nomi | manba nomidan |
