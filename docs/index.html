@@ -2240,7 +2240,10 @@ async function faylYuklash(key, file, jim, foizFn) {
     },
     body: JSON.stringify({ file: { display_name: file.name } }),
   });
-  if (!start.ok) throw Object.assign(new Error(`Yuklashni boshlab bo'lmadi (HTTP ${start.status})`), { status: start.status });
+  if (!start.ok) {
+    const j = await start.json().catch(() => ({}));
+    throw Object.assign(new Error(j.error?.message || `Yuklashni boshlab bo'lmadi (HTTP ${start.status})`), { status: start.status });
+  }
   const uploadUrl = start.headers.get("X-Goog-Upload-URL");
   if (!uploadUrl) throw new Error("Yuklash manzili olinmadi");
 
@@ -2260,9 +2263,12 @@ async function faylYuklash(key, file, jim, foizFn) {
         holat(`Yuklanmoqda: ${foiz}% (${(e.loaded / 1048576).toFixed(0)}/${(e.total / 1048576).toFixed(0)} MB)`, false, true);
       }
     };
-    x.onload = () => x.status < 300
-      ? resolve(JSON.parse(x.responseText))
-      : reject(Object.assign(new Error(`Fayl yuklanmadi (HTTP ${x.status})`), { status: x.status }));
+    x.onload = () => {
+      let j = null;
+      try { j = JSON.parse(x.responseText); } catch (e) { /* pastda */ }
+      if (x.status < 300 && j?.file) return resolve(j);
+      reject(Object.assign(new Error(j?.error?.message || `Fayl yuklanmadi (HTTP ${x.status})`), { status: x.status }));
+    };
     x.onerror = () => reject(Object.assign(new Error("Tarmoq xatosi — yuklash uzildi, qayta urining"), { tarmoq: true }));
     x.send(file);
   })).file;
@@ -2275,7 +2281,9 @@ async function faylYuklash(key, file, jim, foizFn) {
     }
     await uxla(3000);
     const r = await fetch(`${API}/v1beta/${info.name}?key=${key}`, { signal: joriyAbort?.signal });
-    info = await r.json();
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(j.error?.message || `Fayl holatini bilib bo'lmadi (HTTP ${r.status})`), { status: r.status });
+    info = j;
   }
   if (info.state === "FAILED") throw Object.assign(new Error("Google faylni qabul qilmadi (fayl buzilgan yoki formati mos emas)"), { faylXato: true, googleRad: true });
   return { uri: info.uri, mime: info.mimeType || file.type || "video/mp4" };
@@ -2362,7 +2370,9 @@ async function ffIsh(f) {
   try {
     if (bekorQilindi) throw new Error("bekor qilindi");
     return await f(await ffOl());
-  } catch (e) {
+  } catch (x) {
+    // ffmpeg.wasm ishchi xatosini satr qilib qaytaradi — Error'ga o'raymiz (aks holda qatorda «undefined»)
+    const e = x instanceof Error ? x : new Error("Audio vositasi xatosi: " + String(x));
     if (!bekorQilindi && e.ffKod === undefined) ffYop();
     throw e;
   } finally {
@@ -3739,7 +3749,7 @@ function tarixKorsat() {
 
   $("tarixList").innerHTML = korinadi.map(t => {
     const yt = /youtu/i.test(t.nom), profil = t.tur === "profil";
-    const joriy = profil ? !$("profilCard").hidden && profilJoriy?.id === t.id : t.id === joriyId;
+    const joriy = profil ? !$("profilCard").hidden && profilJoriy?.id === t.id : !$("resultCard").hidden && t.id === joriyId;
     const meta = profil
       ? `${sanaMatn(t.sana)} · ${t.platforma === "fayl" ? "Fayllar" : t.platforma === "ig" ? "Instagram" : "YouTube"} · ` +
         `${t.videolar.filter(v => v.seglar).length}/${t.videolar.length} ${birlik(t)}${t.tahlil ? " · tahlil" : ""}`
@@ -4277,21 +4287,33 @@ $("qaytaFayl").addEventListener("change", () => {
   if (ishlayapti) return toast("Ish tugashini kuting");
   const bor = new Map();
   fayllar.forEach(f => bor.set(faylKalit(f), [...(bor.get(faylKalit(f)) || []), f]));
-  let mos = 0;
+  // Tanlanganlarning hammasi mos qatorga biriktiriladi (bitta qator uchun ochilgan bo'lsa ham) —
+  // tayyorlari bundan mustasno, lekin «Nutq topilmadi» qatori o'zi so'ralgan bo'lsa olinadi
+  let olindi = 0;
   q.p.videolar.forEach((v, i) => {
-    if (v.seglar || toplamFayllari.has(v.id) || (q.faqat != null && q.faqat !== i)) return;
+    if (toplamFayllari.has(v.id) || (v.seglar && i !== q.faqat)) return;
     const f = bor.get(`${v.nom}|${v.hajm}`)?.shift();
     if (!f) return;
     toplamFayllari.set(v.id, f);
-    if (/^Fayl xotirada yo'q/.test(v.xato || "")) delete v.xato;      // eski yozuvlardagi xato
-    mos++;
+    olindi++;
   });
-  if (!mos) return toast("Tanlangan fayllar bu ro'yxatga mos kelmadi — nomi va hajmi bir xil bo'lishi kerak");
+  // Kerakli qatorlarning birortasi ham fayl olmagan bo'lsa — ishga tushirmaymiz (profilDavom tanlovni qayta ochardi)
   const kerak = faylYoqlar(q.p, q.faqat).length;
-  if (kerak) toast(`${mos} ta fayl topildi, ${kerak} tasi hali tanlanmagan`);
-  profilSaqla(q.p);
+  if (!olindi || kerak === (q.faqat != null ? 1 : q.p.videolar.filter(v => !v.seglar && !v.xato).length)) {
+    return toast("Tanlangan fayllar bu ro'yxatga mos kelmadi — nomi va hajmi bir xil bo'lishi kerak");
+  }
+  // Ortib qolganlari: tayyor qatorlarniki (kutilgan — qayta yuborilmaydi) yoki umuman begona
+  const begona = [...bor.values()].flat().filter(f => !q.p.videolar.some(v => `${v.nom}|${v.hajm}` === faylKalit(f))).length;
+  const qolgan = faylYoqlar(q.p).length;
+  toast([`${olindi} ta fayl topildi`, begona ? `${begona} tasi bu ro'yxatda yo'q` : "",
+    qolgan ? `${qolgan} tasi hali tanlanmagan` : ""].filter(Boolean).join(", "));
   profilDavom(q.p.id, q.faqat);
 });
+// Oldingi versiya sahifa yangilangach qolgan fayllarga «Fayl xotirada yo'q» xatosini yozib qo'ygan —
+// ular xato emas, qayta tanlanishini kutayotgan fayllar
+function faylEskiXato(p) {
+  if (p?.platforma === "fayl") p.videolar.forEach(v => { if (/^Fayl xotirada yo'q/.test(v.xato || "")) delete v.xato; });
+}
 async function faylVideoTranskript(v, p, ish, h) {
   const file = toplamFayllari.get(v.id);
   if (!file) throw igYoqXato("Fayl xotirada yo'q (sahifa yangilangan) — «Qayta urinish»ni bosib, faylni qayta tanlang");
@@ -4465,7 +4487,7 @@ function videoXatoMatn(e, platforma) {
   if (/invalid argument|Cannot fetch|not found|private|unavailable/i.test(e.message)) {
     return "Gemini videoni ocholmadi (yopiq, o'chirilgan yoki yosh cheklovi bor)";
   }
-  return "Xato: " + qisqart(e.message, 140);
+  return "Xato: " + qisqart(String(e?.message ?? e), 140);
 }
 
 /* --- Yakuniy tahlil --- */
@@ -4693,6 +4715,7 @@ async function profilDavom(id, faqat = null, tahlilQayta = false) {
   if (ishlayapti) return toast("Boshqa ish tugashini kuting");
   const p = profilJoriy?.id === id ? profilJoriy : tarixOl().find(x => x.id === id);
   if (!p) return toast("Bu tahlil tarixda topilmadi");
+  faylEskiXato(p);
   if (!kalitOl()) {
     kalitKorinish();
     $("apiKey").focus();
@@ -4716,7 +4739,7 @@ async function profilDavom(id, faqat = null, tahlilQayta = false) {
 }
 
 async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
-  const ish = { key: kalitOl(), model: p.s.model, sinalgan: [], zaxira: null, ig: {} };
+  const ish = { key: kalitOl(), model: p.s.model, sinalgan: [], zaxira: null, ig: {}, serverXato: 0 };
   await modelTayyorla(ish);
   // Fayli xotirada yo'q qatorlar (sahifa yangilangan) — navbatga olinmaydi, «qayta tanlash»ni kutadi
   const navbat = tahlilQayta ? [] : p.videolar.map((v, i) => i)
@@ -4987,6 +5010,7 @@ function vidHtml(p, v, i) {
 }
 function profilKorsat(p, jim) {
   profilJoriy = p;
+  faylEskiXato(p);
   profilBoshKorsat(p);
   $("profilVideolar").innerHTML = p.videolar.map((v, i) => vidHtml(p, v, i)).join("");
   $("profilCard").hidden = false;
