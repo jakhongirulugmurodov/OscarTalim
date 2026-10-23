@@ -177,6 +177,8 @@
     transition: background .2s, color .2s, box-shadow .2s;
   }
   .tabs button.active { background: var(--card); color: var(--primary); box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+  .tabs button { min-width: 0; }
+  @media (max-width: 360px) { .tabs button { padding: 9px 4px; gap: 5px; font-size: .86rem; } }
   .pane { animation: fadeUp .25s both; }
 
   /* ===== Fayl tanlash (bosish yoki sudrab tashlash) ===== */
@@ -317,6 +319,7 @@
 
   #status { font-size: .9rem; margin-top: 10px; white-space: pre-line; color: var(--text2); }
   #status:empty { display: none; }
+  #status .btn { display: flex; width: fit-content; }
   #status.err {
     color: var(--err); background: var(--err-soft); border: 1.5px solid var(--err-border);
     border-radius: 12px; padding: 11px 14px; margin-top: 14px;
@@ -376,12 +379,13 @@
   @media (prefers-color-scheme: dark) { .kuBelgi { color: #0b1020; } }
   .kuBelgi .ic { width: 14px; height: 14px; stroke-width: 3; }
   .kuMatn { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
-  .kuMatn b, .kuMatn small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .kuMatn b { color: var(--ok); font-weight: 700; font-size: .88rem; }
-  .kuMatn small { color: var(--muted); font-size: .74rem; }
+  /* Matn kesilmaydi — tor ekranda ikkinchi qatorga o'tadi (Fayl bo'limidagi nom kabi) */
+  .kuMatn b, .kuMatn small { overflow-wrap: anywhere; }
+  .kuMatn b { color: var(--text); font-weight: 700; font-size: .88rem; }
+  .kuMatn small { color: var(--text2); font-size: .74rem; }
   .kalitUlangan.neytral { border-color: var(--border); background: var(--soft); }
   .kalitUlangan.neytral .kuBelgi { background: var(--soft2); color: var(--muted); }
-  .kalitUlangan.neytral .kuMatn b { color: var(--text); }
+  .kalitBlok[inert] { opacity: .55; }
   .kuOchir {
     width: 30px; height: 30px; border: 0; border-radius: 9px; background: transparent; color: var(--muted);
     cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
@@ -391,12 +395,16 @@
     border: 1.5px dashed var(--primary-border); background: var(--primary-soft); border-radius: 14px;
     padding: 12px; animation: fadeUp .25s both;
   }
-  .kalitKirit .nom { display: block; font-size: .84rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-  .kalitKirit .hint { margin-top: 7px; }
-  @media (max-width: 380px) {
-    .kuTahrir span, .tanlov.ikonli .ic { display: none; }
-    .kuTahrir { padding: 7px 9px; }
+  .kkBosh { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .kalitKirit .nom { display: block; font-size: .84rem; font-weight: 700; color: var(--text); }
+  .kalitKirit .hint { margin-top: 7px; color: var(--text2); }
+  input.xatoMaydon { border-color: var(--err); box-shadow: 0 0 0 3px rgba(220,38,38,.15); }
+  /* Telefonda yashil qatordagi tugma — faqat qalam ikonkasi (kulrang qatorda yozuvi qoladi) */
+  @media (max-width: 440px) {
+    .kalitUlangan:not(.neytral) .kuTahrir span { display: none; }
+    .kalitUlangan:not(.neytral) .kuTahrir { padding: 7px 9px; }
   }
+  @media (max-width: 380px) { .tanlov.ikonli .ic { display: none; } }
   .profilKirish { position: relative; margin-top: 12px; }
   .profilKirish .ic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
   .profilKirish input { padding-left: 42px; }
@@ -675,13 +683,16 @@
         <div class="kalitUlangan" id="apifyUlangan" hidden>
           <span class="kuBelgi"><svg class="ic ic-sm"><use href="#i-tayyor"/></svg></span>
           <span class="kuMatn"><b>Apify ulangan</b><small id="apifyNiqob"></small></span>
-          <button type="button" class="chipBtn kuTahrir" onclick="kalitTahrir('apify')" title="O'zgartirish"><svg class="ic ic-sm"><use href="#i-qalam"/></svg><span>O'zgartirish</span></button>
+          <button type="button" class="chipBtn kuTahrir" onclick="kalitTahrir('apify')" title="O'zgartirish" aria-label="Apify tokenni o'zgartirish"><svg class="ic ic-sm"><use href="#i-qalam"/></svg><span>O'zgartirish</span></button>
           <button type="button" class="kuOchir" onclick="kalitOchirish('apify')" title="Tokenni o'chirish" aria-label="Tokenni o'chirish">
             <svg class="ic ic-sm"><use href="#i-x"/></svg>
           </button>
         </div>
         <div class="kalitKirit" id="apifyKirit">
-          <span class="nom">Apify token <small>— Instagram reel'lari ro'yxati shu orqali olinadi</small></span>
+          <div class="kkBosh">
+            <label class="nom" for="apifyToken">Apify token <small>— Instagram reel'lari ro'yxati shu orqali olinadi</small></label>
+            <button type="button" class="chipBtn" id="apifyBekor" onclick="kalitBekor('apify')" hidden>Bekor</button>
+          </div>
           <div class="qator">
             <input type="password" id="apifyToken" placeholder="apify_api_..." autocomplete="off" spellcheck="false">
             <button type="button" class="btn btn-asosiy" onclick="kalitSaqlaBos('apify')">Saqlash</button>
@@ -694,18 +705,21 @@
         <div class="kalitUlangan" id="ytUlangan" hidden>
           <span class="kuBelgi"><svg class="ic ic-sm"><use href="#i-tayyor"/></svg></span>
           <span class="kuMatn"><b>YouTube kaliti ulangan</b><small id="ytNiqob"></small></span>
-          <button type="button" class="chipBtn kuTahrir" onclick="kalitTahrir('yt')" title="O'zgartirish"><svg class="ic ic-sm"><use href="#i-qalam"/></svg><span>O'zgartirish</span></button>
+          <button type="button" class="chipBtn kuTahrir" onclick="kalitTahrir('yt')" title="O'zgartirish" aria-label="YouTube kalitini o'zgartirish"><svg class="ic ic-sm"><use href="#i-qalam"/></svg><span>O'zgartirish</span></button>
           <button type="button" class="kuOchir" onclick="kalitOchirish('yt')" title="Kalitni o'chirish" aria-label="Kalitni o'chirish">
             <svg class="ic ic-sm"><use href="#i-x"/></svg>
           </button>
         </div>
         <div class="kalitUlangan neytral" id="ytXira">
           <span class="kuBelgi"><svg class="ic ic-sm"><use href="#i-kalit"/></svg></span>
-          <span class="kuMatn"><b>Gemini kaliti ishlatiladi</b><small>YouTube uchun alohida kalit shart emas</small></span>
-          <button type="button" class="chipBtn kuTahrir" onclick="kalitTahrir('yt')" title="Alohida kalit qo'yish"><svg class="ic ic-sm"><use href="#i-kalit"/></svg><span>Alohida kalit</span></button>
+          <span class="kuMatn"><b>Gemini kaliti ishlatiladi</b><small>Alohida kalit shart emas</small></span>
+          <button type="button" class="chipBtn kuTahrir" onclick="kalitTahrir('yt')" title="Alohida kalit qo'yish" aria-label="Alohida YouTube kaliti qo'yish"><svg class="ic ic-sm"><use href="#i-kalit"/></svg><span>Alohida kalit</span></button>
         </div>
         <div class="kalitKirit" id="ytKirit" hidden>
-          <span class="nom">YouTube API kalit <small>(ixtiyoriy)</small></span>
+          <div class="kkBosh">
+            <label class="nom" for="ytKalit">YouTube API kalit <small>(ixtiyoriy)</small></label>
+            <button type="button" class="chipBtn" id="ytBekor" onclick="kalitBekor('yt')">Bekor</button>
+          </div>
           <div class="qator">
             <input type="password" id="ytKalit" placeholder="AIza..." autocomplete="off" spellcheck="false">
             <button type="button" class="btn btn-asosiy" onclick="kalitSaqlaBos('yt')">Saqlash</button>
@@ -718,7 +732,7 @@
 
       <div class="profilKirish">
         <svg class="ic" id="profilBelgi"><use href="#i-ig"/></svg>
-        <input type="text" id="profilUrl" placeholder="@username yoki havola"
+        <input type="text" id="profilUrl" placeholder="@username yoki havola" aria-label="Instagram username yoki profil havolasi"
                spellcheck="false" autocomplete="off" autocapitalize="off">
       </div>
 
@@ -1443,6 +1457,12 @@ function holat(msg, xato = false, spinner = false) {
     jarayon(null);
     s.className = "err";
     s.innerHTML = msg;
+    // Xato ekrandan pastda qolsa (telefonda tugma pastda) — ko'rinadigan joyga suramiz;
+    // tuzatish uchun maydon fokuslangan bo'lsa, o'shani qoldiramiz
+    const r = s.getBoundingClientRect();
+    if (!document.activeElement?.matches?.("input") && (r.bottom > innerHeight || r.top < 0)) {
+      s.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
     return;
   }
   if ($("pill").classList.contains("ko")) {
@@ -1502,6 +1522,8 @@ function bekorQil() {
 function tugmaHolati(ish) {
   $("startBtn").hidden = ish;
   $("ishQator").hidden = !ish;
+  // Ish ketayotganda kalitlar o'zgarmasin (ish o'sha kalit bilan boshlangan)
+  ["apifyGuruh", "ytKalitGuruh"].forEach(id => { if ($(id)) $(id).inert = ish; });
 }
 
 /* YouTube havolasini standart ko'rinishga keltiradi.
@@ -3545,55 +3567,100 @@ function profilOpt() {
 }
 const ytKalitOl = () => (localStorage.getItem("yt_kalit") || "").trim() || kalitOl();
 const apifyTokenOl = () => (localStorage.getItem("apify_token") || "").trim();
-// Maydondagi kalitlarni saqlaydi (yozilayotganda ham — yo'qolmasin); ko'rinish o'zgarmaydi
-function profilKalitSaqla() {
-  try {
-    localStorage.setItem("apify_token", $("apifyToken").value.trim());
-    localStorage.setItem("yt_kalit", $("ytKalit").value.trim());
-  } catch (e) { /* e'tiborsiz */ }
-}
-
-/* Kalit qatorlari: saqlangan kalit — ixcham yashil qator («Fayl» bo'limidagi tanlangan fayl kabi),
-   yo'q yoki o'zgartirilayotgan bo'lsa — kiritish oynasi. YouTube kaliti ixtiyoriy: yo'q bo'lsa
-   bitta xira qator. */
+/* Kalit qatorlari: saqlangan kalit — ixcham qator («Fayl» bo'limidagi tanlangan fayl kabi), yo'q yoki
+   o'zgartirilayotgan bo'lsa — kiritish oynasi. YouTube kaliti ixtiyoriy: yo'q bo'lsa kulrang qator.
+   Yangi kalit yozilishi bilan saqlanadi (yo'qolmasin). Saqlangan kalitni o'zgartirish esa qoralama:
+   «Saqlash»/Enter bilan yoziladi, «Bekor»/Esc — eskisi qaytadi. */
 const kalitOchiq = new Set();          // o'zgartirilayotgan kalitlar: "apify", "yt"
+const kalitAsl = {};                   // o'zgartirish boshlanganda saqlangan qiymat
 const KALIT = { apify: { el: "apifyToken", k: "apify_token" }, yt: { el: "ytKalit", k: "yt_kalit" } };
+const kalitSaqlangan = tur => (localStorage.getItem(KALIT[tur].k) || "").trim();
+function kalitYoz(tur, v) {
+  try { if (v) localStorage.setItem(KALIT[tur].k, v); else localStorage.removeItem(KALIT[tur].k); }
+  catch (e) { /* e'tiborsiz */ }
+}
 function kalitQatorKorsat() {
-  const bor = t => (localStorage.getItem(KALIT[t].k) || "").trim();
-  const niqob = v => `••••${v.length > 8 ? v.slice(-4) : ""} · saqlangan`;
-  const apify = bor("apify"), yt = bor("yt");
+  const niqob = v => `••••${v.length > 8 ? v.slice(-4) : ""}`;
+  const apify = kalitSaqlangan("apify"), yt = kalitSaqlangan("yt");
   $("apifyUlangan").hidden = !apify || kalitOchiq.has("apify");
   $("apifyKirit").hidden = !!apify && !kalitOchiq.has("apify");
+  $("apifyBekor").hidden = !kalitAsl.apify;
   $("apifyNiqob").textContent = apify ? niqob(apify) : "";
   $("ytUlangan").hidden = !yt || kalitOchiq.has("yt");
   $("ytXira").hidden = !!yt || kalitOchiq.has("yt");
   $("ytKirit").hidden = !kalitOchiq.has("yt");
   $("ytNiqob").textContent = yt ? niqob(yt) : "";
 }
+// Yig'ilgandan keyin fokus yo'qolmasin — ko'rinib turgan tugmaga o'tadi
+function kalitFokus(tur) {
+  const el = tur === "apify" ? ($("apifyUlangan").hidden ? $("apifyToken") : $("apifyUlangan").querySelector(".kuTahrir"))
+    : !$("ytUlangan").hidden ? $("ytUlangan").querySelector(".kuTahrir")
+    : !$("ytXira").hidden ? $("ytXira").querySelector(".kuTahrir") : $("ytKalit");
+  el?.focus();
+}
 function kalitTahrir(tur) {
+  // Kerakli bo'lim va platforma ochiq bo'lsin (xato xabaridagi tugmadan chaqirilganda ham)
+  if (joriyTab !== "profil") tabTanla("profil");
+  const plat = tur === "yt" ? "yt" : "ig";
+  if (profilOpt().plat !== plat) {
+    document.querySelector(`input[name="pPlat"][value="${plat}"]`).checked = true;
+    profilPaneYangila();
+  }
+  if (!kalitOchiq.has(tur)) kalitAsl[tur] = kalitSaqlangan(tur);
   kalitOchiq.add(tur);
   kalitQatorKorsat();
   const inp = $(KALIT[tur].el);
-  inp.focus();
+  inp.scrollIntoView({ block: "center", behavior: "smooth" });
+  inp.focus({ preventScroll: true });
   inp.select();
+}
+function kalitBekor(tur) {
+  if (!kalitOchiq.has(tur)) return;
+  const eski = kalitAsl[tur] || "";
+  $(KALIT[tur].el).value = eski;
+  kalitYoz(tur, eski);
+  delete kalitAsl[tur];
+  kalitOchiq.delete(tur);
+  kalitQatorKorsat();
+  kalitFokus(tur);
 }
 function kalitSaqlaBos(tur) {
   const v = $(KALIT[tur].el).value.trim();
-  profilKalitSaqla();
-  if (!v && tur === "apify") { $("apifyToken").focus(); return toast("Avval tokenni qo'ying"); }
+  if (!v) {
+    // Saqlangan kalit bo'shatilgan bo'lsa — o'chirish (so'rab); yangi Apify token — kerak; YouTube — shunchaki yopiladi
+    if (kalitAsl[tur]) return kalitOchirish(tur);
+    if (tur === "apify") { $("apifyToken").focus(); return toast("Avval tokenni qo'ying"); }
+    kalitBekor(tur);
+    return;
+  }
+  kalitYoz(tur, v);
+  delete kalitAsl[tur];
   kalitOchiq.delete(tur);
   kalitQatorKorsat();
-  if (!v) return;
+  kalitFokus(tur);
   toast(tur === "yt" ? "YouTube kaliti saqlandi" : /^apify_api_/.test(v) ? "Apify token saqlandi"
     : "Saqlandi — lekin Apify token odatda «apify_api_» bilan boshlanadi, tekshirib ko'ring");
 }
 function kalitOchirish(tur) {
   if (!confirm(tur === "apify" ? "Apify token shu qurilmadan o'chirilsinmi?" : "YouTube kaliti shu qurilmadan o'chirilsinmi?")) return;
-  try { localStorage.removeItem(KALIT[tur].k); } catch (e) { /* e'tiborsiz */ }
+  kalitYoz(tur, "");
   $(KALIT[tur].el).value = "";
+  delete kalitAsl[tur];
   kalitOchiq.delete(tur);
   kalitQatorKorsat();
+  kalitFokus(tur);
   toast(tur === "apify" ? "Apify token o'chirildi" : "YouTube kaliti o'chirildi");
+}
+// Ish boshlanganda: ochiq qolgan o'zgarishlar qabul qilinadi (bo'sh qoralama — eski kalit qoladi)
+function kalitlarniQabulQil() {
+  for (const tur of kalitOchiq) {
+    const v = $(KALIT[tur].el).value.trim() || kalitAsl[tur] || "";
+    $(KALIT[tur].el).value = v;
+    kalitYoz(tur, v);
+    delete kalitAsl[tur];
+  }
+  kalitOchiq.clear();
+  kalitQatorKorsat();
 }
 
 function profilPaneYangila() {
@@ -3602,7 +3669,8 @@ function profilPaneYangila() {
   $("apifyGuruh").hidden = o.plat !== "ig";
   $("pChuqurGuruh").hidden = o.plat !== "ig" || o.sarala !== "top";
   $("profilBelgi").innerHTML = `<use href="#i-${o.plat === "ig" ? "ig" : "yt"}"/>`;
-  $("profilUrl").placeholder = o.plat === "ig" ? "@username yoki havola" : "@kanal yoki kanal havolasi";
+  $("profilUrl").placeholder = o.plat === "ig" ? "@username yoki havola" : "@kanal yoki havola";
+  $("profilUrl").setAttribute("aria-label", o.plat === "ig" ? "Instagram username yoki profil havolasi" : "YouTube kanal havolasi yoki @handle");
   if (typeof sorovKorsat === "function") sorovKorsat();
 }
 // Profil tahlilining Apify narxi (so'rovlar soni yonida ko'rsatiladi)
@@ -3625,19 +3693,19 @@ function profilNarxMatn() {
   $("apifyToken").value = apifyTokenOl();
   $("ytKalit").value = localStorage.getItem("yt_kalit") || "";
   kalitQatorKorsat();
-  // Yozilishi bilan saqlanadi (yo'qolmasin); Enter yoki «Saqlash» — ixcham qatorga yig'iladi, Esc — bekor
-  Object.entries(KALIT).forEach(([tur, { el, k }]) => {
-    $(el).addEventListener("input", profilKalitSaqla);
-    $(el).addEventListener("keydown", e => {
-      if (e.key === "Enter") { e.preventDefault(); kalitSaqlaBos(tur); }
-      else if (e.key === "Escape" && (localStorage.getItem(k) || "").trim() && kalitOchiq.has(tur)) {
-        kalitOchiq.delete(tur);
-        kalitQatorKorsat();
-      }
+  // Bo'limdagi bezak ikonkalari ekran o'quvchiga «rasm» bo'lib o'qilmasin
+  $("paneProfil").querySelectorAll("svg").forEach(x => x.setAttribute("aria-hidden", "true"));
+  // Yangi kalit yozilishi bilan saqlanadi (o'zgartirish — qoralama); Enter — saqlash, Esc — bekor
+  Object.entries(KALIT).forEach(([tur, { el }]) => {
+    $(el).addEventListener("input", () => { if (!kalitAsl[tur]) kalitYoz(tur, $(el).value.trim()); });
+    $(el).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); kalitSaqlaBos(tur); } });
+    // Esc — oynaning istalgan joyida (masalan, «Saqlash» tugmasida turganda ham)
+    $(tur === "apify" ? "apifyKirit" : "ytKirit").addEventListener("keydown", e => {
+      if (e.key === "Escape" && kalitOchiq.has(tur)) { e.preventDefault(); kalitBekor(tur); }
     });
   });
   $("paneProfil").addEventListener("change", e => {
-    if (e.target.id === "apifyToken" || e.target.id === "ytKalit") return profilKalitSaqla();
+    if (e.target.id === "apifyToken" || e.target.id === "ytKalit") return;
     if (e.target.id !== "profilUrl") {
       const x = profilOpt();
       try {
@@ -3649,6 +3717,7 @@ function profilNarxMatn() {
   });
   // Havola qo'yilsa — platforma o'zi tanlanadi
   $("profilUrl").addEventListener("input", () => {
+    $("profilUrl").classList.remove("xatoMaydon");
     const k = profilAniqla($("profilUrl").value, null);
     if (k) { document.querySelector(`input[name="pPlat"][value="${k.plat}"]`).checked = true; profilPaneYangila(); }
   });
@@ -4197,7 +4266,7 @@ const profilYangila = p => { if (profilJoriy === p && !$("profilCard").hidden) p
 
 async function profilBoshla() {
   const o = profilOpt();
-  profilKalitSaqla();
+  kalitlarniQabulQil();
   if (!kalitOl()) {
     kalitKorinish();
     $("kalitKarta").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -4206,15 +4275,21 @@ async function profilBoshla() {
   }
   const k = profilAniqla($("profilUrl").value, o.plat);
   if (!k) {
+    // Maydonni belgilab, fokuslaymiz — xato ko'zdan qochmasin
+    $("profilUrl").classList.add("xatoMaydon");
+    $("profilUrl").focus();
     return holat(o.plat === "ig" ? "Instagram username yoki profil havolasini kiriting (masalan: @username)."
       : "YouTube kanal havolasini yoki @handle'ini kiriting (masalan: youtube.com/@kanal).", true);
+  }
+  // Havoladan aniqlangan platforma tanlovdan farq qilsa — tanlovni moslaymiz
+  if (k.plat !== o.plat) {
+    document.querySelector(`input[name="pPlat"][value="${k.plat}"]`).checked = true;
+    profilPaneYangila();
   }
   if (k.plat === "ig" && !apifyTokenOl()) {
     kalitTahrir("apify");
     return holat("Instagram uchun Apify token kerak — yuqoridagi maydonga qo'ying (olish yo'li maydon ostida).", true);
   }
-  kalitOchiq.clear();
-  kalitQatorKorsat();
   ishBoshla();
   $("resultCard").hidden = true;
   $("profilCard").hidden = true;
