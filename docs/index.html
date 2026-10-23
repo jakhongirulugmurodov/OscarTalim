@@ -360,6 +360,7 @@
 
   /* ===== Profil tahlili ===== */
   .guruh .nom small { font-weight: 400; color: var(--muted); }
+  .guruh .nom .kalitHolat { color: var(--ok); font-weight: 600; }
   .pTahlil {
     background: var(--primary-soft); border: 1px solid var(--primary-border); border-radius: 14px;
     padding: 14px; margin-top: 14px; animation: fadeUp .3s both;
@@ -673,14 +674,14 @@
           <small>Hook'lar, tuzilma, mavzular, nega ko'p ko'rilgani va yangi g'oyalar — +1 so'rov</small></span>
       </label>
       <div class="guruh" id="apifyGuruh">
-        <span class="nom">Apify token</span>
+        <span class="nom">Apify token <small id="apifyHolat" class="kalitHolat"></small></span>
         <input type="password" id="apifyToken" placeholder="apify_api_..." autocomplete="off" spellcheck="false">
         <p class="hint">Instagram reel'lari ro'yxati shu orqali olinadi. Olish:
           <a href="https://console.apify.com/settings/integrations" target="_blank" rel="noopener">console.apify.com → Settings → API &amp; Integrations</a>.
           Bepul tarifda oyiga $5 kredit beriladi.</p>
       </div>
       <div class="guruh" id="ytKalitGuruh">
-        <span class="nom">YouTube API kalit <small>(ixtiyoriy)</small></span>
+        <span class="nom">YouTube API kalit <small>(ixtiyoriy)</small> <small id="ytKalitHolat" class="kalitHolat"></small></span>
         <input type="password" id="ytKalit" placeholder="Bo'sh qolsa — Gemini kaliti sinab ko'riladi" autocomplete="off" spellcheck="false">
         <p class="hint">Gemini kaliti YouTube'ga ruxsat bermasa:
           <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">YouTube Data API v3</a>
@@ -3475,6 +3476,13 @@ function profilKalitSaqla() {
     localStorage.setItem("apify_token", $("apifyToken").value.trim());
     localStorage.setItem("yt_kalit", $("ytKalit").value.trim());
   } catch (e) { /* e'tiborsiz */ }
+  kalitHolatKorsat();
+}
+// Kalit saqlanganini ko'rsatib turamiz — alohida «Saqlash» tugmasi yo'q, qo'yilishi bilan saqlanadi
+function kalitHolatKorsat() {
+  const bor = k => !!(localStorage.getItem(k) || "").trim();
+  $("apifyHolat").textContent = bor("apify_token") ? "✓ saqlangan (shu qurilmada)" : "";
+  $("ytKalitHolat").textContent = bor("yt_kalit") ? "✓ saqlangan" : "";
 }
 
 function profilPaneYangila() {
@@ -3500,6 +3508,9 @@ function profilPaneYangila() {
   $("pTahlil").checked = o.pTahlil !== false;
   $("apifyToken").value = apifyTokenOl();
   $("ytKalit").value = localStorage.getItem("yt_kalit") || "";
+  kalitHolatKorsat();
+  // Qo'yilishi (yoki yozilishi) bilan saqlanadi
+  ["apifyToken", "ytKalit"].forEach(id => $(id).addEventListener("input", profilKalitSaqla));
   $("paneProfil").addEventListener("change", e => {
     if (e.target.id === "apifyToken" || e.target.id === "ytKalit") profilKalitSaqla();
     else if (e.target.id !== "profilUrl") {
