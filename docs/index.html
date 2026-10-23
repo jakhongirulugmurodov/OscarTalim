@@ -481,7 +481,15 @@
     border-bottom: 1px solid var(--border);
   }
   .asboblar .btn { flex: 1; min-width: 0; }
+  .asboblar .btn.ixcham { flex: 0 0 auto; padding-left: 13px; padding-right: 13px; }
+  .asboblar .btn > span { overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 440px) {
+    #profilCard .asboblar { gap: 6px; }
+    #profilCard .asboblar .btn { padding-left: 10px; padding-right: 10px; }
+    #profilCard .asboblar .btn:not(.ixcham) > .ic { display: none; }
+  }
   @media (max-width: 480px) { .keng-ekran { display: none; } }
+  @media (min-width: 481px) { .tor-ekran { display: none; } }
   .tahrirIzoh {
     display: flex; align-items: center; gap: 7px; font-size: .78rem; color: var(--muted);
     margin: 12px 0 2px;
@@ -600,6 +608,7 @@
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></symbol>
   <symbol id="i-tarix" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/><polyline points="12 7 12 12 15 14"/></symbol>
   <symbol id="i-kalit" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M16 7l3 3M19 4l2 2"/></symbol>
+  <symbol id="i-yuklabol" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
   <symbol id="i-yuklash" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
     <symbol id="i-fayl" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
   <symbol id="i-yt" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4"/><polygon points="10 9 15 12 10 15 10 9"/></symbol>
@@ -925,11 +934,14 @@
       </div>
     </div>
     <div class="asboblar">
-      <button class="btn btn-asosiy" onclick="profilNusxa('hammasi')">
-        <svg class="ic ic-sm"><use href="#i-nusxa"/></svg> <span>Hammasini<span class="keng-ekran"> nusxalash</span></span>
+      <button class="btn btn-asosiy" onclick="profilNusxa('hammasi')" title="Hammasini nusxalash">
+        <svg class="ic ic-sm"><use href="#i-nusxa"/></svg> <span><span class="keng-ekran">Hammasini nusxalash</span><span class="tor-ekran">Hammasi</span></span>
       </button>
-      <button class="btn btn-ghost" onclick="profilNusxa('skript')">
-        <svg class="ic ic-sm"><use href="#i-matn"/></svg> Faqat skriptlar
+      <button class="btn btn-ghost" onclick="profilNusxa('skript')" title="Faqat skriptlarni nusxalash">
+        <svg class="ic ic-sm"><use href="#i-matn"/></svg> <span><span class="keng-ekran">Faqat skriptlar</span><span class="tor-ekran">Skriptlar</span></span>
+      </button>
+      <button class="btn btn-ghost ixcham" onclick="profilYukla()" title=".txt fayl qilib yuklab olish" aria-label="Hammasini .txt fayl qilib yuklab olish">
+        <svg class="ic ic-sm"><use href="#i-yuklabol"/></svg> .txt
       </button>
     </div>
     <div id="profilDavom"></div>
@@ -4784,6 +4796,8 @@ function vidHtml(p, v, i) {
       `<button class="chipBtn pvOch" onclick="profilSkriptOch(${i}, this)" aria-expanded="${ochiq}">` +
       `${ochiq ? "Yig'ish" : "To'liq ko'rish"}</button>` +
       `<button class="chipBtn" onclick="profilVideoOch(${i})">${ikon("soat")} Timecode va tahrir</button>` +
+      `<button class="chipBtn" onclick="profilYukla(${i})" title=".txt qilib yuklab olish" ` +
+      `aria-label="Skriptni .txt qilib yuklab olish">${ikon("yuklabol")} .txt</button>` +
       (v.qisman ? qayta(`${vaqtQisqa(v.qisman.keyingi)} dan davom ettirish`) : "") + `</div>` +
       (v.ogoh ? `<div class="pvHolat">${esc(v.ogoh)}</div>` : "");
   } else if (v.seglar) {
@@ -4858,27 +4872,53 @@ function profilSarlavha(p) {
     `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${p.videolar.length} ta video · ${sanaQisqa(p.sana)}` +
     (k.url ? `\n${k.url}` : "");
 }
+/* Nusxa va .txt uchun matn: son — bitta skript, "skript" — faqat skriptlar, "tahlil", aks holda — hammasi
+   (sarlavha, har birining nomi, ma'lumoti va skripti, tahlil). Bo'sh bo'lsa — "". */
+function profilMatn(p, nima) {
+  const tayyor = p.videolar.map((v, i) => ({ v, i })).filter(x => x.v.seglar?.length);
+  if (typeof nima === "number") return skriptMatn(p.videolar[nima]?.seglar || []);
+  if (nima === "tahlil") return tahlilMatn(p);
+  if (!tayyor.length) return "";
+  if (nima === "skript") return tayyor.map(({ v, i }) => `${i + 1}. ${v.nom}\n${skriptMatn(v.seglar)}`).join("\n\n");
+  return [profilSarlavha(p), ...tayyor.map(({ v, i }) =>
+    `${i + 1}. ${v.nom}\n${[vidMeta(v), v.url].filter(Boolean).join(" · ")}\n\n${skriptMatn(v.seglar)}`), tahlilMatn(p)]
+    .filter(Boolean).join("\n\n————————\n\n");
+}
 function profilNusxa(nima) {
   const p = profilJoriy;
   if (!p) return;
-  const tayyor = p.videolar.map((v, i) => ({ v, i })).filter(x => x.v.seglar?.length);
-  let matn, xabar = "Hammasi nusxalandi";
-  if (typeof nima === "number") { matn = skriptMatn(p.videolar[nima]?.seglar || []); xabar = "Skript nusxalandi"; }
-  else if (nima === "tahlil") { matn = tahlilMatn(p); xabar = "Tahlil nusxalandi"; }
-  else if (nima === "skript") {
-    matn = tayyor.map(({ v, i }) => `${i + 1}. ${v.nom}\n${skriptMatn(v.seglar)}`).join("\n\n");
-    xabar = `${tayyor.length} ta skript nusxalandi`;
-  } else {
-    matn = [profilSarlavha(p), ...tayyor.map(({ v, i }) =>
-      `${i + 1}. ${v.nom}\n${[vidMeta(v), v.url].filter(Boolean).join(" · ")}\n\n${skriptMatn(v.seglar)}`), tahlilMatn(p)]
-      .filter(Boolean).join("\n\n————————\n\n");
-  }
-  if (!matn.trim() || (nima === "hammasi" && !tayyor.length)) {
-    return toast(nima === "tahlil" ? "Tahlil hali tayyor emas" : "Hali skript yo'q");
-  }
+  const matn = profilMatn(p, nima);
+  if (!matn.trim()) return toast(nima === "tahlil" ? "Tahlil hali tayyor emas" : "Hali skript yo'q");
+  const n = p.videolar.filter(v => v.seglar?.length).length;
   navigator.clipboard.writeText(matn)
-    .then(() => toast(xabar))
+    .then(() => toast(typeof nima === "number" ? "Skript nusxalandi" : nima === "tahlil" ? "Tahlil nusxalandi"
+      : nima === "skript" ? `${n} ta skript nusxalandi` : "Hammasi nusxalandi"))
     .catch(() => toast("Nusxalab bo'lmadi — brauzer ruxsat bermadi"));
+}
+// .txt qilib yuklab olish: bitta skript (son) yoki hammasi
+function profilYukla(nima = "hammasi") {
+  const p = profilJoriy;
+  if (!p) return;
+  const matn = profilMatn(p, nima);
+  if (!matn.trim()) return toast("Hali skript yo'q");
+  const sana = String(p.sana || "").slice(0, 10);
+  const nom = typeof nima === "number" ? p.videolar[nima].nom.replace(/\.[^.]{1,5}$/, "")
+    : p.platforma === "fayl" ? `transkripsiya-${p.videolar.length}-fayl-${sana}`
+    : `${(p.kanal?.handle || p.kanal?.nom || "profil").replace(/^@/, "")}-skriptlar-${sana}`;
+  txtYuklabOl(nom, matn);
+}
+// Matnni .txt fayl qilib yuklab beradi (UTF-8, BOM bilan — Windows Bloknotida ham ö, ş to'g'ri chiqadi)
+function txtYuklabOl(nom, matn) {
+  const fayl = (String(nom).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 90) || "transkripsiya") + ".txt";
+  const url = URL.createObjectURL(new Blob(["\ufeff" + matn.replace(/\r?\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fayl;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  toast(`${fayl} yuklab olindi`);
 }
 
 tarixKorsat();
