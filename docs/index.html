@@ -1246,6 +1246,7 @@ const UZ_QISQA = /^(?:O['ʻʼ‘’`´]z|Tosh|Qo['ʻʼ‘’`´]q|Farg['ʻʼ‘�
 // O'zbek imlosida bo'lmaydigan harf/birikma yoki so'z ichida bosh harf — xorijiy so'z
 function xorijiymi(soz) {
   if (UZ_QISQA.test(soz)) return false;
+  if (/^(?:shorts?|snapchat|shopify)/i.test(soz)) return true;     // imlo belgisi yo'q, lekin xorijiy nom (qo'shimchasi bilan ham)
   if (/c(?!h)|w|th|ph|ck|^chr/i.test(soz) || XORIJIY_HARF.test(soz) || /\p{Ll}\p{Lu}/u.test(soz)) return true;
   // Kuchsiz belgilar — o'zbekcha qo'shimchali so'zlarda emas (reallashtirish, okeanshunoslik)
   return /ee|oo|ou|ea|ie/i.test(soz) && !/lash|shunos|chi/i.test(soz);
@@ -1965,7 +1966,7 @@ async function faylYuklash(key, file, jim) {
     },
     body: JSON.stringify({ file: { display_name: file.name } }),
   });
-  if (!start.ok) throw new Error(`Yuklashni boshlab bo'lmadi (HTTP ${start.status})`);
+  if (!start.ok) throw Object.assign(new Error(`Yuklashni boshlab bo'lmadi (HTTP ${start.status})`), { status: start.status });
   const uploadUrl = start.headers.get("X-Goog-Upload-URL");
   if (!uploadUrl) throw new Error("Yuklash manzili olinmadi");
 
@@ -1985,7 +1986,7 @@ async function faylYuklash(key, file, jim) {
     };
     x.onload = () => x.status < 300
       ? resolve(JSON.parse(x.responseText))
-      : reject(new Error(`Fayl yuklanmadi (HTTP ${x.status})`));
+      : reject(Object.assign(new Error(`Fayl yuklanmadi (HTTP ${x.status})`), { status: x.status }));
     x.onerror = () => reject(new Error("Tarmoq xatosi — yuklash uzildi, qayta urining"));
     x.send(file);
   })).file;
@@ -2000,7 +2001,7 @@ async function faylYuklash(key, file, jim) {
     const r = await fetch(`${API}/v1beta/${info.name}?key=${key}`, { signal: joriyAbort?.signal });
     info = await r.json();
   }
-  if (info.state === "FAILED") throw new Error("Google faylni qabul qilmadi");
+  if (info.state === "FAILED") throw Object.assign(new Error("Google faylni qabul qilmadi"), { faylXato: true });
   return { uri: info.uri, mime: info.mimeType || file.type || "video/mp4" };
 }
 
@@ -2840,19 +2841,20 @@ async function transkript(t) {
           qayta = false;
           if (r) oxirgiQism = r;
           jimQator = r?.jim && !r.toliq ? jimQator + 1 : 0;
-          if (r?.tugadi || jimQator >= 2) break;
+          // Uzunligi ma'lum bo'lsa — oxirigacha boramiz: jim joy yoki qisqa klip tugadi degani emas
+          if (!dav && (r?.tugadi || jimQator >= 2)) break;
         } catch (e) {
           if (bekorQilindi) throw e;
           if (/invalid argument/i.test(e.message)) {
             const o = oxirgiQism;
             // Oldingi klip qisqa kelgan (yoki klip uzunligi noma'lum, lekin oxiri jim edi) —
             // video haqiqatan tugagan, qayta urinib so'rov sarflamaymiz
-            if (keyingi > 0 && (o?.qisqa || (o && o.klip == null && o.jim))) break;
+            if (!dav && keyingi > 0 && (o?.qisqa || (o && o.klip == null && o.jim))) break;
             // Bir martalik xato bo'lishi mumkin — bir marta qayta urinamiz
             if (!qayta) { qayta = true; await uxla(3000); a = keyingi; continue; }
             if (keyingi > 0) {
               // Klip uzunligi noma'lum — video tugagan deb hisoblaymiz
-              if (!o || o.klip == null) break;
+              if (!dav && (!o || o.klip == null)) break;
               // Oldingi klip to'liq edi, demak video davom etadi — to'xtatib, davom ettirishni taklif qilamiz
               e.ytOxiri = true;
               throw e;
@@ -3043,6 +3045,7 @@ async function boshla(davom) {
     davomHolat = null;
     jarayon(null);
     holat(ogohlantirish);
+    $("profilCard").hidden = true;
     korsat(seglar, nom, id);
     if (ish.model !== s.model) {
       $("natijaStat").textContent += ` · ${modelNomi(ish.model)} bilan`;
@@ -3111,6 +3114,7 @@ async function boshla(davom) {
     joriyAbort = null;
     joriyXhr = null;
     tugmaHolati(false);
+    if (profilJoriy) profilYangila(profilJoriy);   // ish paytida ochilgan profil tugmalari qaytsin
   }
 }
 
@@ -3688,13 +3692,21 @@ async function apifyIshla(kirish, matn, h, narx) {
   const run = await apify(`/acts/${IG_AKTOR}/runs?maxTotalChargeUsd=${Math.max(0.01, narx).toFixed(3)}`,
     { method: "POST", body: kirish, uzilmas: true });
   const t0 = Date.now();
-  let r = run;
+  let r = run, uzilish = 0;
   try {
     if (bekorQilindi) throw new Error("bekor qilindi");
     while (!/^(SUCCEEDED|FAILED|ABORTED|TIMED-OUT)$/.test(r.status)) {
       if (Date.now() - t0 > 6 * 60e3) throw new Error("Apify 6 daqiqada javob bermadi — birozdan keyin qayta urining");
       h(`${matn} · ${Math.round((Date.now() - t0) / 1000)} s...`);
-      r = await apify(`/actor-runs/${run.id}?waitForFinish=10`);
+      try {
+        r = await apify(`/actor-runs/${run.id}?waitForFinish=10`);
+        uzilish = 0;
+      } catch (e) {
+        // Holatni so'rashdagi vaqtinchalik uzilish (tarmoq, 5xx, 429) — ishni to'xtatmay qayta so'raymiz
+        const vaqtinchalik = e instanceof TypeError || e.status >= 500 || e.status === 429;
+        if (bekorQilindi || !vaqtinchalik || ++uzilish > 4) throw e;
+        await uxla(3000 * uzilish);
+      }
     }
   } catch (e) {
     // Bekor qilinsa yoki kutish uzilsa — Apify'dagi ish ham to'xtasin (kredit ketmasin)
@@ -3753,7 +3765,8 @@ const yangiIsh = (s, ish, h, qosh) => ({ yt: "", file: null, s, ish, toplangan: 
   oxirgiS1: null, yubor: null, dav: null, holat: h, jarayon: () => {}, jim: true, ...qosh });
 
 /* Uzun video to'xtab qolsa (limit, bekor), tayyor qismi videoning o'zida saqlanadi (v.qisman) —
-   davom ettirilganda shu joydan boshlanadi. Google video oxirini bermasa — shu joygacha skript. */
+   davom ettirilganda shu joydan boshlanadi. Google video davomini bermasa — shu joygacha skript
+   chiqadi, qisman esa qoladi: kartada «… dan davom ettirish» tugmasi bo'ladi. */
 async function ytVideoTranskript(v, s, ish, h) {
   const q = v.qisman;
   const t = yangiIsh(s, ish, h, { yt: v.url, dav: v.dav || null, ...(q ? { toplangan: q.seglar.slice(),
@@ -3761,48 +3774,55 @@ async function ytVideoTranskript(v, s, ish, h) {
   try {
     await transkript(t);
   } catch (e) {
-    if (e.ytOxiri && t.toplangan.length) {
-      t.ogohlantirish = [t.ogohlantirish, `Google videoning ${vaqtQisqa(t.keyingi)} dan keyingi qismini bermadi — ` +
-        "skript shu joygacha."].filter(Boolean).join(" ");
-    } else {
-      if (t.toplangan.length || t.keyingi > (q?.keyingi || 0)) {
-        v.qisman = { seglar: t.toplangan.slice(), keyingi: t.keyingi, oxirgiS1: t.oxirgiS1, otkazilgan: t.otkazilgan };
-      }
-      throw e;
+    if (t.toplangan.length || t.keyingi > (q?.keyingi || 0)) {
+      v.qisman = { seglar: t.toplangan.slice(), keyingi: t.keyingi, oxirgiS1: t.oxirgiS1, otkazilgan: t.otkazilgan };
     }
+    if (!(e.ytOxiri && t.toplangan.length)) throw e;
+    t.ogohlantirish = [t.ogohlantirish, `Google videoning ${vaqtQisqa(t.keyingi)} dan keyingi qismini bermadi — ` +
+      "skript shu joygacha."].filter(Boolean).join(" ");
+    return videoNatija(t, s);
   }
   delete v.qisman;
   return videoNatija(t, s);
 }
 
 /* Instagram videosini Gemini'ga uch yo'l bilan beramiz (ishlagani eslab qolinadi):
-   1) havolaning o'zi — Gemini videoni o'zi oladi (so'rov soni o'zgarmaydi);
+   1) havolaning o'zi — Gemini videoni (kerak bo'lsa alohida ovoz yo'lagini ham) o'zi oladi;
    2) brauzer yuklab oladi (Instagram ruxsat bersa) va Google'ga yuklaydi;
-   3) Apify yuklab beradi — pullik qo'shimcha, bir marta so'raladi. */
+   3) Apify yuklab beradi — pullik qo'shimcha, bir marta ruxsat so'raladi.
+   Apify avval yuklab bergan video (3 kun saqlanadi) qayta pul to'lamay olinadi. */
 async function igVideoTranskript(v, p, ish, h, navbat) {
   const s = p.s, ig = ish.ig;
-  let bosh = null;          // Gemini havolani ochdi, lekin nutq eshitmadi
-  if (v.video && !(ig.urlXato >= 2 && !ig.urlOk)) {
+  const aralash = s.til === "aralash";
+  const geminiUrl = async (url, mime) => {
+    const media = { fileData: { fileUri: url, mimeType: mime } };
+    const q = await modelBilan(ish, [media, { text: prompt1(s.yozuv, s.segment, s.sozlovchi, aralash) }],
+      schemaTuz(s.sozlovchi, aralash), media);
+    return videoNatija({ toplangan: qismniMosla(q, 0, Infinity, false), otkazilgan: [] }, s);
+  };
+  // Limit, rad etish, tarmoq yoki kalit xatosi — boshqa yo'l yordam bermaydi
+  const ichki = e => bekorQilindi || e.bloklandi || e.uzun || toxtatuvchimi(e);
+  let fayl = await igYuklanganOl(v, h);
+  let bosh = null;          // Gemini videoni ochdi, lekin nutq eshitmadi (ovoz yo'lagi tekshirilmadi)
+  if (!fayl && v.video && !(ig.urlXato >= 2 && !ig.urlOk)) {
     try {
       h("Gemini videoni havoladan olmoqda...");
-      const aralash = s.til === "aralash";
-      const media = { fileData: { fileUri: v.video, mimeType: "video/mp4" } };
-      const q = await modelBilan(ish, [media, { text: prompt1(s.yozuv, s.segment, s.sozlovchi, aralash) }],
-        schemaTuz(s.sozlovchi, aralash), media);
+      const r = await geminiUrl(v.video, "video/mp4");
       ig.urlOk = true;
-      const r = videoNatija({ toplangan: qismniMosla(q, 0, Infinity, false), otkazilgan: [] }, s);
-      // Videoda ovoz alohida yo'lakda bo'lsa, havoladagi video ovozsiz bo'lishi mumkin — audioni ham sinaymiz
       if (r.seglar.length || !v.audio) return r;
+      // Ovoz alohida yo'lakda bo'lsa, havoladagi video ovozsiz bo'lishi mumkin — ovoz havolasini ham beramiz.
+      // U ham bo'sh bo'lsa — reel haqiqatan nutqsiz (musiqa)
       bosh = r;
+      h("Gemini ovozni havoladan olmoqda...");
+      try { return await geminiUrl(v.audio, "audio/mp4"); }
+      catch (e) { if (ichki(e)) throw e; console.warn("Gemini ovoz havolasini ocholmadi:", e.message); }
     } catch (e) {
-      // Limit, rad etish, tarmoq yoki kalit xatosi — boshqa usul yordam bermaydi
-      if (bekorQilindi || e.bloklandi || e.uzun || toxtatuvchimi(e)) throw e;
+      if (ichki(e)) throw e;
       ig.urlXato = (ig.urlXato || 0) + 1;
       console.warn("Gemini Instagram havolasini ocholmadi:", e.message);
     }
   }
-  let fayl = null;
-  if (!ig.fetchYoq || ig.fetchOk) {
+  if (!fayl && (!ig.fetchYoq || ig.fetchOk)) {
     for (const [url, tur] of [[v.audio, "audio/mp4"], [v.video, "video/mp4"]]) {
       if (!url) continue;
       try {
@@ -3821,66 +3841,96 @@ async function igVideoTranskript(v, p, ish, h, navbat) {
     }
     if (!fayl && !ig.fetchOk) ig.fetchYoq = true;
   }
-  if (!fayl && bosh) return bosh;  // musiqali reel — haqiqatan nutqsiz
+  // Videoda nutq eshitilmadi, ovozini alohida tekshirib bo'lmadi — pul to'lab yuklamaymiz, izoh bilan qaytaramiz
+  if (!fayl && bosh) return { ...bosh, ogoh: "Videoda nutq eshitilmadi; ovoz yo'lagini alohida tekshirib bo'lmadi." };
   if (!fayl) fayl = await igApifyFayl(v, p, ish, h, navbat);
   const t = yangiIsh(s, ish, h, { file: fayl });
   await transkript(t);
   return videoNatija(t, s);
 }
 const igYoqXato = m => Object.assign(new Error(m || "Instagram videosini olib bo'lmadi"), { igYoq: true });
+const IG_SAQLASH = 2.5 * 864e5;   // Apify yuklangan videoni 3 kun saqlaydi — biroz oldinroq eskirgan deymiz
 
-async function igApifyFayl(v, p, ish, h, navbat) {
-  const ig = ish.ig;
-  ig.yuklangan ||= new Map();
-  if (!ig.yuklangan.has(v.id)) {
-    if (ig.rad) throw igYoqXato();
-    // Reel taxminan 0,3 MB/s (720p); Apify har boshlangan 1 MB uchun oladi
-    const narxi = vids => vids.length * IG_NARX.reel + IG_NARX.start +
-      vids.reduce((a, x) => a + Math.ceil(Math.max(x.dav || 30, 5) * 0.3), 0) * IG_NARX.mb;
-    const qolgan = navbat.map(i => p.videolar[i]).filter(x => !x.seglar && x.sahifa && !ig.yuklangan.has(x.id));
-    if (!ig.ruxsat) {
-      if (!apifyTokenOl() || !confirm(`Instagram videosini Gemini ham, brauzer ham to'g'ridan-to'g'ri ocholmadi.\n\n` +
-        `Apify yuklab berishi mumkin (har 1 MB uchun $${IG_NARX.mb}): bitta video taxminan $${narxi([v]).toFixed(2)}` +
-        (qolgan.length > 1 ? `, kerak bo'lsa qolgan ${qolgan.length} ta video uchun eng ko'pi bilan $${narxi(qolgan).toFixed(2)}` : "") +
-        `. Davom etilsinmi?`)) {
-        ig.rad = true;
-        throw igYoqXato();
-      }
-      ig.ruxsat = true;
-    }
-    // Boshqa yo'llar butunlay yopiq bo'lsa — qolganlarini bitta ishda, aks holda faqat shu videoni
-    const hammasi = ig.urlXato >= 2 && !ig.urlOk && ig.fetchYoq && !ig.fetchOk;
-    const vids = hammasi ? qolgan : [v];
-    const items = await apifyIshla({ username: vids.map(x => x.sahifa), resultsLimit: 1, includeDownloadedVideo: true },
-      "Apify videoni yuklab olmoqda", h, narxi(vids) * 3 + 0.05);
-    items.filter(x => x.downloadedVideo && x.shortCode).forEach(x => ig.yuklangan.set(x.shortCode, x.downloadedVideo));
-    vids.forEach(x => { if (!ig.yuklangan.has(x.id)) ig.yuklangan.set(x.id, null); });   // qayta so'ralmasin
+// Apify avval yuklab bergan videoni olish (pulsiz); topilmasa yoki eskirgan bo'lsa — null
+async function igYuklanganOl(v, h) {
+  const y = v.yuklandi;
+  if (!y?.url || Date.now() - y.vaqt > IG_SAQLASH) return null;
+  try {
+    h("Video yuklab olinmoqda...");
+    const r = await fetch(y.url, { headers: { Authorization: `Bearer ${apifyTokenOl()}` }, signal: joriyAbort?.signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return new File([await r.blob()], `${v.id}.mp4`, { type: "video/mp4" });
+  } catch (e) {
+    if (bekorQilindi) throw e;
+    console.warn("Apify'dagi video olinmadi:", e.message);
+    delete v.yuklandi;
+    return null;
   }
-  const url = ig.yuklangan.get(v.id);
-  if (!url) throw igYoqXato("Apify bu videoni yuklab bermadi");
-  h("Video yuklab olinmoqda...");
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${apifyTokenOl()}` }, signal: joriyAbort?.signal });
-  if (!r.ok) throw igYoqXato(`Apify'dan video olinmadi (HTTP ${r.status})`);
-  return new File([await r.blob()], `${v.id}.mp4`, { type: "video/mp4" });
 }
 
-// Butun ishni to'xtatadigan xato: limit, tarmoq, kalit/model/hisob muammosi — keyingi videoda ham takrorlanadi
+/* Apify orqali yuklash (pullik). Bir marta ruxsat so'raladi: taxminiy narx va eng ko'p chegara —
+   chegara Apify'ga ham beriladi (maxTotalChargeUsd), oshib ketsa yana so'raladi. Boshqa yo'llar
+   butunlay yopiq bo'lsa — qolgan videolar bitta ishda, aks holda faqat shu video. */
+async function igApifyFayl(v, p, ish, h, navbat) {
+  const ig = ish.ig;
+  ig.urinilgan ||= new Set();
+  if (ig.rad) throw igYoqXato();
+  if (ig.urinilgan.has(v.id)) throw igYoqXato("Apify bu videoni yuklab bermadi");
+  // Reel taxminan 0,3 MB/s (720p); Apify har boshlangan 1 MB uchun oladi
+  const narxi = vids => vids.length * IG_NARX.reel + IG_NARX.start +
+    vids.reduce((a, x) => a + Math.ceil(Math.max(x.dav || 30, 5) * 0.3), 0) * IG_NARX.mb;
+  const yangi = x => !x.seglar && x.sahifa && !ig.urinilgan.has(x.id) && !(x.yuklandi && Date.now() - x.yuklandi.vaqt < IG_SAQLASH);
+  const qolgan = [v, ...navbat.map(i => p.videolar[i]).filter(x => x !== v && yangi(x))];
+  const hammasi = ig.urlXato >= 2 && !ig.urlOk && ig.fetchYoq && !ig.fetchOk;
+  const vids = hammasi ? qolgan : [v];
+  if (!ig.ruxsat || ig.byudjet < narxi(vids)) {
+    const taxmin = narxi(qolgan), chegara = taxmin * 2 + 0.05;
+    if (!apifyTokenOl() || !confirm(`Instagram videosini Gemini ham, brauzer ham to'g'ridan-to'g'ri ocholmadi.\n\n` +
+      `Apify yuklab berishi mumkin: ${qolgan.length} ta video, taxminan $${taxmin.toFixed(2)} ` +
+      `(Apify har yuklangan 1 MB uchun $${IG_NARX.mb} oladi; eng ko'pi bilan $${chegara.toFixed(2)}). Davom etilsinmi?`)) {
+      ig.rad = true;
+      throw igYoqXato();
+    }
+    ig.ruxsat = true;
+    ig.byudjet = chegara;
+  }
+  const cheklov = Math.min(narxi(vids) * 2.5 + 0.03, ig.byudjet);
+  ig.byudjet -= cheklov;
+  vids.forEach(x => ig.urinilgan.add(x.id));
+  const items = await apifyIshla({ username: vids.map(x => x.sahifa), resultsLimit: 1, includeDownloadedVideo: true },
+    "Apify videoni yuklab olmoqda", h, cheklov);
+  // Yuklanganlar videoning o'zida saqlanadi — davom ettirilganda qayta pul to'lanmaydi
+  for (const x of items) {
+    const y = x.downloadedVideo && p.videolar.find(z => z.id === x.shortCode);
+    if (y) y.yuklandi = { url: x.downloadedVideo, vaqt: Date.now() };
+  }
+  profilSaqla(p);
+  const fayl = await igYuklanganOl(v, h);
+  if (!fayl) throw igYoqXato("Apify bu videoni yuklab bermadi");
+  return fayl;
+}
+
+// Butun ishni to'xtatadigan xato: limit, tarmoq, kalit/model/hisob muammosi, server bandligi —
+// keyingi videoda ham takrorlanadi
 function toxtatuvchimi(e) {
+  const m = e.message || "";
   return !!(kvotaTuri(e) || e.apify || e.ytApi || e instanceof TypeError || e.status === 404 ||
-    /API[ _]key|referr?er|blocked|has not been used|is disabled|SERVICE_DISABLED|location is not supported|billing|high demand|overloaded|UNAVAILABLE/i
-      .test(e.message || ""));
+    (!(e.status < 500) && /high demand|overloaded|UNAVAILABLE/i.test(m)) ||
+    /API[ _]key|API_KEY_\w*BLOCKED|referr?er\b[^.]*blocked|requests to this API[^.]*blocked|has not been used in project|SERVICE_DISABLED|location is not supported|requires billing/i.test(m));
 }
 // Faqat shu videoga tegishli xato — keyingisiga o'tamiz
 function videoXatosimi(e) {
   if (bekorQilindi) return false;
-  if (e.bloklandi || e.uzun || e.igYoq || e.ytOxiri) return true;
+  if (e.bloklandi || e.uzun || e.igYoq || e.ytOxiri || e.faylXato) return true;
   return !toxtatuvchimi(e) && e.status >= 400 && e.status < 500 && e.status !== 429;
 }
-function videoXatoMatn(e) {
+function videoXatoMatn(e, platforma) {
   if (e.bloklandi) return e.bosh ? "Gemini bir necha marta bo'sh javob qaytardi"
     : "Gemini yozib bermadi (ko'pincha mualliflik huquqi — qo'shiq, film parchasi)";
-  if (e.uzun) return "Javob juda uzun chiqdi — videoni «YouTube» bo'limida alohida qiling";
+  if (e.uzun) return platforma === "ig" ? "Javob juda uzun chiqdi — reel'ni qurilmaga saqlab, «Fayl» bo'limida qiling"
+    : "Javob juda uzun chiqdi — videoni «YouTube» bo'limida alohida qiling";
   if (e.igYoq) return e.message;
+  if (e.faylXato) return "Google videoni qabul qilmadi (fayl buzilgan yoki formati mos emas)";
   if (/invalid argument|Cannot fetch|not found|private|unavailable/i.test(e.message)) {
     return "Gemini videoni ocholmadi (yopiq, o'chirilgan yoki yosh cheklovi bor)";
   }
@@ -3895,7 +3945,8 @@ const TAHLIL_SXEMA = {
     hooklar: { type: "ARRAY", description: "Eng kuchli 5 ta boshlanish", items: { type: "OBJECT", properties: {
       video: { type: "INTEGER", description: "Video raqami" },
       hook: { type: "STRING", description: "Videoning birinchi 1-2 gapi — skriptdan aynan" },
-      nega: { type: "STRING", description: "Nega diqqatni tortadi" } }, required: ["video", "hook", "nega"] } },
+      til: { type: "STRING", description: "Hook tili, ISO 639-1 kodi: uz, ru, en, ..." },
+      nega: { type: "STRING", description: "Nega diqqatni tortadi" } }, required: ["video", "hook", "til", "nega"] } },
     tuzilma: { type: "STRING", description: "Skriptlarning odatiy tuzilmasi, qadamlari bilan" },
     mavzular: { type: "ARRAY", items: { type: "STRING" } },
     uslub: { type: "STRING", description: "Gapirish uslubi, ohang, til, temp, video uzunligi" },
@@ -3923,7 +3974,7 @@ Quyida ${p.platforma === "ig" ? "Instagram" : "YouTube"}'dagi «${k.nom}»${k.ha
 
 Vazifa — shu videolarni chuqur tahlil qilib, kontent muallifi uchun amaliy xulosa chiqarish:
 - xulosa: profil nima haqida, kimga mo'ljallangan va nega ishlayapti (3-5 gap).
-- hooklar: eng kuchli 5 ta boshlanish — videoning birinchi 1-2 gapini skriptdan AYNAN ko'chir, video raqamini yoz va nega diqqatni tortishini tushuntir.
+- hooklar: eng kuchli 5 ta boshlanish — videoning birinchi 1-2 gapini skriptdan AYNAN ko'chir, video raqamini va hook tilini yoz, nega diqqatni tortishini tushuntir.
 - tuzilma: skriptlarning odatiy tuzilmasi qadamlari bilan (masalan: hook → muammo → yechim → chaqiriq).
 - mavzular: asosiy mavzular va rubrikalar.
 - uslub: gapirish uslubi, ohang, til, temp, video uzunligi.
@@ -3937,10 +3988,12 @@ Qoidalar: faqat berilgan ma'lumotga tayan — raqam, fakt va gaplarni o'ylab top
 // Tahlildagi barcha matnni tanlangan alifboga o'giradi
 function alifboObyekt(o, s) {
   if (s.yozuv !== "yangi") return o;
-  const ayl = (x, f) => typeof x === "string" ? f(x) : Array.isArray(x) ? x.map(y => ayl(y, f))
-    : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, y]) => [k, ayl(y, f)])) : x;
+  // Skriptdan aynan ko'chirilgan boshqa tildagi hook (inglizcha, ruscha) o'girilmaydi
+  const ayl = (x, f, til) => typeof x === "string" ? f(x, til) : Array.isArray(x) ? x.map(y => ayl(y, f, til))
+    : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, y]) =>
+      [k, ayl(y, f, k === "hook" && x.til ? x.til : til)])) : x;
   const qator = [];
-  ayl(o, x => qator.push({ text: x }));
+  ayl(o, (x, til) => qator.push(til ? { text: x, lang: til } : { text: x }));
   const y = yangiAlifboga(qator);
   let i = 0;
   return ayl(o, () => y[i++].text);
@@ -3959,6 +4012,13 @@ async function profilTahlilQil(p, ish) {
     `Skript:\n${qisqa(skriptMatn(p.s.yozuv === "yangi" ? eskiAlifboga(v.seglar) : v.seglar))}`,
   ].filter(Boolean).join("\n")).join("\n\n");
   const q = await modelBilan(ish, [{ text: tahlilPrompt(p, tayyor.length) + "\n\n" + malumot }], TAHLIL_SXEMA, null, true);
+  // Hook tili aytilmagan bo'lsa — o'sha videoning boshqa tildagi gapidan olingan-olinmaganiga qaraymiz
+  for (const x of q.hooklar || []) {
+    if (x.til || !x.hook) continue;
+    const bosh = solNorm(x.hook).slice(0, 40);
+    const seg = p.videolar[x.video - 1]?.seglar?.find(g => g.lang && !/^uz/i.test(g.lang) && solNorm(g.text).includes(bosh));
+    if (seg) x.til = seg.lang;
+  }
   return alifboObyekt(q, p.s);
 }
 
@@ -3982,12 +4042,14 @@ function ishTugadi() {
   if (profilJoriy) profilYangila(profilJoriy);   // «qayta urinish» tugmalari qaytsin
 }
 let tarixOgohVaqt = 0;
+const saqlanmagan = new WeakSet();   // tarixga sig'magan profil tahlillari
 function profilSaqla(p) {
   const list = tarixOl();
   const i = list.findIndex(x => x.id === p.id);
   if (i >= 0) list[i] = p;
   else { list.unshift(p); while (list.length > 60) list.pop(); }
   const r = tarixYoz(list, p.id);
+  if (r === false) saqlanmagan.add(p); else saqlanmagan.delete(p);
   tarixKorsat();
   // Brauzer xotirasi to'lgan — foydalanuvchi bilsin (har videoda takrorlanmasin)
   if ((r === false || r > 0) && Date.now() - tarixOgohVaqt > 60000) {
@@ -4039,7 +4101,7 @@ async function profilBoshla() {
 
 // Tarixdagi tahlilni davom ettirish: qolgan videolar, bitta video (faqat) yoki faqat tahlil
 async function profilDavom(id, faqat = null, tahlilQayta = false) {
-  if (ishlayapti) return;
+  if (ishlayapti) return toast("Boshqa ish tugashini kuting");
   const p = profilJoriy?.id === id ? profilJoriy : tarixOl().find(x => x.id === id);
   if (!p) return toast("Bu tahlil tarixda topilmadi");
   if (!kalitOl()) {
@@ -4078,10 +4140,14 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
       v.seglar = r.seglar;
       if (r.ogoh) v.ogoh = r.ogoh; else delete v.ogoh;
       delete v.xato;
+      ish.serverXato = 0;
     } catch (e) {
-      if (!videoXatosimi(e)) throw e;
+      // Google serverining ichki xatosi (qayta urinishlardan keyin ham) — avval shu videoga tegishli
+      // deymiz; ketma-ket ikkinchi videoda ham bo'lsa — umumiy nosozlik, to'xtaymiz
+      const server = !bekorQilindi && e.status >= 500 && !toxtatuvchimi(e) && !ish.serverXato++;
+      if (!server && !videoXatosimi(e)) throw e;
       console.warn("Video o'tkazildi:", v.url, e);
-      v.xato = videoXatoMatn(e);
+      v.xato = videoXatoMatn(e, p.platforma);
     } finally {
       profilIsh = null;
       profilSaqla(p);
@@ -4108,11 +4174,13 @@ function profilYakun(p, ish) {
   jarayon(null);
   const xato = p.videolar.filter(v => v.xato).length;
   holat(esc([p.ogoh, xato ? `⚠️ ${xato} ta video transkripsiya qilinmadi — sababi va «Qayta urinish» tugmasi ` +
-    "videoning kartasida." : ""].filter(Boolean).join("\n")));
+    "videoning kartasida." : "", saqlanmagan.has(p) ? "⚠️ Brauzer xotirasi to'lgan — natija tarixga sig'madi. " +
+    "Sahifani yopishdan oldin «Hammasini nusxalash» bilan saqlab oling." : ""].filter(Boolean).join("\n")));
   if (oyinOchiq) oyinYop();
   profilYangila(p);               // boshqa natija ochilgan bo'lsa — uni almashtirmaymiz
   const tayyor = p.videolar.filter(v => v.seglar?.length).length;
-  toast(ish.model !== p.s.model ? `Tayyor — ${modelNomi(ish.model)} bilan bajarildi`
+  toast(saqlanmagan.has(p) ? "Tayyor — lekin tarixga sig'madi, nusxalab oling"
+    : ish.model !== p.s.model ? `Tayyor — ${modelNomi(ish.model)} bilan bajarildi`
     : `Tayyor — ${tayyor} ta skript tarixga saqlandi`);
 }
 
@@ -4147,7 +4215,8 @@ function profilXato(e, p) {
   const qolgan = p ? p.videolar.filter(v => !v.seglar && !v.xato).length : 0;
   const tayyor = p ? p.videolar.filter(v => v.seglar).length : 0;
   const davom = p && (qolgan || (p.opt.tahlil && !p.tahlil && tayyor))
-    ? `\n\n<b>${tayyor}/${p.videolar.length} video tayyor va tarixga saqlandi.</b> ` +
+    ? `\n\n<b>${tayyor}/${p.videolar.length} video tayyor${saqlanmagan.has(p) ? " (tarixga sig'madi — nusxalab oling)"
+      : " va tarixga saqlandi"}.</b> ` +
       `<button class="btn btn-ghost" style="margin-top:8px" onclick="profilDavom(${p.id})">` +
       `${ikon("qayta", "ic ic-sm")} Davom ettirish</button>` : "";
   if (bekorQilindi) {
@@ -4164,9 +4233,9 @@ function profilXato(e, p) {
   else if (e.status === 404 || /no longer available/i.test(e.message)) {
     msg = "Bu model kalitingiz uchun yopilgan, mos zaxira model ham topilmadi. " +
       "Sozlamalardan boshqa modelni tanlang yoki aistudio.google.com da yangi kalit oling.";
-  } else if (/referr?er|blocked/i.test(e.message)) {
+  } else if (/API_KEY_\w*BLOCKED|referr?er\b[^.]*blocked|requests to this API[^.]*blocked/i.test(e.message)) {
     msg = "Gemini kaliti bu sahifa uchun cheklangan (Google Cloud'dagi kalit cheklovlari). Xato: " + esc(e.message);
-  } else if (/high demand|overloaded|UNAVAILABLE|503/i.test(e.message)) {
+  } else if (!(e.status < 500) && /high demand|overloaded|UNAVAILABLE|503/i.test(e.message)) {
     msg = "Google serverlari hozir juda band. Bir necha daqiqadan keyin qayta urining.";
   } else if (e instanceof TypeError) {
     msg = "Internet aloqasi uzildi yoki sayt javob bermadi. Aloqani tekshirib, qayta urining.";
@@ -4219,10 +4288,10 @@ function tahlilMatn(p) {
   return qator.join("\n");
 }
 function tahlilHtml(p) {
-  const t = p.tahlil, ishda = ishlayapti && profilIshdagi === p;
+  const t = p.tahlil, ishda = ishlayapti;
   const tayyor = p.videolar.some(v => v.seglar?.length), qolgan = p.videolar.some(v => !v.seglar && !v.xato);
   const kutish = m => `<div class="pTahlil kutish">${ikon("uchqun", "ic ic-sm")} ${m}</div>`;
-  if (ishda && profilTahlilda) return kutish("Yakuniy tahlil tayyorlanmoqda" + NUQTA);
+  if (ishda && profilIshdagi === p && profilTahlilda) return kutish("Yakuniy tahlil tayyorlanmoqda" + NUQTA);
   if (!t) {
     if (qolgan || !tayyor) return p.opt.tahlil ? kutish("Yakuniy tahlil barcha videolar tayyor bo'lgach shu yerda chiqadi.") : "";
     return ishda ? "" : kutish(`Skriptlar tayyor. <button class="chipBtn" onclick="profilDavom(${p.id}, null, true)">` +
@@ -4241,29 +4310,34 @@ function tahlilHtml(p) {
     (ishda ? "" : `<div class="ptOyoq"><button class="chipBtn" onclick="profilDavom(${p.id}, null, true)">` +
       `${ikon("qayta")} Qayta tahlil qilish</button></div>`) + `</div>`;
 }
+// Tashqi manbadan kelgan havola — faqat http(s)
+const havola = u => /^https?:\/\//i.test(String(u || "")) ? String(u) : "#";
 function vidHtml(p, v, i) {
   const ishda = ishlayapti && profilIshdagi === p && profilIsh === i;
   const ochiq = profilOchiq.has(`${p.id}:${i}`);
   const rasm = v.rasm ? `<img class="pvRasm" src="${esc(v.rasm)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+  const qayta = (matn, ikonka = "qayta") => ishlayapti ? ""
+    : ` <button class="chipBtn" onclick="profilDavom(${p.id}, ${i})">${ikon(ikonka)} ${matn}</button>`;
   let tana;
   if (v.seglar?.length) {
-    const skript = skriptMatn(v.seglar);
-    tana = `<div class="pvSkript">${esc(skript)}</div><div class="pvAsbob">` +
-      (skript.length > 320 ? `<button class="chipBtn" onclick="profilSkriptOch(${i})">${ochiq ? "Yig'ish" : "To'liq ko'rish"}</button>` : "") +
-      `<button class="chipBtn" onclick="profilVideoOch(${i})">${ikon("soat")} Timecode va tahrir</button></div>` +
+    // «To'liq ko'rish» — matn qisqarib qolgan bo'lsagina (profilKorsat o'lchab, keraksizini olib tashlaydi)
+    tana = `<div class="pvSkript">${esc(skriptMatn(v.seglar))}</div><div class="pvAsbob">` +
+      `<button class="chipBtn pvOch" onclick="profilSkriptOch(${i}, this)" aria-expanded="${ochiq}">` +
+      `${ochiq ? "Yig'ish" : "To'liq ko'rish"}</button>` +
+      `<button class="chipBtn" onclick="profilVideoOch(${i})">${ikon("soat")} Timecode va tahrir</button>` +
+      (v.qisman ? qayta(`${vaqtQisqa(v.qisman.keyingi)} dan davom ettirish`) : "") + `</div>` +
       (v.ogoh ? `<div class="pvHolat">${esc(v.ogoh)}</div>` : "");
   } else if (v.seglar) {
-    tana = `<div class="pvHolat">Nutq topilmadi (faqat musiqa yoki jim video)</div>`;
+    tana = `<div class="pvHolat">${esc(v.ogoh || "Nutq topilmadi (faqat musiqa yoki jim video)")}${qayta("Qayta urinish")}</div>`;
   } else if (v.xato) {
-    tana = `<div class="pvHolat xato">⚠️ ${esc(v.xato)}` +
-      (ishlayapti ? "" : ` <button class="chipBtn" onclick="profilDavom(${p.id}, ${i})">${ikon("qayta")} Qayta urinish</button>`) + `</div>`;
+    tana = `<div class="pvHolat xato">⚠️ ${esc(v.xato)}${qayta("Qayta urinish")}</div>`;
   } else {
     tana = `<div class="pvHolat">${ishda ? "Transkripsiya qilinmoqda" + NUQTA : "Navbatda"}` +
       (v.qisman ? ` · ${vaqtQisqa(v.qisman.keyingi)} gacha tayyor` : "") + `</div>`;
   }
   return `<div class="pVid${ishda ? " ish" : ""}${ochiq ? " ochiq" : ""}">` +
     `<div class="pvTepa"><div class="pvRasmQ">${rasm}<span class="pvRaqam">${i + 1}</span></div>` +
-    `<div class="pvInfo"><a class="pvNom" href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.nom)}</a>` +
+    `<div class="pvInfo"><a class="pvNom" href="${esc(havola(v.url))}" target="_blank" rel="noopener">${esc(v.nom)}</a>` +
     `<div class="pvMeta">${esc(vidMeta(v))}</div></div>` +
     (v.seglar?.length ? `<button class="pvNusxa" onclick="profilNusxa(${i})" title="Skriptni nusxalash" ` +
       `aria-label="Skriptni nusxalash">${ikon("nusxa", "ic ic-sm")}</button>` : "") +
@@ -4273,7 +4347,7 @@ function profilKorsat(p, jim) {
   profilJoriy = p;
   const k = p.kanal || { nom: p.nom }, vids = p.videolar;
   $("profilNom").innerHTML = `${ikon(p.platforma === "ig" ? "ig" : "yt", "ic ic-sm")} ` +
-    (k.url ? `<a href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.nom)}</a>` : esc(k.nom)) +
+    (k.url ? `<a href="${esc(havola(k.url))}" target="_blank" rel="noopener">${esc(k.nom)}</a>` : esc(k.nom)) +
     (k.handle && k.handle !== k.nom ? ` · ${esc(k.handle)}` : "");
   const tayyor = vids.filter(v => v.seglar).length;
   const korishlar = vids.map(v => v.korish).filter(n => n != null);
@@ -4290,13 +4364,20 @@ function profilKorsat(p, jim) {
   $("profilTahlil").innerHTML = tahlilHtml(p);
   $("profilVideolar").innerHTML = vids.map((v, i) => vidHtml(p, v, i)).join("");
   $("profilCard").hidden = false;
+  // Qisqa skriptda «To'liq ko'rish» kerak emas — sig'ganini o'lchab bilamiz
+  $("profilVideolar").querySelectorAll(".pVid:not(.ochiq) .pvSkript").forEach(el => {
+    if (el.scrollHeight <= el.clientHeight + 1) el.closest(".pVid").querySelector(".pvOch")?.remove();
+  });
   tarixKorsat();
   if (!jim) $("profilCard").scrollIntoView({ behavior: "smooth" });
 }
-function profilSkriptOch(i) {
-  const p = profilJoriy, kalit = `${p.id}:${i}`;
-  if (!profilOchiq.delete(kalit)) profilOchiq.add(kalit);
-  profilKorsat(p, true);
+// Joyida ochib-yopamiz (kartani qayta chizmaymiz — fokus va belgilangan matn yo'qolmasin)
+function profilSkriptOch(i, btn) {
+  const kalit = `${profilJoriy.id}:${i}`;
+  const ochiq = btn.closest(".pVid").classList.toggle("ochiq");
+  if (ochiq) profilOchiq.add(kalit); else profilOchiq.delete(kalit);
+  btn.textContent = ochiq ? "Yig'ish" : "To'liq ko'rish";
+  btn.setAttribute("aria-expanded", ochiq);
 }
 // Videoni timecode'lar bilan natija oynasida ochadi — u yerdagi tuzatishlar profilga saqlanadi
 function profilVideoOch(i) {

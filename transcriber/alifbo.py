@@ -27,6 +27,7 @@ KORUV_RE = re.compile(
 XORIJIY_HARF = re.compile("[àáâãäåæèéêëìíîïñòóôõøùúûüýÿıłßœÀÁÂÃÄÅÆÈÉÊËÌÍÎÏÑÒÓÔÕØÙÚÛÜÝŸİŁŒ]")
 UZ_QISQA = re.compile(rf"^(?:O[{APS}]z|Tosh|Qo[{APS}]q|Farg[{APS}]|Sam|Bux|Nam|Xor|Nav|Jiz|Qash|Ter|And)[A-ZÖĞŞÇ]"
                       r"|^(?:MChJ|AQSh|JCh|YaTT|XDP)$")
+_XORIJIY_NOM = re.compile(r"^(?:shorts?|snapchat|shopify)", re.I)
 _KUCHLI = re.compile(r"c(?!h)|w|th|ph|ck|^chr", re.I)
 _KUCHSIZ = re.compile(r"ee|oo|ou|ea|ie", re.I)
 _UZ_QOSHIMCHA = re.compile(r"lash|shunos|chi", re.I)
@@ -43,6 +44,8 @@ def xorijiymi(soz: str) -> bool:
     """O'zbek imlosida bo'lmaydigan harf/birikma yoki so'z ichida bosh harf."""
     if UZ_QISQA.search(soz):
         return False
+    if _XORIJIY_NOM.match(soz):  # imlo belgisi yo'q, lekin xorijiy nom
+        return True
     if _KUCHLI.search(soz) or XORIJIY_HARF.search(soz) or any(
             a.islower() and b.isupper() for a, b in zip(soz, soz[1:])):
         return True
