@@ -204,6 +204,22 @@
   }
   .faylTozala:hover { background: var(--card); color: var(--err); }
 
+  /* To'plam: tanlangan fayllar ro'yxati */
+  .toplamRoyxat {
+    margin-top: 10px; border: 1.5px solid var(--border); border-radius: 12px; max-height: 240px;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .tqQator { display: flex; align-items: center; gap: 9px; padding: 7px 6px 7px 11px; border-bottom: 1px solid var(--soft2); }
+  .tqQator:last-child { border-bottom: 0; }
+  .tqQator > .ic { color: var(--muted); }
+  .tqNom { flex: 1; min-width: 0; font-size: .86rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tqMeta { font-size: .74rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tqOchir {
+    width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--muted);
+    cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .tqOchir:hover { background: var(--err-soft); color: var(--err); }
+
   /* ===== Sozlamalar ===== */
   .sozlar { border: 1.5px solid var(--border); border-radius: 14px; margin-top: 14px; overflow: hidden; }
   .sozlar > summary {
@@ -653,18 +669,32 @@
 
     <div class="pane" id="paneFayl">
       <label class="file-drop" id="fileDrop">
-        <input type="file" id="fileInput" accept="video/*,audio/*">
+        <input type="file" id="fileInput" accept="video/*,audio/*" multiple>
         <svg class="ic ic-lg" id="fdIcon"><use href="#i-yuklash"/></svg>
         <span class="title" id="fdTitle">Fayl tanlash</span>
         <span class="sub" id="fdSub">Video yoki audio · 2 GB gacha</span>
         <button type="button" class="faylTozala" id="faylTozala" hidden
-                onclick="event.preventDefault(); event.stopPropagation(); faylQoy(null)"
-                title="Faylni olib tashlash" aria-label="Faylni olib tashlash">
+                onclick="event.preventDefault(); event.stopPropagation(); fayllarTozala()"
+                title="Olib tashlash" aria-label="Tanlangan fayllarni olib tashlash">
           <svg class="ic ic-sm"><use href="#i-x"/></svg>
         </button>
       </label>
-      <p class="hint">Instagram reel'ni qurilmaga saqlab yuklang. Katta videolardan faqat ovoz
-        ajratib yuboriladi — tezroq.</p>
+      <!-- Bir nechta fayl tanlansa: ro'yxat va bir vaqtda nechtasi ishlanishi -->
+      <div id="toplamQism" hidden>
+        <div class="toplamRoyxat" id="toplamRoyxat"></div>
+        <div class="guruh">
+          <span class="nom">Bir vaqtda</span>
+          <div class="tanlov" role="radiogroup" aria-label="Bir vaqtda nechta fayl ishlansin">
+            <label><input type="radio" name="parallel" value="3"><span>3 ta</span></label>
+            <label><input type="radio" name="parallel" value="5"><span>5 ta</span></label>
+            <label><input type="radio" name="parallel" value="10"><span>10 ta</span></label>
+          </div>
+          <p class="hint">Bepul kalitda daqiqasiga ~10 so'rov — 3 ta yetarli (ko'prog'ida limit kutiladi).
+            Billing ulangan bo'lsa — 10 ta.</p>
+        </div>
+      </div>
+      <p class="hint">Bir yo'la 50 tagacha fayl tanlash mumkin — hammasi parallel ishlanadi. Instagram reel'ni
+        qurilmaga saqlab yuklang. Katta videolardan faqat ovoz ajratib yuboriladi — tezroq.</p>
     </div>
 
     <div class="pane" id="paneYt" hidden>
@@ -889,7 +919,7 @@
   <div class="card" id="profilCard" hidden>
     <div class="natijaBosh">
       <div style="min-width:0">
-        <h2><svg class="ic"><use href="#i-profil"/></svg> Profil tahlili</h2>
+        <h2><svg class="ic" id="profilBelgi2"><use href="#i-profil"/></svg> <span id="profilSarlavha">Profil tahlili</span></h2>
         <p id="profilNom"></p>
         <p id="profilStat"></p>
       </div>
@@ -1017,7 +1047,8 @@ let tanlanganDav = null;   // tanlangan fayl davomiyligi (soniya); bilinmasa nul
 // Profil tahlili holati
 let profilJoriy = null;          // ko'rsatilayotgan profil tahlili
 let profilIshdagi = null;        // hozir ishlanayotgan profil tahlili
-let profilIsh = null;            // ... undagi qaysi video
+const profilIshlar = new Set();  // ... undagi hozir ishlanayotgan videolar (parallel bo'lishi mumkin)
+const profilIshMatn = new Map(); // ... ularning har birining holat matni (to'plamda)
 let profilTahlilda = false;      // ... yakuniy tahlil yozilmoqda
 let joriyVideo = null;           // natija oynasida profil videosi ochiq bo'lsa: { pid, i }
 
@@ -1122,16 +1153,22 @@ function tabTanla(t) {
   $("paneFayl").hidden = t !== "fayl";
   $("paneYt").hidden = t !== "yt";
   $("paneProfil").hidden = t !== "profil";
-  $("startMatn").textContent = t === "profil" ? "Profilni tahlil qilish" : "Transkripsiya qilish";
+  startMatnYangila();
   if (typeof sorovKorsat === "function") sorovKorsat();
+}
+function startMatnYangila() {
+  $("startMatn").textContent = joriyTab === "profil" ? "Profilni tahlil qilish"
+    : joriyTab === "fayl" && tanlanganFayllar.length > 1 ? `${tanlanganFayllar.length} ta faylni transkripsiya qilish`
+    : "Transkripsiya qilish";
 }
 
 const sichqonchaBor = matchMedia("(pointer: fine)").matches;
 const FAYL_BOSH = sichqonchaBor ? "Faylni shu yerga tashlang yoki tanlang" : "Fayl tanlash";
 
+const faylMosmi = f => /^(video|audio)\//.test(f.type || "") || /\.(mp4|mov|m4a|mp3|wav|ogg|webm|mkv|aac|flac|opus)$/i.test(f.name);
 function faylQoy(f) {
   const drop = $("fileDrop");
-  if (f && !/^(video|audio)\//.test(f.type || "") && !/\.(mp4|mov|m4a|mp3|wav|ogg|webm|mkv|aac|flac|opus)$/i.test(f.name)) {
+  if (f && !faylMosmi(f)) {
     toast("Faqat video yoki audio fayl");
     return;
   }
@@ -1161,9 +1198,101 @@ function faylQoy(f) {
   if (typeof sorovKorsat === "function") sorovKorsat();
 }
 $("fdTitle").textContent = FAYL_BOSH;
+
+/* ===== Bir nechta fayl (to'plam) =====
+   Bitta fayl tanlansa — oldingidek. Bir nechta tanlansa (yoki tanlanganlarga yana qo'shilsa) —
+   ro'yxat chiqadi va hammasi parallel ishlanadi (profil kartasi ko'rinishida natija). */
+let tanlanganFayllar = [];
+const faylDav = new WeakMap();        // fayl → davomiylik (soniya; aniqlanmasa null)
+const TOPLAM_ENG_KOP = 50;
+const faylKalit = f => `${f.name}|${f.size}`;
+const parallelOl = () => +(document.querySelector('input[name="parallel"]:checked')?.value || 3);
+
+function fayllarQoy(royxat) {
+  const hammasi = [...royxat], ok = hammasi.filter(faylMosmi);
+  if (hammasi.length && !ok.length) return toast("Faqat video yoki audio fayl");
+  if (ok.length < hammasi.length) toast(`${hammasi.length - ok.length} ta fayl video/audio emas — olinmadi`);
+  // Bitta fayl ustiga bitta — almashtiriladi (oldingidek); qolgan hollarda qo'shiladi
+  const oldin = tanlanganFayllar.length ? tanlanganFayllar : tanlanganFayl ? [tanlanganFayl] : [];
+  const bor = new Set();
+  let yangi = (ok.length === 1 && oldin.length <= 1 ? ok : [...oldin, ...ok])
+    .filter(f => !bor.has(faylKalit(f)) && bor.add(faylKalit(f)));
+  if (yangi.length > TOPLAM_ENG_KOP) {
+    toast(`Bir yo'la ${TOPLAM_ENG_KOP} tagacha — birinchi ${TOPLAM_ENG_KOP} tasi olindi`);
+    yangi = yangi.slice(0, TOPLAM_ENG_KOP);
+  }
+  if (yangi.length <= 1) {
+    tanlanganFayllar = [];
+    toplamKorsat();
+    if (yangi[0] !== tanlanganFayl) faylQoy(yangi[0] || null);
+    return;
+  }
+  tanlanganFayl = null;
+  tanlanganDav = null;
+  tanlanganFayllar = yangi;
+  toplamKorsat();
+  toplamDavomiylik();
+}
+function fayllarTozala() {
+  tanlanganFayllar = [];
+  toplamKorsat();
+  faylQoy(null);
+}
+function toplamdanOl(i) {
+  const qolgan = tanlanganFayllar.filter((_, k) => k !== i);
+  tanlanganFayllar = qolgan.length > 1 ? qolgan : [];
+  toplamKorsat();
+  if (qolgan.length <= 1) faylQoy(qolgan[0] || null);
+}
+function toplamKorsat() {
+  const n = tanlanganFayllar.length;
+  $("toplamQism").hidden = n < 2;
+  if (n >= 2) {
+    $("fileDrop").classList.add("has-file");
+    $("fdIcon").innerHTML = '<use href="#i-tayyor"/>';
+    $("fdTitle").textContent = `${n} ta fayl tanlandi`;
+    const davlar = tanlanganFayllar.map(f => faylDav.get(f));
+    const jami = davlar.reduce((a, d) => a + (d || 0), 0);
+    $("fdSub").textContent = `${hajmMatn(tanlanganFayllar.reduce((a, f) => a + f.size, 0))}` +
+      (jami ? ` · ${davlar.every(d => d != null) ? "" : "≈ "}${soatMatn(jami)}` : "") + " · yana qo'shish uchun bosing";
+    $("faylTozala").hidden = false;
+    $("toplamRoyxat").innerHTML = tanlanganFayllar.map((f, i) => `<div class="tqQator">` +
+      ikon(/^audio/.test(f.type || "") ? "mic" : "fayl", "ic ic-sm") +
+      `<span class="tqNom" title="${esc(f.name)}">${esc(f.name)}</span>` +
+      `<span class="tqMeta">${hajmMatn(f.size)}${faylDav.get(f) ? " · " + vaqtQisqa(faylDav.get(f)) : ""}</span>` +
+      `<button type="button" class="tqOchir" onclick="toplamdanOl(${i})" title="Olib tashlash" ` +
+      `aria-label="${esc(f.name)} — olib tashlash">${ikon("x", "ic ic-sm")}</button></div>`).join("");
+  }
+  startMatnYangila();
+  if (typeof sorovKorsat === "function") sorovKorsat();
+}
+// Davomiyliklar orqada, bittadan aniqlanadi (so'rovlar sonini taxmin qilish uchun)
+let davAniqlanmoqda = false;
+async function toplamDavomiylik() {
+  if (davAniqlanmoqda) return;
+  davAniqlanmoqda = true;
+  try {
+    for (const f of tanlanganFayllar.slice()) {
+      if (faylDav.has(f)) continue;
+      faylDav.set(f, await davomiylikOl(f));
+      if (tanlanganFayllar.includes(f)) toplamKorsat();
+    }
+  } finally {
+    davAniqlanmoqda = false;
+  }
+  if (tanlanganFayllar.some(f => !faylDav.has(f))) toplamDavomiylik();
+}
+(() => {
+  const el = document.querySelector(`input[name="parallel"][value="${localStorage.getItem("parallel") || "3"}"]`) ||
+    document.querySelector('input[name="parallel"][value="3"]');
+  el.checked = true;
+  $("toplamQism").addEventListener("change", e => {
+    if (e.target.name === "parallel") try { localStorage.setItem("parallel", e.target.value); } catch (x) { /* e'tiborsiz */ }
+  });
+})();
+
 $("fileInput").addEventListener("change", () => {
-  const f = $("fileInput").files[0];
-  if (f) faylQoy(f);
+  if ($("fileInput").files.length) fayllarQoy($("fileInput").files);
   $("fileInput").value = "";
 });
 (() => {
@@ -1174,15 +1303,15 @@ $("fileInput").addEventListener("change", () => {
   ["dragleave", "dragend"].forEach(ev => dz.addEventListener(ev, () => dz.classList.remove("drag")));
   dz.addEventListener("drop", e => {
     e.preventDefault(); e.stopPropagation(); dz.classList.remove("drag");
-    const f = e.dataTransfer?.files?.[0];
-    if (f && !ishlayapti) faylQoy(f);
+    const fl = e.dataTransfer?.files;
+    if (fl?.length && !ishlayapti) fayllarQoy(fl);
   });
   // Sahifaning istalgan joyiga tashlansa ham qabul qilamiz (brauzer faylni ochib yubormasin)
   window.addEventListener("dragover", e => e.preventDefault());
   window.addEventListener("drop", e => {
     e.preventDefault();
-    const f = e.dataTransfer?.files?.[0];
-    if (f && !ishlayapti) { tabTanla("fayl"); faylQoy(f); }
+    const fl = e.dataTransfer?.files;
+    if (fl?.length && !ishlayapti) { tabTanla("fayl"); fayllarQoy(fl); }
   });
 })();
 
@@ -1507,14 +1636,14 @@ function toast(msg) {
 let ishlayapti = false;
 let bekorQilindi = false;
 let joriyAbort = null;  // fetch so'rovlari uchun
-let joriyXhr = null;    // yuklash XHR
+const joriyXhrlar = new Set();   // yuklash XHR'lari (bir nechta fayl parallel yuklanishi mumkin)
 let joriyFF = null;     // ffmpeg nusxasi
 
 function bekorQil() {
   if (!ishlayapti) return;
   bekorQilindi = true;
   try { joriyAbort?.abort(); } catch (e) { /* e'tiborsiz */ }
-  try { joriyXhr?.abort(); } catch (e) { /* e'tiborsiz */ }
+  joriyXhrlar.forEach(x => { try { x.abort(); } catch (e) { /* e'tiborsiz */ } });
   try { joriyFF?.terminate(); } catch (e) { /* e'tiborsiz */ }
 }
 
@@ -1871,7 +2000,8 @@ function sorovKorsat() {
   // Tanlangan fayl uchun nechta so'rov ketadi — limitga sig'adimi
   const kerak = sorovTaxmini();
   const qolgan = limit && !x.tugadi ? Math.max(limit - x.n, 0) : null;
-  const taxmin = kerak ? (`${joriyTab === "profil" ? "Profil tahlili" : "Bu fayl"} ≈ <b>${kerak}</b> so'rov` +
+  const taxmin = kerak ? (`${joriyTab === "profil" ? "Profil tahlili" : tanlanganFayllar.length > 1
+      ? `${tanlanganFayllar.length} ta fayl` : "Bu fayl"} ≈ <b>${kerak}</b> so'rov` +
     (joriyTab === "profil" ? profilNarxMatn() : "") +
     (qolgan !== null && kerak > qolgan
       ? ` <span class="ogoh">— bugungi limitga to'liq sig'maydi, qolgani keyin davom ettiriladi</span>` : "") +
@@ -2050,7 +2180,8 @@ async function generate(key, model, parts, schema, erkin) {
   }
 }
 
-async function faylYuklash(key, file, jim) {
+// jim — foiz umumiy holatda ko'rsatilmaydi; foizFn — foizni o'zi ko'rsatadi (to'plamda har fayl o'z qatorida)
+async function faylYuklash(key, file, jim, foizFn) {
   const start = await fetch(`${API}/upload/v1beta/files?key=${key}`, {
     method: "POST",
     signal: joriyAbort?.signal,
@@ -2069,13 +2200,15 @@ async function faylYuklash(key, file, jim) {
 
   let info = (await new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
-    joriyXhr = x;
+    joriyXhrlar.add(x);
+    x.onloadend = () => joriyXhrlar.delete(x);
     x.open("POST", uploadUrl);
     x.onabort = () => reject(new Error("bekor qilindi"));
     x.setRequestHeader("X-Goog-Upload-Command", "upload, finalize");
     x.setRequestHeader("X-Goog-Upload-Offset", "0");
     x.upload.onprogress = e => {
-      if (e.lengthComputable && !jim) {
+      if (e.lengthComputable && foizFn) foizFn(Math.round(e.loaded / e.total * 100));
+      else if (e.lengthComputable && !jim) {
         const foiz = Math.round(e.loaded / e.total * 100);
         jarayon(foiz);
         holat(`Yuklanmoqda: ${foiz}% (${(e.loaded / 1048576).toFixed(0)}/${(e.total / 1048576).toFixed(0)} MB)`, false, true);
@@ -2184,19 +2317,33 @@ async function audioAjrat(file) {
   }
 }
 
+/* ffmpeg bir vaqtda faqat bittasi ishlaydi (har nusxasi ~30 MB xotira; bekor qilish ham bittasini
+   to'xtatadi) — bir nechta fayl parallel ishlanganda navbat bilan. Qaytadi: bo'shatish funksiyasi. */
+let ffZanjir = Promise.resolve();
+function ffNavbat() {
+  let ochish;
+  const qulf = new Promise(r => { ochish = r; });
+  const kutish = ffZanjir.then(() => ochish);
+  ffZanjir = ffZanjir.then(() => qulf);
+  return kutish;
+}
+
 /* Katta videodan audioni ajratib beradi; bo'lmasa faylni o'zini qaytaradi */
-async function faylTayyorla(file) {
+async function faylTayyorla(file, h = m => holat(m, false, true)) {
   if (!(file.type || "").startsWith("video") || file.size <= 30e6) return file;
+  const och = await ffNavbat();
   try {
     const yubor = await audioAjrat(file);
-    holat(`Audio ajratildi: ${(yubor.size / 1048576).toFixed(1)} MB`, false, true);
+    h(`Audio ajratildi: ${(yubor.size / 1048576).toFixed(1)} MB`);
     return yubor;
   } catch (e) {
     if (bekorQilindi) throw e;
     console.warn("Audio ajratib bo'lmadi, video to'liq yuboriladi:", e);
-    holat("Audio ajratilmadi — video to'liq yuboriladi...", false, true);
+    h("Audio ajratilmadi — video to'liq yuboriladi...");
     await uxla(2500);
     return file;
+  } finally {
+    och();
   }
 }
 
@@ -2228,6 +2375,13 @@ function qismRejasi(boshi, dav, uz) {
 function sorovTaxmini() {
   // Profil: har video bitta so'rov (uzun YouTube videolari — qismlar soniga qarab ko'proq) + tahlil
   if (joriyTab === "profil") { const o = profilOpt(); return o.soni + (o.tahlil ? 1 : 0); }
+  if (joriyTab === "fayl" && tanlanganFayllar.length > 1) {
+    const uz = +sozOl().qism;
+    return tanlanganFayllar.reduce((a, f) => {
+      const d = faylDav.get(f);
+      return a + (d && qismlanadimi(d, uz) ? qismRejasi(0, d, uz).length : 1);
+    }, 0);
+  }
   if (joriyTab !== "fayl" || !tanlanganFayl || !tanlanganDav) return null;
   const uz = +sozOl().qism;
   return qismlanadimi(tanlanganDav, uz) ? qismRejasi(0, tanlanganDav, uz).length : 1;
@@ -2751,8 +2905,9 @@ function sozlovchiEslatma(seglar, yoqilgan) {
    ish.model keyingi qismlar uchun eslab qolinadi — qayta-qayta sinab o'tirmaymiz. */
 async function modelBilan(ish, parts, schema, media, erkin) {
   while (true) {
+    const model = ish.model;
     try {
-      const r = await generate(ish.key, ish.model, parts, schema, erkin);
+      const r = await generate(ish.key, model, parts, schema, erkin);
       if (media?.videoMetadata?.fps !== undefined) ish.fpsBor = true;
       return r;
     } catch (e) {
@@ -2761,9 +2916,15 @@ async function modelBilan(ish, parts, schema, media, erkin) {
       // Google ba'zi modellarni yangi foydalanuvchilarga yopgan — boshqasiga o'tamiz
       const modelYoq = e.status === 404 || /no longer available|is not found for API version|not supported for generateContent/i.test(e.message);
       if (kvota === "kunlik" || kvota === "yoq" || modelYoq) {
+        // Parallel so'rov allaqachon boshqa modelga o'tkazgan — o'sha bilan qayta
+        if (ish.model !== model) continue;
         if (kvota === "kunlik") modelTugadi(ish.model);
         ish.sinalgan.push(ish.model);
-        if (!ish.zaxira) ish.zaxira = await zaxiraModellar(ish.key, ish.sinalgan);
+        if (!ish.zaxira) {
+          ish.zaxiraP ||= zaxiraModellar(ish.key, ish.sinalgan);
+          ish.zaxira = await ish.zaxiraP;
+          if (ish.model !== model) continue;
+        }
         const keyingi = ish.zaxira.shift();
         if (!keyingi) throw e;
         holat(`${modelNomi(ish.model)} limiti tugadi — ${modelNomi(keyingi)} bilan davom etamiz...`, false, true);
@@ -2974,7 +3135,7 @@ async function transkript(t) {
     } else {
       /* ---- Fayl ---- */
       if (file.size > 1.9e9) throw new Error("Fayl juda katta (2GB gacha).");
-      if (!yubor) yubor = await faylTayyorla(file);
+      if (!yubor) yubor = await faylTayyorla(file, t.holat);
       bekorTekshir();
       if (dav == null) {
         t.holat("Davomiyligi aniqlanmoqda...");
@@ -2985,7 +3146,7 @@ async function transkript(t) {
       const butunFayl = async () => {
         t.jarayon(0);
         t.holat(`Yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`);
-        const f = await faylYuklash(key, yubor, t.jim);
+        const f = await faylYuklash(key, yubor, t.jim, t.yuklashFoiz);
         const media = { fileData: { fileUri: f.uri, mimeType: f.mime } };
         // Tejamkor rejim: kadrlar deyarli olinmaydi — token sarfi ~5x kamayadi
         if (s.tejamkor && (f.mime || "").startsWith("video")) media.videoMetadata = { fps: 0.1 };
@@ -2995,12 +3156,17 @@ async function transkript(t) {
         qismQosh(toplangan, qismniMosla(q, 0, Infinity, false));
       };
 
-      let kesgich = null;
+      let kesgich = null, ffOch = null;
       if (qismlanadimi(dav, uz) && qismRejasi(keyingi, dav, uz).length > 1 || keyingi > 0) {
+        ffOch = await ffNavbat();
         try {
           kesgich = await audioBolakchi(yubor);
           bekorTekshir();
         } catch (e) {
+          kesgich?.yop();
+          kesgich = null;
+          ffOch();
+          ffOch = null;
           if (bekorQilindi) throw e;
           console.warn("Bo'laklab bo'lmadi:", e);
           ogohlantirish = "Fayl qismlarga bo'linmadi — uzun bo'lsa, oxiri chala chiqishi mumkin.";
@@ -3042,6 +3208,7 @@ async function transkript(t) {
           t.jarayon(100);
         } finally {
           kesgich.yop();
+          ffOch();
         }
       }
     }
@@ -3075,6 +3242,7 @@ function davomEt() {
 async function boshla(davom) {
   if (ishlayapti) return;
   if (!davom && joriyTab === "profil") return profilBoshla();
+  if (!davom && joriyTab === "fayl" && tanlanganFayllar.length > 1) return toplamBoshla();
   davom = davom && Array.isArray(davom.seglar) ? davom : null;
   const key = kalitOl();
   const yt = davom ? davom.yt : (joriyTab === "yt" ? $("ytUrl").value.trim() : "");
@@ -3209,7 +3377,7 @@ async function boshla(davom) {
   } finally {
     ishlayapti = false;
     joriyAbort = null;
-    joriyXhr = null;
+    joriyXhrlar.clear();
     tugmaHolati(false);
     if (profilJoriy) profilYangila(profilJoriy);   // ish paytida ochilgan profil tugmalari qaytsin
   }
@@ -3478,11 +3646,11 @@ function tarixKorsat() {
     const yt = /youtu/i.test(t.nom), profil = t.tur === "profil";
     const joriy = profil ? !$("profilCard").hidden && profilJoriy?.id === t.id : t.id === joriyId;
     const meta = profil
-      ? `${sanaMatn(t.sana)} · ${t.platforma === "ig" ? "Instagram" : "YouTube"} · ` +
-        `${t.videolar.filter(v => v.seglar).length}/${t.videolar.length} video${t.tahlil ? " · tahlil" : ""}`
+      ? `${sanaMatn(t.sana)} · ${t.platforma === "fayl" ? "Fayllar" : t.platforma === "ig" ? "Instagram" : "YouTube"} · ` +
+        `${t.videolar.filter(v => v.seglar).length}/${t.videolar.length} ${birlik(t)}${t.tahlil ? " · tahlil" : ""}`
       : `${sanaMatn(t.sana)} · ${davomiylikMatn(t.seglar)} · ${t.seglar.length} segment`;
     return `<div class="hist${joriy ? " joriy" : ""}" onclick="tarixOch(${t.id})">
-       <div class="belgi">${ikon(profil ? "profil" : yt ? "yt" : "fayl")}</div>
+       <div class="belgi">${ikon(profil ? (t.platforma === "fayl" ? "matn" : "profil") : yt ? "yt" : "fayl")}</div>
        <div class="info">
          <div class="nom">${esc(qisqart(t.nom, 44))}</div>
          <div class="meta">${meta}</div>
@@ -3991,6 +4159,17 @@ async function ytVideoTranskript(v, s, ish, h) {
   return videoNatija(t, s);
 }
 
+/* To'plamdagi fayl: fayl o'zi xotirada (sahifa yangilansa — yo'q, qayta tanlash kerak) */
+const toplamFayllari = new Map();     // video id → File
+async function faylVideoTranskript(v, p, ish, h) {
+  const file = toplamFayllari.get(v.id);
+  if (!file) throw igYoqXato("Fayl xotirada yo'q (sahifa yangilangan) — «Fayl» bo'limida qayta tanlang");
+  const t = yangiIsh(p.s, ish, h, { file, dav: v.dav || null, yuklashFoiz: f => h(`Yuklanmoqda: ${f}%...`) });
+  await transkript(t);
+  if (t.dav && !v.dav) v.dav = t.dav;
+  return videoNatija(t, p.s);
+}
+
 /* Instagram videosini Gemini'ga uch yo'l bilan beramiz (ishlagani eslab qolinadi):
    1) havolaning o'zi — Gemini videoni (kerak bo'lsa alohida ovoz yo'lagini ham) o'zi oladi;
    2) brauzer yuklab oladi (Instagram ruxsat bersa) va Google'ga yuklaydi;
@@ -4133,6 +4312,7 @@ function videoXatoMatn(e, platforma) {
   if (e.bloklandi) return e.bosh ? "Gemini bir necha marta bo'sh javob qaytardi"
     : "Gemini yozib bermadi (ko'pincha mualliflik huquqi — qo'shiq, film parchasi)";
   if (e.uzun) return platforma === "ig" ? "Javob juda uzun chiqdi — reel'ni qurilmaga saqlab, «Fayl» bo'limida qiling"
+    : platforma === "fayl" ? "Javob juda uzun chiqdi — Sozlamalarda «Standart» timecode'ni tanlab qayta urining"
     : "Javob juda uzun chiqdi — videoni «YouTube» bo'limida alohida qiling";
   if (e.igYoq) return e.message;
   if (e.faylXato) return "Google videoni qabul qilmadi (fayl buzilgan yoki formati mos emas)";
@@ -4239,9 +4419,10 @@ function ishBoshla() {
 function ishTugadi() {
   ishlayapti = false;
   joriyAbort = null;
-  joriyXhr = null;
+  joriyXhrlar.clear();
   profilIshdagi = null;
-  profilIsh = null;
+  profilIshlar.clear();
+  profilIshMatn.clear();
   profilTahlilda = false;
   tugmaHolati(false);
   if (profilJoriy) profilYangila(profilJoriy);   // «qayta urinish» tugmalari qaytsin
@@ -4312,6 +4493,36 @@ async function profilBoshla() {
   }
 }
 
+// Bir nechta faylni parallel transkripsiya qilish — natija profil kartasi ko'rinishida (tarixda bitta yozuv)
+async function toplamBoshla() {
+  if (!kalitOl()) {
+    kalitKorinish();
+    $("kalitKarta").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("apiKey").focus();
+    return holat("Avval API kalitni ulang.", true);
+  }
+  const fayllar = tanlanganFayllar.slice(), id = Date.now();
+  const p = { id, tur: "profil", platforma: "fayl", nom: `${fayllar.length} ta fayl`, sana: new Date().toISOString(),
+    kanal: { nom: `${fayllar.length} ta fayl` }, opt: { sarala: "fayl", soni: fayllar.length, tahlil: false, parallel: parallelOl() },
+    s: sozOl(), seglar: [],
+    videolar: fayllar.map((f, i) => ({ id: `${id}-${i}`, nom: f.name, hajm: f.size, dav: faylDav.get(f) || null })) };
+  p.videolar.forEach((v, i) => toplamFayllari.set(v.id, fayllar[i]));
+  ishBoshla();
+  $("resultCard").hidden = true;
+  $("profilCard").hidden = true;
+  holat("Tayyorlanmoqda...", false, true);
+  profilIshdagi = p;
+  try {
+    profilSaqla(p);
+    profilKorsat(p);
+    profilYakun(p, await profilIshla(p));
+  } catch (e) {
+    profilXato(e, p);
+  } finally {
+    ishTugadi();
+  }
+}
+
 // Tarixdagi tahlilni davom ettirish: qolgan videolar, bitta video (faqat) yoki faqat tahlil
 async function profilDavom(id, faqat = null, tahlilQayta = false) {
   if (ishlayapti) return toast("Boshqa ish tugashini kuting");
@@ -4340,33 +4551,54 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
   const navbat = tahlilQayta ? [] : p.videolar.map((v, i) => i)
     .filter(i => faqat != null ? i === faqat : !p.videolar[i].seglar && !p.videolar[i].xato);
   const jami = navbat.length + 1;
-  for (const [k, i] of navbat.entries()) {
-    if (bekorQilindi) throw new Error("bekor qilindi");
-    const v = p.videolar[i];
-    const h = m => holat(`${k + 1}/${navbat.length} · ${m}`, false, true);
-    profilIsh = i;
-    profilYangila(p);
-    jarayon(Math.max(3, Math.round(k / jami * 100)));
-    h("Transkripsiya...");
-    try {
-      const r = await (p.platforma === "yt" ? ytVideoTranskript(v, p.s, ish, h) : igVideoTranskript(v, p, ish, h, navbat.slice(k)));
-      v.seglar = r.seglar;
-      if (r.ogoh) v.ogoh = r.ogoh; else delete v.ogoh;
-      delete v.xato;
-      ish.serverXato = 0;
-    } catch (e) {
-      // Google serverining ichki xatosi (qayta urinishlardan keyin ham) — avval shu videoga tegishli
-      // deymiz; ketma-ket ikkinchi videoda ham bo'lsa — umumiy nosozlik, to'xtaymiz
-      const server = !bekorQilindi && e.status >= 500 && !toxtatuvchimi(e) && !ish.serverXato++;
-      if (!server && !videoXatosimi(e)) throw e;
-      console.warn("Video o'tkazildi:", v.url, e);
-      v.xato = videoXatoMatn(e, p.platforma);
-    } finally {
-      profilIsh = null;
-      profilSaqla(p);
+  /* Navbat: p.opt.parallel ta ishchi bir vaqtda (fayllar to'plami); profil — bittadan.
+     Ishni to'xtatadigan xato (limit, tarmoq, bekor) bo'lsa — yangisini olmaydi, boshlanganlari
+     tugaydi, keyin xato yuqoriga uzatiladi (qolganlari «Davom ettirish» bilan). */
+  const parallel = Math.max(1, Math.min(p.opt.parallel || 1, navbat.length || 1));
+  let olindi = 0, bitdi = 0, toxtash = null;
+  const umumiy = () => {
+    jarayon(Math.max(3, Math.round(bitdi / jami * 100)));
+    if (parallel > 1) holat(`${bitdi}/${navbat.length} tayyor · ${profilIshlar.size} ta ishlanmoqda...`, false, true);
+  };
+  const ishchi = async () => {
+    while (!toxtash && olindi < navbat.length) {
+      if (bekorQilindi) { toxtash = new Error("bekor qilindi"); break; }
+      const k = olindi++, i = navbat[k], v = p.videolar[i];
+      const h = parallel > 1 ? m => profilQatorMatn(p, i, m) : m => holat(`${k + 1}/${navbat.length} · ${m}`, false, true);
+      profilIshlar.add(i);
       profilYangila(p);
+      umumiy();
+      h("Transkripsiya...");
+      let tugadi = false;
+      try {
+        const r = await (p.platforma === "yt" ? ytVideoTranskript(v, p.s, ish, h)
+          : p.platforma === "fayl" ? faylVideoTranskript(v, p, ish, h)
+          : igVideoTranskript(v, p, ish, h, navbat.slice(k)));
+        v.seglar = r.seglar;
+        if (r.ogoh) v.ogoh = r.ogoh; else delete v.ogoh;
+        delete v.xato;
+        ish.serverXato = 0;
+        tugadi = true;
+      } catch (e) {
+        // Google serverining ichki xatosi (qayta urinishlardan keyin ham) — avval shu videoga tegishli
+        // deymiz; ketma-ket ikkinchi videoda ham bo'lsa — umumiy nosozlik, to'xtaymiz
+        const server = !bekorQilindi && e.status >= 500 && !toxtatuvchimi(e) && !ish.serverXato++;
+        if (!server && !videoXatosimi(e)) { toxtash ||= e; continue; }
+        console.warn("Video o'tkazildi:", v.url || v.nom, e);
+        v.xato = videoXatoMatn(e, p.platforma);
+        tugadi = true;
+      } finally {
+        profilIshlar.delete(i);
+        profilIshMatn.delete(i);
+        if (tugadi) bitdi++;
+        profilSaqla(p);
+        profilYangila(p);
+        umumiy();
+      }
     }
-  }
+  };
+  await Promise.all(Array.from({ length: parallel }, ishchi));
+  if (toxtash) throw toxtash;
   const qolgan = p.videolar.some(v => !v.seglar && !v.xato);
   if ((tahlilQayta || p.opt.tahlil && !p.tahlil) && !qolgan && p.videolar.some(v => v.seglar?.length)) {
     jarayon(Math.round(navbat.length / jami * 100));
@@ -4383,11 +4615,20 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
   return ish;
 }
 
+// To'plamda har fayl holati o'z qatorida (butun kartani qayta chizmaymiz — tez-tez yangilanadi)
+function profilQatorMatn(p, i, m) {
+  profilIshMatn.set(i, m);
+  if (profilJoriy !== p || $("profilCard").hidden) return;
+  const el = document.querySelector(`#profilVideolar .pVid[data-i="${i}"] .pvHolat`);
+  if (el) el.innerHTML = qatorMatnHtml(m);
+}
+const qatorMatnHtml = m => esc(String(m).replace(/\.\.\.$/, "")) + NUQTA;
+
 function profilYakun(p, ish) {
   jarayon(null);
   const xato = p.videolar.filter(v => v.xato).length;
-  holat(esc([p.ogoh, xato ? `⚠️ ${xato} ta video transkripsiya qilinmadi — sababi va «Qayta urinish» tugmasi ` +
-    "videoning kartasida." : "", saqlanmagan.has(p) ? "⚠️ Brauzer xotirasi to'lgan — natija tarixga sig'madi. " +
+  holat(esc([p.ogoh, xato ? `⚠️ ${xato} ta ${birlik(p)} transkripsiya qilinmadi — sababi va «Qayta urinish» tugmasi ` +
+    `${birlik(p)}ning kartasida.` : "", saqlanmagan.has(p) ? "⚠️ Brauzer xotirasi to'lgan — natija tarixga sig'madi. " +
     "Sahifani yopishdan oldin «Hammasini nusxalash» bilan saqlab oling." : ""].filter(Boolean).join("\n")));
   if (oyinOchiq) oyinYop();
   profilYangila(p);               // boshqa natija ochilgan bo'lsa — uni almashtirmaymiz
@@ -4429,7 +4670,7 @@ function profilXato(e, p) {
   const qolgan = p ? p.videolar.filter(v => !v.seglar && !v.xato).length : 0;
   const tayyor = p ? p.videolar.filter(v => v.seglar).length : 0;
   const davom = p && (qolgan || (p.opt.tahlil && !p.tahlil && tayyor))
-    ? `\n\n<b>${tayyor}/${p.videolar.length} video tayyor${saqlanmagan.has(p) ? " (tarixga sig'madi — nusxalab oling)"
+    ? `\n\n<b>${tayyor}/${p.videolar.length} ${birlik(p)} tayyor${saqlanmagan.has(p) ? " (tarixga sig'madi — nusxalab oling)"
       : " va tarixga saqlandi"}.</b> ` +
       `<button class="btn btn-ghost" style="margin-top:8px" onclick="profilDavom(${p.id})">` +
       `${ikon("qayta", "ic ic-sm")} Davom ettirish</button>` : "";
@@ -4469,7 +4710,10 @@ function sanaQisqa(iso) {
   return isNaN(d) ? "" : `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 const vidMeta = v => [v.korish != null ? `${sonQisqa(v.korish)} ko'rish` : "", v.layk != null ? `${sonQisqa(v.layk)} layk` : "",
-  v.dav ? vaqtQisqa(v.dav) : "", v.sana ? sanaQisqa(v.sana) : ""].filter(Boolean).join(" · ");
+  v.dav ? vaqtQisqa(v.dav) : "", v.hajm ? hajmMatn(v.hajm) : "", v.sana ? sanaQisqa(v.sana) : ""].filter(Boolean).join(" · ");
+// 1 234 567 bayt → "1,2 MB" / "2,35 GB"
+const hajmMatn = b => b >= 1e9 ? `${(b / 1073741824).toFixed(2).replace(".", ",")} GB` : `${(b / 1048576).toFixed(1).replace(".", ",")} MB`;
+const birlik = p => p.platforma === "fayl" ? "fayl" : "video";
 
 // Skript — nusxalashga qulay oddiy matn: bir necha so'zlovchi bo'lsa navbatma-navbat, aks holda
 // uzun pauzalarda xatboshi
@@ -4502,6 +4746,7 @@ function tahlilMatn(p) {
   return qator.join("\n");
 }
 function tahlilHtml(p) {
+  if (p.platforma === "fayl") return "";         // fayllar to'plami — faqat skriptlar
   const t = p.tahlil, ishda = ishlayapti;
   const tayyor = p.videolar.some(v => v.seglar?.length), qolgan = p.videolar.some(v => !v.seglar && !v.xato);
   const kutish = m => `<div class="pTahlil kutish">${ikon("uchqun", "ic ic-sm")} ${m}</div>`;
@@ -4527,7 +4772,7 @@ function tahlilHtml(p) {
 // Tashqi manbadan kelgan havola — faqat http(s)
 const havola = u => /^https?:\/\//i.test(String(u || "")) ? String(u) : "#";
 function vidHtml(p, v, i) {
-  const ishda = ishlayapti && profilIshdagi === p && profilIsh === i;
+  const ishda = ishlayapti && profilIshdagi === p && profilIshlar.has(i);
   const ochiq = profilOchiq.has(`${p.id}:${i}`);
   const rasm = v.rasm ? `<img class="pvRasm" src="${esc(v.rasm)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
   const qayta = (matn, ikonka = "qayta") => ishlayapti ? ""
@@ -4546,12 +4791,14 @@ function vidHtml(p, v, i) {
   } else if (v.xato) {
     tana = `<div class="pvHolat xato">⚠️ ${esc(v.xato)}${qayta("Qayta urinish")}</div>`;
   } else {
-    tana = `<div class="pvHolat">${ishda ? "Transkripsiya qilinmoqda" + NUQTA : "Navbatda"}` +
+    tana = `<div class="pvHolat">${!ishda ? "Navbatda" : profilIshMatn.has(i) ? qatorMatnHtml(profilIshMatn.get(i))
+      : "Transkripsiya qilinmoqda" + NUQTA}` +
       (v.qisman ? ` · ${vaqtQisqa(v.qisman.keyingi)} gacha tayyor` : "") + `</div>`;
   }
-  return `<div class="pVid${ishda ? " ish" : ""}${ochiq ? " ochiq" : ""}">` +
+  return `<div class="pVid${ishda ? " ish" : ""}${ochiq ? " ochiq" : ""}" data-i="${i}">` +
     `<div class="pvTepa"><div class="pvRasmQ">${rasm}<span class="pvRaqam">${i + 1}</span></div>` +
-    `<div class="pvInfo"><a class="pvNom" href="${esc(havola(v.url))}" target="_blank" rel="noopener">${esc(v.nom)}</a>` +
+    `<div class="pvInfo">` + (v.url ? `<a class="pvNom" href="${esc(havola(v.url))}" target="_blank" rel="noopener">${esc(v.nom)}</a>`
+      : `<span class="pvNom">${esc(v.nom)}</span>`) +
     `<div class="pvMeta">${esc(vidMeta(v))}</div></div>` +
     (v.seglar?.length ? `<button class="pvNusxa" onclick="profilNusxa(${i})" title="Skriptni nusxalash" ` +
       `aria-label="Skriptni nusxalash">${ikon("nusxa", "ic ic-sm")}</button>` : "") +
@@ -4560,13 +4807,17 @@ function vidHtml(p, v, i) {
 function profilKorsat(p, jim) {
   profilJoriy = p;
   const k = p.kanal || { nom: p.nom }, vids = p.videolar;
-  $("profilNom").innerHTML = `${ikon(p.platforma === "ig" ? "ig" : "yt", "ic ic-sm")} ` +
+  $("profilSarlavha").textContent = p.platforma === "fayl" ? "Fayllar transkripsiyasi" : "Profil tahlili";
+  $("profilBelgi2").innerHTML = `<use href="#i-${p.platforma === "fayl" ? "matn" : "profil"}"/>`;
+  $("profilNom").innerHTML = `${ikon(p.platforma === "fayl" ? "fayl" : p.platforma === "ig" ? "ig" : "yt", "ic ic-sm")} ` +
     (k.url ? `<a href="${esc(havola(k.url))}" target="_blank" rel="noopener">${esc(k.nom)}</a>` : esc(k.nom)) +
     (k.handle && k.handle !== k.nom ? ` · ${esc(k.handle)}` : "");
   const tayyor = vids.filter(v => v.seglar).length;
   const korishlar = vids.map(v => v.korish).filter(n => n != null);
+  const jamiDav = vids.reduce((a, v) => a + (v.dav || 0), 0);
   $("profilStat").textContent = [
-    `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${vids.length} ta video`,
+    p.platforma === "fayl" ? (jamiDav ? `jami ${soatMatn(jamiDav)}` : "")
+      : `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${vids.length} ta video`,
     korishlar.length ? `o'rtacha ${sonQisqa(korishlar.reduce((a, n) => a + n, 0) / korishlar.length)} ko'rish` : "",
     k.obunachi ? `${sonQisqa(k.obunachi)} obunachi` : "",
     tayyor < vids.length ? `${tayyor}/${vids.length} tayyor` : "",
@@ -4574,7 +4825,7 @@ function profilKorsat(p, jim) {
   const qolgan = vids.filter(v => !v.seglar && !v.xato).length;
   $("profilDavom").innerHTML = qolgan && !ishlayapti
     ? `<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="profilDavom(${p.id})">` +
-      `${ikon("qayta", "ic ic-sm")} Davom ettirish — ${qolgan} ta video qoldi</button>` : "";
+      `${ikon("qayta", "ic ic-sm")} Davom ettirish — ${qolgan} ta ${birlik(p)} qoldi</button>` : "";
   $("profilTahlil").innerHTML = tahlilHtml(p);
   $("profilVideolar").innerHTML = vids.map((v, i) => vidHtml(p, v, i)).join("");
   $("profilCard").hidden = false;
@@ -4602,6 +4853,7 @@ function profilVideoOch(i) {
 }
 function profilSarlavha(p) {
   const k = p.kanal || { nom: p.nom };
+  if (p.platforma === "fayl") return `${p.videolar.length} ta fayl — transkripsiya · ${sanaQisqa(p.sana)}`;
   return `${k.nom}${k.handle && k.handle !== k.nom ? ` (${k.handle})` : ""} — ${p.platforma === "ig" ? "Instagram" : "YouTube"}\n` +
     `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${p.videolar.length} ta video · ${sanaQisqa(p.sana)}` +
     (k.url ? `\n${k.url}` : "");
