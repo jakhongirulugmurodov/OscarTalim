@@ -342,18 +342,75 @@
   .natijaBosh { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 10px; }
   .natijaBosh > div { flex: 1 1 200px; }
   .natijaBosh h2 { margin-bottom: 4px; }
-  .alifboBtn {
+  .alifboBtn, .chipBtn {
     flex-shrink: 0; font: inherit; font-size: .76rem; font-weight: 600; color: var(--text2);
     background: var(--soft2); border: 1px solid var(--border); border-radius: 999px;
     padding: 6px 11px; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
   }
-  .alifboBtn:hover { color: var(--text); border-color: var(--text2); }
+  .alifboBtn:hover, .chipBtn:hover { color: var(--text); border-color: var(--text2); }
   .alifboBtn b { font-weight: 800; margin-right: 3px; }
-  #natijaNom {
+  .chipBtn .ic { width: 13px; height: 13px; }
+  #natijaNom, #profilNom {
     font-size: .84rem; color: var(--text2); font-weight: 600; margin: 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  #natijaStat { font-size: .78rem; color: var(--muted); margin: 2px 0 0; }
+  #profilNom .ic { vertical-align: -2px; margin-right: 2px; }
+  #natijaStat, #profilStat { font-size: .78rem; color: var(--muted); margin: 2px 0 0; }
+
+  /* ===== Profil tahlili ===== */
+  .guruh .nom small { font-weight: 400; color: var(--muted); }
+  .pTahlil {
+    background: var(--primary-soft); border: 1px solid var(--primary-border); border-radius: 14px;
+    padding: 14px; margin-top: 14px; animation: fadeUp .3s both;
+  }
+  .pTahlil.kutish { color: var(--text2); font-size: .86rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ptBosh { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .pTahlil h3 { font-size: .98rem; margin: 0; display: flex; align-items: center; gap: 7px; }
+  .pTahlil h3 .ic { color: var(--primary); }
+  .pTahlil h4 { font-size: .8rem; margin: 14px 0 4px; color: var(--primary); letter-spacing: .01em; }
+  .pTahlil p, .pTahlil li { font-size: .9rem; margin: 0; color: var(--text); }
+  .pTahlil ul, .pTahlil ol { margin: 0; padding-left: 20px; }
+  .pTahlil li + li { margin-top: 6px; }
+  .pTahlil small { display: block; color: var(--text2); font-size: .82rem; margin-top: 1px; }
+  .ptOyoq { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .pVid {
+    background: var(--soft); border: 1px solid var(--soft2); border-radius: 14px;
+    padding: 12px; margin: 10px 0; animation: fadeUp .3s both; transition: border-color .2s;
+  }
+  .pVid.ish { border-color: var(--primary); }
+  .pvTepa { display: flex; gap: 11px; align-items: flex-start; }
+  .pvRasmQ {
+    position: relative; width: 56px; height: 56px; border-radius: 10px; flex-shrink: 0; overflow: hidden;
+    background: var(--soft2); color: var(--muted); font-weight: 700; font-size: .95rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pvRasm { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pvRasm ~ .pvRaqam {
+    position: absolute; left: 3px; top: 3px; background: rgba(0,0,0,.62); color: #fff;
+    font-size: .68rem; border-radius: 6px; padding: 0 5px; line-height: 1.5;
+  }
+  .pvInfo { flex: 1; min-width: 0; }
+  .pvNom {
+    color: var(--text); font-size: .9rem; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .pvNom:hover { color: var(--primary); }
+  .pvMeta { font-size: .76rem; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .pvNusxa {
+    width: 36px; height: 36px; border: 1.5px solid var(--border); background: var(--card);
+    color: var(--text2); border-radius: 10px; cursor: pointer; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pvNusxa:hover { color: var(--primary); border-color: var(--primary-border); }
+  .pvSkript {
+    font-size: .92rem; margin-top: 10px; white-space: pre-line; word-break: break-word; color: var(--text);
+    display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .pVid.ochiq .pvSkript { display: block; }
+  .pvAsbob { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+  .pvHolat { font-size: .82rem; color: var(--muted); margin-top: 9px; }
+  .pvHolat.xato { color: var(--err); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .asboblar {
     position: sticky; top: 0; z-index: 10; background: var(--card);
     display: flex; gap: 8px; padding: 12px 0; margin-top: 8px;
@@ -495,6 +552,8 @@
   <symbol id="i-qayta" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></symbol>
   <symbol id="i-matn" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></symbol>
   <symbol id="i-soat" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></symbol>
+  <symbol id="i-profil" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-ig" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></symbol>
   </svg>
 
 <div class="container">
@@ -538,6 +597,9 @@
       <button type="button" id="tabYt" onclick="tabTanla('yt')">
         <svg class="ic ic-sm"><use href="#i-yt"/></svg> YouTube
       </button>
+      <button type="button" id="tabProfil" onclick="tabTanla('profil')">
+        <svg class="ic ic-sm"><use href="#i-profil"/></svg> Profil
+      </button>
     </div>
 
     <div class="pane" id="paneFayl">
@@ -559,6 +621,72 @@
     <div class="pane" id="paneYt" hidden>
       <input type="url" id="ytUrl" placeholder="https://youtube.com/watch?v=..." spellcheck="false">
       <p class="hint">Faqat ochiq (public) videolar. Instagram uchun «Fayl» bo'limidan foydalaning.</p>
+    </div>
+
+    <div class="pane" id="paneProfil" hidden>
+      <input type="text" id="profilUrl" placeholder="@username yoki profil / kanal havolasi"
+             spellcheck="false" autocomplete="off" autocapitalize="off">
+      <div class="guruh">
+        <span class="nom">Platforma</span>
+        <div class="tanlov" role="radiogroup" aria-label="Platforma">
+          <label><input type="radio" name="pPlat" value="ig"><span>Instagram</span></label>
+          <label><input type="radio" name="pPlat" value="yt"><span>YouTube</span></label>
+        </div>
+      </div>
+      <div class="guruh">
+        <span class="nom">Qaysi videolar</span>
+        <div class="tanlov" role="radiogroup" aria-label="Qaysi videolar">
+          <label><input type="radio" name="pSarala" value="top"><span>Eng ko'p ko'rilgan</span></label>
+          <label><input type="radio" name="pSarala" value="yangi"><span>Eng oxirgilari</span></label>
+        </div>
+      </div>
+      <div class="ikki">
+        <div class="guruh">
+          <span class="nom">Nechta</span>
+          <div class="tanlov" role="radiogroup" aria-label="Nechta video">
+            <label><input type="radio" name="pSoni" value="5"><span>5</span></label>
+            <label><input type="radio" name="pSoni" value="10"><span>10</span></label>
+            <label><input type="radio" name="pSoni" value="20"><span>20</span></label>
+          </div>
+        </div>
+        <div class="guruh" id="pTurGuruh">
+          <span class="nom">Turi</span>
+          <div class="tanlov" role="radiogroup" aria-label="Video turi">
+            <label><input type="radio" name="pTur" value="hammasi"><span>Hammasi</span></label>
+            <label title="3 daqiqagacha"><input type="radio" name="pTur" value="shorts"><span>Shorts</span></label>
+            <label><input type="radio" name="pTur" value="uzun"><span>Uzun</span></label>
+          </div>
+        </div>
+        <div class="guruh" id="pChuqurGuruh">
+          <span class="nom">Nechta reel ichidan</span>
+          <div class="tanlov" role="radiogroup" aria-label="Nechta reel ichidan saralansin">
+            <label><input type="radio" name="pChuqur" value="30"><span>30</span></label>
+            <label><input type="radio" name="pChuqur" value="50"><span>50</span></label>
+            <label><input type="radio" name="pChuqur" value="100"><span>100</span></label>
+          </div>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="pTahlil">
+        <span class="tog"></span>
+        <span class="swMatn">Yakuniy tahlil
+          <small>Hook'lar, tuzilma, mavzular, nega ko'p ko'rilgani va yangi g'oyalar — +1 so'rov</small></span>
+      </label>
+      <div class="guruh" id="apifyGuruh">
+        <span class="nom">Apify token</span>
+        <input type="password" id="apifyToken" placeholder="apify_api_..." autocomplete="off" spellcheck="false">
+        <p class="hint">Instagram reel'lari ro'yxati shu orqali olinadi. Olish:
+          <a href="https://console.apify.com/settings/integrations" target="_blank" rel="noopener">console.apify.com → Settings → API &amp; Integrations</a>.
+          Bepul tarifda oyiga $5 kredit beriladi.</p>
+      </div>
+      <div class="guruh" id="ytKalitGuruh">
+        <span class="nom">YouTube API kalit <small>(ixtiyoriy)</small></span>
+        <input type="password" id="ytKalit" placeholder="Bo'sh qolsa — Gemini kaliti sinab ko'riladi" autocomplete="off" spellcheck="false">
+        <p class="hint">Gemini kaliti YouTube'ga ruxsat bermasa:
+          <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">YouTube Data API v3</a>
+          ni yoqing → «Credentials» → «Create API key». Bepul: kuniga 10 000 birlik — yuzlab tahlilga yetadi.</p>
+      </div>
+      <p class="hint" id="profilIzoh"></p>
     </div>
 
     <details class="sozlar" id="sozlamalar">
@@ -633,7 +761,7 @@
 
     <div class="harakat">
       <button class="btn btn-asosiy keng" id="startBtn" onclick="boshla()">
-        <svg class="ic"><use href="#i-uchqun"/></svg> Transkripsiya qilish
+        <svg class="ic"><use href="#i-uchqun"/></svg> <span id="startMatn">Transkripsiya qilish</span>
       </button>
       <div class="ishQator" id="ishQator" hidden>
         <div class="pill" id="pill">
@@ -668,6 +796,27 @@
       <button class="btn btn-ghost" onclick="oyinQayta()"><svg class="ic ic-sm"><use href="#i-qayta"/></svg> Qayta boshlash</button>
       <button class="btn btn-ghost" onclick="oyinYop()"><svg class="ic ic-sm"><use href="#i-x"/></svg> Yopish</button>
     </div>
+  </div>
+
+  <div class="card" id="profilCard" hidden>
+    <div class="natijaBosh">
+      <div style="min-width:0">
+        <h2><svg class="ic"><use href="#i-profil"/></svg> Profil tahlili</h2>
+        <p id="profilNom"></p>
+        <p id="profilStat"></p>
+      </div>
+    </div>
+    <div class="asboblar">
+      <button class="btn btn-asosiy" onclick="profilNusxa('hammasi')">
+        <svg class="ic ic-sm"><use href="#i-nusxa"/></svg> <span>Hammasini<span class="keng-ekran"> nusxalash</span></span>
+      </button>
+      <button class="btn btn-ghost" onclick="profilNusxa('skript')">
+        <svg class="ic ic-sm"><use href="#i-matn"/></svg> Faqat skriptlar
+      </button>
+    </div>
+    <div id="profilDavom"></div>
+    <div id="profilTahlil"></div>
+    <div id="profilVideolar"></div>
   </div>
 
   <div class="card" id="resultCard" hidden>
@@ -777,6 +926,12 @@ let joriyId = null;
 let joriyTab = "fayl";
 let tanlanganFayl = null;
 let tanlanganDav = null;   // tanlangan fayl davomiyligi (soniya); bilinmasa null
+// Profil tahlili holati
+let profilJoriy = null;          // ko'rsatilayotgan profil tahlili
+let profilIshdagi = null;        // hozir ishlanayotgan profil tahlili
+let profilIsh = null;            // ... undagi qaysi video
+let profilTahlilda = false;      // ... yakuniy tahlil yozilmoqda
+let joriyVideo = null;           // natija oynasida profil videosi ochiq bo'lsa: { pid, i }
 
 /* ===== API kalit ===== */
 function kalitOl() { return (localStorage.getItem("gemini_key") || "").trim(); }
@@ -875,8 +1030,11 @@ function tabTanla(t) {
   joriyTab = t;
   $("tabFayl").classList.toggle("active", t === "fayl");
   $("tabYt").classList.toggle("active", t === "yt");
+  $("tabProfil").classList.toggle("active", t === "profil");
   $("paneFayl").hidden = t !== "fayl";
   $("paneYt").hidden = t !== "yt";
+  $("paneProfil").hidden = t !== "profil";
+  $("startMatn").textContent = t === "profil" ? "Profilni tahlil qilish" : "Transkripsiya qilish";
   if (typeof sorovKorsat === "function") sorovKorsat();
 }
 
@@ -1616,7 +1774,7 @@ function sorovKorsat() {
   // Tanlangan fayl uchun nechta so'rov ketadi — limitga sig'adimi
   const kerak = sorovTaxmini();
   const qolgan = limit && !x.tugadi ? Math.max(limit - x.n, 0) : null;
-  const taxmin = kerak ? (`Bu fayl ≈ <b>${kerak}</b> so'rov` +
+  const taxmin = kerak ? (`${joriyTab === "profil" ? "Profil tahlili" : "Bu fayl"} ≈ <b>${kerak}</b> so'rov` +
     (qolgan !== null && kerak > qolgan
       ? ` <span class="ogoh">— bugungi limitga to'liq sig'maydi, qolgani keyin davom ettiriladi</span>` : "") +
     "<br>") : "";
@@ -1643,6 +1801,16 @@ function kvotaTuri(e) {
   if (/PerDay/i.test(t)) return "kunlik";
   if (/PerMinute/i.test(t)) return "daqiqalik";
   return /per_day|free_tier_requests/i.test(t) ? "kunlik" : "daqiqalik";
+}
+
+// Limit tugaganda foydalanuvchiga xabar
+function kvotaXabar(e) {
+  if (kvotaTuri(e) === "daqiqalik") return "Daqiqalik limit hali bo'shamadi. Bir daqiqadan keyin qayta urining.";
+  return `Bugungi bepul limit barcha mos modellarda tugadi.\n` +
+    `Yangilanishga ${qolganVaqtMatn()} qoldi (soat ${yangilanishVaqti()} da).\n` +
+    "Limit kalit bo'yicha sanaladi: shu kalit boshqa qurilma yoki Telegram botda ham " +
+    "ishlatilsa, ular ham shu limitdan sarflaydi.\n" +
+    "Ko'proq kerak bo'lsa — aistudio.google.com da billing ulang.";
 }
 
 /* Kunlik limit tugasa o'tiladigan bepul modellar.
@@ -1678,13 +1846,15 @@ function uxla(ms) {
   });
 }
 
-async function generate(key, model, parts, schema) {
+// erkin=true — transkripsiya emas, tahlil: model o'ylab yozadi (standart «o'ylash», ijodiyroq).
+// Sxema OBJECT bo'lsa — javob obyekt sifatida qaytadi.
+async function generate(key, model, parts, schema, erkin) {
   const URINISH = 5;
   let boshSoni = 0;
   // Transkripsiyada «o'ylash» foyda bermaydi: vaqt belgilarini yomonlashtiradi va
   // javob hajmidan joy yeydi. 2.5 Flash'da butunlay o'chiriladi (0); Gemini 3+ da
   // eng past daraja (ba'zi modellar MINIMAL'ni olmaydi — unda LOW). Rad etilsa — usiz.
-  const fikr = /^gemini-2\.5-flash/.test(model) ? [{ thinkingBudget: 0 }]
+  const fikr = erkin ? [] : /^gemini-2\.5-flash/.test(model) ? [{ thinkingBudget: 0 }]
     : /^gemini-([3-9]|\d\d)/.test(model) && /flash/.test(model)
       ? [{ thinkingLevel: "MINIMAL" }, { thinkingLevel: "LOW" }] : [];
   for (let urinish = 1; urinish <= URINISH; urinish++) {
@@ -1700,7 +1870,7 @@ async function generate(key, model, parts, schema) {
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: schema,
-            temperature: 0.1,
+            temperature: erkin ? 0.7 : 0.1,
             ...(fikr.length ? { thinkingConfig: fikr[0] } : {}),
           },
         }),
@@ -1736,6 +1906,10 @@ async function generate(key, model, parts, schema) {
         throw x;
       }
       const seglar = JSON.parse(text.replace(/^```(json)?\s*|\s*```$/g, ""));
+      if (schema.type === "OBJECT") {
+        if (!seglar || typeof seglar !== "object" || Array.isArray(seglar)) throw new Error("Javob noto'g'ri tuzilgan");
+        return seglar;
+      }
       if (!Array.isArray(seglar)) throw new Error("Javob ro'yxat emas");
       seglar.forEach(s => { s.start = soniyaga(s.start); s.end = soniyaga(s.end); });
       // Model eshitgan audio uzunligi (Gemini har soniyani 32 token qiladi) — YouTube
@@ -1954,6 +2128,8 @@ function qismRejasi(boshi, dav, uz) {
 
 // Tanlangan fayl uchun taxminiy so'rov soni (bilinmasa null)
 function sorovTaxmini() {
+  // Profil: har video bitta so'rov (uzun YouTube videolari — qismlar soniga qarab ko'proq) + tahlil
+  if (joriyTab === "profil") { const o = profilOpt(); return o.soni + (o.tahlil ? 1 : 0); }
   if (joriyTab !== "fayl" || !tanlanganFayl || !tanlanganDav) return null;
   const uz = +sozOl().qism;
   return qismlanadimi(tanlanganDav, uz) ? qismRejasi(0, tanlanganDav, uz).length : 1;
@@ -2475,10 +2651,10 @@ function sozlovchiEslatma(seglar, yoqilgan) {
 
 /* Bitta so'rov: kunlik limit tugasa zaxira modelga o'tadi.
    ish.model keyingi qismlar uchun eslab qolinadi — qayta-qayta sinab o'tirmaymiz. */
-async function modelBilan(ish, parts, schema, media) {
+async function modelBilan(ish, parts, schema, media, erkin) {
   while (true) {
     try {
-      const r = await generate(ish.key, ish.model, parts, schema);
+      const r = await generate(ish.key, ish.model, parts, schema, erkin);
       if (media?.videoMetadata?.fps !== undefined) ish.fpsBor = true;
       return r;
     } catch (e) {
@@ -2512,67 +2688,17 @@ async function modelBilan(ish, parts, schema, media) {
   }
 }
 
-/* ===== Asosiy jarayon ===== */
-let davomHolat = null;   // to'xtab qolgan uzun ishni davom ettirish uchun
-
-function davomEt() {
-  if (davomHolat && !ishlayapti) boshla(davomHolat);
-}
-
-async function boshla(davom) {
-  if (ishlayapti) return;
-  davom = davom && Array.isArray(davom.seglar) ? davom : null;
-  const key = kalitOl();
-  const yt = davom ? davom.yt : (joriyTab === "yt" ? $("ytUrl").value.trim() : "");
-  const file = davom ? davom.file : (joriyTab === "fayl" ? tanlanganFayl : null);
-  const s = davom ? davom.s : sozOl();
-
-  if (!key) {
-    kalitKorinish();
-    $("kalitKarta").scrollIntoView({ behavior: "smooth", block: "center" });
-    $("apiKey").focus();
-    return holat("Avval API kalitni ulang.", true);
-  }
-  if (!yt && !file) {
-    return holat(joriyTab === "yt" ? "YouTube havolasini qo'ying." : "Avval fayl tanlang.", true);
-  }
-  if (yt && !/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(yt)) {
-    return holat("Havola orqali faqat YouTube ishlaydi. Instagram va boshqa " +
-      "platformalardagi videoni qurilmaga saqlab, «Fayl» bo'limi orqali yuklang.", true);
-  }
-
-  ishlayapti = true;
-  bekorQilindi = false;
-  joriyAbort = new AbortController();
-  tugmaHolati(true);
-  holat("");
-  jarayon("indet");
-  holat(davom ? `${vaqtQisqa(davom.keyingi)} dan davom etilmoqda...` : "Tayyorlanmoqda...", false, true);
-  $("resultCard").hidden = true;
-
-  const nom = davom ? davom.nom : (file ? file.name : youtubeTozala(yt));
-  const toplangan = davom ? davom.seglar.slice() : [];
-  let keyingi = davom ? davom.keyingi : 0;   // shu joydan oldingisi tayyor
-  let id = davom ? davom.id : null;
-  let yubor = davom?.yubor || null;
-  let dav = davom?.dav ?? null;
+/* Bitta yozuvni (fayl yoki YouTube) transkripsiya qiladi: natija t.toplangan'ga yig'iladi,
+   t.keyingi — shu joygacha tayyor. Xato bilan to'xtasa ham t yangilanib qoladi (davom
+   ettirish uchun). Xabarlar t.holat/t.jarayon orqali chiqadi — profil tahlilida video raqami
+   bilan; t.jim — fayl yuklash foizi alohida ko'rsatilmaydi. t.dav YouTube uchun ham ma'lum
+   bo'lishi mumkin (profil ro'yxatidan) — unda video oxiri qidirilmaydi. */
+async function transkript(t) {
+  const { yt, file, s, ish, toplangan, otkazilgan } = t;
+  const key = ish.key;
+  let { keyingi, oxirgiS1, yubor, dav } = t;
   let ogohlantirish = "";
-  // Oldingi qism audiosi tugagan joy — keyingi qism bilan ustma-ust oraliqni bilish uchun
-  let oxirgiS1 = davom?.oxirgiS1 ?? (davom ? davom.keyingi + CHEKKA : null);
-  // Gemini rad etgan oraliqlar — ogohlantirish uchun (davom ettirilganda ham yo'qolmaydi)
-  const otkazilgan = (davom?.otkazilgan || []).map(x => x.slice());
-  const otkazMatn = () => otkazilgan.length ? "⚠️ Gemini quyidagi oraliqlarni yozib bermadi (ko'pincha " +
-    "mualliflik huquqi bilan himoyalangan qo'shiq yoki matn sababli rad etadi): " +
-    otkazilgan.map(([b, o]) => `${vaqtQisqa(b)}–${vaqtQisqa(o)}`).join(", ") : "";
-  const ish = { key, model: s.model, sinalgan: [], zaxira: null };
-
   try {
-    // Tanlangan model limiti bugun tugagan bo'lsa, so'rov yubormay zaxiradan boshlaymiz
-    if (modelTugaganmi(ish.model)) {
-      ish.sinalgan.push(ish.model);
-      ish.zaxira = await zaxiraModellar(key, ish.sinalgan);
-      ish.model = ish.zaxira.shift() || ish.model;
-    }
     const aralashTil = s.til === "aralash";
     const schema = schemaTuz(s.sozlovchi, aralashTil);
     const uz = Math.max(60, +s.qism || 300);          // qism uzunligi (soniya)
@@ -2610,8 +2736,8 @@ async function boshla(davom) {
       // Qismni ikkiga bo'lish joyi: imkon bo'lsa o'rtadagi pauza
       const ortasi = async (b, o) => {
         const m = (b + o) / 2;
-        const t = bolishNuqta ? await bolishNuqta(m, Math.min(15, (o - b) * 0.1)) : m;
-        return Math.min(Math.max(t, b + (o - b) * 0.3), o - (o - b) * 0.3);
+        const n = bolishNuqta ? await bolishNuqta(m, Math.min(15, (o - b) * 0.1)) : m;
+        return Math.min(Math.max(n, b + (o - b) * 0.3), o - (o - b) * 0.3);
       };
       while (stek.length) {
         bekorTekshir();
@@ -2659,21 +2785,37 @@ async function boshla(davom) {
          ba'zan shu xatoni bir martalik ham qaytaradi — shuning uchun bir marta qayta
          urinamiz va oldingi klip to'liq bo'lgan bo'lsa, «tugadi» demaymiz. */
       const uri = youtubeTozala(yt);
+      // Uzunligi ma'lum (profil ro'yxatidan) va qisqa video — bitta so'rovda, oraliqsiz
+      if (dav && keyingi === 0 && !qismlanadimi(dav, uz)) {
+        try {
+          const butun = { fileData: { fileUri: uri } };
+          if (s.tejamkor && !ish.fpsYoq) butun.videoMetadata = { fps: 0.1 };
+          t.jarayon("indet");
+          t.holat("Gemini transkripsiya qilmoqda...");
+          const q = await modelBilan(ish, [butun, { text: promptOl("") }], schema, butun);
+          qismQosh(toplangan, qismniMosla(q, 0, Infinity, false));
+          keyingi = dav;
+          return;
+        } catch (e) {
+          if (!e.uzun) throw e;             // javob sig'madi — qismlab qilamiz
+        }
+      }
       let a = keyingi;
       let jimQator = 0, qayta = false, oxirgiQism = null, noaniq = null;
-      while (a < YT_ENG_UZUN) {
+      while (a < (dav || YT_ENG_UZUN) - 0.5) {
         bekorTekshir();
-        const c = a + uz;
-        jarayon("indet");
-        holat(`Transkripsiya: ${vaqtQisqa(a)}–${vaqtQisqa(c)} qismi...`, false, true);
+        // Uzunligi ma'lum bo'lsa, oxirgi qisqa qoldiq oxirgi qismga qo'shiladi
+        const c = dav && dav - a <= uz + dumChegara(uz) ? dav : a + uz;
+        t.jarayon("indet");
+        t.holat(`Transkripsiya: ${vaqtQisqa(a)}–${vaqtQisqa(c)} qismi...`);
         try {
           const r = await qismIshla(a, c, async (b, o) => {
             const s0 = Math.max(0, Math.floor(b - CHEKKA)), s1 = Math.ceil(o + CHEKKA);
             const media = { fileData: { fileUri: uri },
               videoMetadata: { startOffset: `${s0}s`, endOffset: `${s1}s` } };
             if (s.tejamkor && !ish.fpsYoq) media.videoMetadata.fps = 0.1;
-            const q = await modelBilan(ish, [media, { text: promptOl(qismKorsatma(s0, s1, b > 0, true, true)) }],
-              schema, media);
+            const q = await modelBilan(ish, [media, { text: promptOl(qismKorsatma(s0, s1, b > 0,
+              !dav || o < dav - 0.5, true)) }], schema, media);
             const seglar = qismniMosla(q, s0, s1, null, { eski: toplangan, oldS1: oxirgiS1 });
             // Oldingi qism vaqtini aniq talqin qilib bo'lmagan edi: uning gaplari shu qismda
             // muqobil joyida chiqdi — demak o'shanda nisbiy vaqt edi, noto'g'ri joydagisini olamiz
@@ -2719,7 +2861,7 @@ async function boshla(davom) {
             if (!toplangan.length && !otkazilgan.length) {
               const butun = { fileData: { fileUri: uri } };
               if (s.tejamkor && !ish.fpsYoq) butun.videoMetadata = { fps: 0.1 };
-              holat("Gemini transkripsiya qilmoqda...", false, true);
+              t.holat("Gemini transkripsiya qilmoqda...");
               const q = await modelBilan(ish, [butun, { text: promptOl("") }], schema, butun);
               qismQosh(toplangan, qismniMosla(q, 0, Infinity, false));
               ogohlantirish = "Video qismlab ishlanmadi — uzun bo'lsa, oxiri chala chiqishi mumkin.";
@@ -2736,26 +2878,26 @@ async function boshla(davom) {
       if (!yubor) yubor = await faylTayyorla(file);
       bekorTekshir();
       if (dav == null) {
-        holat("Davomiyligi aniqlanmoqda...", false, true);
+        t.holat("Davomiyligi aniqlanmoqda...");
         dav = await davomiylikOl(yubor);
         if (!dav && yubor !== file) dav = await davomiylikOl(file);
       }
 
       const butunFayl = async () => {
-        jarayon(0);
-        holat(`Yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`, false, true);
-        const f = await faylYuklash(key, yubor);
+        t.jarayon(0);
+        t.holat(`Yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`);
+        const f = await faylYuklash(key, yubor, t.jim);
         const media = { fileData: { fileUri: f.uri, mimeType: f.mime } };
         // Tejamkor rejim: kadrlar deyarli olinmaydi — token sarfi ~5x kamayadi
         if (s.tejamkor && (f.mime || "").startsWith("video")) media.videoMetadata = { fps: 0.1 };
-        jarayon("indet");
-        holat("Gemini transkripsiya qilmoqda...", false, true);
+        t.jarayon("indet");
+        t.holat("Gemini transkripsiya qilmoqda...");
         const q = await modelBilan(ish, [media, { text: promptOl("") }], schema, media);
         qismQosh(toplangan, qismniMosla(q, 0, Infinity, false));
       };
 
       let kesgich = null;
-      if (qismlanadimi(dav, uz) && qismRejasi(keyingi, dav, uz).length > 1 || (davom && keyingi > 0)) {
+      if (qismlanadimi(dav, uz) && qismRejasi(keyingi, dav, uz).length > 1 || keyingi > 0) {
         try {
           kesgich = await audioBolakchi(yubor);
           bekorTekshir();
@@ -2777,14 +2919,14 @@ async function boshla(davom) {
             // Oxirgi qism: qolgani qisqa bo'lsa, shu qismga qo'shiladi
             let c = dav;
             if (dav - a > uz + dumChegara(uz)) {
-              holat(`Qism ${Math.min(Math.round(a / uz) + 1, jami)}/${jami} · kesish joyi tanlanmoqda...`, false, true);
+              t.holat(`Qism ${Math.min(Math.round(a / uz) + 1, jami)}/${jami} · kesish joyi tanlanmoqda...`);
               // Gap o'rtasida emas, eng yaqin pauzada kesamiz
               c = await kesgich.jimlikTop(a + uz, Math.min(15, uz * 0.1));
               c = Math.min(Math.max(c, a + uz * 0.6), dav - 30);
             }
             const tartib = Math.min(Math.round(a / uz) + 1, jami);
-            jarayon(Math.round(a / dav * 100));
-            holat(`Qism ${tartib}/${jami} · ${vaqtQisqa(a)}–${vaqtQisqa(c)} qayta ishlanmoqda...`, false, true);
+            t.jarayon(Math.round(a / dav * 100));
+            t.holat(`Qism ${tartib}/${jami} · ${vaqtQisqa(a)}–${vaqtQisqa(c)} qayta ishlanmoqda...`);
             await qismIshla(a, c, async (b, o) => {
               const chap = b > 0.5, ong = o < dav - 0.5;
               const s0 = chap ? Math.max(0, b - CHEKKA) : 0, s1 = ong ? Math.min(dav, o + CHEKKA) : dav;
@@ -2795,16 +2937,98 @@ async function boshla(davom) {
                 schema, media);
               // Oxirgi qismda o'ng qo'shni yo'q: vaqti biroz oshib ketgan gap tashlab yuborilmasin
               return { seglar: qismniMosla(q, s0, ong ? s1 : Infinity, true), s0, s1 };
-            }, (t, oyna) => kesgich.jimlikTop(t, oyna));
+            }, (n, oyna) => kesgich.jimlikTop(n, oyna));
             a = c;
           }
-          jarayon(100);
+          t.jarayon(100);
         } finally {
           kesgich.yop();
         }
       }
     }
+  } finally {
+    Object.assign(t, { keyingi, oxirgiS1, yubor, dav, ogohlantirish });
+  }
+}
 
+// Tanlangan model limiti bugun tugagan bo'lsa, so'rov yubormay zaxiradan boshlaymiz
+async function modelTayyorla(ish) {
+  if (!modelTugaganmi(ish.model)) return;
+  ish.sinalgan.push(ish.model);
+  ish.zaxira = await zaxiraModellar(ish.key, ish.sinalgan);
+  ish.model = ish.zaxira.shift() || ish.model;
+}
+
+// Gemini rad etgan oraliqlar haqida ogohlantirish
+function otkazMatnTuz(otkazilgan) {
+  return otkazilgan.length ? "⚠️ Gemini quyidagi oraliqlarni yozib bermadi (ko'pincha " +
+    "mualliflik huquqi bilan himoyalangan qo'shiq yoki matn sababli rad etadi): " +
+    otkazilgan.map(([b, o]) => `${vaqtQisqa(b)}–${vaqtQisqa(o)}`).join(", ") : "";
+}
+
+/* ===== Asosiy jarayon ===== */
+let davomHolat = null;   // to'xtab qolgan uzun ishni davom ettirish uchun
+
+function davomEt() {
+  if (davomHolat && !ishlayapti) boshla(davomHolat);
+}
+
+async function boshla(davom) {
+  if (ishlayapti) return;
+  if (!davom && joriyTab === "profil") return profilBoshla();
+  davom = davom && Array.isArray(davom.seglar) ? davom : null;
+  const key = kalitOl();
+  const yt = davom ? davom.yt : (joriyTab === "yt" ? $("ytUrl").value.trim() : "");
+  const file = davom ? davom.file : (joriyTab === "fayl" ? tanlanganFayl : null);
+  const s = davom ? davom.s : sozOl();
+
+  if (!key) {
+    kalitKorinish();
+    $("kalitKarta").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("apiKey").focus();
+    return holat("Avval API kalitni ulang.", true);
+  }
+  if (!yt && !file) {
+    return holat(joriyTab === "yt" ? "YouTube havolasini qo'ying." : "Avval fayl tanlang.", true);
+  }
+  if (yt && !/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(yt)) {
+    return holat("Havola orqali faqat YouTube ishlaydi. Instagram va boshqa " +
+      "platformalardagi videoni qurilmaga saqlab, «Fayl» bo'limi orqali yuklang.", true);
+  }
+
+  ishlayapti = true;
+  bekorQilindi = false;
+  joriyAbort = new AbortController();
+  tugmaHolati(true);
+  holat("");
+  jarayon("indet");
+  holat(davom ? `${vaqtQisqa(davom.keyingi)} dan davom etilmoqda...` : "Tayyorlanmoqda...", false, true);
+  $("resultCard").hidden = true;
+  $("profilCard").hidden = true;
+
+  const nom = davom ? davom.nom : (file ? file.name : youtubeTozala(yt));
+  let id = davom ? davom.id : null;
+  // Ish holati — transkript() uni to'ldirib boradi; to'xtab qolsa, shundan davom ettiriladi
+  const t = {
+    yt, file, s,
+    ish: { key, model: s.model, sinalgan: [], zaxira: null },
+    toplangan: davom ? davom.seglar.slice() : [],
+    keyingi: davom ? davom.keyingi : 0,   // shu joydan oldingisi tayyor
+    yubor: davom?.yubor || null,
+    dav: davom?.dav ?? null,
+    // Oldingi qism audiosi tugagan joy — keyingi qism bilan ustma-ust oraliqni bilish uchun
+    oxirgiS1: davom?.oxirgiS1 ?? (davom ? davom.keyingi + CHEKKA : null),
+    // Gemini rad etgan oraliqlar — ogohlantirish uchun (davom ettirilganda ham yo'qolmaydi)
+    otkazilgan: (davom?.otkazilgan || []).map(x => x.slice()),
+    holat: m => holat(m, false, true), jarayon,
+  };
+  const { toplangan, otkazilgan, ish } = t;
+  const otkazMatn = () => otkazMatnTuz(otkazilgan);
+
+  try {
+    await modelTayyorla(ish);
+    await transkript(t);
+    let ogohlantirish = t.ogohlantirish;
     if (otkazilgan.length) ogohlantirish = (ogohlantirish ? ogohlantirish + "\n" : "") + otkazMatn();
     const seglar = alifboMos(tozaSeg(segmentTozala(toplangan)), s);
     if (!seglar.length) {
@@ -2829,6 +3053,7 @@ async function boshla(davom) {
   } catch (e) {
     // Uzun ish o'rtada to'xtasa — tayyor qismini yo'qotmaymiz va davom ettirish mumkin
     // (rad etilgan qismlardan o'tilgan bo'lsa ham — ular qayta so'ralmasin)
+    const { keyingi, oxirgiS1, yubor, dav } = t;
     let qismanMatn = "";
     if (toplangan.length || keyingi > (davom?.keyingi ?? 0)) {
       if (toplangan.length) {
@@ -2878,16 +3103,7 @@ async function boshla(davom) {
       msg = "Gemini bu havoladagi videoni ocholmadi. Havola ochiq (public) YouTube " +
         "videosi ekanini tekshiring. Boshqa platforma videolarini fayl sifatida yuklang.";
     } else if (kvotaTuri(e)) {
-      const vaqt = yangilanishVaqti();
-      if (kvotaTuri(e) === "daqiqalik") {
-        msg = "Daqiqalik limit hali bo'shamadi. Bir daqiqadan keyin qayta urining.";
-      } else {
-        msg = `Bugungi bepul limit barcha mos modellarda tugadi.\n` +
-          `Yangilanishga ${qolganVaqtMatn()} qoldi (soat ${vaqt} da).\n` +
-          "Limit kalit bo'yicha sanaladi: shu kalit boshqa qurilma yoki Telegram botda ham " +
-          "ishlatilsa, ular ham shu limitdan sarflaydi.\n" +
-          "Ko'proq kerak bo'lsa — aistudio.google.com da billing ulang.";
-      }
+      msg = kvotaXabar(e);
     }
     holat(msg + qismanMatn, true);
   } finally {
@@ -2936,9 +3152,11 @@ function natijaStat(seglar) {
   return qism.join(" · ");
 }
 
-function korsat(seglar, nom, id, jim) {
+// video: { pid, i } — profil tahlilidagi video ochilgan (tuzatishlar o'sha yerga saqlanadi)
+function korsat(seglar, nom, id, jim, video) {
   joriyNom = nom || "";
   joriyId = id ?? null;
+  joriyVideo = video || null;
   $("natijaNom").textContent = nom ? qisqart(nom, 60) : "";
   $("natijaNom").title = nom || "";
   $("natijaStat").textContent = natijaStat(seglar);
@@ -2979,13 +3197,25 @@ function alifboAlmashtir() {
   const ah = alifboHolati(natija);
   if (!ah || ishlayapti) return;
   natija = ah === "eski" ? yangiAlifboga(natija) : eskiAlifboga(natija);
-  if (joriyId) tarixYangila(joriyId, natija);
+  natijaSaqla();
   // Chala natija davom ettirilsa — foydalanuvchi tanlagan alifboda tugasin
-  if (davomHolat && davomHolat.id === joriyId) {
+  if (joriyId && davomHolat && davomHolat.id === joriyId) {
     davomHolat.s = { ...davomHolat.s, yozuv: ah === "eski" ? "yangi" : "lotin" };
   }
-  korsat(natija, joriyNom, joriyId, true);
+  korsat(natija, joriyNom, joriyId, true, joriyVideo);
   toast(ah === "eski" ? "Yangi alifboga o'tkazildi" : "Amaldagi lotinga qaytarildi");
+}
+
+// Ochiq natijadagi o'zgarishni saqlaydi: oddiy transkript yoki profil tahlilidagi video
+function natijaSaqla() {
+  if (joriyId) return tarixYangila(joriyId, natija);
+  if (!joriyVideo) return;
+  const p = profilJoriy?.id === joriyVideo.pid ? profilJoriy : tarixOl().find(x => x.id === joriyVideo.pid);
+  const v = p?.videolar?.[joriyVideo.i];
+  if (!v) return;
+  v.seglar = natija;
+  profilSaqla(p);
+  if (p === profilJoriy && !$("profilCard").hidden) profilKorsat(p, true);
 }
 
 /* ===== Segmentni joyida tahrirlash =====
@@ -3021,7 +3251,7 @@ function alifboAlmashtir() {
     natija[i].text = yangi;
     natija[i].tahrir = true;
     seg.classList.add("tahrirlangan");
-    if (joriyId) tarixYangila(joriyId, natija);
+    natijaSaqla();
     toast("Tuzatish saqlandi");
   });
 })();
@@ -3103,10 +3333,16 @@ function tarixYangila(id, seglar) {
   tarixYoz(list);
 }
 
+// Yozuvning qidiriladigan matni (profil tahlilida — video nomlari, skriptlar va tahlil)
+function tarixMatn(t) {
+  if (t.tur !== "profil") return t.seglar.map(s => s.text).join(" ");
+  return (t.videolar || []).map(v => [v.nom, ...(v.seglar || []).map(s => s.text)].join(" ")).join(" ") +
+    (t.tahlil ? " " + tahlilMatn(t) : "");
+}
 // Qidiruv uchun normallangan matn — har harf bosilganda qayta hisoblamaslik uchun eslab qolinadi
 const tarixNormKesh = new Map();
 function tarixNorm(t) {
-  const raw = t.seglar.map(s => s.text).join(" ");
+  const raw = tarixMatn(t);
   const k = tarixNormKesh.get(t.id);
   if (k && k.raw === raw) return k.n;
   const n = solNorm(raw);
@@ -3120,7 +3356,7 @@ function tarixKorsat() {
   // Qidiruv yozuvdan qat'i nazar: «oʻzbek», «o'zbek», «özbek», «ўзбек» — bir xil
   const qn = solNorm(q);
   const bor = t => qn ? solNorm(t.nom).includes(qn) || tarixNorm(t).includes(qn)
-    : String(t.nom).toLowerCase().includes(q) || t.seglar.some(s => String(s.text).toLowerCase().includes(q));
+    : String(t.nom).toLowerCase().includes(q) || tarixMatn(t).toLowerCase().includes(q);
   const korinadi = q ? list.filter(bor) : list;
 
   $("tarixSoni").hidden = !list.length;
@@ -3133,12 +3369,17 @@ function tarixKorsat() {
        (faqat shu <span class="qurilma">${esc(document.querySelector(".qurilma")?.textContent || "qurilmada")}</span>).`;
 
   $("tarixList").innerHTML = korinadi.map(t => {
-    const yt = /youtu/i.test(t.nom);
-    return `<div class="hist${t.id === joriyId ? " joriy" : ""}" onclick="tarixOch(${t.id})">
-       <div class="belgi">${ikon(yt ? "yt" : "fayl")}</div>
+    const yt = /youtu/i.test(t.nom), profil = t.tur === "profil";
+    const joriy = profil ? !$("profilCard").hidden && profilJoriy?.id === t.id : t.id === joriyId;
+    const meta = profil
+      ? `${sanaMatn(t.sana)} · ${t.platforma === "ig" ? "Instagram" : "YouTube"} · ` +
+        `${t.videolar.filter(v => v.seglar).length}/${t.videolar.length} video${t.tahlil ? " · tahlil" : ""}`
+      : `${sanaMatn(t.sana)} · ${davomiylikMatn(t.seglar)} · ${t.seglar.length} segment`;
+    return `<div class="hist${joriy ? " joriy" : ""}" onclick="tarixOch(${t.id})">
+       <div class="belgi">${ikon(profil ? "profil" : yt ? "yt" : "fayl")}</div>
        <div class="info">
          <div class="nom">${esc(qisqart(t.nom, 44))}</div>
-         <div class="meta">${sanaMatn(t.sana)} · ${davomiylikMatn(t.seglar)} · ${t.seglar.length} segment</div>
+         <div class="meta">${meta}</div>
        </div>
        <button class="del" onclick="event.stopPropagation(); tarixOchir(${t.id})"
                title="O'chirish" aria-label="O'chirish">${ikon("ochir", "ic ic-sm")}</button>
@@ -3166,25 +3407,877 @@ document.addEventListener("keydown", e => {
 function tarixOch(id) {
   const t = tarixOl().find(x => x.id === id);
   if (!t) return;
-  natija = t.seglar;
   tarixYop();
+  if (t.tur === "profil") {
+    // Ish ketayotgan profil — o'sha jonli nusxasini ko'rsatamiz
+    $("resultCard").hidden = true;
+    return profilKorsat(profilIshdagi?.id === t.id ? profilIshdagi : profilJoriy?.id === t.id ? profilJoriy : t);
+  }
+  natija = t.seglar;
+  $("profilCard").hidden = true;
   korsat(t.seglar, t.nom, t.id);
 }
 
 function tarixOchir(id) {
+  if (ishlayapti && profilIshdagi?.id === id) return toast("Bu tahlil hozir ishlanmoqda");
   if (!confirm("Bu transkript o'chirilsinmi?")) return;
   tarixYoz(tarixOl().filter(x => x.id !== id));
   if (joriyId === id) joriyId = null;
+  if (joriyVideo?.pid === id) joriyVideo = null;
+  if (profilJoriy?.id === id) { profilJoriy = null; $("profilCard").hidden = true; }
   tarixKorsat();
   toast("O'chirildi");
 }
 
 function tarixTozalash() {
+  if (ishlayapti && profilIshdagi) return toast("Profil tahlili ishlanmoqda — tugashini kuting");
   if (!confirm("Butun tarix o'chirilsinmi? Buni qaytarib bo'lmaydi.")) return;
   localStorage.removeItem(TARIX_KEY);
   joriyId = null;
+  joriyVideo = null;
+  if (profilJoriy) { profilJoriy = null; $("profilCard").hidden = true; }
   tarixKorsat();
   toast("Tarix tozalandi");
+}
+
+/* ===== Profil tahlili: Instagram yoki YouTube profilining videolari =====
+   Ro'yxat: YouTube — YouTube Data API (bepul kalit), Instagram — Apify (reel scraper,
+   kredit bilan). Videolar navbat bilan transkripsiya qilinadi (oddiy transkripsiya bilan
+   bir xil yo'l), oxirida Gemini barcha skriptlarni birga tahlil qiladi. Natija tarixga
+   saqlanadi: limit tugasa yoki bekor qilinsa, qolgan videolardan davom ettiriladi. */
+const YT_API = "https://www.googleapis.com/youtube/v3";
+const APIFY = "https://api.apify.com/v2";
+const IG_AKTOR = "apify~instagram-reel-scraper";
+const IG_NARX = { reel: 0.0026, start: 0.001, mb: 0.02 };   // Apify bepul tarif narxlari ($)
+const YT_SKAN = 1000;            // «eng ko'p ko'rilgan» uchun ko'rib chiqiladigan videolar soni
+const profilOchiq = new Set();   // to'liq ochilgan skriptlar: "pid:i"
+
+/* --- Sozlamalar va kalitlar --- */
+const PROFIL_STANDART = { pPlat: "ig", pSarala: "top", pSoni: "10", pTur: "hammasi", pChuqur: "50", pTahlil: true };
+function profilOpt() {
+  const r = n => document.querySelector(`input[name="${n}"]:checked`)?.value || PROFIL_STANDART[n];
+  return { plat: r("pPlat"), sarala: r("pSarala"), soni: +r("pSoni"), tur: r("pTur"), chuqur: +r("pChuqur"),
+    tahlil: $("pTahlil").checked };
+}
+const ytKalitOl = () => (localStorage.getItem("yt_kalit") || "").trim() || kalitOl();
+const apifyTokenOl = () => (localStorage.getItem("apify_token") || "").trim();
+function profilKalitSaqla() {
+  try {
+    localStorage.setItem("apify_token", $("apifyToken").value.trim());
+    localStorage.setItem("yt_kalit", $("ytKalit").value.trim());
+  } catch (e) { /* e'tiborsiz */ }
+}
+
+function profilPaneYangila() {
+  const o = profilOpt();
+  $("pTurGuruh").hidden = $("ytKalitGuruh").hidden = o.plat !== "yt";
+  $("apifyGuruh").hidden = o.plat !== "ig";
+  $("pChuqurGuruh").hidden = o.plat !== "ig" || o.sarala !== "top";
+  const K = o.sarala === "top" ? o.chuqur : o.soni + 3;
+  $("profilIzoh").innerHTML = o.plat === "ig"
+    ? `Apify ≈ <b>$${(K * IG_NARX.reel + IG_NARX.start).toFixed(2)}</b> — ${K} ta reel ko'rib chiqiladi.`
+    : "Videolar ro'yxati bepul (YouTube Data API). Uzun videolar qismlab qilinadi — so'rov ko'proq ketadi.";
+  if (typeof sorovKorsat === "function") sorovKorsat();
+}
+(() => {
+  let saqlangan = {};
+  try { saqlangan = JSON.parse(localStorage.getItem("profil_soz")) || {}; } catch (e) { /* standart */ }
+  const o = { ...PROFIL_STANDART, ...saqlangan };
+  ["pPlat", "pSarala", "pSoni", "pTur", "pChuqur"].forEach(n => {
+    const el = document.querySelector(`input[name="${n}"][value="${o[n]}"]`) ||
+      document.querySelector(`input[name="${n}"][value="${PROFIL_STANDART[n]}"]`);
+    if (el) el.checked = true;
+  });
+  $("pTahlil").checked = o.pTahlil !== false;
+  $("apifyToken").value = apifyTokenOl();
+  $("ytKalit").value = localStorage.getItem("yt_kalit") || "";
+  $("paneProfil").addEventListener("change", e => {
+    if (e.target.id === "apifyToken" || e.target.id === "ytKalit") profilKalitSaqla();
+    else if (e.target.id !== "profilUrl") {
+      const x = profilOpt();
+      try {
+        localStorage.setItem("profil_soz", JSON.stringify({ pPlat: x.plat, pSarala: x.sarala, pSoni: String(x.soni),
+          pTur: x.tur, pChuqur: String(x.chuqur), pTahlil: x.tahlil }));
+      } catch (e2) { /* e'tiborsiz */ }
+    }
+    profilPaneYangila();
+  });
+  // Havola qo'yilsa — platforma o'zi tanlanadi
+  $("profilUrl").addEventListener("input", () => {
+    const k = profilAniqla($("profilUrl").value, null);
+    if (k) { document.querySelector(`input[name="pPlat"][value="${k.plat}"]`).checked = true; profilPaneYangila(); }
+  });
+  $("profilUrl").addEventListener("keydown", e => { if (e.key === "Enter") boshla(); });
+  profilPaneYangila();
+})();
+
+/* Kiritilgan matndan profilni aniqlaydi: havola, @username yoki kanal nomi.
+   plat — havola bo'lmasa qaysi platforma deb qaralsin (null — faqat havolani taniydi). */
+function profilAniqla(matn, plat) {
+  const x = String(matn || "").trim();
+  if (!x) return null;
+  const och = s => { try { return decodeURIComponent(s); } catch (e) { return s; } };
+  const yol = () => {
+    try { return new URL(/^https?:\/\//i.test(x) ? x : "https://" + x).pathname.split("/").filter(Boolean).map(och); }
+    catch (e) { return []; }
+  };
+  if (/^(https?:\/\/)?([\w-]+\.)?(instagram\.com|instagr\.am)(\/|$)/i.test(x)) {
+    const q = yol();
+    const kod = ["p", "reel", "reels", "tv"].includes(q[0]) ? q[1] : ["p", "reel", "tv"].includes(q[1]) ? q[2] : null;
+    if (kod) return { plat: "ig", tur: "reel", qiymat: `https://www.instagram.com/reel/${kod}/` };
+    const user = q[0] === "stories" ? q[1] : q[0];
+    return user && /^[\w.]{1,30}$/.test(user) && !["explore", "accounts", "direct", "reels"].includes(user)
+      ? { plat: "ig", tur: "user", qiymat: user.toLowerCase() } : null;
+  }
+  if (/^(https?:\/\/)?([\w-]+\.)?(youtube\.com|youtu\.be)(\/|$)/i.test(x)) {
+    const v = x.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|live\/|embed\/|v\/))([A-Za-z0-9_-]{11})/i);
+    if (v) return { plat: "yt", tur: "video", qiymat: v[1] };
+    const q = yol();
+    if (q[0]?.startsWith("@")) return { plat: "yt", tur: "handle", qiymat: q[0] };
+    if (q[0] === "channel" && /^UC[\w-]{22}$/.test(q[1] || "")) return { plat: "yt", tur: "id", qiymat: q[1] };
+    if (q[0] === "user" && q[1]) return { plat: "yt", tur: "user", qiymat: q[1] };
+    if (q[0] === "c" && q[1]) return { plat: "yt", tur: "nom", qiymat: q[1] };
+    return q[0] && !["watch", "results", "feed", "playlist", "shorts"].includes(q[0])
+      ? { plat: "yt", tur: "nom", qiymat: q[0] } : null;
+  }
+  if (/\/|:\/\//.test(x) || !plat) return null;            // boshqa sayt havolasi
+  const nom = x.replace(/^@/, "");
+  if (plat === "ig") return /^[\w.]{1,30}$/.test(nom) ? { plat, tur: "user", qiymat: nom.toLowerCase() } : null;
+  if (/^UC[\w-]{22}$/.test(nom)) return { plat, tur: "id", qiymat: nom };
+  if (!/^[\p{L}\p{N}._-]{1,100}$/u.test(nom)) return null;
+  return x.startsWith("@") ? { plat, tur: "handle", qiymat: x } : { plat, tur: "nom", qiymat: nom };
+}
+
+const topilmadiXato = m => Object.assign(new Error(m), { topilmadi: true });
+
+/* --- YouTube Data API --- */
+async function ytApi(yol, param) {
+  const q = new URLSearchParams(Object.entries({ ...param, key: ytKalitOl() }).filter(([, v]) => v !== "" && v != null));
+  const r = await fetch(`${YT_API}/${yol}?${q}`, { signal: joriyAbort?.signal });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const x = new Error(j.error?.message || `YouTube API: HTTP ${r.status}`);
+    x.status = r.status;
+    // Sabab kodlari: accessNotConfigured, quotaExceeded, API_KEY_SERVICE_BLOCKED ...
+    x.ytApi = [j.error?.status, ...(j.error?.errors || []).map(d => d.reason),
+      ...(j.error?.details || []).map(d => d.reason)].filter(Boolean).join(" ") || "xato";
+    throw x;
+  }
+  return j;
+}
+// "PT1H2M3S" -> 3723
+function isoSoniya(d) {
+  const m = String(d || "").match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+  return m ? (+m[1] || 0) * 86400 + (+m[2] || 0) * 3600 + (+m[3] || 0) * 60 + (+m[4] || 0) : 0;
+}
+async function ytKanal(k) {
+  const part = "snippet,contentDetails,statistics";
+  const ol = async p => (await ytApi("channels", { part, ...p })).items?.[0] || null;
+  let c = null;
+  if (k.tur === "video") {
+    const v = (await ytApi("videos", { part: "snippet", id: k.qiymat })).items?.[0];
+    if (v) c = await ol({ id: v.snippet.channelId });
+  } else if (k.tur === "id") c = await ol({ id: k.qiymat });
+  else if (k.tur === "user") c = await ol({ forUsername: k.qiymat });
+  else c = await ol({ forHandle: k.qiymat.replace(/^@?/, "@") });
+  // Eski /user/ va /c/ havolalari yoki @siz nom: handle sifatida, bo'lmasa qidiruv orqali
+  if (!c && (k.tur === "nom" || k.tur === "user")) {
+    if (k.tur === "user") c = await ol({ forHandle: "@" + k.qiymat });
+    if (!c) {
+      const s = (await ytApi("search", { part: "snippet", type: "channel", q: k.qiymat, maxResults: 1 })).items?.[0];
+      const id = s?.snippet?.channelId || s?.id?.channelId;
+      if (id) c = await ol({ id });
+    }
+  }
+  if (!c) throw topilmadiXato("YouTube kanali topilmadi. Havolani tekshiring (masalan: youtube.com/@kanal).");
+  const handle = c.snippet?.customUrl || "";
+  return { id: c.id, nom: c.snippet?.title || handle || c.id, handle,
+    url: `https://www.youtube.com/${handle || "channel/" + c.id}`,
+    obunachi: c.statistics?.hiddenSubscriberCount ? null : +c.statistics?.subscriberCount || null,
+    uploads: c.contentDetails?.relatedPlaylists?.uploads || "UU" + c.id.slice(2) };
+}
+function ytVideo(x) {
+  const dav = isoSoniya(x.contentDetails?.duration);
+  // Jonli efir va hali chiqmagan premyeralar — transkripsiya qilib bo'lmaydi
+  if (!dav || (x.snippet?.liveBroadcastContent || "none") !== "none") return null;
+  const st = x.statistics || {}, son = n => n != null ? +n : null;
+  return { id: x.id, url: `https://www.youtube.com/watch?v=${x.id}`, nom: x.snippet?.title || x.id,
+    matn: String(x.snippet?.description || "").slice(0, 400),
+    korish: son(st.viewCount), layk: son(st.likeCount), izoh: son(st.commentCount),
+    sana: x.snippet?.publishedAt || null, dav,
+    rasm: x.snippet?.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${x.id}/mqdefault.jpg` };
+}
+const turMos = (v, tur) => tur === "shorts" ? v.dav <= 180 : tur === "uzun" ? v.dav > 180 : true;
+
+async function ytRoyxat(k, o, h) {
+  h("YouTube kanali qidirilmoqda...");
+  const kanal = await ytKanal(k);
+  const videolar = new Map();
+  const qosh = async (ids, ishonch) => {
+    if (!ids.length) return;
+    const j = await ytApi("videos", { part: "snippet,statistics,contentDetails", id: ids.join(","), maxResults: 50 });
+    for (const x of j.items || []) {
+      const v = ytVideo(x);
+      if (v && !videolar.has(v.id)) videolar.set(v.id, { ...v, ishonch });
+    }
+  };
+  // YouTube'da Shorts va uzun videolarning alohida ro'yxati bor (UUSH…, UULF…);
+  // topilmasa — barcha videolardan uzunligiga qarab ajratamiz (Shorts — 3 daqiqagacha)
+  const turRoyxat = { shorts: "UUSH", uzun: "UULF" }[o.tur];
+  let pl = turRoyxat ? turRoyxat + kanal.id.slice(2) : kanal.uploads;
+  let token = "", korildi = 0, jami = 0;
+  const chegara = o.sarala === "top" ? YT_SKAN : 500;
+  const mos = () => [...videolar.values()].filter(v => v.ishonch || turMos(v, o.tur));
+  while (true) {
+    let j;
+    try {
+      j = await ytApi("playlistItems", { part: "contentDetails", playlistId: pl, maxResults: 50, pageToken: token });
+    } catch (e) {
+      if (e.status === 404 && pl !== kanal.uploads) { pl = kanal.uploads; token = ""; continue; }
+      throw e;
+    }
+    jami = j.pageInfo?.totalResults || jami;
+    const ids = (j.items || []).map(x => x.contentDetails?.videoId).filter(Boolean);
+    korildi += ids.length;
+    await qosh(ids, pl !== kanal.uploads || o.tur === "hammasi");
+    h(`Videolar ro'yxati: ${korildi}${jami > korildi ? "/" + jami : ""}...`);
+    if (o.sarala === "yangi" && mos().length >= o.soni) break;
+    token = j.nextPageToken || "";
+    if (!token || korildi >= chegara) break;
+  }
+  // Katta kanal — hammasini ko'rib chiqmadik: YouTube qidiruvidagi eng ko'p ko'rilganlarini ham qo'shamiz
+  let ogoh = "";
+  if (o.sarala === "top" && token) {
+    const j = await ytApi("search", { part: "id", channelId: kanal.id, type: "video", order: "viewCount", maxResults: 50 });
+    await qosh((j.items || []).map(x => x.id?.videoId).filter(id => id && !videolar.has(id)), o.tur === "hammasi");
+    ogoh = `Kanalda ${jami} ta video: oxirgi ${korildi} tasi va YouTube qidiruvidagi eng ko'p ko'rilganlari solishtirildi.`;
+  }
+  const tanlangan = mos().sort(o.sarala === "top"
+    ? (a, b) => (b.korish || 0) - (a.korish || 0)
+    : (a, b) => String(b.sana).localeCompare(String(a.sana)));
+  if (!tanlangan.length) throw topilmadiXato(o.tur === "hammasi" ? "Kanalda video topilmadi."
+    : `Kanalda ${o.tur === "shorts" ? "Shorts" : "uzun video"} topilmadi.`);
+  const { uploads, id, ...k2 } = kanal;
+  return { kanal: k2, videolar: tanlangan.slice(0, o.soni).map(({ ishonch, ...v }) => v), ogoh };
+}
+
+/* --- Apify (Instagram) --- */
+async function apify(yol, { method = "GET", body } = {}) {
+  const r = await fetch(APIFY + yol, {
+    method, signal: joriyAbort?.signal, body: body ? JSON.stringify(body) : undefined,
+    headers: { Authorization: `Bearer ${apifyTokenOl()}`, ...(body ? { "Content-Type": "application/json" } : {}) },
+  });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) {
+    const x = new Error(j?.error?.message || `Apify: HTTP ${r.status}`);
+    x.status = r.status;
+    x.apify = j?.error?.type || "xato";
+    throw x;
+  }
+  return Array.isArray(j) ? j : j?.data ?? j;
+}
+/* Apify'da reel scraper'ni ishga tushirib, tugashini kutadi va natijani qaytaradi.
+   narx — ish uchun eng ko'p sarf ($): undan oshsa Apify o'zi to'xtatadi. */
+async function apifyIshla(kirish, matn, h, narx) {
+  const run = await apify(`/acts/${IG_AKTOR}/runs?maxTotalChargeUsd=${Math.max(0.01, narx).toFixed(3)}`,
+    { method: "POST", body: kirish });
+  const t0 = Date.now();
+  let r = run;
+  try {
+    while (!/^(SUCCEEDED|FAILED|ABORTED|TIMED-OUT)$/.test(r.status)) {
+      if (Date.now() - t0 > 6 * 60e3) throw new Error("Apify 6 daqiqada javob bermadi — birozdan keyin qayta urining");
+      h(`${matn} · ${Math.round((Date.now() - t0) / 1000)} s...`);
+      r = await apify(`/actor-runs/${run.id}?waitForFinish=10`);
+    }
+  } catch (e) {
+    // Bekor qilinsa yoki kutish uzilsa — Apify'dagi ish ham to'xtasin (kredit ketmasin)
+    fetch(`${APIFY}/actor-runs/${run.id}/abort`, { method: "POST",
+      headers: { Authorization: `Bearer ${apifyTokenOl()}` } }).catch(() => {});
+    throw e;
+  }
+  if (r.status !== "SUCCEEDED") throw Object.assign(new Error(`Apify ishi tugallanmadi (${r.status})`), { apify: r.status });
+  return apify(`/datasets/${r.defaultDatasetId}/items?clean=true&format=json`);
+}
+function igVideo(x) {
+  const matn = String(x.caption || "").trim();
+  const birinchi = matn.split("\n").map(s => s.trim()).find(Boolean) || "";
+  const sahifa = x.url || `https://www.instagram.com/reel/${x.shortCode}/`;
+  const son = n => typeof n === "number" && n >= 0 ? n : null;   // yashirilgan layk — -1
+  return { id: x.shortCode, url: sahifa, sahifa,
+    nom: birinchi ? (birinchi.length > 90 ? birinchi.slice(0, 89) + "…" : birinchi) : `Reel ${x.shortCode}`,
+    matn: matn.slice(0, 600),
+    korish: son(x.videoPlayCount) ?? son(x.igPlayCount) ?? son(x.videoViewCount),
+    layk: son(x.likesCount), izoh: son(x.commentsCount), sana: x.timestamp || null, dav: x.videoDuration || null,
+    video: x.videoUrl || null, audio: x.audioUrl || null, rasm: x.displayUrl || null };
+}
+async function igRoyxat(k, o, h) {
+  let user = k.qiymat;
+  if (k.tur === "reel") {
+    const [x] = await apifyIshla({ username: [user], resultsLimit: 1 }, "Reel egasi aniqlanmoqda", h, 0.02);
+    user = x?.ownerUsername;
+    if (!user) throw topilmadiXato("Bu reel topilmadi yoki yopiq.");
+  }
+  const K = o.sarala === "top" ? o.chuqur : o.soni + 3;
+  const items = await apifyIshla({ username: [user], resultsLimit: K, skipPinnedPosts: o.sarala === "yangi" },
+    `@${user} reel'lari olinmoqda`, h, (K * IG_NARX.reel + IG_NARX.start) * 2 + 0.01);
+  const xato = items.find(x => x.error), bor = new Set();
+  const videolar = items
+    .filter(x => !x.error && x.shortCode && (x.videoUrl || x.audioUrl) && !bor.has(x.shortCode) && bor.add(x.shortCode))
+    .map(igVideo)
+    .sort(o.sarala === "top"
+      ? (a, b) => (b.korish || 0) - (a.korish || 0)
+      : (a, b) => String(b.sana).localeCompare(String(a.sana)));
+  if (!videolar.length) {
+    throw topilmadiXato(xato ? `Instagram (@${user}): ${xato.errorDescription || xato.error}`
+      : `@${user} profilida reel topilmadi (profil yopiq bo'lishi mumkin).`);
+  }
+  const egasi = items.find(x => x.ownerUsername) || {};
+  return { kanal: { nom: egasi.ownerFullName || "@" + user, handle: "@" + user, url: `https://www.instagram.com/${user}/` },
+    videolar: videolar.slice(0, o.soni), ogoh: "" };
+}
+
+/* --- Bitta videoni transkripsiya qilish --- */
+function videoNatija(t, s) {
+  const seglar = alifboMos(tozaSeg(segmentTozala(t.toplangan)), s);
+  if (!seglar.length && t.otkazilgan.length) throw Object.assign(new Error("Gemini rad etdi"), { bloklandi: true });
+  return { seglar, ogoh: [t.ogohlantirish, otkazMatnTuz(t.otkazilgan)].filter(Boolean).join(" ") };
+}
+const yangiIsh = (s, ish, h, qosh) => ({ yt: "", file: null, s, ish, toplangan: [], otkazilgan: [], keyingi: 0,
+  oxirgiS1: null, yubor: null, dav: null, holat: h, jarayon: () => {}, jim: true, ...qosh });
+
+async function ytVideoTranskript(v, s, ish, h) {
+  const t = yangiIsh(s, ish, h, { yt: v.url, dav: v.dav || null });
+  await transkript(t);
+  return videoNatija(t, s);
+}
+
+/* Instagram videosini Gemini'ga uch yo'l bilan beramiz (ishlagani eslab qolinadi):
+   1) havolaning o'zi — Gemini videoni o'zi oladi (so'rov soni o'zgarmaydi);
+   2) brauzer yuklab oladi (Instagram ruxsat bersa) va Google'ga yuklaydi;
+   3) Apify yuklab beradi — pullik qo'shimcha, bir marta so'raladi. */
+async function igVideoTranskript(v, p, ish, h, navbat) {
+  const s = p.s, ig = ish.ig;
+  if (v.video && !(ig.urlXato >= 2 && !ig.urlOk)) {
+    try {
+      h("Gemini videoni havoladan olmoqda...");
+      const aralash = s.til === "aralash";
+      const media = { fileData: { fileUri: v.video, mimeType: "video/mp4" } };
+      const q = await modelBilan(ish, [media, { text: prompt1(s.yozuv, s.segment, s.sozlovchi, aralash) }],
+        schemaTuz(s.sozlovchi, aralash), media);
+      ig.urlOk = true;
+      const r = videoNatija({ toplangan: qismniMosla(q, 0, Infinity, false), otkazilgan: [] }, s);
+      // Videoda ovoz alohida yo'lakda bo'lsa, havoladagi video ovozsiz bo'lishi mumkin — audioni sinaymiz
+      if (r.seglar.length || !v.audio) return r;
+    } catch (e) {
+      // Limit, rad etish, tarmoq yoki kalit xatosi — boshqa usul yordam bermaydi
+      if (bekorQilindi || e.bloklandi || e.uzun || kvotaTuri(e) || e instanceof TypeError ||
+        /API[ _]key|high demand|overloaded/i.test(e.message)) throw e;
+      ig.urlXato = (ig.urlXato || 0) + 1;
+      console.warn("Gemini Instagram havolasini ocholmadi:", e.message);
+    }
+  }
+  let fayl = null;
+  if (!ig.fetchYoq || ig.fetchOk) {
+    for (const [url, tur] of [[v.audio, "audio/mp4"], [v.video, "video/mp4"]]) {
+      if (!url) continue;
+      try {
+        h("Video yuklab olinmoqda...");
+        const r = await fetch(url, { signal: joriyAbort?.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const b = await r.blob();
+        if (!b.size) throw new Error("bo'sh fayl");
+        fayl = new File([b], `${v.id}.${tur === "audio/mp4" ? "m4a" : "mp4"}`, { type: tur });
+        ig.fetchOk = true;
+        break;
+      } catch (e) {
+        if (bekorQilindi) throw e;
+        console.warn("Instagram faylini brauzer ololmadi:", e.message);
+      }
+    }
+    if (!fayl && !ig.fetchOk) ig.fetchYoq = true;
+  }
+  if (!fayl) fayl = await igApifyFayl(v, p, ish, h, navbat);
+  const t = yangiIsh(s, ish, h, { file: fayl });
+  await transkript(t);
+  return videoNatija(t, s);
+}
+const igYoqXato = m => Object.assign(new Error(m || "Instagram videosini olib bo'lmadi"), { igYoq: true });
+
+async function igApifyFayl(v, p, ish, h, navbat) {
+  const ig = ish.ig;
+  if (!ig.yuklangan) {
+    if (ig.rad) throw igYoqXato();
+    const vids = navbat.map(i => p.videolar[i]).filter(x => !x.seglar && x.sahifa);
+    // Reel taxminan 0,3 MB/s (720p); Apify har boshlangan 1 MB uchun oladi
+    const mb = vids.reduce((a, x) => a + Math.ceil(Math.max(x.dav || 30, 5) * 0.3), 0);
+    const narx = vids.length * IG_NARX.reel + IG_NARX.start + mb * IG_NARX.mb;
+    if (!apifyTokenOl() || !confirm(`Instagram videolarini Gemini va brauzer to'g'ridan-to'g'ri ocholmadi.\n\n` +
+      `Apify ularni yuklab berishi mumkin: ${vids.length} ta video, taxminan $${narx.toFixed(2)} ` +
+      `(har 1 MB uchun $${IG_NARX.mb}). Davom etilsinmi?`)) {
+      ig.rad = true;
+      throw igYoqXato();
+    }
+    const items = await apifyIshla({ username: vids.map(x => x.sahifa), resultsLimit: 1, includeDownloadedVideo: true },
+      "Apify videolarni yuklab olmoqda", h, narx * 3 + 0.05);
+    ig.yuklangan = new Map(items.filter(x => x.downloadedVideo && x.shortCode).map(x => [x.shortCode, x.downloadedVideo]));
+  }
+  const url = ig.yuklangan.get(v.id);
+  if (!url) throw igYoqXato("Apify bu videoni yuklab bermadi");
+  h("Video yuklab olinmoqda...");
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${apifyTokenOl()}` }, signal: joriyAbort?.signal });
+  if (!r.ok) throw igYoqXato(`Apify'dan video olinmadi (HTTP ${r.status})`);
+  return new File([await r.blob()], `${v.id}.mp4`, { type: "video/mp4" });
+}
+
+// Faqat shu videoga tegishli xato — keyingisiga o'tamiz; limit, tarmoq, kalit xatosida esa to'xtaymiz
+function videoXatosimi(e) {
+  if (bekorQilindi || kvotaTuri(e) || /API[ _]key|location is not supported/i.test(e.message)) return false;
+  return !!(e.bloklandi || e.uzun || e.igYoq || e.ytOxiri || (e.status >= 400 && e.status < 500 && e.status !== 429));
+}
+function videoXatoMatn(e) {
+  if (e.bloklandi) return e.bosh ? "Gemini bir necha marta bo'sh javob qaytardi"
+    : "Gemini yozib bermadi (ko'pincha mualliflik huquqi — qo'shiq, film parchasi)";
+  if (e.uzun) return "Javob juda uzun chiqdi — videoni «YouTube» bo'limida alohida qiling";
+  if (e.igYoq) return e.message;
+  if (/invalid argument|Cannot fetch|not found|private|unavailable/i.test(e.message)) {
+    return "Gemini videoni ocholmadi (yopiq, o'chirilgan yoki yosh cheklovi bor)";
+  }
+  return "Xato: " + qisqart(e.message, 140);
+}
+
+/* --- Yakuniy tahlil --- */
+const TAHLIL_SXEMA = {
+  type: "OBJECT",
+  properties: {
+    xulosa: { type: "STRING", description: "Profil nima haqida, kimga mo'ljallangan, nega ishlayapti — 3-5 gap" },
+    hooklar: { type: "ARRAY", description: "Eng kuchli 5 ta boshlanish", items: { type: "OBJECT", properties: {
+      video: { type: "INTEGER", description: "Video raqami" },
+      hook: { type: "STRING", description: "Videoning birinchi 1-2 gapi — skriptdan aynan" },
+      nega: { type: "STRING", description: "Nega diqqatni tortadi" } }, required: ["video", "hook", "nega"] } },
+    tuzilma: { type: "STRING", description: "Skriptlarning odatiy tuzilmasi, qadamlari bilan" },
+    mavzular: { type: "ARRAY", items: { type: "STRING" } },
+    uslub: { type: "STRING", description: "Gapirish uslubi, ohang, til, temp, video uzunligi" },
+    cta: { type: "STRING", description: "Chaqiriqlar (obuna, izoh, havola...) qanday ishlatiladi" },
+    omillar: { type: "ARRAY", items: { type: "STRING" }, description: "Ko'p ko'rilganlarni kamlaridan ajratuvchi omillar" },
+    goyalar: { type: "ARRAY", description: "5 ta yangi video g'oyasi", items: { type: "OBJECT", properties: {
+      sarlavha: { type: "STRING" },
+      hook: { type: "STRING", description: "Tayyor birinchi gap" },
+      reja: { type: "STRING", description: "Qisqa reja" } }, required: ["sarlavha", "hook", "reja"] } },
+    tavsiyalar: { type: "ARRAY", items: { type: "STRING" } },
+  },
+  required: ["xulosa", "hooklar", "tuzilma", "mavzular", "uslub", "cta", "omillar", "goyalar", "tavsiyalar"],
+};
+const TAHLIL_QISM = [["xulosa", "Umumiy xulosa"], ["hooklar", "Eng kuchli hook'lar"], ["tuzilma", "Skript tuzilmasi"],
+  ["mavzular", "Mavzular"], ["uslub", "Uslub va temp"], ["cta", "Chaqiriq (CTA)"], ["omillar", "Nega ko'p ko'riladi"],
+  ["goyalar", "Yangi video g'oyalari"], ["tavsiyalar", "Tavsiyalar"]];
+const tahlilQismNomi = (p, k, nom) => k === "omillar" && p.opt.sarala !== "top" ? "Nima ishlayapti" : nom;
+
+function tahlilPrompt(p, n) {
+  const k = p.kanal;
+  const y = p.s.yozuv === "kirill" ? "kirill (ўзбек алифбоси)" : "lotin (oʻzbek alifbosi; oʻ va gʻ — ʻ belgisi bilan)";
+  return `Sen ijtimoiy tarmoqlar (Instagram Reels, YouTube, Shorts) uchun tajribali kontent strateg va ssenariynavissan.
+Quyida ${p.platforma === "ig" ? "Instagram" : "YouTube"}'dagi «${k.nom}»${k.handle && k.handle !== k.nom ? ` (${k.handle})` : ""} profilining ` +
+`${p.opt.sarala === "top" ? "eng ko'p ko'rilgan" : "eng oxirgi"} ${n} ta videosi berilgan: ko'rsatkichlari va to'liq skripti (ovozdan yozib olingan matn).
+
+Vazifa — shu videolarni chuqur tahlil qilib, kontent muallifi uchun amaliy xulosa chiqarish:
+- xulosa: profil nima haqida, kimga mo'ljallangan va nega ishlayapti (3-5 gap).
+- hooklar: eng kuchli 5 ta boshlanish — videoning birinchi 1-2 gapini skriptdan AYNAN ko'chir, video raqamini yoz va nega diqqatni tortishini tushuntir.
+- tuzilma: skriptlarning odatiy tuzilmasi qadamlari bilan (masalan: hook → muammo → yechim → chaqiriq).
+- mavzular: asosiy mavzular va rubrikalar.
+- uslub: gapirish uslubi, ohang, til, temp, video uzunligi.
+- cta: qanday chaqiriq ishlatiladi (obuna, izoh, havola, mahsulot...). Bo'lmasa — shuni ayt.
+- omillar: ko'rishlar ko'p bo'lgan videolarni kamroq ko'rilganlaridan nima ajratib turadi — raqamlarga tayan.
+- goyalar: shu uslub va auditoriyaga mos 5 ta yangi video g'oyasi: sarlavha, tayyor hook (birinchi gap) va qisqa reja.
+- tavsiyalar: shu profildan o'rganib, o'z kontentiga qo'llash uchun 3-5 ta aniq tavsiya.
+
+Qoidalar: faqat berilgan ma'lumotga tayan — raqam, fakt va gaplarni o'ylab topma. Javobni o'zbek tilida, ${y} yozuvida yoz. Skriptdan ko'chirilgan hook asl tilida qolsin.`;
+}
+// Tahlildagi barcha matnni tanlangan alifboga o'giradi
+function alifboObyekt(o, s) {
+  if (s.yozuv !== "yangi") return o;
+  const ayl = (x, f) => typeof x === "string" ? f(x) : Array.isArray(x) ? x.map(y => ayl(y, f))
+    : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, y]) => [k, ayl(y, f)])) : x;
+  const qator = [];
+  ayl(o, x => qator.push({ text: x }));
+  const y = yangiAlifboga(qator);
+  let i = 0;
+  return ayl(o, () => y[i++].text);
+}
+async function profilTahlilQil(p, ish) {
+  const tayyor = p.videolar.map((v, i) => ({ v, i })).filter(x => x.v.seglar?.length);
+  const qisqa = m => m.length > 6000 ? m.slice(0, 4500) + " […] " + m.slice(-1500) : m;
+  const son = n => n == null ? "—" : String(n);
+  const malumot = tayyor.map(({ v, i }) => [
+    `=== ${i + 1}-video ===`,
+    `Nomi: ${v.nom}`,
+    v.matn && v.matn !== v.nom ? `Izoh matni: ${v.matn}` : "",
+    `Ko'rishlar: ${son(v.korish)} · Layklar: ${son(v.layk)} · Izohlar: ${son(v.izoh)} · ` +
+      `Uzunligi: ${v.dav ? vaqtQisqa(v.dav) : "—"} · Joylangan: ${v.sana ? String(v.sana).slice(0, 10) : "—"}`,
+    // Gemini amaldagi lotinni yaxshiroq biladi — skript shu yozuvda beriladi, javob keyin o'giriladi
+    `Skript:\n${qisqa(skriptMatn(p.s.yozuv === "yangi" ? eskiAlifboga(v.seglar) : v.seglar))}`,
+  ].filter(Boolean).join("\n")).join("\n\n");
+  const q = await modelBilan(ish, [{ text: tahlilPrompt(p, tayyor.length) + "\n\n" + malumot }], TAHLIL_SXEMA, null, true);
+  return alifboObyekt(q, p.s);
+}
+
+/* --- Jarayon --- */
+function ishBoshla() {
+  ishlayapti = true;
+  bekorQilindi = false;
+  joriyAbort = new AbortController();
+  tugmaHolati(true);
+  holat("");
+  jarayon("indet");
+}
+function ishTugadi() {
+  ishlayapti = false;
+  joriyAbort = null;
+  joriyXhr = null;
+  profilIshdagi = null;
+  profilIsh = null;
+  profilTahlilda = false;
+  tugmaHolati(false);
+  if (profilJoriy) profilYangila(profilJoriy);   // «qayta urinish» tugmalari qaytsin
+}
+function profilSaqla(p) {
+  const list = tarixOl();
+  const i = list.findIndex(x => x.id === p.id);
+  if (i >= 0) list[i] = p;
+  else { list.unshift(p); while (list.length > 60) list.pop(); }
+  tarixYoz(list);
+  tarixKorsat();
+}
+const profilYangila = p => { if (profilJoriy === p && !$("profilCard").hidden) profilKorsat(p, true); };
+
+async function profilBoshla() {
+  const o = profilOpt();
+  profilKalitSaqla();
+  if (!kalitOl()) {
+    kalitKorinish();
+    $("kalitKarta").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("apiKey").focus();
+    return holat("Avval API kalitni ulang.", true);
+  }
+  const k = profilAniqla($("profilUrl").value, o.plat);
+  if (!k) {
+    return holat(o.plat === "ig" ? "Instagram username yoki profil havolasini kiriting (masalan: @username)."
+      : "YouTube kanal havolasini yoki @handle'ini kiriting (masalan: youtube.com/@kanal).", true);
+  }
+  if (k.plat === "ig" && !apifyTokenOl()) {
+    $("apifyToken").focus();
+    return holat("Instagram uchun Apify token kerak — pastdagi maydonga qo'ying (olish yo'li maydon ostida).", true);
+  }
+  ishBoshla();
+  $("resultCard").hidden = true;
+  $("profilCard").hidden = true;
+  holat("Tayyorlanmoqda...", false, true);
+  let p = null;
+  try {
+    const r = await (k.plat === "yt" ? ytRoyxat : igRoyxat)(k, o, m => holat(m, false, true));
+    p = { id: Date.now(), tur: "profil", nom: [...new Set([r.kanal.nom, r.kanal.handle].filter(Boolean))].join(" · "),
+      sana: new Date().toISOString(), platforma: k.plat, kanal: r.kanal,
+      opt: { sarala: o.sarala, soni: o.soni, tur: o.tur, tahlil: o.tahlil }, s: sozOl(),
+      videolar: r.videolar, seglar: [], ...(r.ogoh ? { ogoh: r.ogoh } : {}) };
+    profilIshdagi = p;
+    profilSaqla(p);
+    profilKorsat(p);
+    profilYakun(p, await profilIshla(p));
+  } catch (e) {
+    profilXato(e, p);
+  } finally {
+    ishTugadi();
+  }
+}
+
+// Tarixdagi tahlilni davom ettirish: qolgan videolar, bitta video (faqat) yoki faqat tahlil
+async function profilDavom(id, faqat = null, tahlilQayta = false) {
+  if (ishlayapti) return;
+  const p = profilJoriy?.id === id ? profilJoriy : tarixOl().find(x => x.id === id);
+  if (!p) return toast("Bu tahlil tarixda topilmadi");
+  if (!kalitOl()) {
+    kalitKorinish();
+    $("apiKey").focus();
+    return holat("Avval API kalitni ulang.", true);
+  }
+  ishBoshla();
+  profilIshdagi = p;
+  if (profilJoriy !== p || $("profilCard").hidden) profilKorsat(p); else profilKorsat(p, true);
+  try {
+    profilYakun(p, await profilIshla(p, { faqat, tahlilQayta }));
+  } catch (e) {
+    profilXato(e, p);
+  } finally {
+    ishTugadi();
+  }
+}
+
+async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
+  const ish = { key: kalitOl(), model: p.s.model, sinalgan: [], zaxira: null, ig: {} };
+  await modelTayyorla(ish);
+  const navbat = tahlilQayta ? [] : p.videolar.map((v, i) => i)
+    .filter(i => faqat != null ? i === faqat : !p.videolar[i].seglar && !p.videolar[i].xato);
+  const jami = navbat.length + 1;
+  for (const [k, i] of navbat.entries()) {
+    if (bekorQilindi) throw new Error("bekor qilindi");
+    const v = p.videolar[i];
+    const h = m => holat(`${k + 1}/${navbat.length} · ${m}`, false, true);
+    profilIsh = i;
+    profilYangila(p);
+    jarayon(Math.max(3, Math.round(k / jami * 100)));
+    h("Transkripsiya...");
+    try {
+      const r = await (p.platforma === "yt" ? ytVideoTranskript(v, p.s, ish, h) : igVideoTranskript(v, p, ish, h, navbat.slice(k)));
+      v.seglar = r.seglar;
+      if (r.ogoh) v.ogoh = r.ogoh; else delete v.ogoh;
+      delete v.xato;
+    } catch (e) {
+      if (!videoXatosimi(e)) throw e;
+      console.warn("Video o'tkazildi:", v.url, e);
+      v.xato = videoXatoMatn(e);
+    } finally {
+      profilIsh = null;
+      profilSaqla(p);
+      profilYangila(p);
+    }
+  }
+  const qolgan = p.videolar.some(v => !v.seglar && !v.xato);
+  if ((tahlilQayta || p.opt.tahlil && !p.tahlil) && !qolgan && p.videolar.some(v => v.seglar?.length)) {
+    jarayon(Math.round(navbat.length / jami * 100));
+    holat("Yakuniy tahlil tayyorlanmoqda...", false, true);
+    profilTahlilda = true;
+    profilYangila(p);
+    try {
+      p.tahlil = await profilTahlilQil(p, ish);
+    } finally {
+      profilTahlilda = false;
+    }
+    profilSaqla(p);
+  }
+  return ish;
+}
+
+function profilYakun(p, ish) {
+  jarayon(null);
+  const xato = p.videolar.filter(v => v.xato).length;
+  holat(esc([p.ogoh, xato ? `⚠️ ${xato} ta video transkripsiya qilinmadi — sababi va «Qayta urinish» tugmasi ` +
+    "videoning kartasida." : ""].filter(Boolean).join("\n")));
+  if (oyinOchiq) oyinYop();
+  profilKorsat(p, true);
+  const tayyor = p.videolar.filter(v => v.seglar?.length).length;
+  toast(ish.model !== p.s.model ? `Tayyor — ${modelNomi(ish.model)} bilan bajarildi`
+    : `Tayyor — ${tayyor} ta skript tarixga saqlandi`);
+}
+
+function ytXatoMatn(e) {
+  const m = e.message || "", sabab = e.ytApi + " " + m;
+  if (/accessNotConfigured|SERVICE_DISABLED|has not been used|is disabled/i.test(sabab)) {
+    const link = (m.match(/https:\/\/console\.(?:developers|cloud)\.google\.com\/[^\s"<>]+/) || [""])[0].replace(/[.,)]+$/, "");
+    return "Kalitning Google Cloud loyihasida «YouTube Data API v3» yoqilmagan. " +
+      (link ? `<a href="${esc(link)}" target="_blank" rel="noopener">Shu sahifani oching</a>` : "Google Cloud Console'da uni toping") +
+      ", «Enable»ni bosing va 1–2 daqiqadan keyin qayta urining.";
+  }
+  if (/API_KEY_SERVICE_BLOCKED|blocked|REFERRER/i.test(sabab)) {
+    return "Bu kalitga YouTube Data API ishlatishga ruxsat berilmagan. «Profil» bo'limidagi «YouTube API kalit» " +
+      "maydoniga alohida kalit qo'ying (olish yo'li maydon ostida).";
+  }
+  if (/keyInvalid|API key not valid|API_KEY_INVALID/i.test(sabab)) return "YouTube API kaliti noto'g'ri — tekshirib qayta qo'ying.";
+  if (/quotaExceeded|dailyLimitExceeded|rateLimitExceeded/i.test(sabab)) {
+    return "YouTube API kunlik kvotasi tugadi (10 000 birlik). Ertaga qayta urining yoki boshqa kalit qo'ying.";
+  }
+  return "YouTube API xatosi: " + esc(m);
+}
+function apifyXatoMatn(e) {
+  if (e.status === 401) return "Apify token noto'g'ri. console.apify.com → Settings → API &amp; Integrations dan nusxalab qo'ying.";
+  if (e.status === 402 || /usage|credit|limit|payment|insufficient/i.test(e.apify + " " + e.message)) {
+    return "Apify hisobida kredit yetmadi (bepul tarifda oyiga $5). " +
+      `<a href="https://console.apify.com/billing" target="_blank" rel="noopener">console.apify.com/billing</a>`;
+  }
+  return "Apify xatosi: " + esc(e.message);
+}
+function profilXato(e, p) {
+  jarayon(null);
+  const qolgan = p ? p.videolar.filter(v => !v.seglar && !v.xato).length : 0;
+  const tayyor = p ? p.videolar.filter(v => v.seglar).length : 0;
+  const davom = p && (qolgan || (p.opt.tahlil && !p.tahlil && tayyor))
+    ? `\n\n<b>${tayyor}/${p.videolar.length} video tayyor va tarixga saqlandi.</b> ` +
+      `<button class="btn btn-ghost" style="margin-top:8px" onclick="profilDavom(${p.id})">` +
+      `${ikon("qayta", "ic ic-sm")} Davom ettirish</button>` : "";
+  if (bekorQilindi) {
+    holat("Bekor qilindi." + davom);
+    toast("Bekor qilindi");
+    return;
+  }
+  console.error(e);
+  let msg = "Xato: " + esc(e.message);
+  if (e.ytApi) msg = ytXatoMatn(e);
+  else if (e.apify) msg = apifyXatoMatn(e);
+  else if (e.topilmadi) msg = esc(e.message);
+  else if (kvotaTuri(e)) msg = kvotaXabar(e);
+  else if (/high demand|overloaded|UNAVAILABLE|503/i.test(e.message)) {
+    msg = "Google serverlari hozir juda band. Bir necha daqiqadan keyin qayta urining.";
+  } else if (e instanceof TypeError) {
+    msg = "Internet aloqasi uzildi yoki sayt javob bermadi. Aloqani tekshirib, qayta urining.";
+  }
+  holat(msg + davom, true);
+}
+
+/* --- Ko'rsatish va nusxalash --- */
+function sonQisqa(n) {
+  if (n == null || !isFinite(n)) return "—";
+  const f = (b, nom) => `${(n / b).toFixed(n / b < 9.95 ? 1 : 0).replace(/\.0$/, "").replace(".", ",")} ${nom}`;
+  return n >= 9.995e8 ? f(1e9, "mlrd") : n >= 9.995e5 ? f(1e6, "mln") : n >= 1e3 ? f(1e3, "ming") : String(Math.round(n));
+}
+function sanaQisqa(iso) {
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, "0");
+  return isNaN(d) ? "" : `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+const vidMeta = v => [v.korish != null ? `${sonQisqa(v.korish)} ko'rish` : "", v.layk != null ? `${sonQisqa(v.layk)} layk` : "",
+  v.dav ? vaqtQisqa(v.dav) : "", v.sana ? sanaQisqa(v.sana) : ""].filter(Boolean).join(" · ");
+
+// Skript — nusxalashga qulay oddiy matn: bir necha so'zlovchi bo'lsa navbatma-navbat, aks holda
+// uzun pauzalarda xatboshi
+function skriptMatn(seglar) {
+  const kop = new Set(seglar.map(x => x.speaker).filter(Boolean)).size > 1;
+  let out = "", sp = null, oxiri = null;
+  for (const x of seglar) {
+    const t = String(x.text || "").trim();
+    if (!t) continue;
+    if (kop && x.speaker !== sp) out += (out ? "\n" : "") + `${x.speaker || "?"}: ${t}`;
+    else if (!kop && oxiri != null && x.start - oxiri >= 2) out += "\n\n" + t;
+    else out += (out ? " " : "") + t;
+    sp = x.speaker;
+    oxiri = x.end;
+  }
+  return out;
+}
+function tahlilMatn(p) {
+  const t = p.tahlil;
+  if (!t) return "";
+  const qator = [`YAKUNIY TAHLIL — ${p.kanal?.nom || p.nom}`];
+  for (const [k, nom] of TAHLIL_QISM) {
+    const x = t[k];
+    if (!x || (Array.isArray(x) && !x.length)) continue;
+    const m = k === "hooklar" ? x.map((h, i) => `${i + 1}. «${h.hook}»${h.video ? ` (${h.video}-video)` : ""} — ${h.nega}`).join("\n")
+      : k === "goyalar" ? x.map((g, i) => `${i + 1}. ${g.sarlavha}\n   Hook: «${g.hook}»\n   ${g.reja}`).join("\n")
+      : Array.isArray(x) ? x.map(y => `• ${y}`).join("\n") : x;
+    qator.push(`\n${tahlilQismNomi(p, k, nom)}\n${m}`);
+  }
+  return qator.join("\n");
+}
+function tahlilHtml(p) {
+  const t = p.tahlil, ishda = ishlayapti && profilIshdagi === p;
+  const tayyor = p.videolar.some(v => v.seglar?.length), qolgan = p.videolar.some(v => !v.seglar && !v.xato);
+  const kutish = m => `<div class="pTahlil kutish">${ikon("uchqun", "ic ic-sm")} ${m}</div>`;
+  if (ishda && profilTahlilda) return kutish("Yakuniy tahlil tayyorlanmoqda" + NUQTA);
+  if (!t) {
+    if (qolgan || !tayyor) return p.opt.tahlil ? kutish("Yakuniy tahlil barcha videolar tayyor bo'lgach shu yerda chiqadi.") : "";
+    return ishda ? "" : kutish(`Skriptlar tayyor. <button class="chipBtn" onclick="profilDavom(${p.id}, null, true)">` +
+      `Yakuniy tahlil qilish (+1 so'rov)</button>`);
+  }
+  const roy = (a, f) => (a || []).map(f).join("");
+  const qism = {
+    hooklar: a => `<ol>${roy(a, x => `<li>«${esc(x.hook)}»<small>${x.video ? `${esc(x.video)}-video · ` : ""}${esc(x.nega)}</small></li>`)}</ol>`,
+    goyalar: a => `<ol>${roy(a, x => `<li><b>${esc(x.sarlavha)}</b><small>Hook: «${esc(x.hook)}»</small><small>${esc(x.reja)}</small></li>`)}</ol>`,
+  };
+  const tana = TAHLIL_QISM.filter(([k]) => t[k] && (!Array.isArray(t[k]) || t[k].length)).map(([k, nom]) =>
+    `<h4>${esc(tahlilQismNomi(p, k, nom))}</h4>` + (qism[k] ? qism[k](t[k])
+      : Array.isArray(t[k]) ? `<ul>${roy(t[k], x => `<li>${esc(x)}</li>`)}</ul>` : `<p>${esc(t[k])}</p>`)).join("");
+  return `<div class="pTahlil"><div class="ptBosh"><h3>${ikon("uchqun")} Yakuniy tahlil</h3>` +
+    `<button class="chipBtn" onclick="profilNusxa('tahlil')">${ikon("nusxa")} Nusxalash</button></div>${tana}` +
+    (ishda ? "" : `<div class="ptOyoq"><button class="chipBtn" onclick="profilDavom(${p.id}, null, true)">` +
+      `${ikon("qayta")} Qayta tahlil qilish</button></div>`) + `</div>`;
+}
+function vidHtml(p, v, i) {
+  const ishda = ishlayapti && profilIshdagi === p && profilIsh === i;
+  const ochiq = profilOchiq.has(`${p.id}:${i}`);
+  const rasm = v.rasm ? `<img class="pvRasm" src="${esc(v.rasm)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+  let tana;
+  if (v.seglar?.length) {
+    const skript = skriptMatn(v.seglar);
+    tana = `<div class="pvSkript">${esc(skript)}</div><div class="pvAsbob">` +
+      (skript.length > 320 ? `<button class="chipBtn" onclick="profilSkriptOch(${i})">${ochiq ? "Yig'ish" : "To'liq ko'rish"}</button>` : "") +
+      `<button class="chipBtn" onclick="profilVideoOch(${i})">${ikon("soat")} Timecode va tahrir</button></div>` +
+      (v.ogoh ? `<div class="pvHolat">${esc(v.ogoh)}</div>` : "");
+  } else if (v.seglar) {
+    tana = `<div class="pvHolat">Nutq topilmadi (faqat musiqa yoki jim video)</div>`;
+  } else if (v.xato) {
+    tana = `<div class="pvHolat xato">⚠️ ${esc(v.xato)}` +
+      (ishlayapti ? "" : ` <button class="chipBtn" onclick="profilDavom(${p.id}, ${i})">${ikon("qayta")} Qayta urinish</button>`) + `</div>`;
+  } else {
+    tana = `<div class="pvHolat">${ishda ? "Transkripsiya qilinmoqda" + NUQTA : "Navbatda"}</div>`;
+  }
+  return `<div class="pVid${ishda ? " ish" : ""}${ochiq ? " ochiq" : ""}">` +
+    `<div class="pvTepa"><div class="pvRasmQ">${rasm}<span class="pvRaqam">${i + 1}</span></div>` +
+    `<div class="pvInfo"><a class="pvNom" href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.nom)}</a>` +
+    `<div class="pvMeta">${esc(vidMeta(v))}</div></div>` +
+    (v.seglar?.length ? `<button class="pvNusxa" onclick="profilNusxa(${i})" title="Skriptni nusxalash" ` +
+      `aria-label="Skriptni nusxalash">${ikon("nusxa", "ic ic-sm")}</button>` : "") +
+    `</div>${tana}</div>`;
+}
+function profilKorsat(p, jim) {
+  profilJoriy = p;
+  const k = p.kanal || { nom: p.nom }, vids = p.videolar;
+  $("profilNom").innerHTML = `${ikon(p.platforma === "ig" ? "ig" : "yt", "ic ic-sm")} ` +
+    (k.url ? `<a href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.nom)}</a>` : esc(k.nom)) +
+    (k.handle && k.handle !== k.nom ? ` · ${esc(k.handle)}` : "");
+  const tayyor = vids.filter(v => v.seglar).length;
+  const korishlar = vids.map(v => v.korish).filter(n => n != null);
+  $("profilStat").textContent = [
+    `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${vids.length} ta video`,
+    korishlar.length ? `o'rtacha ${sonQisqa(korishlar.reduce((a, n) => a + n, 0) / korishlar.length)} ko'rish` : "",
+    k.obunachi ? `${sonQisqa(k.obunachi)} obunachi` : "",
+    tayyor < vids.length ? `${tayyor}/${vids.length} tayyor` : "",
+  ].filter(Boolean).join(" · ");
+  const qolgan = vids.filter(v => !v.seglar && !v.xato).length;
+  $("profilDavom").innerHTML = qolgan && !ishlayapti
+    ? `<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="profilDavom(${p.id})">` +
+      `${ikon("qayta", "ic ic-sm")} Davom ettirish — ${qolgan} ta video qoldi</button>` : "";
+  $("profilTahlil").innerHTML = tahlilHtml(p);
+  $("profilVideolar").innerHTML = vids.map((v, i) => vidHtml(p, v, i)).join("");
+  $("profilCard").hidden = false;
+  tarixKorsat();
+  if (!jim) $("profilCard").scrollIntoView({ behavior: "smooth" });
+}
+function profilSkriptOch(i) {
+  const p = profilJoriy, kalit = `${p.id}:${i}`;
+  if (!profilOchiq.delete(kalit)) profilOchiq.add(kalit);
+  profilKorsat(p, true);
+}
+// Videoni timecode'lar bilan natija oynasida ochadi — u yerdagi tuzatishlar profilga saqlanadi
+function profilVideoOch(i) {
+  const p = profilJoriy, v = p?.videolar[i];
+  if (!v?.seglar?.length) return;
+  natija = v.seglar;
+  korsat(v.seglar, v.nom, null, false, { pid: p.id, i });
+}
+function profilSarlavha(p) {
+  const k = p.kanal || { nom: p.nom };
+  return `${k.nom}${k.handle && k.handle !== k.nom ? ` (${k.handle})` : ""} — ${p.platforma === "ig" ? "Instagram" : "YouTube"}\n` +
+    `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${p.videolar.length} ta video · ${sanaQisqa(p.sana)}` +
+    (k.url ? `\n${k.url}` : "");
+}
+function profilNusxa(nima) {
+  const p = profilJoriy;
+  if (!p) return;
+  const tayyor = p.videolar.map((v, i) => ({ v, i })).filter(x => x.v.seglar?.length);
+  let matn, xabar = "Hammasi nusxalandi";
+  if (typeof nima === "number") { matn = skriptMatn(p.videolar[nima]?.seglar || []); xabar = "Skript nusxalandi"; }
+  else if (nima === "tahlil") { matn = tahlilMatn(p); xabar = "Tahlil nusxalandi"; }
+  else if (nima === "skript") {
+    matn = tayyor.map(({ v, i }) => `${i + 1}. ${v.nom}\n${skriptMatn(v.seglar)}`).join("\n\n");
+    xabar = `${tayyor.length} ta skript nusxalandi`;
+  } else {
+    matn = [profilSarlavha(p), ...tayyor.map(({ v, i }) =>
+      `${i + 1}. ${v.nom}\n${[vidMeta(v), v.url].filter(Boolean).join(" · ")}\n\n${skriptMatn(v.seglar)}`), tahlilMatn(p)]
+      .filter(Boolean).join("\n\n————————\n\n");
+  }
+  if (!matn.trim() || (nima === "hammasi" && !tayyor.length)) {
+    return toast(nima === "tahlil" ? "Tahlil hali tayyor emas" : "Hali skript yo'q");
+  }
+  navigator.clipboard.writeText(matn)
+    .then(() => toast(xabar))
+    .catch(() => toast("Nusxalab bo'lmadi — brauzer ruxsat bermadi"));
 }
 
 tarixKorsat();
