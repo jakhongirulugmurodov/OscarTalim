@@ -1048,6 +1048,10 @@
     <svg class="ic ic-sm"><use href="#i-matn"/></svg>
     <span><b>Faqat matn</b><small>O'qish uchun — vaqtsiz</small></span>
   </button>
+  <button type="button" role="menuitem" data-zip id="txtZip">
+    <svg class="ic ic-sm"><use href="#i-yuklabol"/></svg>
+    <span><b>ZIP — har biri alohida</b><small>Har skript o'z .txt faylida (matn va timecode)</small></span>
+  </button>
 </div>
 
 <script>
@@ -5177,6 +5181,7 @@ function txtMenyuOch(nima, btn) {
   }
   txtNima = nima;
   txtTugma = btn;
+  $("txtZip").hidden = typeof nima === "number";       // ZIP — faqat hammasi uchun
   m.hidden = false;
   txtJoyla();
   btn.setAttribute("aria-expanded", "true");
@@ -5208,14 +5213,15 @@ function txtMenyuYop(qaytar) {
 (() => {
   const m = $("txtMenyu");
   m.addEventListener("click", e => {
-    const b = e.target.closest("button[data-tc]");
+    const b = e.target.closest("button[data-tc], button[data-zip]");
     if (!b) return;
     const nima = txtNima;
     txtMenyuYop(true);
-    profilYukla(nima, b.dataset.tc === "1");
+    if (b.hasAttribute("data-zip")) profilZip();
+    else profilYukla(nima, b.dataset.tc === "1");
   });
   m.addEventListener("keydown", e => {
-    const t = [...m.querySelectorAll("button")], i = t.indexOf(document.activeElement);
+    const t = [...m.querySelectorAll("button:not([hidden])")], i = t.indexOf(document.activeElement);
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); txtMenyuYop(true); }
     else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
@@ -5228,6 +5234,72 @@ function txtMenyuYop(qaytar) {
   addEventListener("scroll", () => { if (!m.hidden) txtJoyla(); }, { capture: true, passive: true });
   addEventListener("resize", () => { if (!m.hidden) txtJoyla(); });
 })();
+/* Hamma skriptlar bitta ZIP'da: matn/ va timecode/ papkalarida har biri alohida .txt,
+   yonida umumiy hammasi.txt va hammasi-timecode.txt */
+function profilZip() {
+  const p = profilJoriy;
+  if (!p) return;
+  const tayyor = p.videolar.map((v, i) => ({ v, i })).filter(x => x.v.seglar?.length);
+  if (!tayyor.length) return toast("Hali skript yo'q");
+  const txt = m => "\ufeff" + m.replace(/\r?\n/g, "\r\n");
+  const xavfsiz = s => String(s).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 80) || "skript";
+  const n = String(p.videolar.length).length;
+  const fayllar = [{ nom: "hammasi.txt", matn: txt(profilMatn(p, "hammasi")) },
+    { nom: "hammasi-timecode.txt", matn: txt(profilMatn(p, "hammasi", true)) }];
+  for (const { v, i } of tayyor) {
+    const nom = `${String(i + 1).padStart(n, "0")}. ${xavfsiz(v.nom.replace(/\.[^.]{1,5}$/, ""))}.txt`;
+    fayllar.push({ nom: "matn/" + nom, matn: txt(skriptMatn(v.seglar)) }, { nom: "timecode/" + nom, matn: txt(timecodeMatn(v.seglar)) });
+  }
+  const sana = String(p.sana || "").slice(0, 10);
+  const nom = p.platforma === "fayl" ? `transkripsiya-${p.videolar.length}-fayl-${sana}`
+    : `${(p.kanal?.handle || p.kanal?.nom || "profil").replace(/^@/, "")}-skriptlar-${sana}`;
+  faylBer(xavfsiz(nom) + ".zip", zipYasa(fayllar));
+  toast(`${xavfsiz(nom)}.zip yuklab olindi — ${tayyor.length} ta skript`);
+}
+// Oddiy ZIP (siqmasdan, UTF-8 nomlar) — kutubxonasiz
+const CRC_JADVAL = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function zipYasa(fayllar) {
+  const enc = new TextEncoder(), qismlar = [], markaz = [];
+  const d = new Date(), vaqt = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const kun = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  let siljish = 0;
+  for (const f of fayllar) {
+    const nom = enc.encode(f.nom), data = enc.encode(f.matn);
+    let crc = 0xffffffff;
+    for (const b of data) crc = CRC_JADVAL[(crc ^ b) & 0xff] ^ (crc >>> 8);
+    crc = (crc ^ 0xffffffff) >>> 0;
+    const bosh = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, vaqt, 2], [12, kun, 2], [14, crc, 4],
+      [18, data.length, 4], [22, data.length, 4], [26, nom.length, 2], [28, 0, 2]]
+      .forEach(([o, v, n]) => n === 4 ? bosh.setUint32(o, v, true) : bosh.setUint16(o, v, true));
+    const m = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, vaqt, 2], [14, kun, 2], [16, crc, 4],
+      [20, data.length, 4], [24, data.length, 4], [28, nom.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2],
+      [38, 0, 4], [42, siljish, 4]]
+      .forEach(([o, v, n]) => n === 4 ? m.setUint32(o, v, true) : m.setUint16(o, v, true));
+    qismlar.push(bosh, nom, data);
+    markaz.push(m, nom);
+    siljish += 30 + nom.length + data.length;
+  }
+  const hajm = markaz.reduce((a, x) => a + x.byteLength, 0), oxir = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, fayllar.length, 2], [10, fayllar.length, 2], [12, hajm, 4], [16, siljish, 4], [20, 0, 2]]
+    .forEach(([o, v, n]) => n === 4 ? oxir.setUint32(o, v, true) : oxir.setUint16(o, v, true));
+  return new Blob([...qismlar, ...markaz, oxir], { type: "application/zip" });
+}
+function faylBer(nom, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
 // Matnni .txt fayl qilib yuklab beradi (UTF-8, BOM bilan — Windows Bloknotida ham ö, ş to'g'ri chiqadi)
 function txtYuklabOl(nom, matn, sufiks = "") {
   // Qo'shimcha (-timecode) qisqartirishdan keyin qo'shiladi — uzun nomda ham yo'qolmasin
