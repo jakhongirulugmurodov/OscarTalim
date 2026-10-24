@@ -5161,7 +5161,7 @@ function profilYukla(nima = "hammasi", tc = false) {
   const nom = typeof nima === "number" ? p.videolar[nima].nom.replace(/\.[^.]{1,5}$/, "")
     : p.platforma === "fayl" ? `transkripsiya-${p.videolar.length}-fayl-${sana}`
     : `${(p.kanal?.handle || p.kanal?.nom || "profil").replace(/^@/, "")}-skriptlar-${sana}`;
-  txtYuklabOl(nom + (tc ? "-timecode" : ""), matn);
+  txtYuklabOl(nom, matn, tc ? "-timecode" : "");
 }
 /* .txt tugmasi menyusi: «Timecode bilan» yoki «Faqat matn» — bosilgan tugma yonida ochiladi.
    Sahifa aylantirilsa tugma ortidan yuradi (tugma ekrandan chiqsa yopiladi); tashqariga bosilsa
@@ -5193,11 +5193,17 @@ function txtJoyla() {
 function txtMenyuYop(qaytar) {
   const m = $("txtMenyu");
   if (m.hidden) return;
+  qaytar ||= m.contains(document.activeElement);     // fokus menyuda edi — yo'qolib qolmasin
   m.hidden = true;
   const b = txtTugma;
   txtTugma = null;
   b?.setAttribute("aria-expanded", "false");
-  if (qaytar && b?.isConnected) b.focus();
+  if (!qaytar) return;
+  // Tugma qayta chizilgan bo'lsa — o'sha joydagi yangi tugmaga
+  const yangi = b?.isConnected ? b : typeof txtNima === "number"
+    ? document.querySelector(`#profilVideolar .pVid[data-i="${txtNima}"] [aria-haspopup="menu"]`)
+    : document.querySelector("#profilCard .asboblar .ixcham");
+  yangi?.focus({ preventScroll: true });
 }
 (() => {
   const m = $("txtMenyu");
@@ -5214,7 +5220,7 @@ function txtMenyuYop(qaytar) {
     else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       t[(i + (e.key === "ArrowDown" ? 1 : t.length - 1)) % t.length].focus();
-    } else if (e.key === "Tab") txtMenyuYop();
+    } else if (e.key === "Tab") { e.preventDefault(); txtMenyuYop(true); }
   });
   document.addEventListener("pointerdown", e => {
     if (!m.hidden && !m.contains(e.target) && !txtTugma?.contains(e.target)) txtMenyuYop();
@@ -5223,8 +5229,10 @@ function txtMenyuYop(qaytar) {
   addEventListener("resize", () => { if (!m.hidden) txtJoyla(); });
 })();
 // Matnni .txt fayl qilib yuklab beradi (UTF-8, BOM bilan — Windows Bloknotida ham ö, ş to'g'ri chiqadi)
-function txtYuklabOl(nom, matn) {
-  const fayl = (String(nom).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 90) || "transkripsiya") + ".txt";
+function txtYuklabOl(nom, matn, sufiks = "") {
+  // Qo'shimcha (-timecode) qisqartirishdan keyin qo'shiladi — uzun nomda ham yo'qolmasin
+  const fayl = (String(nom).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 90 - sufiks.length) ||
+    "transkripsiya") + sufiks + ".txt";
   const url = URL.createObjectURL(new Blob(["\ufeff" + matn.replace(/\r?\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }));
   const a = document.createElement("a");
   a.href = url;
