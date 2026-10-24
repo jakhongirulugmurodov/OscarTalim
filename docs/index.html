@@ -5234,7 +5234,7 @@ function txtMenyuYop(qaytar) {
   addEventListener("scroll", () => { if (!m.hidden) txtJoyla(); }, { capture: true, passive: true });
   addEventListener("resize", () => { if (!m.hidden) txtJoyla(); });
 })();
-/* Hamma skriptlar bitta ZIP'da: matn/ va timecode/ papkalarida har biri alohida .txt,
+/* Hamma skriptlar bitta ZIP'da: matn/ va timecode/ papkalarida har biri asl nomi bilan alohida .txt,
    yonida umumiy hammasi.txt va hammasi-timecode.txt */
 function profilZip() {
   const p = profilJoriy;
@@ -5243,11 +5243,14 @@ function profilZip() {
   if (!tayyor.length) return toast("Hali skript yo'q");
   const txt = m => "\ufeff" + m.replace(/\r?\n/g, "\r\n");
   const xavfsiz = s => String(s).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 80) || "skript";
-  const n = String(p.videolar.length).length;
+  const band = new Set();          // bir xil nomli fayllar bir-birini bosib ketmasin: «nom (2)»
   const fayllar = [{ nom: "hammasi.txt", matn: txt(profilMatn(p, "hammasi")) },
     { nom: "hammasi-timecode.txt", matn: txt(profilMatn(p, "hammasi", true)) }];
   for (const { v, i } of tayyor) {
-    const nom = `${String(i + 1).padStart(n, "0")}. ${xavfsiz(v.nom.replace(/\.[^.]{1,5}$/, ""))}.txt`;
+    const asl = xavfsiz(v.nom.replace(/\.[^.]{1,5}$/, ""));
+    let nom = asl + ".txt";
+    for (let k = 2; band.has(nom.toLowerCase()); k++) nom = `${asl} (${k}).txt`;
+    band.add(nom.toLowerCase());
     fayllar.push({ nom: "matn/" + nom, matn: txt(skriptMatn(v.seglar)) }, { nom: "timecode/" + nom, matn: txt(timecodeMatn(v.seglar)) });
   }
   const sana = String(p.sana || "").slice(0, 10);
