@@ -494,6 +494,19 @@
     #profilCard .asboblar .btn { padding-left: 10px; padding-right: 10px; }
     #profilCard .asboblar .btn:not(.ixcham) > .ic { display: none; }
   }
+  .txtMenyu {
+    position: fixed; z-index: 70; min-width: 236px; padding: 5px; display: flex; flex-direction: column; gap: 2px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-katta);
+  }
+  .txtMenyu[hidden] { display: none; }
+  .txtMenyu button {
+    display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  }
+  .txtMenyu button:hover, .txtMenyu button:focus-visible { background: var(--soft2); outline: none; }
+  .txtMenyu button > .ic { margin-top: 2px; color: var(--primary); flex-shrink: 0; }
+  .txtMenyu b { display: block; font-size: .88rem; font-weight: 600; }
+  .txtMenyu small { display: block; margin-top: 1px; font-size: .75rem; color: var(--muted); }
   @media (max-width: 480px) { .keng-ekran { display: none; } }
   @media (min-width: 481px) { .tor-ekran { display: none; } }
   .tahrirIzoh {
@@ -946,7 +959,8 @@
       <button class="btn btn-ghost" onclick="profilNusxa('skript')" title="Faqat skriptlarni nusxalash">
         <svg class="ic ic-sm"><use href="#i-matn"/></svg> <span><span class="keng-ekran">Faqat skriptlar</span><span class="tor-ekran">Skriptlar</span></span>
       </button>
-      <button class="btn btn-ghost ixcham" onclick="profilYukla()" title=".txt fayl qilib yuklab olish" aria-label="Hammasini .txt fayl qilib yuklab olish">
+      <button class="btn btn-ghost ixcham" onclick="txtMenyuOch('hammasi', this)" title=".txt fayl qilib yuklab olish"
+              aria-label="Hammasini .txt fayl qilib yuklab olish" aria-haspopup="menu" aria-expanded="false">
         <svg class="ic ic-sm"><use href="#i-yuklabol"/></svg> .txt
       </button>
     </div>
@@ -1024,6 +1038,17 @@
 </dialog>
 
 <div id="toast"></div>
+<!-- .txt tugmasi menyusi: timecode bilan yoki faqat matn -->
+<div class="txtMenyu" id="txtMenyu" role="menu" aria-label=".txt qilib yuklab olish" hidden>
+  <button type="button" role="menuitem" data-tc="1">
+    <svg class="ic ic-sm"><use href="#i-soat"/></svg>
+    <span><b>Timecode bilan</b><small>[00:12 → 00:15] — har gapning vaqti</small></span>
+  </button>
+  <button type="button" role="menuitem" data-tc="0">
+    <svg class="ic ic-sm"><use href="#i-matn"/></svg>
+    <span><b>Faqat matn</b><small>O'qish uchun — vaqtsiz</small></span>
+  </button>
+</div>
 
 <script>
 const API = "https://generativelanguage.googleapis.com";
@@ -3616,17 +3641,22 @@ function natijaSaqla() {
 })();
 
 /* ===== Nusxalash ===== */
+// Har gap vaqti bilan: [00:12.40 → 00:15.10] matn (uzun pauzalar alohida qatorda)
+function timecodeMatn(seglar) {
+  const kopTil = new Set(seglar.map(s => s.lang).filter(Boolean)).size > 1;
+  const pauzalar = pauzaTop(seglar);
+  return seglar.map((s, i) =>
+    (pauzalar[i] ? `⏸ ${pauzalar[i]} s pauza\n` : "") +
+    `[${vaqtQisqa(s.start, true)} → ${vaqtQisqa(s.end, true)}] ` +
+    (kopTil && s.lang ? `[${String(s.lang).toUpperCase()}] ` : "") +
+    (s.speaker ? `${s.speaker}: ` : "") + String(s.text || "").trim()
+  ).join("\n");
+}
 function nusxala(timecode) {
   let content;
   const kopTil = new Set(natija.map(s => s.lang).filter(Boolean)).size > 1;
   if (timecode) {
-    const pauzalar = pauzaTop(natija);
-    content = natija.map((s, i) =>
-      (pauzalar[i] ? `⏸ ${pauzalar[i]} s pauza\n` : "") +
-      `[${vaqtQisqa(s.start, true)} → ${vaqtQisqa(s.end, true)}] ` +
-      (kopTil && s.lang ? `[${String(s.lang).toUpperCase()}] ` : "") +
-      (s.speaker ? `${s.speaker}: ` : "") + s.text.trim()
-    ).join("\n");
+    content = timecodeMatn(natija);
   } else {
     content = (natija.some(s => s.speaker) || kopTil)
       ? natija.map(s => (kopTil && s.lang ? `[${String(s.lang).toUpperCase()}] ` : "") +
@@ -4985,8 +5015,8 @@ function vidHtml(p, v, i) {
       `<button class="chipBtn pvOch" onclick="profilSkriptOch(${i}, this)" aria-expanded="${ochiq}">` +
       `${ochiq ? "Yig'ish" : "To'liq ko'rish"}</button>` +
       `<button class="chipBtn" onclick="profilVideoOch(${i})">${ikon("soat")} Timecode va tahrir</button>` +
-      `<button class="chipBtn" onclick="profilYukla(${i})" title=".txt qilib yuklab olish" ` +
-      `aria-label="Skriptni .txt qilib yuklab olish">${ikon("yuklabol")} .txt</button>` +
+      `<button class="chipBtn" onclick="txtMenyuOch(${i}, this)" title=".txt qilib yuklab olish" ` +
+      `aria-label="Skriptni .txt qilib yuklab olish" aria-haspopup="menu" aria-expanded="false">${ikon("yuklabol")} .txt</button>` +
       (v.qisman ? qayta(`${vaqtQisqa(v.qisman.keyingi)} dan davom ettirish`) : "") + `</div>` +
       (v.ogoh ? `<div class="pvHolat">${esc(v.ogoh)}</div>` : "");
   } else if (v.seglar) {
@@ -5009,6 +5039,7 @@ function vidHtml(p, v, i) {
     `</div>${tana}</div>`;
 }
 function profilKorsat(p, jim) {
+  txtMenyuYop();
   profilJoriy = p;
   faylEskiXato(p);
   profilBoshKorsat(p);
@@ -5097,15 +5128,16 @@ function profilSarlavha(p) {
     (k.url ? `\n${k.url}` : "");
 }
 /* Nusxa va .txt uchun matn: son — bitta skript, "skript" — faqat skriptlar, "tahlil", aks holda — hammasi
-   (sarlavha, har birining nomi, ma'lumoti va skripti, tahlil). Bo'sh bo'lsa — "". */
-function profilMatn(p, nima) {
+   (sarlavha, har birining nomi, ma'lumoti va skripti, tahlil). tc — skriptlar timecode bilan. Bo'sh bo'lsa — "". */
+function profilMatn(p, nima, tc = false) {
+  const skript = tc ? timecodeMatn : skriptMatn;
   const tayyor = p.videolar.map((v, i) => ({ v, i })).filter(x => x.v.seglar?.length);
-  if (typeof nima === "number") return skriptMatn(p.videolar[nima]?.seglar || []);
+  if (typeof nima === "number") return skript(p.videolar[nima]?.seglar || []);
   if (nima === "tahlil") return tahlilMatn(p);
   if (!tayyor.length) return "";
-  if (nima === "skript") return tayyor.map(({ v, i }) => `${i + 1}. ${v.nom}\n${skriptMatn(v.seglar)}`).join("\n\n");
+  if (nima === "skript") return tayyor.map(({ v, i }) => `${i + 1}. ${v.nom}\n${skript(v.seglar)}`).join("\n\n");
   return [profilSarlavha(p), ...tayyor.map(({ v, i }) =>
-    `${i + 1}. ${v.nom}\n${[vidMeta(v), v.url].filter(Boolean).join(" · ")}\n\n${skriptMatn(v.seglar)}`), tahlilMatn(p)]
+    `${i + 1}. ${v.nom}\n${[vidMeta(v), v.url].filter(Boolean).join(" · ")}\n\n${skript(v.seglar)}`), tahlilMatn(p)]
     .filter(Boolean).join("\n\n————————\n\n");
 }
 function profilNusxa(nima) {
@@ -5119,18 +5151,77 @@ function profilNusxa(nima) {
       : nima === "skript" ? `${n} ta skript nusxalandi` : "Hammasi nusxalandi"))
     .catch(() => toast("Nusxalab bo'lmadi — brauzer ruxsat bermadi"));
 }
-// .txt qilib yuklab olish: bitta skript (son) yoki hammasi
-function profilYukla(nima = "hammasi") {
+// .txt qilib yuklab olish: bitta skript (son) yoki hammasi; tc — timecode bilan
+function profilYukla(nima = "hammasi", tc = false) {
   const p = profilJoriy;
   if (!p) return;
-  const matn = profilMatn(p, nima);
+  const matn = profilMatn(p, nima, tc);
   if (!matn.trim()) return toast("Hali skript yo'q");
   const sana = String(p.sana || "").slice(0, 10);
   const nom = typeof nima === "number" ? p.videolar[nima].nom.replace(/\.[^.]{1,5}$/, "")
     : p.platforma === "fayl" ? `transkripsiya-${p.videolar.length}-fayl-${sana}`
     : `${(p.kanal?.handle || p.kanal?.nom || "profil").replace(/^@/, "")}-skriptlar-${sana}`;
-  txtYuklabOl(nom, matn);
+  txtYuklabOl(nom + (tc ? "-timecode" : ""), matn);
 }
+/* .txt tugmasi menyusi: «Timecode bilan» yoki «Faqat matn» — bosilgan tugma yonida ochiladi.
+   Sahifa aylantirilsa tugma ortidan yuradi (tugma ekrandan chiqsa yopiladi); tashqariga bosilsa
+   yopiladi; Esc — tugmaga qaytadi. */
+let txtNima = null, txtTugma = null;
+function txtMenyuOch(nima, btn) {
+  const m = $("txtMenyu");
+  if (!m.hidden && txtTugma === btn) return txtMenyuYop(true);
+  txtMenyuYop();
+  const p = profilJoriy;
+  if (!p || (typeof nima === "number" ? !p.videolar[nima]?.seglar?.length : !p.videolar.some(v => v.seglar?.length))) {
+    return toast("Hali skript yo'q");
+  }
+  txtNima = nima;
+  txtTugma = btn;
+  m.hidden = false;
+  txtJoyla();
+  btn.setAttribute("aria-expanded", "true");
+  m.querySelector("button").focus();
+}
+function txtJoyla() {
+  const m = $("txtMenyu"), b = txtTugma;
+  if (!b?.isConnected) return txtMenyuYop();
+  const r = b.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  if (r.bottom < 0 || r.top > innerHeight) return txtMenyuYop();
+  m.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + "px";
+  m.style.top = (r.bottom + 6 + h > innerHeight && r.top - 6 - h > 0 ? r.top - 6 - h : r.bottom + 6) + "px";
+}
+function txtMenyuYop(qaytar) {
+  const m = $("txtMenyu");
+  if (m.hidden) return;
+  m.hidden = true;
+  const b = txtTugma;
+  txtTugma = null;
+  b?.setAttribute("aria-expanded", "false");
+  if (qaytar && b?.isConnected) b.focus();
+}
+(() => {
+  const m = $("txtMenyu");
+  m.addEventListener("click", e => {
+    const b = e.target.closest("button[data-tc]");
+    if (!b) return;
+    const nima = txtNima;
+    txtMenyuYop(true);
+    profilYukla(nima, b.dataset.tc === "1");
+  });
+  m.addEventListener("keydown", e => {
+    const t = [...m.querySelectorAll("button")], i = t.indexOf(document.activeElement);
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); txtMenyuYop(true); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      t[(i + (e.key === "ArrowDown" ? 1 : t.length - 1)) % t.length].focus();
+    } else if (e.key === "Tab") txtMenyuYop();
+  });
+  document.addEventListener("pointerdown", e => {
+    if (!m.hidden && !m.contains(e.target) && !txtTugma?.contains(e.target)) txtMenyuYop();
+  });
+  addEventListener("scroll", () => { if (!m.hidden) txtJoyla(); }, { capture: true, passive: true });
+  addEventListener("resize", () => { if (!m.hidden) txtJoyla(); });
+})();
 // Matnni .txt fayl qilib yuklab beradi (UTF-8, BOM bilan — Windows Bloknotida ham ö, ş to'g'ri chiqadi)
 function txtYuklabOl(nom, matn) {
   const fayl = (String(nom).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 90) || "transkripsiya") + ".txt";
