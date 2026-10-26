@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+kitoblar_olami/state.json
 mutolaa_bot/data/
 *.db
 *.db.enc
