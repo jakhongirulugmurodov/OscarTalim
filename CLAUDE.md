@@ -28,6 +28,8 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
   oxirgi videolari skripti va yakuniy tahlili). Instagram ro'yxati — Apify, YouTube
   ro'yxati — YouTube Data API.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
+- `kitob/bot.py` — «Kitob olami» do'kon boti: ro'yxatdan o'tish, juma
+  aksiyasi, buyurtma, marketing tahlili va eslatmalar. Batafsil: `kitob/README.md`.
 - `mutolaa_bot/` — «Mutolaa» kitob do'koni boti: ro'yxat + so'rovnoma, katalog
   (sotildi/qoldi), juma aksiyasi, sovg'alar, admin paneli. SQLite, standart
   kutubxona. `.github/workflows/mutolaa-bot.yml` orqali ishlaydi. Batafsil:
