@@ -26,7 +26,7 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
 - `docs/index.html` — transkripsiya sahifasi (fayl — bir yo'la 50 tagacha, parallel;
   YouTube havolasi va «Profil»: Instagram/YouTube profilining eng ko'p ko'rilgan yoki
   oxirgi videolari skripti va yakuniy tahlili). Instagram ro'yxati — Apify, YouTube
-  ro'yxati — YouTube Data API.
+  ro'yxati — YouTube Data API. Bir nechta Gemini kaliti: limit tugasa billing ulangan kalitga o'tadi.
 - `bot/bot.py` — Telegram bot (faqat standart kutubxona).
 - `mutolaa_bot/` — «Mutolaa» kitob do'koni boti: ro'yxat + so'rovnoma, katalog
   (sotildi/qoldi), juma aksiyasi, sovg'alar, admin paneli. SQLite, standart

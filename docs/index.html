@@ -606,6 +606,26 @@
   dialog h2 { margin: 0 0 6px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
   .oynaTugma { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
   .oynaTugma .chapda { margin-right: auto; }
+  #kalitRoyxat { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 46vh; overflow-y: auto; }
+  .kalitQator { border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .kalitQator.faol { border-color: var(--primary); background: var(--primary-soft); }
+  .kqBosh { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .kqNom { font-weight: 600; font-size: .9rem; overflow-wrap: anywhere; }
+  .kqNiqob { font-size: .76rem; color: var(--muted); font-family: ui-monospace, monospace; }
+  .kqBelgi { font-size: .68rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--primary); color: #fff; }
+  .kqBelgi.billing { background: var(--ok); }
+  .kqHisob { font-size: .8rem; color: var(--text2); margin-top: 4px; }
+  .kqHisob .ogoh { color: var(--err); font-weight: 600; }
+  .kqAsbob { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .kqBilling { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text2); cursor: pointer; }
+  .kqBilling input { width: auto; margin: 0; }
+  .kqOchir { margin-left: auto; }
+  .kqOchir:hover { color: var(--err); }
+  .kalitQoshQism { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .kqQoshQator { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .billingYordam { margin-top: 10px; font-size: .84rem; }
+  .billingYordam summary { cursor: pointer; font-weight: 600; color: var(--primary); }
+  .billingYordam ol { margin: 8px 0 0; padding-left: 20px; line-height: 1.55; color: var(--text2); }
 
   /* ===== Toast ===== */
   #toast {
@@ -1035,14 +1055,38 @@
 
 <!-- Kalit oynasi -->
 <dialog id="kalitOyna">
-  <h2><svg class="ic"><use href="#i-kalit"/></svg> API kalit</h2>
-  <p class="hint" style="margin-top:0">Kalit faqat shu <span class="qurilma">qurilmada</span> saqlanadi.
+  <h2><svg class="ic"><use href="#i-kalit"/></svg> API kalitlar</h2>
+  <p class="hint" style="margin-top:0">Kalitlar faqat shu <span class="qurilma">qurilmada</span> saqlanadi.
     Yangisini olish: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>
-  <input type="password" id="apiKey2" placeholder="AIza..." autocomplete="off" spellcheck="false" style="margin-top:12px">
+  <div id="kalitRoyxat"></div>
+  <div class="kalitQoshQism">
+    <input type="password" id="apiKey2" placeholder="Yangi kalit: AIza..." autocomplete="off" spellcheck="false">
+    <input type="text" id="kalitNomi" placeholder="Nomi (ixtiyoriy): masalan, Ish akkaunti" maxlength="40" autocomplete="off">
+    <div class="kqQoshQator">
+      <label class="kqBilling"><input type="checkbox" id="kalitBilling"> Billing ulangan (to'lovli)</label>
+      <button class="btn btn-ghost" onclick="kalitOynaSaqla()">+ Qo'shish</button>
+    </div>
+  </div>
+  <p class="hint">Faol kalitda limit tugasa, <b>billing ulangan</b> kalitga o'zi o'tadi (o'sha model bilan,
+    eski modelga tushmasdan); fayllar yangi kalit bilan qayta yuklanadi. Bepul kalitlar orasida avtomatik
+    o'tilmaydi — Google bepul limitni bir nechta akkaunt bilan chetlab o'tishni taqiqlaydi, kalitlar bloklanishi mumkin.</p>
+  <details class="billingYordam">
+    <summary>Billing qanday ulanadi?</summary>
+    <ol>
+      <li><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> da
+        kalit turgan loyiha qatorida <b>«Set up billing»</b> ni bosing.</li>
+      <li>Google Cloud'da to'lov hisobini oching va Visa yoki Mastercard kartani ulang.</li>
+      <li>Loyiha to'lovli tarifga (Tier 1) o'tadi: limit kuniga 20 so'rovdan minglab so'rovga ko'tariladi,
+        50 ta fayl parallel ham bemalol ishlaydi.</li>
+      <li>Shu kalitni bu yerda <b>«Billing ulangan»</b> deb belgilang — sahifa har ish narxini oldindan va
+        bugun sarflanganini ko'rsatadi.</li>
+      <li>Xavfsizlik uchun Google Cloud → Billing → <b>Budgets &amp; alerts</b> da oylik chegara qo'ying (masalan, $5).</li>
+    </ol>
+    <p class="hint">Taxminiy narx (1 soat audio): Flash ≈ $0.22, Flash-Lite ≈ $0.05, Pro ≈ $0.58.
+      <a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener">Narxlar ↗</a></p>
+  </details>
   <div class="oynaTugma">
-    <button class="btn btn-tekis chapda" onclick="kalitOchir()" style="color:var(--err)">O'chirish</button>
-    <button class="btn btn-ghost" onclick="kalitOynaYop()">Bekor</button>
-    <button class="btn btn-asosiy" onclick="kalitOynaSaqla()">Saqlash</button>
+    <button class="btn btn-asosiy" onclick="kalitOynaYop()">Tayyor</button>
   </div>
 </dialog>
 
@@ -1110,23 +1154,54 @@ const profilIshMatn = new Map(); // ... ularning har birining holat matni (to'pl
 let profilTahlilda = false;      // ... yakuniy tahlil yozilmoqda
 let joriyVideo = null;           // natija oynasida profil videosi ochiq bo'lsa: { pid, i }
 
-/* ===== API kalit ===== */
+/* ===== API kalitlar =====
+   Bir nechta kalit saqlanadi (gemini_kalitlar), bittasi faol (gemini_key). Faol kalitda tanlangan
+   modelning kunlik limiti tugasa — eski modelga tushishdan oldin billing ulangan (to'lovli) boshqa
+   kalitga o'tiladi. Bepul kalitlar orasida avtomatik o'tilmaydi: Google bepul limitni bir nechta
+   akkaunt yoki loyiha bilan chetlab o'tishni taqiqlaydi (kalitlar bloklanishi mumkin). */
 function kalitOl() { return (localStorage.getItem("gemini_key") || "").trim(); }
+const kalitIzi = k => matnIzi(String(k || ""));
+const kalitNiqob = k => k.length > 10 ? `${k.slice(0, 4)}…${k.slice(-4)}` : "••••";
+const kalitNomi = x => x.nom || kalitNiqob(x.kalit);
+function kalitlarOl() {
+  let l = [];
+  try { l = JSON.parse(localStorage.getItem("gemini_kalitlar")) || []; } catch (e) { /* bo'sh */ }
+  l = Array.isArray(l) ? l.filter(x => x && x.kalit) : [];
+  const faol = kalitOl();
+  if (faol && !l.some(x => x.kalit === faol)) l.unshift({ kalit: faol, nom: "", billing: false });   // eski (bitta kalitli) holat
+  return l;
+}
+function kalitlarYoz(l) {
+  try { localStorage.setItem("gemini_kalitlar", JSON.stringify(l)); } catch (e) { /* e'tiborsiz */ }
+  if (typeof sorovKorsat === "function") sorovKorsat();
+  if ($("kalitOyna").open) kalitRoyxatKorsat();
+}
+const kalitMalumot = k => kalitlarOl().find(x => x.kalit === k) || null;
 function kalitKorinish() { $("kalitKarta").hidden = !!kalitOl(); }
-function kalitSaqla(v) {
+// Kalit qo'shadi (bor bo'lsa — yangilaydi); faol=true bo'lsa — faol qiladi
+function kalitQosh(v, { nom = "", billing = false, faol = true } = {}) {
   v = String(v || "").trim();
   if (!v) { toast("Kalitni kiriting"); return false; }
-  // Boshqa kalit — boshqa loyiha bo'lishi mumkin: eski limit hisobini tozalaymiz
-  if (v !== kalitOl()) localStorage.removeItem("sorov_hisob2");
-  localStorage.setItem("gemini_key", v);
-  $("apiKey").value = "";
-  if (typeof sorovKorsat === "function") sorovKorsat();
+  if (!/^[\w-]{8,}$/.test(v)) { toast("Kalit noto'g'ri ko'rinishda — AIza... bilan boshlanadi"); return false; }
+  const l = kalitlarOl(), bor = l.find(x => x.kalit === v);
+  if (bor) { if (nom) bor.nom = nom; bor.billing = billing || bor.billing; }
+  else l.push({ kalit: v, nom, billing });
+  if (faol || !kalitOl()) localStorage.setItem("gemini_key", v);
+  kalitlarYoz(l);
   kalitKorinish();
+  return true;
+}
+function kalitSaqla(v) {
+  if (!kalitQosh(v)) return false;
+  $("apiKey").value = "";
   toast("Kalit saqlandi");
   return true;
 }
 function kalitOynaOch() {
-  $("apiKey2").value = kalitOl();
+  $("apiKey2").value = "";
+  $("kalitNomi").value = "";
+  $("kalitBilling").checked = false;
+  kalitRoyxatKorsat();
   const d = $("kalitOyna");
   if (d.showModal) d.showModal(); else d.setAttribute("open", "");
 }
@@ -1134,14 +1209,66 @@ function kalitOynaYop() {
   const d = $("kalitOyna");
   if (d.close) d.close(); else d.removeAttribute("open");
 }
-function kalitOynaSaqla() { if (kalitSaqla($("apiKey2").value)) kalitOynaYop(); }
-function kalitOchir() {
-  if (!confirm("API kalit shu qurilmadan o'chirilsinmi?")) return;
-  localStorage.removeItem("gemini_key");
-  localStorage.removeItem("sorov_hisob2");
-  kalitOynaYop();
+function kalitOynaSaqla() {
+  if (!$("apiKey2").value.trim()) return kalitOynaYop();
+  if (!kalitQosh($("apiKey2").value, { nom: $("kalitNomi").value.trim(), billing: $("kalitBilling").checked, faol: !kalitOl() })) return;
+  $("apiKey2").value = "";
+  $("kalitNomi").value = "";
+  $("kalitBilling").checked = false;
+  toast("Kalit qo'shildi");
+}
+function kalitFaol(i) {
+  const x = kalitlarOl()[i];
+  if (!x) return;
+  if (ishlayapti) return toast("Ish tugashini kuting");
+  localStorage.setItem("gemini_key", x.kalit);
+  kalitlarYoz(kalitlarOl());
+  toast(`«${kalitNomi(x)}» faol`);
+}
+function kalitBilling(i, bor) {
+  const l = kalitlarOl();
+  if (!l[i]) return;
+  l[i].billing = bor;
+  kalitlarYoz(l);
+}
+function kalitRoyxatdanOchir(i) {
+  if (ishlayapti) return toast("Ish tugashini kuting");
+  const l = kalitlarOl(), x = l[i];
+  if (!x || !confirm(`«${kalitNomi(x)}» kaliti shu qurilmadan o'chirilsinmi?`)) return;
+  l.splice(i, 1);
+  if (x.kalit === kalitOl()) {
+    if (l[0]) localStorage.setItem("gemini_key", l[0].kalit); else localStorage.removeItem("gemini_key");
+  }
+  kalitlarYoz(l);
   kalitKorinish();
   toast("Kalit o'chirildi");
+}
+function kalitOchir() {         // eski tugma uchun: faol kalitni o'chiradi
+  const i = kalitlarOl().findIndex(x => x.kalit === kalitOl());
+  if (i >= 0) kalitRoyxatdanOchir(i);
+}
+// Oynadagi ro'yxat: har kalitning bugungi so'rovlari, billing bo'lsa — sarflangan pul
+function kalitRoyxatKorsat() {
+  const l = kalitlarOl(), faol = kalitOl(), model = typeof sozOl === "function" ? sozOl().model : "gemini-2.5-flash";
+  $("kalitRoyxat").innerHTML = l.length ? l.map((x, i) => {
+    const h = hisobOl(x.kalit), m = h.m[model] || { n: 0 }, limit = KUNLIK_LIMIT[model];
+    const jami = Object.values(h.m).reduce((a, y) => a + (y.n || 0), 0);
+    const hisob = x.billing
+      ? `Bugun ${jami} ta so'rov · <b>${pulMatn(h.narx || 0)}</b> sarflandi`
+      : m.tugadi ? `<span class="ogoh">${esc(modelNomi(model))} limiti bugun tugadi</span>`
+      : limit ? `${esc(modelNomi(model))}: taxminan <b>${Math.max(limit - m.n, 0)}/${limit}</b> qoldi` : `Bugun ${jami} ta so'rov`;
+    return `<div class="kalitQator${x.kalit === faol ? " faol" : ""}">` +
+      `<div class="kqBosh"><span class="kqNom">${esc(kalitNomi(x))}</span>` +
+      (x.nom ? `<span class="kqNiqob">${esc(kalitNiqob(x.kalit))}</span>` : "") +
+      (x.kalit === faol ? `<span class="kqBelgi">Faol</span>` : "") +
+      (x.billing ? `<span class="kqBelgi billing">Billing</span>` : "") + `</div>` +
+      `<div class="kqHisob">${hisob}</div>` +
+      `<div class="kqAsbob">` +
+      (x.kalit !== faol ? `<button class="chipBtn" onclick="kalitFaol(${i})">Faol qilish</button>` : "") +
+      `<label class="kqBilling"><input type="checkbox" ${x.billing ? "checked" : ""} onchange="kalitBilling(${i}, this.checked)"> Billing ulangan</label>` +
+      `<button class="chipBtn kqOchir" onclick="kalitRoyxatdanOchir(${i})" aria-label="${esc(kalitNomi(x))} — o'chirish">${ikon("ochir")}</button>` +
+      `</div></div>`;
+  }).join("") : `<p class="hint">Hali kalit yo'q — pastdan qo'shing.</p>`;
 }
 $("apiKey").addEventListener("keydown", e => { if (e.key === "Enter") kalitSaqla($("apiKey").value); });
 $("apiKey2").addEventListener("keydown", e => { if (e.key === "Enter") kalitOynaSaqla(); });
@@ -2039,29 +2166,71 @@ function qolganVaqtMatn() {
   const soat = Math.floor(daq / 60), d = daq % 60;
   return soat ? `${soat} soat ${d} daq` : `${d} daq`;
 }
-function hisobOl() {
+/* Bugungi hisob — har kalit (izi) bo'yicha alohida: { kun, k: { iz: { m: { model: { n, tugadi } }, narx } } }.
+   Limit kalit (Google loyihasi) bo'yicha sanaladi — boshqa kalitning hisobi aralashmaydi. */
+function hisobHammasi() {
   try {
     const d = JSON.parse(localStorage.getItem("sorov_hisob2"));
-    if (d && d.kun === googleKuni() && d.m) return d;
+    if (d && d.kun === googleKuni()) {
+      if (d.k) return d;
+      if (d.m) return { kun: d.kun, k: { [kalitIzi(kalitOl())]: { m: d.m } } };   // eski ko'rinish
+    }
   } catch (e) { /* yangisini boshlaymiz */ }
-  return { kun: googleKuni(), m: {} };
+  return { kun: googleKuni(), k: {} };
 }
-function hisobYoz(d) {
+const hisobOl = (kalit = kalitOl()) => hisobHammasi().k[kalitIzi(kalit)] || { m: {} };
+function hisobYangila(kalit, f) {
+  const d = hisobHammasi(), iz = kalitIzi(kalit);
+  f(d.k[iz] || (d.k[iz] = { m: {} }));
   try { localStorage.setItem("sorov_hisob2", JSON.stringify(d)); } catch (e) { /* e'tiborsiz */ }
   sorovKorsat();
+  if ($("kalitOyna").open) kalitRoyxatKorsat();
 }
-function sorovQosh(model) {
-  const d = hisobOl();
-  const x = d.m[model] || (d.m[model] = { n: 0 });
-  x.n++;
-  hisobYoz(d);
+function sorovQosh(model, kalit = kalitOl(), usage = null) {
+  hisobYangila(kalit, x => {
+    (x.m[model] || (x.m[model] = { n: 0 })).n++;
+    if (usage && kalitMalumot(kalit)?.billing) x.narx = (x.narx || 0) + (sorovNarxi(model, usage) || 0);
+  });
 }
-function modelTugadi(model) {
-  const d = hisobOl();
-  (d.m[model] || (d.m[model] = { n: 0 })).tugadi = true;
-  hisobYoz(d);
+function modelTugadi(model, kalit = kalitOl()) {
+  hisobYangila(kalit, x => { (x.m[model] || (x.m[model] = { n: 0 })).tugadi = true; });
 }
-function modelTugaganmi(model) { return !!hisobOl().m[model]?.tugadi; }
+function modelTugaganmi(model, kalit = kalitOl()) { return !!hisobOl(kalit).m[model]?.tugadi; }
+
+/* Billing (to'lovli tarif) narxlari, $ / 1 mln token: [kirish — matn/video, kirish — audio, chiqish].
+   ai.google.dev/gemini-api/docs/pricing (2026-yil oktabr). Noma'lum model — narx ko'rsatilmaydi. */
+const NARX = {
+  "gemini-2.5-flash": [0.30, 1.00, 2.50], "gemini-2.5-flash-lite": [0.10, 0.30, 0.40], "gemini-2.5-pro": [1.25, 1.25, 10],
+  "gemini-3-flash": [0.50, 1.00, 3.00], "gemini-3.1-pro": [2, 2, 12], "gemini-3.6-flash": [0.75, 0.75, 3.75],
+  "gemini-3.8-flash": [0.75, 0.75, 3.75],
+};
+function narxOl(model) {
+  const k = Object.keys(NARX).filter(n => String(model).startsWith(n)).sort((a, b) => b.length - a.length)[0];
+  return k ? NARX[k] : null;
+}
+// Bitta so'rovning haqiqiy narxi — Google qaytargan token sonidan
+function sorovNarxi(model, u) {
+  const n = narxOl(model);
+  if (!n || !u) return null;
+  const audio = (u.promptTokensDetails || []).filter(d => d.modality === "AUDIO").reduce((a, d) => a + (d.tokenCount || 0), 0);
+  const kirish = Math.max(0, (u.promptTokenCount || 0) - audio);
+  return (kirish * n[0] + audio * n[1] + ((u.candidatesTokenCount || 0) + (u.thoughtsTokenCount || 0)) * n[2]) / 1e6;
+}
+// Oldindan taxmin: audio — 32 token/soniya, javob (timecode'li JSON) — ~12 token/soniya
+function narxTaxmini(sek, model) {
+  const n = narxOl(model);
+  return n && sek ? (sek * 32 * n[1] + sek * 12 * n[2]) / 1e6 : null;
+}
+const pulMatn = x => x < 0.01 ? (x > 0 ? "<$0.01" : "$0") : `$${x.toFixed(2)}`;
+// Tanlangan fayl(lar)ning jami davomiyligi — narx taxmini uchun (bilinmasa null)
+function tanlanganSoniya() {
+  if (joriyTab !== "fayl") return null;
+  if (tanlanganFayllar.length > 1) {
+    const d = tanlanganFayllar.map(f => faylDav.get(f));
+    return d.every(x => x) ? d.reduce((a, x) => a + x, 0) : null;
+  }
+  return tanlanganFayl && tanlanganDav || null;
+}
 
 function modelNomi(n) {
   return String(n).replace(/^gemini-/, "Gemini ").replace(/-flash/, " Flash").replace(/-pro/, " Pro")
@@ -2070,8 +2239,9 @@ function modelNomi(n) {
 
 function sorovKorsat() {
   const model = (typeof sozOl === "function" ? sozOl().model : "gemini-2.5-flash");
-  const x = hisobOl().m[model] || { n: 0 };
-  const limit = KUNLIK_LIMIT[model];
+  const h = hisobOl(), x = h.m[model] || { n: 0 };
+  const billing = !!kalitMalumot(kalitOl())?.billing;
+  const limit = billing ? null : KUNLIK_LIMIT[model];
   const el = $("sorovHisob");
   const vaqt = `yangilanishga <b>${qolganVaqtMatn()}</b> (soat ${yangilanishVaqti()})`;
   const havola = ` · <a href="https://ai.dev/rate-limit" target="_blank" rel="noopener">aniq qoldiq ↗</a>`;
@@ -2081,11 +2251,17 @@ function sorovKorsat() {
   const taxmin = kerak ? (`${joriyTab === "profil" ? "Profil tahlili" : tanlanganFayllar.length > 1
       ? `${tanlanganFayllar.length} ta fayl` : "Bu fayl"} ≈ <b>${kerak}</b> so'rov` +
     (joriyTab === "profil" ? profilNarxMatn() : "") +
+    (billing && narxTaxmini(tanlanganSoniya(), model) != null ? ` · ≈ <b>${pulMatn(narxTaxmini(tanlanganSoniya(), model))}</b>` : "") +
     (qolgan !== null && kerak > qolgan
       ? ` <span class="ogoh">— bugungi limitga to'liq sig'maydi, qolgani keyin davom ettiriladi</span>` : "") +
     "<br>") : "";
-  if (x.tugadi) {
-    el.innerHTML = `${taxmin}<span class="ogoh">${esc(modelNomi(model))} limiti tugadi — zaxira model ishlaydi</span><br>${vaqt}${havola}`;
+  const zaxiraKalit = kalitlarOl().some(k => k.billing && k.kalit !== kalitOl() && !modelTugaganmi(model, k.kalit));
+  if (billing) {
+    el.innerHTML = `${taxmin}Billing kalit · bugun ${Object.values(h.m).reduce((a, y) => a + (y.n || 0), 0)} ta so'rov · ` +
+      `<b>${pulMatn(h.narx || 0)}</b> sarflandi${havola.replace("aniq qoldiq", "hisob")}`;
+  } else if (x.tugadi) {
+    el.innerHTML = `${taxmin}<span class="ogoh">${esc(modelNomi(model))} limiti tugadi — ` +
+      `${zaxiraKalit ? "billing kalit ishlaydi" : "zaxira model ishlaydi"}</span><br>${vaqt}${havola}`;
   } else if (limit) {
     el.innerHTML = `${taxmin}Taxminan ${qolgan}/${limit} qoldi · ${vaqt}${havola}`;
   } else {
@@ -2130,7 +2306,7 @@ async function zaxiraModellar(key, chiqarib) {
       .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
       .map(m => m.name.replace(/^models\//, ""))
       .filter(n => /flash/i.test(n) && !/image|tts|audio|live|embed|thinking|exp|preview|8b/i.test(n))
-      .filter(n => !chiqarib.includes(n) && !modelTugaganmi(n));
+      .filter(n => !chiqarib.includes(n) && !modelTugaganmi(n, key));
     nomlar.sort((a, b) => (/lite/i.test(b) - /lite/i.test(a)) ||
       b.localeCompare(a, undefined, { numeric: true }));
     if (nomlar.length) return nomlar.slice(0, 4);
@@ -2181,9 +2357,9 @@ async function generate(key, model, parts, schema, erkin, h = m => holat(m, fals
           },
         }),
       });
-      // Limit rad etgan so'rov hisobga kirmaydi (parallel ishda 429 ko'p bo'ladi)
-      if (r.status !== 429) sorovQosh(model);
       const j = await r.json();
+      // Limit rad etgan so'rov hisobga kirmaydi (parallel ishda 429 ko'p bo'ladi)
+      if (r.status !== 429) sorovQosh(model, key, j?.usageMetadata);
       if (!r.ok) {
         const xato = new Error(j.error?.message || `HTTP ${r.status}`);
         xato.tafsil = JSON.stringify(j.error?.details || "");
@@ -3032,12 +3208,47 @@ function sozlovchiEslatma(seglar, yoqilgan) {
 /* Bitta so'rov: kunlik limit tugasa zaxira modelga o'tadi.
    ish.model keyingi qismlar uchun eslab qolinadi — qayta-qayta sinab o'tirmaymiz. */
 // fh — shu yozuvning o'z holati (fps qabul qilinganmi, xabarlar qayerga): to'plamda har fayl alohida
+// Files API'ga yuklangan fayl faqat o'sha kalitning loyihasida ko'rinadi — kalit almashsa qayta yuklanadi
+function yuklanganQism(f, blob, kalit) {
+  const q = { fileData: { fileUri: f.uri, mimeType: f.mime } };
+  Object.defineProperty(q, "manba", { value: { blob, kalit }, enumerable: false });   // so'rovga qo'shilmaydi
+  return q;
+}
+async function qismlarKalitga(parts, kalit, h) {
+  for (const q of parts) {
+    if (!q.manba || q.manba.kalit === kalit) continue;
+    h("Fayl yangi kalit bilan qayta yuklanmoqda...");
+    const f = await faylYuklash(kalit, q.manba.blob, true);
+    q.fileData.fileUri = f.uri;
+    q.manba.kalit = kalit;
+  }
+}
+/* Limit tugadi: billing ulangan, hali sinalmagan va shu modeli tugamagan boshqa kalitga o'tamiz —
+   asosiy (tanlangan) model bilan. Bepul kalitga avtomatik o'tilmaydi. */
+function kalitAlmashtir(ish, h) {
+  ish.asosiyModel ||= ish.model;
+  const sinalgan = ish.sinalganKalit ||= [];
+  const keyingi = kalitlarOl().find(k => k.billing && k.kalit !== ish.key && !sinalgan.includes(k.kalit) &&
+    !modelTugaganmi(ish.asosiyModel, k.kalit));
+  if (!keyingi) return false;
+  sinalgan.push(ish.key);
+  h(`Kalit limiti tugadi — «${kalitNomi(keyingi)}» (billing) kalitiga o'tamiz...`);
+  ish.key = keyingi.kalit;
+  ish.model = ish.asosiyModel;
+  ish.sinalgan = [];
+  ish.zaxira = null;
+  ish.zaxiraP = null;
+  ish.fpsBor = ish.fpsYoq = false;
+  return true;
+}
 async function modelBilan(ish, parts, schema, media, erkin, fh = ish) {
   const h = fh.holat || (m => holat(m, false, true));
+  ish.asosiyModel ||= ish.model;
   while (true) {
-    const model = ish.model;
+    const model = ish.model, kalit = ish.key;
     try {
-      const r = await generate(ish.key, model, parts, schema, erkin, h);
+      await qismlarKalitga(parts, kalit, h);
+      const r = await generate(kalit, model, parts, schema, erkin, h);
       if (media?.videoMetadata?.fps !== undefined) fh.fpsBor = true;
       return r;
     } catch (e) {
@@ -3046,9 +3257,19 @@ async function modelBilan(ish, parts, schema, media, erkin, fh = ish) {
       // Google ba'zi modellarni yangi foydalanuvchilarga yopgan — boshqasiga o'tamiz
       const modelYoq = e.status === 404 || /no longer available|is not found for API version|not supported for generateContent/i.test(e.message);
       if (kvota === "kunlik" || kvota === "yoq" || modelYoq) {
-        // Parallel so'rov allaqachon boshqa modelga o'tkazgan — o'sha bilan qayta
-        if (ish.model !== model) continue;
-        if (kvota === "kunlik") modelTugadi(ish.model);
+        // Parallel so'rov allaqachon boshqa model yoki kalitga o'tkazgan — o'sha bilan qayta
+        if (ish.model !== model || ish.key !== kalit) continue;
+        if (kvota === "kunlik") {
+          modelTugadi(model, kalit);
+          // «Billing» deb belgilangan, lekin bepul tarif limiti chiqdi — belgini olib tashlaymiz
+          const k = kalitMalumot(kalit);
+          if (k?.billing && /free_tier/i.test(e.message + " " + (e.tafsil || ""))) {
+            kalitlarYoz(kalitlarOl().map(x => x.kalit === kalit ? { ...x, billing: false } : x));
+            toast(`«${kalitNomi(k)}» kalitida billing ulanmagan ekan — belgisi olib tashlandi`);
+          }
+          // Eski modelga tushishdan oldin — billing ulangan boshqa kalit (asosiy model bilan)
+          if (model === ish.asosiyModel && kalitAlmashtir(ish, h)) continue;
+        }
         ish.sinalgan.push(ish.model);
         if (!ish.zaxira) {
           ish.zaxiraP ||= zaxiraModellar(ish.key, ish.sinalgan);
@@ -3084,7 +3305,6 @@ async function modelBilan(ish, parts, schema, media, erkin, fh = ish) {
    bo'lishi mumkin (profil ro'yxatidan) — unda video oxiri qidirilmaydi. */
 async function transkript(t) {
   const { yt, file, s, ish, toplangan, otkazilgan } = t;
-  const key = ish.key;
   const fh = t.fh || ish;              // shu yozuvning fps holati va xabar joyi (to'plamda — o'ziniki)
   let { keyingi, oxirgiS1, yubor, dav } = t;
   let ogohlantirish = "";
@@ -3277,8 +3497,8 @@ async function transkript(t) {
       const butunFayl = async () => {
         t.jarayon(0);
         t.holat(`Yuklanmoqda (${(yubor.size / 1048576).toFixed(1)} MB)...`);
-        const f = await faylYuklash(key, yubor, t.jim, t.yuklashFoiz);
-        const media = { fileData: { fileUri: f.uri, mimeType: f.mime } };
+        const f = await faylYuklash(ish.key, yubor, t.jim, t.yuklashFoiz);
+        const media = yuklanganQism(f, yubor, ish.key);
         // Tejamkor rejim: kadrlar deyarli olinmaydi — token sarfi ~5x kamayadi
         if (s.tejamkor && (f.mime || "").startsWith("video")) media.videoMetadata = { fps: 0.1 };
         t.jarayon("indet");
@@ -3324,8 +3544,8 @@ async function transkript(t) {
               const chap = b > 0.5, ong = o < dav - 0.5;
               const s0 = chap ? Math.max(0, b - CHEKKA) : 0, s1 = ong ? Math.min(dav, o + CHEKKA) : dav;
               const bolak = await kesgich.kes(s0, s1 - s0);
-              const f = await faylYuklash(key, bolak, true);
-              const media = { fileData: { fileUri: f.uri, mimeType: f.mime } };
+              const f = await faylYuklash(ish.key, bolak, true);
+              const media = yuklanganQism(f, bolak, ish.key);
               const q = await modelBilan(ish, [media, { text: promptOl(qismKorsatma(s0, s1, chap, ong, false)) }],
                 schema, media, false, fh);
               // Oxirgi qismda o'ng qo'shni yo'q: vaqti biroz oshib ketgan gap tashlab yuborilmasin
@@ -3346,7 +3566,9 @@ async function transkript(t) {
 
 // Tanlangan model limiti bugun tugagan bo'lsa, so'rov yubormay zaxiradan boshlaymiz
 async function modelTayyorla(ish) {
-  if (!modelTugaganmi(ish.model)) return;
+  ish.asosiyModel ||= ish.model;
+  if (!modelTugaganmi(ish.model, ish.key)) return;
+  if (kalitAlmashtir(ish, () => {})) return;
   ish.sinalgan.push(ish.model);
   ish.zaxira = await zaxiraModellar(ish.key, ish.sinalgan);
   ish.model = ish.zaxira.shift() || ish.model;
