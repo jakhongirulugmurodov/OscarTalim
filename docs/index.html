@@ -189,9 +189,26 @@
     position: relative; display: flex; flex-direction: column; align-items: center;
     justify-content: center; gap: 6px; border: 2px dashed var(--border); border-radius: 14px;
     padding: 26px 16px; text-align: center; cursor: pointer; background: var(--soft);
-    color: var(--muted); transition: border-color .2s, background .2s, transform .15s;
+    color: var(--muted); box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 18px -10px rgba(37,99,235,.28);
+    transition: border-color .25s ease, background .25s ease, box-shadow .25s ease, transform .2s cubic-bezier(.2,.8,.2,1);
+    /* Bosganda matn belgilanib qolmasin (telefonda uzoq bosish — «Copy / Web search» menyusi) */
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
   }
-  .file-drop:hover { border-color: var(--primary-border); }
+  @media (hover: hover) {      /* telefonda bosilgandan keyin «hover» yopishib qolmasin */
+    .file-drop:hover {
+      border-color: var(--primary-border); background: var(--primary-soft);
+      box-shadow: 0 2px 4px rgba(15,23,42,.04), 0 12px 26px -12px rgba(37,99,235,.45); transform: translateY(-1px);
+    }
+    .file-drop.has-file:hover { border-color: var(--ok); background: var(--ok-soft); box-shadow: 0 12px 26px -12px rgba(22,163,74,.4); }
+    .file-drop:hover #fdIcon { transform: translateY(-3px); }
+  }
+  .file-drop:active { transform: scale(.985); box-shadow: 0 1px 2px rgba(15,23,42,.06), 0 4px 10px -8px rgba(37,99,235,.4); transition-duration: .08s; }
+  .file-drop:focus-within { outline: none; border-color: var(--primary); }
+  .file-drop #fdIcon { transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  /* Tugma, tab, tanlov va chiplar ham — bosganda matn belgilanmasin */
+  .btn, .tabs button, .tanlov label, .chipBtn, .ikbtn, .tqQator, .kqBilling, .txtMenyu button {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+  }
   .file-drop.drag {
     border-color: var(--primary); border-style: solid; background: var(--primary-soft);
     color: var(--primary); transform: scale(1.01);
