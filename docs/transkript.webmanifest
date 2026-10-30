@@ -1,0 +1,32 @@
+{
+  "name": "Transkripsiya — Ösiş nuqtasi",
+  "short_name": "Transkripsiya",
+  "description": "Video va ovozli xabarlarni o'zbekcha matnga aylantirish",
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./index.html",
+  "display": "standalone",
+  "background_color": "#eef3fb",
+  "theme_color": "#2563eb",
+  "lang": "uz",
+  "icons": [
+    { "src": "transkript-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "transkript-icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "transkript-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "transkript-icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "share_target": {
+    "action": "./index.html?ulashish",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [{
+        "name": "fayl",
+        "accept": ["audio/*", "video/*", ".ogg", ".oga", ".opus", ".m4a", ".mp3", ".mp4", ".mov", ".wav", ".webm", ".mkv", ".aac", ".flac"]
+      }]
+    }
+  }
+}

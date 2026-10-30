@@ -7,6 +7,9 @@
 <meta name="theme-color" content="#eef3fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
 <title>Transkripsiya — Ösiş nuqtasi</title>
+<link rel="manifest" href="transkript.webmanifest">
+<link rel="icon" href="transkript-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="transkript-icon-180.png">
 <style>
   /* ===== Ranglar: yorug' va qorong'i rejim ===== */
   :root {
@@ -606,6 +609,14 @@
   dialog h2 { margin: 0 0 6px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
   .oynaTugma { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
   .oynaTugma .chapda { margin-right: auto; }
+  .ornatish {
+    position: relative; display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 14px 44px 14px 16px;
+    background: var(--primary-soft); border: 1.5px solid var(--primary-border); border-radius: var(--radius); flex-wrap: wrap;
+  }
+  .ornatish > .ic { color: var(--primary); flex-shrink: 0; }
+  .orMatn { flex: 1; min-width: 180px; font-size: .86rem; color: var(--text2); line-height: 1.45; }
+  .orMatn b { display: block; color: var(--text); font-size: .92rem; }
+  .ornatish .orYop { top: 6px; right: 6px; }
   #kalitRoyxat { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 46vh; overflow-y: auto; }
   .kalitQator { border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 12px; }
   .kalitQator.faol { border-color: var(--primary); background: var(--primary-soft); }
@@ -693,6 +704,15 @@
       </button>
     </div>
   </header>
+
+  <!-- Telefonda: ilova qilib o'rnatish taklifi (o'rnatilgach «Ulashish» menyusida chiqadi) -->
+  <div class="ornatish" id="ornatish" hidden>
+    <svg class="ic"><use href="#i-mic"/></svg>
+    <div class="orMatn"><b>Ilova qilib o'rnating</b>
+      <span>Telegram'dagi ovozli xabar yoki videoni «Ulashish» → «Transkripsiya» bilan to'g'ri shu yerga yuborasiz.</span></div>
+    <button class="btn btn-asosiy" onclick="ornatish()">O'rnatish</button>
+    <button class="faylTozala orYop" onclick="ornatishYop()" title="Yopish" aria-label="Yopish"><svg class="ic ic-sm"><use href="#i-x"/></svg></button>
+  </div>
 
   <!-- Birinchi marta: kalit ulanmagan bo'lsa ko'rinadi -->
   <div class="card" id="kalitKarta" hidden>
@@ -5565,6 +5585,70 @@ function txtYuklabOl(nom, matn, sufiks = "") {
 }
 
 tarixKorsat();
+
+/* ===== Telefonga o'rnatish va «Ulashish» orqali kelgan fayllar =====
+   O'rnatilgan ilova Android'ning «Ulashish» menyusida chiqadi (manifestdagi share_target).
+   Yuborilgan fayl transkript-sw.js orqali vaqtincha keshga tushadi, sahifa uni shu yerda oladi. */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("transkript-sw.js", { scope: "./index.html" }).catch(() => {});
+}
+let ornatishSorov = null;
+addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  ornatishSorov = e;
+  try { if (localStorage.getItem("ornatish_yopildi")) return; } catch (x) { /* ko'rsatamiz */ }
+  $("ornatish").hidden = false;
+});
+addEventListener("appinstalled", () => { $("ornatish").hidden = true; toast("O'rnatildi — endi «Ulashish» menyusida «Transkripsiya» bor"); });
+async function ornatish() {
+  if (!ornatishSorov) return toast("Brauzer menyusidan «Ilovani o'rnatish»ni tanlang");
+  ornatishSorov.prompt();
+  const { outcome } = await ornatishSorov.userChoice.catch(() => ({}));
+  ornatishSorov = null;
+  if (outcome === "accepted") $("ornatish").hidden = true;
+}
+function ornatishYop() {
+  $("ornatish").hidden = true;
+  try { localStorage.setItem("ornatish_yopildi", "1"); } catch (x) { /* e'tiborsiz */ }
+}
+// Nomida kengaytma bo'lmasa (ba'zi ilovalar shunday yuboradi) — turidan qo'shamiz: .ogg, .mp4 ...
+function nomTuzat(nom, tur) {
+  if (/\.[a-z0-9]{2,5}$/i.test(nom)) return nom;
+  const k = { "audio/ogg": "ogg", "audio/opus": "opus", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/x-m4a": "m4a", "audio/aac": "aac",
+    "audio/wav": "wav", "audio/webm": "webm", "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" }[tur];
+  return k ? `${nom || "fayl"}.${k}` : nom || "fayl";
+}
+async function ulashilganOl() {
+  if (!new URLSearchParams(location.search).has("ulashildi")) return;
+  history.replaceState(null, "", location.pathname);
+  let c, meta = null;
+  try { c = await caches.open("ulashish"); meta = await (await c.match("ulashish/meta"))?.json(); } catch (x) { /* pastda */ }
+  const fayllar = [];
+  for (let i = 0; i < (meta?.n || 0); i++) {
+    const r = await c.match(`ulashish/fayl-${i}`);
+    if (!r) continue;
+    const b = await r.blob(), tur = b.type || r.headers.get("content-type") || "";
+    fayllar.push(new File([b], nomTuzat(decodeURIComponent(r.headers.get("x-nom") || ""), tur), { type: tur }));
+  }
+  try { await caches.delete("ulashish"); } catch (x) { /* e'tiborsiz */ }
+  const yt = String(meta?.matn || "").match(/https?:\/\/\S*(?:youtube\.com|youtu\.be)\/\S+/i)?.[0];
+  if (fayllar.length) {
+    tabTanla("fayl");
+    fayllarQoy(fayllar);
+    if (tanlanganFayl || tanlanganFayllar.length) {
+      toast(fayllar.length > 1 ? `${fayllar.length} ta fayl qabul qilindi` : "Fayl qabul qilindi — «Transkripsiya qilish»ni bosing");
+      $("startBtn").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  } else if (yt) {
+    tabTanla("yt");
+    $("ytUrl").value = youtubeTozala(yt);
+    toast("YouTube havolasi qabul qilindi");
+    $("startBtn").scrollIntoView({ behavior: "smooth", block: "center" });
+  } else {
+    toast(meta ? "Yuborilganda video yoki audio topilmadi" : "Fayl kelmadi — qayta ulashib ko'ring");
+  }
+}
+ulashilganOl();
 </script>
 </body>
 </html>
