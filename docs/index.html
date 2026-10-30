@@ -735,7 +735,7 @@
   <div class="card" id="kalitKarta" hidden>
     <h2><svg class="ic"><use href="#i-kalit"/></svg> API kalitni ulang</h2>
     <div class="qator">
-      <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" spellcheck="false">
+      <input type="password" id="apiKey" placeholder="API kalitni qo'ying" autocomplete="off" spellcheck="false">
       <button class="btn btn-asosiy" onclick="kalitSaqla($('apiKey').value)">Saqlash</button>
     </div>
     <p class="hint">Bir martalik. Kalit faqat shu <span class="qurilma">qurilmada</span> saqlanadi va faqat
@@ -841,7 +841,7 @@
             <button type="button" class="chipBtn" id="ytBekor" onclick="kalitBekor('yt')">Bekor</button>
           </div>
           <div class="qator">
-            <input type="password" id="ytKalit" placeholder="AIza..." autocomplete="off" spellcheck="false">
+            <input type="password" id="ytKalit" placeholder="YouTube API kaliti" autocomplete="off" spellcheck="false">
             <button type="button" class="btn btn-asosiy" onclick="kalitSaqlaBos('yt')">Saqlash</button>
           </div>
           <p class="hint">Gemini kaliti YouTube'ga ruxsat bermasa:
@@ -1097,7 +1097,7 @@
     Yangisini olish: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>
   <div id="kalitRoyxat"></div>
   <div class="kalitQoshQism">
-    <input type="password" id="apiKey2" placeholder="Yangi kalit: AIza..." autocomplete="off" spellcheck="false">
+    <input type="password" id="apiKey2" placeholder="Yangi kalit" autocomplete="off" spellcheck="false">
     <input type="text" id="kalitNomi" placeholder="Nomi (ixtiyoriy): masalan, Ish akkaunti" maxlength="40" autocomplete="off">
     <div class="kqQoshQator">
       <label class="kqBilling"><input type="checkbox" id="kalitBilling"> Billing ulangan (to'lovli)</label>
@@ -1220,13 +1220,14 @@ function kalitKorinish() { $("kalitKarta").hidden = !!kalitOl(); }
    nol kenglikdagi belgi, qo'shtirnoq, «API key: ...» kabi matn — kalitning o'zini ajratib olamiz */
 function kalitTozala(v) {
   const t = String(v || "").normalize("NFKC").replace(/[\s\u00AD\u200B-\u200F\u2028-\u202F\u2060\uFEFF"'`«»“”‘’]/g, "");
-  return t.match(/AIza[0-9A-Za-z_-]{30,}/)?.[0] || t;
+  // Eski ko'rinish (AIza...) — matn ichidan ajratamiz; yangi turdagi kalitlar boshqacha boshlanadi
+  return t.match(/AIza[0-9A-Za-z_-]{30,}/)?.[0] || t.replace(/^.*?(?:api)?key[:=]/i, "");
 }
 function kalitQosh(v, { nom = "", billing = false, faol = true } = {}) {
   v = kalitTozala(v);
   if (!v) { toast("Kalitni kiriting"); return false; }
-  if (!/^[\w-]{8,}$/.test(v)) {
-    const yot = [...new Set(v.replace(/[\w-]/g, ""))].slice(0, 3).join(" ");
+  if (!/^[\x21-\x7E]{8,}$/.test(v)) {
+    const yot = [...new Set(v.replace(/[\x21-\x7E]/g, ""))].slice(0, 3).join(" ");
     toast(`Kalitda ortiqcha belgi bor (${yot}) — aistudio.google.com/apikey dan «Copy» bilan qayta nusxalang`);
     return false;
   }
@@ -2347,7 +2348,7 @@ function kvotaXabar(e) {
    Flash-Lite birinchi: bepul tarifda uning kunlik limiti ancha katta. */
 async function zaxiraModellar(key, chiqarib) {
   try {
-    const r = await fetch(`${API}/v1beta/models?pageSize=200&key=${key}`, { signal: joriyAbort?.signal });
+    const r = await fetch(`${API}/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`, { signal: joriyAbort?.signal });
     const j = await r.json();
     const nomlar = (j.models || [])
       .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
@@ -2390,7 +2391,7 @@ async function generate(key, model, parts, schema, erkin, h = m => holat(m, fals
   for (let urinish = 1; urinish <= URINISH; urinish++) {
     try {
       if (bekorQilindi) throw new Error("bekor qilindi");
-      const r = await fetch(`${API}/v1beta/models/${model}:generateContent?key=${key}`, {
+      const r = await fetch(`${API}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
         method: "POST",
         signal: joriyAbort?.signal,
         headers: { "Content-Type": "application/json" },
@@ -2489,7 +2490,7 @@ async function generate(key, model, parts, schema, erkin, h = m => holat(m, fals
 
 // jim — foiz umumiy holatda ko'rsatilmaydi; foizFn — foizni o'zi ko'rsatadi (to'plamda har fayl o'z qatorida)
 async function faylYuklash(key, file, jim, foizFn) {
-  const start = await fetch(`${API}/upload/v1beta/files?key=${key}`, {
+  const start = await fetch(`${API}/upload/v1beta/files?key=${encodeURIComponent(key)}`, {
     method: "POST",
     signal: joriyAbort?.signal,
     headers: {
@@ -2541,7 +2542,7 @@ async function faylYuklash(key, file, jim, foizFn) {
       holat("Google faylni qayta ishlamoqda...", false, true);
     }
     await uxla(3000);
-    const r = await fetch(`${API}/v1beta/${info.name}?key=${key}`, { signal: joriyAbort?.signal });
+    const r = await fetch(`${API}/v1beta/${info.name}?key=${encodeURIComponent(key)}`, { signal: joriyAbort?.signal });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw Object.assign(new Error(j.error?.message || `Fayl holatini bilib bo'lmadi (HTTP ${r.status})`), { status: r.status });
     info = j;
