@@ -1196,14 +1196,14 @@ let joriyVideo = null;           // natija oynasida profil videosi ochiq bo'lsa:
    modelning kunlik limiti tugasa — eski modelga tushishdan oldin billing ulangan (to'lovli) boshqa
    kalitga o'tiladi. Bepul kalitlar orasida avtomatik o'tilmaydi: Google bepul limitni bir nechta
    akkaunt yoki loyiha bilan chetlab o'tishni taqiqlaydi (kalitlar bloklanishi mumkin). */
-function kalitOl() { return (localStorage.getItem("gemini_key") || "").trim(); }
+function kalitOl() { return kalitTozala(localStorage.getItem("gemini_key")); }
 const kalitIzi = k => matnIzi(String(k || ""));
 const kalitNiqob = k => k.length > 10 ? `${k.slice(0, 4)}…${k.slice(-4)}` : "••••";
 const kalitNomi = x => x.nom || kalitNiqob(x.kalit);
 function kalitlarOl() {
   let l = [];
   try { l = JSON.parse(localStorage.getItem("gemini_kalitlar")) || []; } catch (e) { /* bo'sh */ }
-  l = Array.isArray(l) ? l.filter(x => x && x.kalit) : [];
+  l = Array.isArray(l) ? l.filter(x => x && x.kalit).map(x => ({ ...x, kalit: kalitTozala(x.kalit) })) : [];
   const faol = kalitOl();
   if (faol && !l.some(x => x.kalit === faol)) l.unshift({ kalit: faol, nom: "", billing: false });   // eski (bitta kalitli) holat
   return l;
@@ -1216,10 +1216,20 @@ function kalitlarYoz(l) {
 const kalitMalumot = k => kalitlarOl().find(x => x.kalit === k) || null;
 function kalitKorinish() { $("kalitKarta").hidden = !!kalitOl(); }
 // Kalit qo'shadi (bor bo'lsa — yangilaydi); faol=true bo'lsa — faol qiladi
+/* Nusxalanganda kalitga ko'pincha ko'rinmas belgilar qo'shilib keladi: bo'sh joy, satr tashlash,
+   nol kenglikdagi belgi, qo'shtirnoq, «API key: ...» kabi matn — kalitning o'zini ajratib olamiz */
+function kalitTozala(v) {
+  const t = String(v || "").normalize("NFKC").replace(/[\s\u00AD\u200B-\u200F\u2028-\u202F\u2060\uFEFF"'`«»“”‘’]/g, "");
+  return t.match(/AIza[0-9A-Za-z_-]{30,}/)?.[0] || t;
+}
 function kalitQosh(v, { nom = "", billing = false, faol = true } = {}) {
-  v = String(v || "").trim();
+  v = kalitTozala(v);
   if (!v) { toast("Kalitni kiriting"); return false; }
-  if (!/^[\w-]{8,}$/.test(v)) { toast("Kalit noto'g'ri ko'rinishda — AIza... bilan boshlanadi"); return false; }
+  if (!/^[\w-]{8,}$/.test(v)) {
+    const yot = [...new Set(v.replace(/[\w-]/g, ""))].slice(0, 3).join(" ");
+    toast(`Kalitda ortiqcha belgi bor (${yot}) — aistudio.google.com/apikey dan «Copy» bilan qayta nusxalang`);
+    return false;
+  }
   const l = kalitlarOl(), bor = l.find(x => x.kalit === v);
   if (bor) { if (nom) bor.nom = nom; bor.billing = billing || bor.billing; }
   else l.push({ kalit: v, nom, billing });
