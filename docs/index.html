@@ -138,13 +138,17 @@
   .qator input { flex: 1; min-width: 0; }
 
   /* ===== Kirish maydonlari ===== */
-  input[type=text], input[type=password], input[type=url], input[type=search] {
+  input[type=text], input[type=password], input[type=url], input[type=search], textarea {
     width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
     border-radius: 12px; font-size: 1rem; background: var(--card); color: var(--text);
     transition: border-color .2s, box-shadow .2s; font-family: inherit;
   }
-  input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
-  input::placeholder { color: var(--muted); opacity: .8; }
+  textarea { display: block; resize: none; line-height: 1.45; font-size: .92rem !important; word-break: break-all; min-height: 52px; max-height: 40vh; overflow-y: auto; }
+  .havolaHisob { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; font-size: .8rem; color: var(--text2); }
+  .havolaHisob span { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--soft2); }
+  .havolaHisob .ogoh { background: var(--err-soft); color: var(--err); }
+  input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
+  input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 
   /* ===== Tugmalar ===== */
   .btn {
@@ -683,6 +687,7 @@
   <symbol id="i-yuklabol" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
   <symbol id="i-yuklash" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
     <symbol id="i-fayl" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+  <symbol id="i-havola" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
   <symbol id="i-yt" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4"/><polygon points="10 9 15 12 10 15 10 9"/></symbol>
   <symbol id="i-sozlama" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
   <symbol id="i-nusxa" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
@@ -750,7 +755,7 @@
         <svg class="ic ic-sm"><use href="#i-fayl"/></svg> Fayl
       </button>
       <button type="button" id="tabYt" onclick="tabTanla('yt')">
-        <svg class="ic ic-sm"><use href="#i-yt"/></svg> YouTube
+        <svg class="ic ic-sm"><use href="#i-havola"/></svg> Havola
       </button>
       <button type="button" id="tabProfil" onclick="tabTanla('profil')">
         <svg class="ic ic-sm"><use href="#i-profil"/></svg> Profil
@@ -788,8 +793,11 @@
     </div>
 
     <div class="pane" id="paneYt" hidden>
-      <input type="url" id="ytUrl" placeholder="https://youtube.com/watch?v=..." spellcheck="false">
-      <p class="hint">Faqat ochiq (public) videolar. Instagram uchun «Fayl» bo'limidan foydalaning.</p>
+      <textarea id="ytUrl" rows="2" spellcheck="false" autocomplete="off"
+        placeholder="YouTube yoki Instagram video havolasi&#10;Bir nechtasini birdan tashlash mumkin"></textarea>
+      <div class="havolaHisob" id="havolaHisob" hidden></div>
+      <p class="hint">Faqat ochiq (public) videolar. Bir nechta havola — hammasi bir yo'la ishlanadi va skriptlari
+        bitta joyda chiqadi. Instagram uchun Apify token kerak (bir marta, «Profil» bo'limida).</p>
     </div>
 
     <div class="pane" id="paneProfil" hidden>
@@ -1390,12 +1398,14 @@ function tabTanla(t) {
   if (typeof sorovKorsat === "function") sorovKorsat();
 }
 function startMatnYangila() {
+  const nh = joriyTab === "yt" ? havolalarAjrat($("ytUrl").value).hammasi.length : 0;
   $("startMatn").textContent = joriyTab === "profil" ? "Profilni tahlil qilish"
     : joriyTab === "fayl" && tanlanganFayllar.length > 1 ? `${tanlanganFayllar.length} ta faylni transkripsiya qilish`
+    : nh > 1 ? `${nh} ta videoni transkripsiya qilish`
     : "Transkripsiya qilish";
   // Juda tor ekranda uzun yozuv tugmaga sig'maydi
   $("startQisqa").textContent = joriyTab === "fayl" && tanlanganFayllar.length > 1
-    ? `Boshlash · ${tanlanganFayllar.length} ta fayl` : $("startMatn").textContent;
+    ? `Boshlash · ${tanlanganFayllar.length} ta fayl` : nh > 1 ? `Boshlash · ${nh} ta video` : $("startMatn").textContent;
 }
 
 const sichqonchaBor = matchMedia("(pointer: fine)").matches;
@@ -2296,7 +2306,8 @@ function sorovKorsat() {
   // Tanlangan fayl uchun nechta so'rov ketadi — limitga sig'adimi
   const kerak = sorovTaxmini();
   const qolgan = limit && !x.tugadi ? Math.max(limit - x.n, 0) : null;
-  const taxmin = kerak ? (`${joriyTab === "profil" ? "Profil tahlili" : tanlanganFayllar.length > 1
+  const taxmin = kerak ? (`${joriyTab === "profil" ? "Profil tahlili" : joriyTab === "yt" ? `${kerak} ta video`
+      : tanlanganFayllar.length > 1
       ? `${tanlanganFayllar.length} ta fayl` : "Bu fayl"} ≈ <b>${kerak}</b> so'rov` +
     (joriyTab === "profil" ? profilNarxMatn() : "") +
     (billing && narxTaxmini(tanlanganSoniya(), model) != null ? ` · ≈ <b>${pulMatn(narxTaxmini(tanlanganSoniya(), model))}</b>` : "") +
@@ -2726,6 +2737,7 @@ function qismRejasi(boshi, dav, uz) {
 function sorovTaxmini() {
   // Profil: har video bitta so'rov (uzun YouTube videolari — qismlar soniga qarab ko'proq) + tahlil
   if (joriyTab === "profil") { const o = profilOpt(); return o.soni + (o.tahlil ? 1 : 0); }
+  if (joriyTab === "yt") { const n = havolalarAjrat($("ytUrl").value).hammasi.length; return n > 1 ? n : null; }
   if (joriyTab === "fayl" && tanlanganFayllar.length > 1) {
     const uz = +sozOl().qism;
     return tanlanganFayllar.reduce((a, f) => {
@@ -3640,9 +3652,12 @@ async function boshla(davom) {
   if (ishlayapti) return;
   if (!davom && joriyTab === "profil") return profilBoshla();
   if (!davom && joriyTab === "fayl" && tanlanganFayllar.length > 1) return toplamBoshla();
+  const hv = !davom && joriyTab === "yt" ? havolalarAjrat($("ytUrl").value) : null;
+  // Bir nechta havola yoki Instagram — to'plam (har biri o'z qatorida, skriptlar bitta kartada)
+  if (hv && (hv.hammasi.length > 1 || hv.ig.length)) return havolaBoshla(hv);
   davom = davom && Array.isArray(davom.seglar) ? davom : null;
   const key = kalitOl();
-  const yt = davom ? davom.yt : (joriyTab === "yt" ? $("ytUrl").value.trim() : "");
+  const yt = davom ? davom.yt : (joriyTab === "yt" ? hv.yt[0]?.url || $("ytUrl").value.trim() : "");
   const file = davom ? davom.file : (joriyTab === "fayl" ? tanlanganFayl : null);
   const s = davom ? davom.s : sozOl();
 
@@ -3653,11 +3668,14 @@ async function boshla(davom) {
     return holat("Avval API kalitni ulang.", true);
   }
   if (!yt && !file) {
-    return holat(joriyTab === "yt" ? "YouTube havolasini qo'ying." : "Avval fayl tanlang.", true);
+    return holat(joriyTab === "yt" ? "YouTube yoki Instagram video havolasini qo'ying." : "Avval fayl tanlang.", true);
   }
   if (yt && !/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(yt)) {
-    return holat("Havola orqali faqat YouTube ishlaydi. Instagram va boshqa " +
-      "platformalardagi videoni qurilmaga saqlab, «Fayl» bo'limi orqali yuklang.", true);
+    return holat("Havola orqali YouTube va Instagram videolari ishlaydi. Boshqa platformalardagi videoni " +
+      "qurilmaga saqlab, «Fayl» bo'limi orqali yuklang.", true);
+  }
+  if (!davom && !hv?.yt.length && /^(https?:\/\/)?([\w-]+\.)?(youtube\.com|youtu\.be)\//i.test(yt)) {
+    return holat("Bu video havolasi emas (kanal yoki ro'yxat) — kanal videolari uchun «Profil» bo'limidan foydalaning.", true);
   }
 
   ishlayapti = true;
@@ -4076,11 +4094,11 @@ function tarixKorsat() {
     const yt = /youtu/i.test(t.nom), profil = t.tur === "profil";
     const joriy = profil ? !$("profilCard").hidden && profilJoriy?.id === t.id : !$("resultCard").hidden && t.id === joriyId;
     const meta = profil
-      ? `${sanaMatn(t.sana)} · ${t.platforma === "fayl" ? "Fayllar" : t.platforma === "ig" ? "Instagram" : "YouTube"} · ` +
+      ? `${sanaMatn(t.sana)} · ${t.platforma === "fayl" ? "Fayllar" : t.platforma === "havola" ? "Havolalar" : t.platforma === "ig" ? "Instagram" : "YouTube"} · ` +
         `${t.videolar.filter(v => v.seglar).length}/${t.videolar.length} ${birlik(t)}${t.tahlil ? " · tahlil" : ""}`
       : `${sanaMatn(t.sana)} · ${davomiylikMatn(t.seglar)} · ${t.seglar.length} segment`;
     return `<div class="hist${joriy ? " joriy" : ""}" onclick="tarixOch(${t.id})">
-       <div class="belgi">${ikon(profil ? (t.platforma === "fayl" ? "matn" : "profil") : yt ? "yt" : "fayl")}</div>
+       <div class="belgi">${ikon(profil ? (t.platforma === "fayl" || t.platforma === "havola" ? "matn" : "profil") : yt ? "yt" : "fayl")}</div>
        <div class="info">
          <div class="nom">${esc(qisqart(t.nom, 44))}</div>
          <div class="meta">${meta}</div>
@@ -4361,6 +4379,41 @@ function profilAniqla(matn, plat) {
 }
 
 const topilmadiXato = m => Object.assign(new Error(m), { topilmadi: true });
+
+/* «Havola» bo'limi: matndan YouTube va Instagram video havolalarini ajratadi (qator, bo'sh joy yoki
+   vergul bilan; takrorlari bir marta). begona — video havolasi bo'lmaganlari (kanal, profil, boshqa sayt). */
+function havolalarAjrat(matn) {
+  const hammasi = [], begona = [], bor = new Set();
+  for (const t of String(matn || "").split(/[\s,;]+/).map(x => x.replace(/^[<("'«]+|[>)"'».]+$/g, "")).filter(Boolean)) {
+    if (!/^(https?:\/\/|www\.|(m\.)?youtu|instagr)/i.test(t)) continue;           // oddiy so'z (izoh) — e'tiborsiz
+    const k = profilAniqla(t, null);
+    const x = k?.tur === "video" ? { plat: "yt", kod: k.qiymat, url: `https://www.youtube.com/watch?v=${k.qiymat}` }
+      : k?.tur === "reel" ? { plat: "ig", kod: k.qiymat.split("/").filter(Boolean).pop(), url: k.qiymat } : null;
+    if (!x) { begona.push(t); continue; }
+    if (bor.has(x.plat + x.kod)) continue;
+    bor.add(x.plat + x.kod);
+    hammasi.push(x);
+  }
+  return { hammasi, yt: hammasi.filter(x => x.plat === "yt"), ig: hammasi.filter(x => x.plat === "ig"), begona };
+}
+// Maydon ostida: nechta havola, qaysi platformadan; video havolasi bo'lmaganlari haqida ogohlantirish
+function havolaHisobKorsat() {
+  const el = $("ytUrl"), h = havolalarAjrat(el.value);
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight + 3, innerHeight * 0.4) + "px";
+  const qism = [];
+  if (h.hammasi.length > 1 || h.ig.length) {
+    qism.push(`<span>${h.hammasi.length} ta video</span>`);
+    if (h.yt.length) qism.push(`<span>${ikon("yt", "ic ic-sm")} ${h.yt.length}</span>`);
+    if (h.ig.length) qism.push(`<span>${ikon("ig", "ic ic-sm")} ${h.ig.length}</span>`);
+  }
+  if (h.begona.length) qism.push(`<span class="ogoh">${h.begona.length} tasi video havolasi emas — o'tkaziladi</span>`);
+  $("havolaHisob").innerHTML = qism.join("");
+  $("havolaHisob").hidden = !qism.length;
+  startMatnYangila();
+  if (typeof sorovKorsat === "function") sorovKorsat();
+}
+$("ytUrl").addEventListener("input", havolaHisobKorsat);
 
 /* --- YouTube Data API --- */
 async function ytApi(yol, param) {
@@ -5035,6 +5088,73 @@ async function toplamBoshla() {
   }
 }
 
+/* Bir nechta havola (YouTube va Instagram aralash) — to'plam: profil kartasi ko'rinishida, tarixda bitta yozuv.
+   Instagram videolari bitta Apify ishida aniqlanadi (videoning manzili, ovozi, davomiyligi), YouTube
+   videolarining nomi — oEmbed'dan (kalitsiz). */
+async function havolaBoshla(hv) {
+  if (!kalitOl()) {
+    kalitKorinish();
+    $("kalitKarta").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("apiKey").focus();
+    return holat("Avval API kalitni ulang.", true);
+  }
+  if (hv.ig.length && !apifyTokenOl()) {
+    return holat(`Instagram havolalari uchun Apify token kerak (bir marta qo'yiladi). ` +
+      `<button class="btn btn-ghost" style="margin-top:8px" onclick="kalitTahrir('apify')">${ikon("kalit", "ic ic-sm")} ` +
+      `Apify token qo'yish</button>`, true);
+  }
+  const id = Date.now(), n = hv.hammasi.length;
+  const p = { id, tur: "profil", platforma: "havola", nom: `${n} ta video`, sana: new Date().toISOString(),
+    kanal: { nom: `${n} ta video` }, opt: { sarala: "havola", soni: n, tahlil: false, parallel: parallelOl() },
+    s: sozOl(), seglar: [],
+    videolar: hv.hammasi.map((x, i) => ({ id: `${id}-${i}`, tur: x.plat, kod: x.kod, url: x.url,
+      nom: x.plat === "ig" ? `Instagram reel ${x.kod}` : `YouTube ${x.kod}` })) };
+  ishBoshla();
+  $("resultCard").hidden = true;
+  $("profilCard").hidden = true;
+  holat("Tayyorlanmoqda...", false, true);
+  profilIshdagi = p;
+  try {
+    profilSaqla(p);
+    profilKorsat(p);
+    await havolaMalumot(p, m => holat(m, false, true));
+    profilSaqla(p);
+    profilKorsat(p, true);
+    profilYakun(p, await profilIshla(p));
+  } catch (e) {
+    profilXato(e, p);
+  } finally {
+    ishTugadi();
+  }
+}
+async function havolaMalumot(p, h, faqat = null) {
+  // Kerakligi: hali olinmagan (davom ettirilganda — so'ralgan qator «topilmadi» bo'lsa ham qayta)
+  const kerak = (v, i) => !v.seglar && (faqat != null ? i === faqat : !v.xato);
+  const yt = p.videolar.filter((v, i) => v.tur === "yt" && !v.rasm && kerak(v, i));
+  const ig = p.videolar.filter((v, i) => v.tur === "ig" && !v.sahifa && kerak(v, i));
+  // YouTube: nomi va rasmi (oEmbed — kalit kerak emas); bo'lmasa — havolaning o'zi qoladi
+  await Promise.all(yt.map(async v => {
+    try {
+      const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(v.url)}`, { signal: joriyAbort?.signal });
+      if (!r.ok) return;
+      const j = await r.json();
+      if (j.title) v.nom = j.title;
+      if (j.thumbnail_url) v.rasm = j.thumbnail_url;
+    } catch (e) { if (bekorQilindi) throw e; }
+  }));
+  if (!ig.length) return;
+  const items = await apifyIshla({ username: ig.map(v => v.url), resultsLimit: 1 },
+    `Instagram: ${ig.length} ta reel olinmoqda`, h, (ig.length * IG_NARX.reel + IG_NARX.start) * 2 + 0.01);
+  const kodlar = new Map(items.filter(x => !x.error && x.shortCode).map(x => [x.shortCode, x]));
+  for (const v of ig) {
+    const x = kodlar.get(v.kod);
+    if (!x || !(x.videoUrl || x.audioUrl)) { v.xato = "Instagram'da topilmadi (o'chirilgan, yopiq profil yoki video emas)"; continue; }
+    const { id, ...m } = igVideo(x);           // id — to'plamniki qoladi
+    Object.assign(v, m);
+    delete v.xato;
+  }
+}
+
 // Tarixdagi tahlilni davom ettirish: qolgan videolar, bitta video (faqat) yoki faqat tahlil
 async function profilDavom(id, faqat = null, tahlilQayta = false) {
   if (ishlayapti) return toast("Boshqa ish tugashini kuting");
@@ -5055,6 +5175,11 @@ async function profilDavom(id, faqat = null, tahlilQayta = false) {
   profilIshdagi = p;
   if (profilJoriy !== p || $("profilCard").hidden) profilKorsat(p); else profilKorsat(p, true);
   try {
+    if (p.platforma === "havola") {
+      await havolaMalumot(p, m => holat(m, false, true), faqat);
+      profilSaqla(p);
+      profilKorsat(p, true);
+    }
     profilYakun(p, await profilIshla(p, { faqat, tahlilQayta }));
   } catch (e) {
     profilXato(e, p);
@@ -5093,8 +5218,9 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
       h("Transkripsiya...");
       let tugadi = false;
       try {
-        const r = await (p.platforma === "yt" ? ytVideoTranskript(v, p.s, ish, h)
-          : p.platforma === "fayl" ? faylVideoTranskript(v, p, ish, h)
+        const tur = p.platforma === "havola" ? v.tur : p.platforma;
+        const r = await (tur === "yt" ? ytVideoTranskript(v, p.s, ish, h)
+          : tur === "fayl" ? faylVideoTranskript(v, p, ish, h)
           : igVideoTranskript(v, p, ish, h, navbat.slice(k)));
         v.seglar = r.seglar;
         if (r.ogoh) v.ogoh = r.ogoh; else delete v.ogoh;
@@ -5110,7 +5236,7 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
         const shuFayl = p.platforma === "fayl" && !bekorQilindi && !toxtatuvchimi(e) && !(e.status >= 500);
         if (!server && !shuFayl && !videoXatosimi(e)) { toxtash ||= e; continue; }
         console.warn("Video o'tkazildi:", v.url || v.nom, e);
-        v.xato = videoXatoMatn(e, p.platforma);
+        v.xato = videoXatoMatn(e, p.platforma === "havola" ? v.tur : p.platforma);
         tugadi = true;
       } finally {
         profilIshlar.delete(i);
@@ -5272,7 +5398,7 @@ function tahlilMatn(p) {
   return qator.join("\n");
 }
 function tahlilHtml(p) {
-  if (p.platforma === "fayl") return "";         // fayllar to'plami — faqat skriptlar
+  if (p.platforma === "fayl" || p.platforma === "havola") return "";   // to'plam — faqat skriptlar
   const t = p.tahlil, ishda = ishlayapti;
   const tayyor = p.videolar.some(v => v.seglar?.length), qolgan = p.videolar.some(v => !v.seglar && !v.xato);
   const kutish = m => `<div class="pTahlil kutish">${ikon("uchqun", "ic ic-sm")} ${m}</div>`;
@@ -5347,9 +5473,12 @@ function profilKorsat(p, jim) {
 // Kartaning boshi: nom, statistika, «Davom ettirish» va tahlil
 function profilBoshKorsat(p) {
   const k = p.kanal || { nom: p.nom }, vids = p.videolar;
-  $("profilSarlavha").textContent = p.platforma === "fayl" ? "Fayllar transkripsiyasi" : "Profil tahlili";
-  $("profilBelgi2").innerHTML = `<use href="#i-${p.platforma === "fayl" ? "matn" : "profil"}"/>`;
-  $("profilNom").innerHTML = `${ikon(p.platforma === "fayl" ? "fayl" : p.platforma === "ig" ? "ig" : "yt", "ic ic-sm")} ` +
+  const toplam = p.platforma === "fayl" || p.platforma === "havola";
+  $("profilSarlavha").textContent = p.platforma === "fayl" ? "Fayllar transkripsiyasi"
+    : p.platforma === "havola" ? "Havolalar transkripsiyasi" : "Profil tahlili";
+  $("profilBelgi2").innerHTML = `<use href="#i-${toplam ? "matn" : "profil"}"/>`;
+  $("profilNom").innerHTML = `${ikon(p.platforma === "fayl" ? "fayl" : p.platforma === "havola" ? "havola"
+    : p.platforma === "ig" ? "ig" : "yt", "ic ic-sm")} ` +
     (k.url ? `<a href="${esc(havola(k.url))}" target="_blank" rel="noopener">${esc(k.nom)}</a>` : esc(k.nom)) +
     (k.handle && k.handle !== k.nom ? ` · ${esc(k.handle)}` : "");
   const tayyor = vids.filter(v => v.seglar).length;
@@ -5357,6 +5486,9 @@ function profilBoshKorsat(p) {
   const jamiDav = vids.reduce((a, v) => a + (v.dav || 0), 0);
   $("profilStat").textContent = [
     p.platforma === "fayl" ? (jamiDav ? `jami ${soatMatn(jamiDav)}` : "")
+      : p.platforma === "havola" ? [vids.filter(v => v.tur === "yt").length ? `YouTube: ${vids.filter(v => v.tur === "yt").length}` : "",
+        vids.filter(v => v.tur === "ig").length ? `Instagram: ${vids.filter(v => v.tur === "ig").length}` : "",
+        jamiDav ? `jami ${soatMatn(jamiDav)}` : ""].filter(Boolean).join(" · ")
       : `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${vids.length} ta video`,
     korishlar.length ? `o'rtacha ${sonQisqa(korishlar.reduce((a, n) => a + n, 0) / korishlar.length)} ko'rish` : "",
     k.obunachi ? `${sonQisqa(k.obunachi)} obunachi` : "",
@@ -5418,6 +5550,7 @@ function profilVideoOch(i) {
 function profilSarlavha(p) {
   const k = p.kanal || { nom: p.nom };
   if (p.platforma === "fayl") return `${p.videolar.length} ta fayl — transkripsiya · ${sanaQisqa(p.sana)}`;
+  if (p.platforma === "havola") return `${p.videolar.length} ta video — transkripsiya · ${sanaQisqa(p.sana)}`;
   return `${k.nom}${k.handle && k.handle !== k.nom ? ` (${k.handle})` : ""} — ${p.platforma === "ig" ? "Instagram" : "YouTube"}\n` +
     `${p.opt.sarala === "top" ? "Eng ko'p ko'rilgan" : "Eng oxirgi"} ${p.videolar.length} ta video · ${sanaQisqa(p.sana)}` +
     (k.url ? `\n${k.url}` : "");
@@ -5455,6 +5588,7 @@ function profilYukla(nima = "hammasi", tc = false) {
   const sana = String(p.sana || "").slice(0, 10);
   const nom = typeof nima === "number" ? p.videolar[nima].nom.replace(/\.[^.]{1,5}$/, "")
     : p.platforma === "fayl" ? `transkripsiya-${p.videolar.length}-fayl-${sana}`
+    : p.platforma === "havola" ? `transkripsiya-${p.videolar.length}-video-${sana}`
     : `${(p.kanal?.handle || p.kanal?.nom || "profil").replace(/^@/, "")}-skriptlar-${sana}`;
   txtYuklabOl(nom, matn, tc ? "-timecode" : "");
 }
@@ -5548,6 +5682,7 @@ function profilZip() {
   }
   const sana = String(p.sana || "").slice(0, 10);
   const nom = p.platforma === "fayl" ? `transkripsiya-${p.videolar.length}-fayl-${sana}`
+    : p.platforma === "havola" ? `transkripsiya-${p.videolar.length}-video-${sana}`
     : `${(p.kanal?.handle || p.kanal?.nom || "profil").replace(/^@/, "")}-skriptlar-${sana}`;
   faylBer(xavfsiz(nom) + ".zip", zipYasa(fayllar));
   toast(`${xavfsiz(nom)}.zip yuklab olindi — ${tayyor.length} ta skript`);
@@ -5659,7 +5794,7 @@ async function ulashilganOl() {
     fayllar.push(new File([b], nomTuzat(decodeURIComponent(r.headers.get("x-nom") || ""), tur), { type: tur }));
   }
   try { await caches.delete("ulashish"); } catch (x) { /* e'tiborsiz */ }
-  const yt = String(meta?.matn || "").match(/https?:\/\/\S*(?:youtube\.com|youtu\.be)\/\S+/i)?.[0];
+  const hv = havolalarAjrat(meta?.matn || "");
   if (fayllar.length) {
     tabTanla("fayl");
     fayllarQoy(fayllar);
@@ -5667,10 +5802,11 @@ async function ulashilganOl() {
       toast(fayllar.length > 1 ? `${fayllar.length} ta fayl qabul qilindi` : "Fayl qabul qilindi — «Transkripsiya qilish»ni bosing");
       $("startBtn").scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  } else if (yt) {
+  } else if (hv.hammasi.length) {
     tabTanla("yt");
-    $("ytUrl").value = youtubeTozala(yt);
-    toast("YouTube havolasi qabul qilindi");
+    $("ytUrl").value = hv.hammasi.map(x => x.url).join("\n");
+    havolaHisobKorsat();
+    toast(hv.hammasi.length > 1 ? `${hv.hammasi.length} ta havola qabul qilindi` : "Havola qabul qilindi");
     $("startBtn").scrollIntoView({ behavior: "smooth", block: "center" });
   } else {
     toast(meta ? "Yuborilganda video yoki audio topilmadi" : "Fayl kelmadi — qayta ulashib ko'ring");
