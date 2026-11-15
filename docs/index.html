@@ -656,6 +656,9 @@
   .kalitQoshQism { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
   .kqQoshQator { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .billingYordam { margin-top: 10px; font-size: .84rem; }
+  .oynaBolim { display: flex; align-items: center; gap: 7px; margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--border); font-size: .95rem; }
+  .oynaBolim small { font-weight: 400; color: var(--muted); font-size: .8rem; }
+  #apifyRoyxat { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .billingYordam summary { cursor: pointer; font-weight: 600; color: var(--primary); }
   .billingYordam ol { margin: 8px 0 0; padding-left: 20px; line-height: 1.55; color: var(--text2); }
 
@@ -811,6 +814,7 @@
         <div class="kalitUlangan" id="apifyUlangan" hidden>
           <span class="kuBelgi"><svg class="ic ic-sm"><use href="#i-tayyor"/></svg></span>
           <span class="kuMatn"><b>Apify ulangan</b><small id="apifyNiqob"></small></span>
+          <button type="button" class="chipBtn kuTahrir" onclick="kalitOynaOch()" title="Tokenlar" aria-label="Apify tokenlari"><svg class="ic ic-sm"><use href="#i-kalit"/></svg><span>Tokenlar</span></button>
           <button type="button" class="chipBtn kuTahrir" onclick="kalitTahrir('apify')" title="O'zgartirish" aria-label="Apify tokenni o'zgartirish"><svg class="ic ic-sm"><use href="#i-qalam"/></svg><span>O'zgartirish</span></button>
           <button type="button" class="kuOchir" onclick="kalitOchirish('apify')" title="Tokenni o'chirish" aria-label="Tokenni o'chirish">
             <svg class="ic ic-sm"><use href="#i-x"/></svg>
@@ -1112,6 +1116,19 @@
       <button class="btn btn-ghost" onclick="kalitOynaSaqla()">+ Qo'shish</button>
     </div>
   </div>
+  <h3 class="oynaBolim"><svg class="ic ic-sm"><use href="#i-ig"/></svg> Apify tokenlari <small>— Instagram uchun</small></h3>
+  <div id="apifyRoyxat"></div>
+  <div class="kalitQoshQism">
+    <input type="password" id="apifyYangi" placeholder="Yangi Apify token: apify_api_..." autocomplete="off" spellcheck="false">
+    <input type="text" id="apifyNomi" placeholder="Nomi (ixtiyoriy)" maxlength="40" autocomplete="off">
+    <div class="kqQoshQator">
+      <label class="kqBilling"><input type="checkbox" id="apifyPullik"> To'lovli tarif</label>
+      <button class="btn btn-ghost" onclick="apifyQoshBos()">+ Qo'shish</button>
+    </div>
+  </div>
+  <p class="hint">Apify faol tokenida kredit yetmasa, <b>to'lovli</b> deb belgilangan tokenga o'zi o'tadi.
+    Bepul tokenlar orasida avtomatik o'tilmaydi — Apify bitta odamga bitta bepul akkaunt beradi, bir nechtasi bloklanadi.</p>
+  <h3 class="oynaBolim"><svg class="ic ic-sm"><use href="#i-kalit"/></svg> Gemini</h3>
   <p class="hint">Faol kalitda limit tugasa, <b>billing ulangan</b> kalitga o'zi o'tadi (o'sha model bilan,
     eski modelga tushmasdan); fayllar yangi kalit bilan qayta yuklanadi. Bepul kalitlar orasida avtomatik
     o'tilmaydi — Google bepul limitni bir nechta akkaunt bilan chetlab o'tishni taqiqlaydi, kalitlar bloklanishi mumkin.</p>
@@ -1258,6 +1275,7 @@ function kalitOynaOch() {
   $("kalitNomi").value = "";
   $("kalitBilling").checked = false;
   kalitRoyxatKorsat();
+  apifyRoyxatKorsat();
   const d = $("kalitOyna");
   if (d.showModal) d.showModal(); else d.setAttribute("open", "");
 }
@@ -1325,6 +1343,62 @@ function kalitRoyxatKorsat() {
       `<button class="chipBtn kqOchir" onclick="kalitRoyxatdanOchir(${i})" aria-label="${esc(kalitNomi(x))} — o'chirish">${ikon("ochir")}</button>` +
       `</div></div>`;
   }).join("") : `<p class="hint">Hali kalit yo'q — pastdan qo'shing.</p>`;
+}
+function apifyRoyxatKorsat() {
+  const l = apifyTokenlarOl(), faol = apifyTokenOl();
+  $("apifyRoyxat").innerHTML = l.length ? l.map((x, i) => `<div class="kalitQator${x.token === faol ? " faol" : ""}">` +
+    `<div class="kqBosh"><span class="kqNom">${esc(apifyNomi(x))}</span>` +
+    (x.nom ? `<span class="kqNiqob">••••${esc(x.token.slice(-4))}</span>` : "") +
+    (x.token === faol ? `<span class="kqBelgi">Faol</span>` : "") +
+    (x.pullik ? `<span class="kqBelgi billing">To'lovli</span>` : "") + `</div>` +
+    `<div class="kqHisob" data-apify="${i}">Kredit tekshirilmoqda${NUQTA}</div>` +
+    `<div class="kqAsbob">` +
+    (x.token !== faol ? `<button class="chipBtn" onclick="apifyFaolBos(${i})">Faol qilish</button>` : "") +
+    `<label class="kqBilling"><input type="checkbox" ${x.pullik ? "checked" : ""} onchange="apifyPullikBos(${i}, this.checked)"> To'lovli</label>` +
+    `<button class="chipBtn kqOchir" onclick="apifyOchirBos(${i})" aria-label="${esc(apifyNomi(x))} — o'chirish">${ikon("ochir")}</button>` +
+    `</div></div>`).join("") : `<p class="hint">Hali Apify token yo'q.</p>`;
+  l.forEach((x, i) => apifyKredit(x.token).then(q => {
+    const el = $("apifyRoyxat").querySelector(`[data-apify="${i}"]`);
+    if (!el || apifyTokenlarOl()[i]?.token !== x.token) return;
+    el.innerHTML = q ? (q.notogri ? `<span class="ogoh">Token noto'g'ri yoki o'chirilgan</span>`
+      : `Shu oy: <b>$${q.qoldi.toFixed(2)}</b> / $${q.jami.toFixed(2)} qoldi` +
+        (q.gacha ? ` · yangilanishi ${sanaQisqa(q.gacha)}` : "")) : "Kreditni bilib bo'lmadi (internet)";
+  }));
+}
+function apifyQoshBos() {
+  const v = kalitTozala($("apifyYangi").value);
+  if (!v) return toast("Tokenni qo'ying");
+  const l = apifyTokenlarOl(), bor = l.find(x => x.token === v), nom = $("apifyNomi").value.trim(), pullik = $("apifyPullik").checked;
+  if (bor) { if (nom) bor.nom = nom; bor.pullik = pullik || bor.pullik; } else l.push({ token: v, nom, pullik });
+  if (!apifyTokenOl()) localStorage.setItem("apify_token", v);
+  apifyTokenlarYoz(l);
+  $("apifyYangi").value = $("apifyNomi").value = "";
+  $("apifyPullik").checked = false;
+  toast(/^apify_api_/.test(v) ? "Apify token qo'shildi" : "Qo'shildi — lekin Apify token odatda «apify_api_» bilan boshlanadi");
+}
+function apifyFaolBos(i) {
+  const x = apifyTokenlarOl()[i];
+  if (!x) return;
+  if (ishlayapti) return toast("Ish tugashini kuting");
+  apifyFaolQil(x.token);
+  toast(`Apify: «${apifyNomi(x)}» faol`);
+}
+function apifyPullikBos(i, bor) {
+  const l = apifyTokenlarOl();
+  if (!l[i]) return;
+  l[i].pullik = bor;
+  apifyTokenlarYoz(l);
+}
+function apifyOchirBos(i) {
+  if (ishlayapti) return toast("Ish tugashini kuting");
+  const l = apifyTokenlarOl(), x = l[i];
+  if (!x || !confirm(`«${apifyNomi(x)}» Apify tokeni shu qurilmadan o'chirilsinmi?`)) return;
+  l.splice(i, 1);
+  if (x.token === apifyTokenOl()) {
+    if (l[0]) localStorage.setItem("apify_token", l[0].token); else localStorage.removeItem("apify_token");
+  }
+  apifyTokenlarYoz(l);
+  toast("Apify token o'chirildi");
 }
 $("apiKey").addEventListener("keydown", e => { if (e.key === "Enter") kalitSaqla($("apiKey").value); });
 $("apiKey2").addEventListener("keydown", e => { if (e.key === "Enter") kalitOynaSaqla(); });
@@ -4183,6 +4257,59 @@ function profilOpt() {
 }
 const ytKalitOl = () => (localStorage.getItem("yt_kalit") || "").trim() || kalitOl();
 const apifyTokenOl = () => (localStorage.getItem("apify_token") || "").trim();
+/* Bir nechta Apify token (apify_tokenlar), bittasi faol (apify_token). Har birining shu oydagi qolgan
+   krediti Apify'dan aniq olinadi. Faol tokenda kredit yetmasa — «to'lovli» deb belgilangan tokenga
+   o'tiladi; bepul tokenlar orasida avtomatik o'tilmaydi (Apify bitta odamga bitta bepul akkaunt beradi). */
+function apifyTokenlarOl() {
+  let l = [];
+  try { l = JSON.parse(localStorage.getItem("apify_tokenlar")) || []; } catch (e) { /* bo'sh */ }
+  l = Array.isArray(l) ? l.filter(x => x && x.token) : [];
+  const faol = apifyTokenOl();
+  if (faol && !l.some(x => x.token === faol)) l.unshift({ token: faol, nom: "", pullik: false });
+  return l;
+}
+function apifyTokenlarYoz(l) {
+  try { localStorage.setItem("apify_tokenlar", JSON.stringify(l)); } catch (e) { /* e'tiborsiz */ }
+  if ($("kalitOyna").open) apifyRoyxatKorsat();
+  if (typeof kalitQatorKorsat === "function") kalitQatorKorsat();
+}
+const apifyNomi = x => x.nom || `••••${x.token.slice(-4)}`;
+// Qolgan kredit ($): { qoldi, jami, gacha } yoki null (tarmoq). 1 daqiqa eslab qolinadi
+const apifyKreditKesh = new Map();
+async function apifyKredit(token, yangila = false) {
+  const k = apifyKreditKesh.get(token);
+  if (k && !yangila && Date.now() - k.vaqt < 60000) return k.q;
+  let q = null;
+  try {
+    const r = await fetch(`${APIFY}/users/me/limits`, { headers: { Authorization: `Bearer ${token}` } });
+    const j = (await r.json().catch(() => null))?.data;
+    if (r.ok && j?.limits) {
+      const jami = +j.limits.maxMonthlyUsageUsd || 0, sarf = +j.current?.monthlyUsageUsd || 0;
+      q = { qoldi: Math.max(0, jami - sarf), jami, gacha: j.monthlyUsageCycle?.endAt || null };
+    } else if (r.status === 401) q = { notogri: true };
+  } catch (e) { /* tarmoq — noma'lum */ }
+  apifyKreditKesh.set(token, { q, vaqt: Date.now() });
+  return q;
+}
+const kreditMatn = q => !q ? "" : q.notogri ? "token noto'g'ri" : `$${q.qoldi.toFixed(2)} / $${q.jami.toFixed(2)} qoldi`;
+function apifyFaolQil(token) {
+  localStorage.setItem("apify_token", token);
+  apifyTokenlarYoz(apifyTokenlarOl());
+}
+/* Ish oldidan: faol tokenda kredit kerakli narxga yetmasa — to'lovli tokenga o'tamiz (bor bo'lsa).
+   To'lovli yo'q bo'lsa — hech narsa qilmaymiz (Apify o'zi rad etadi, xabar aniq). */
+async function apifyTokenTanla(narx, h) {
+  const faol = apifyTokenOl(), l = apifyTokenlarOl(), x = l.find(t => t.token === faol);
+  if (x?.pullik || !l.some(t => t.pullik && t.token !== faol)) return;
+  const q = await apifyKredit(faol, narx !== Infinity);
+  if (q && !q.notogri && q.qoldi >= narx) return;
+  if (!q && narx !== Infinity) return;            // kredit noma'lum (tarmoq) — faolida urinib ko'ramiz
+  const pullik = l.find(t => t.pullik && t.token !== faol);
+  apifyFaolQil(pullik.token);
+  h?.(`Apify krediti yetmadi — «${apifyNomi(pullik)}» (to'lovli) tokenga o'tildi...`);
+  toast(`Apify: «${apifyNomi(pullik)}» (to'lovli) tokenga o'tildi`);
+}
+const apifyLimitXato = e => e?.status === 402 || /usage|credit|limit|payment|insufficient/i.test(`${e?.apify} ${e?.message}`);
 /* Kalit qatorlari: saqlangan kalit — ixcham qator («Fayl» bo'limidagi tanlangan fayl kabi), yo'q yoki
    o'zgartirilayotgan bo'lsa — kiritish oynasi. YouTube kaliti ixtiyoriy: yo'q bo'lsa kulrang qator.
    Yangi kalit yozilishi bilan saqlanadi (yo'qolmasin). Saqlangan kalitni o'zgartirish esa qoralama:
@@ -4192,8 +4319,14 @@ const kalitAsl = {};                   // o'zgartirish boshlanganda saqlangan qi
 const KALIT = { apify: { el: "apifyToken", k: "apify_token" }, yt: { el: "ytKalit", k: "yt_kalit" } };
 const kalitSaqlangan = tur => (localStorage.getItem(KALIT[tur].k) || "").trim();
 function kalitYoz(tur, v) {
+  const eski = tur === "apify" ? apifyTokenOl() : "";
   try { if (v) localStorage.setItem(KALIT[tur].k, v); else localStorage.removeItem(KALIT[tur].k); }
   catch (e) { /* e'tiborsiz */ }
+  // Apify: faol token almashtirilsa — ro'yxatdagi o'sha qator yangilanadi (eski token ro'yxatdan chiqadi)
+  if (tur === "apify" && eski !== v) {
+    let l = apifyTokenlarOl().filter(x => x.token !== eski || x.token === v);
+    try { localStorage.setItem("apify_tokenlar", JSON.stringify(l)); } catch (e) { /* e'tiborsiz */ }
+  }
 }
 function kalitQatorKorsat() {
   const niqob = v => `••••${v.length > 8 ? v.slice(-4) : ""}`;
@@ -4201,7 +4334,12 @@ function kalitQatorKorsat() {
   $("apifyUlangan").hidden = !apify || kalitOchiq.has("apify");
   $("apifyKirit").hidden = !!apify && !kalitOchiq.has("apify");
   $("apifyBekor").hidden = !kalitAsl.apify;
-  $("apifyNiqob").textContent = apify ? niqob(apify) : "";
+  const nt = apifyTokenlarOl().length;
+  $("apifyNiqob").textContent = apify ? niqob(apify) + (nt > 1 ? ` · ${nt} ta token` : "") : "";
+  if (apify) apifyKredit(apify).then(q => {
+    if (kalitSaqlangan("apify") === apify && q) $("apifyNiqob").textContent = niqob(apify) + ` · ${kreditMatn(q)}` + (nt > 1 ? ` · ${nt} ta token` : "");
+    if (typeof sorovKorsat === "function") sorovKorsat();
+  });
   $("ytUlangan").hidden = !yt || kalitOchiq.has("yt");
   $("ytXira").hidden = !!yt || kalitOchiq.has("yt");
   $("ytKirit").hidden = !kalitOchiq.has("yt");
@@ -4294,7 +4432,9 @@ function profilNarxMatn() {
   const o = profilOpt();
   if (o.plat !== "ig") return " · uzun videolarga ko'proq";
   const K = o.sarala === "top" ? o.chuqur : o.soni + 3;
-  return ` · Apify ≈ <b>$${(K * IG_NARX.reel + IG_NARX.start).toFixed(2)}</b>`;
+  const q = apifyKreditKesh.get(apifyTokenOl())?.q, narx = K * IG_NARX.reel + IG_NARX.start;
+  return ` · Apify ≈ <b>$${narx.toFixed(2)}</b>` + (q && !q.notogri ? ` (${q.qoldi < narx ? `<span class="ogoh">$${q.qoldi.toFixed(2)} qoldi</span>`
+    : `$${q.qoldi.toFixed(2)} qoldi`})` : "");
 }
 (() => {
   let saqlangan = {};
@@ -4544,9 +4684,21 @@ async function apify(yol, { method = "GET", body, uzilmas } = {}) {
 /* Apify'da reel scraper'ni ishga tushirib, tugashini kutadi va natijani qaytaradi.
    narx — ish uchun eng ko'p sarf ($): undan oshsa Apify o'zi to'xtatadi. */
 async function apifyIshla(kirish, matn, h, narx) {
-  // Boshlash so'rovi uzilmaydi: bekor qilinsa ham ish raqamini olib, o'sha ishni to'xtatamiz
-  const run = await apify(`/acts/${IG_AKTOR}/runs?maxTotalChargeUsd=${Math.max(0.01, narx).toFixed(3)}`,
+  await apifyTokenTanla(narx, h);
+  const boshla = () => apify(`/acts/${IG_AKTOR}/runs?maxTotalChargeUsd=${Math.max(0.01, narx).toFixed(3)}`,
     { method: "POST", body: kirish, uzilmas: true });
+  // Boshlash so'rovi uzilmaydi: bekor qilinsa ham ish raqamini olib, o'sha ishni to'xtatamiz.
+  // Kredit tugagani uchun rad etilsa — to'lovli token bilan bir marta qayta
+  let run;
+  try { run = await boshla(); }
+  catch (e) {
+    const oldin = apifyTokenOl();
+    if (!apifyLimitXato(e)) throw e;
+    apifyKreditKesh.set(oldin, { q: { qoldi: 0, jami: apifyKreditKesh.get(oldin)?.q?.jami || 0 }, vaqt: Date.now() });
+    await apifyTokenTanla(Infinity, h);
+    if (apifyTokenOl() === oldin) throw e;
+    run = await boshla();
+  }
   const t0 = Date.now();
   let r = run, uzilish = 0;
   try {
