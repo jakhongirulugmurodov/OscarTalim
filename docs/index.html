@@ -2768,7 +2768,58 @@ function ffNavbat() {
 }
 
 /* Katta videodan audioni ajratib beradi; bo'lmasa faylni o'zini qaytaradi */
+/* .wav faylning kodeki: Gemini faqat oddiy PCM (1) va float (3) WAV'ni o'qiydi. Telefon qo'ng'iroq
+   yozuvchilari esa ko'pincha siqilgan WAV (IMA ADPCM, GSM, mu-law...) yoki umuman boshqa format (AMR)
+   yozib, nomini .wav qo'yadi — Gemini bunda ovozni eshitmaydi va matnni o'zidan to'qiydi.
+   Qaytadi: "pcm" | "boshqa" (o'girish kerak) | null (wav emas). */
+async function wavKodek(file) {
+  if (!/\.wav$/i.test(file.name) && !/wav/i.test(file.type || "")) return null;
+  const b = new DataView(await file.slice(0, 8192).arrayBuffer());
+  const s = o => String.fromCharCode(...[0, 1, 2, 3].map(i => b.getUint8(o + i)));
+  if (b.byteLength < 12 || s(0) !== "RIFF" || s(8) !== "WAVE") return "boshqa";
+  for (let o = 12; o + 8 <= b.byteLength;) {
+    const nom = s(o), hajm = b.getUint32(o + 4, true);
+    if (nom === "fmt " && o + 10 <= b.byteLength) {
+      let f = b.getUint16(o + 8, true);
+      if (f === 0xFFFE && o + 34 <= b.byteLength) f = b.getUint16(o + 32, true);     // WAVE_FORMAT_EXTENSIBLE
+      return f === 1 || f === 3 ? "pcm" : "boshqa";
+    }
+    o += 8 + hajm + (hajm & 1);
+  }
+  return "boshqa";
+}
+// Har qanday audio → Gemini aniq o'qiydigan m4a (AAC, mono, 16 kHz — nutq uchun yetarli, hajmi kichik)
+async function audioOgir(file, h = m => holat(m, false, true)) {
+  return ffIsh(async ff => {
+    const u = await ffUla(ff, file);
+    try {
+      h("Audio Gemini o'qiydigan ko'rinishga o'girilmoqda...");
+      const out = `ogir${++ffSanoq}.m4a`;
+      const buyruq = filtr => ["-i", u.yol, "-vn", ...filtr, "-ac", "1", "-ar", "16000", "-c:a", "aac", "-b:a", "48k", "-y", out];
+      // Telefon yozuvida bir tomon ko'pincha juda past — ovoz balandligi tekislanadi (filtr bo'lmasa — usiz)
+      let ret = await ff.exec(buyruq(["-af", "dynaudnorm"]));
+      if (ret !== 0) ret = await ff.exec(buyruq([]));
+      if (ret !== 0) throw Object.assign(new Error("ffmpeg kodi " + ret), { ffKod: ret });
+      const data = await ff.readFile(out);
+      try { await ff.deleteFile(out); } catch (e) { /* e'tiborsiz */ }
+      if (!data.length) throw Object.assign(new Error("audio bo'sh chiqdi"), { ffKod: -1 });
+      return new File([data], file.name.replace(/\.[^.]+$/, "") + ".m4a", { type: "audio/mp4" });
+    } finally {
+      await ffUz(ff, u);
+    }
+  });
+}
 async function faylTayyorla(file, h = m => holat(m, false, true)) {
+  if ((await wavKodek(file).catch(() => null)) === "boshqa") {
+    try {
+      return await audioOgir(file, h);
+    } catch (e) {
+      if (bekorQilindi) throw e;
+      // O'girib bo'lmasa — yuborish befoyda (Gemini eshitmay, matn to'qiydi): aniq xato
+      throw Object.assign(new Error("Bu .wav fayl siqilgan formatda (masalan, qo'ng'iroq yozuvchisi ADPCM/GSM) va " +
+        "uni o'girib bo'lmadi. Telefonda yozuvchi sozlamasidan MP3 yoki M4A formatini tanlang"), { faylXato: true });
+    }
+  }
   if (!(file.type || "").startsWith("video") || file.size <= 30e6) return file;
   try {
     const yubor = await audioAjrat(file, h);
@@ -5387,6 +5438,8 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
         v.seglar = r.seglar;
         if (r.ogoh) v.ogoh = r.ogoh; else delete v.ogoh;
         delete v.xato;
+        v.model = ish.model;                 // qaysi model yozgani (limit tugab zaxiraga o'tgan bo'lishi mumkin)
+        shubhaTekshir(p, i);
         ish.serverXato = 0;
         tugadi = true;
       } catch (e) {
@@ -5429,6 +5482,19 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
   return ish;
 }
 
+/* Ikki xil faylga so'zma-so'z bir xil matn — Gemini ovozni eshitmay, matnni o'zidan to'qiganining
+   belgisi (ko'pincha past sifatli telefon ovozi yoki zaxira model). Ikkalasi ham «shubhali» belgilanadi. */
+function shubhaTekshir(p, i) {
+  const matn = v => v.seglar?.length ? skriptMatn(v.seglar).trim().toLowerCase() : "";
+  const v = p.videolar[i], m = matn(v);
+  delete v.shubha;
+  if (m.length < 15) return;
+  p.videolar.forEach((w, j) => {
+    if (j === i || matn(w) !== m) return;
+    v.shubha = w.shubha = true;
+    profilQatorYangila(p, j);
+  });
+}
 // To'plamda har fayl holati o'z qatorida (butun kartani qayta chizmaymiz — tez-tez yangilanadi)
 function profilQatorMatn(p, i, m) {
   profilIshMatn.set(i, m);
@@ -5601,7 +5667,9 @@ function vidHtml(p, v, i) {
       `<button class="chipBtn" onclick="txtMenyuOch(${i}, this)" title=".txt qilib yuklab olish" ` +
       `aria-label="Skriptni .txt qilib yuklab olish" aria-haspopup="menu" aria-expanded="false">${ikon("yuklabol")} .txt</button>` +
       (v.qisman ? qayta(`${vaqtQisqa(v.qisman.keyingi)} dan davom ettirish`) : "") + `</div>` +
-      (v.ogoh ? `<div class="pvHolat">${esc(v.ogoh)}</div>` : "");
+      (v.ogoh ? `<div class="pvHolat">${esc(v.ogoh)}</div>` : "") +
+      (v.shubha ? `<div class="pvHolat xato">⚠️ Bu matn boshqa fayldagi bilan so'zma-so'z bir xil — Gemini ovozni ` +
+        `eshitmay to'qigan bo'lishi mumkin.${qayta("Qayta urinish")}</div>` : "");
   } else if (v.seglar) {
     tana = `<div class="pvHolat">${esc(v.ogoh || "Nutq topilmadi (faqat musiqa yoki jim video)")}${qayta("Qayta urinish")}</div>`;
   } else if (v.xato) {
@@ -5616,7 +5684,7 @@ function vidHtml(p, v, i) {
     `<div class="pvTepa"><div class="pvRasmQ">${rasm}<span class="pvRaqam">${i + 1}</span></div>` +
     `<div class="pvInfo">` + (v.url ? `<a class="pvNom" href="${esc(havola(v.url))}" target="_blank" rel="noopener">${esc(v.nom)}</a>`
       : `<span class="pvNom">${esc(v.nom)}</span>`) +
-    `<div class="pvMeta">${esc(vidMeta(v))}</div></div>` +
+    `<div class="pvMeta">${esc([vidMeta(v), v.model && v.model !== p.s?.model ? modelNomi(v.model) : ""].filter(Boolean).join(" · "))}</div></div>` +
     (v.seglar?.length ? `<button class="pvNusxa" onclick="profilNusxa(${i})" title="Skriptni nusxalash" ` +
       `aria-label="Skriptni nusxalash">${ikon("nusxa", "ic ic-sm")}</button>` : "") +
     `</div>${tana}</div>`;
