@@ -791,7 +791,7 @@
             Billing ulangan bo'lsa — 10 ta.</p>
         </div>
       </div>
-      <p class="hint">Bir yo'la 50 tagacha fayl tanlash mumkin — hammasi parallel ishlanadi. Instagram reel'ni
+      <p class="hint">Bir yo'la 300 tagacha fayl (kichik va katta) tanlash mumkin — hammasi parallel ishlanadi. Instagram reel'ni
         qurilmaga saqlab yuklang. Katta videolardan faqat ovoz ajratib yuboriladi — tezroq.</p>
     </div>
 
@@ -1524,7 +1524,7 @@ $("fdTitle").textContent = FAYL_BOSH;
    ro'yxat chiqadi va hammasi parallel ishlanadi (profil kartasi ko'rinishida natija). */
 let tanlanganFayllar = [];
 const faylDav = new WeakMap();        // fayl → davomiylik (soniya; aniqlanmasa null)
-const TOPLAM_ENG_KOP = 50;
+const TOPLAM_ENG_KOP = 300;      // fayllarning o'zi xotiraga o'qilmaydi — faqat havolasi; natija qatorma-qator chiziladi
 const faylKalit = f => `${f.name}|${f.size}`;
 const parallelOl = () => +(document.querySelector('input[name="parallel"]:checked')?.value || 3);
 
@@ -5216,7 +5216,17 @@ async function toplamBoshla() {
     $("apiKey").focus();
     return holat("Avval API kalitni ulang.", true);
   }
-  const fayllar = tanlanganFayllar.slice(), id = Date.now();
+  let fayllar = tanlanganFayllar.slice();
+  // Avval (boshqa to'plam yoki yozuvda) skripti chiqqan fayllar — nomi va hajmi bir xil — qayta yuborilmasin
+  const tayyorlar = new Set(tarixOl().filter(t => t.tur === "profil" && t.platforma === "fayl")
+    .flatMap(t => t.videolar.filter(v => v.seglar?.length).map(v => `${v.nom}|${v.hajm}`)));
+  const avval = fayllar.filter(f => tayyorlar.has(faylKalit(f)));
+  if (avval.length && confirm(`${avval.length} ta fayl avval transkripsiya qilingan (skripti tarixda bor).\n` +
+    `Ularni o'tkazib, faqat qolgan ${fayllar.length - avval.length} tasini qilaymi?\n\n«Cancel» — hammasini qaytadan qiladi.`)) {
+    fayllar = fayllar.filter(f => !tayyorlar.has(faylKalit(f)));
+    if (!fayllar.length) return toast("Hammasining skripti tarixda bor — «Tarix»dan oching");
+  }
+  const id = Date.now();
   const p = { id, tur: "profil", platforma: "fayl", nom: `${fayllar.length} ta fayl`, sana: new Date().toISOString(),
     kanal: { nom: `${fayllar.length} ta fayl` }, opt: { sarala: "fayl", soni: fayllar.length, tahlil: false, parallel: parallelOl() },
     s: sozOl(), seglar: [],

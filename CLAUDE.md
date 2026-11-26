@@ -23,7 +23,7 @@ o'zgarmaydi — qoida o'zbekcha matnga tegishli.
 - `docs/anjuman/` — anjuman mashg'uloti dasturi.
 - `docs/lugat/` — ingliz tili so'zlarini yodlash dasturi (takrorlash tizimi,
   o'yinlar, yozish/gapirish/tinglash, AI ustoz). PWA, build'siz.
-- `docs/index.html` — transkripsiya sahifasi (fayl — bir yo'la 50 tagacha, parallel;
+- `docs/index.html` — transkripsiya sahifasi (fayl — bir yo'la 300 tagacha, parallel;
   YouTube havolasi va «Profil»: Instagram/YouTube profilining eng ko'p ko'rilgan yoki
   oxirgi videolari skripti va yakuniy tahlili). Instagram ro'yxati — Apify, YouTube
   ro'yxati — YouTube Data API. «Havola» bo'limi: bir nechta YouTube/Instagram havolasi bir yo'la. Bir nechta Gemini kaliti: limit tugasa billing ulangan kalitga o'tadi.
