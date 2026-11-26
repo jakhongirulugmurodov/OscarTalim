@@ -976,6 +976,13 @@
           <span class="swMatn">Tejamkor rejim
             <small>Faqat ovoz tahlil qilinadi — ~1 soatlik video ham sig'adi</small></span>
         </label>
+        <label class="switch">
+          <input type="checkbox" id="zaxira">
+          <span class="tog"></span>
+          <span class="swMatn">Limit tugasa Flash-Lite bilan davom etish
+            <small>O'chiq bo'lsa — ish to'xtaydi, limit yangilangach «Davom ettirish». Flash-Lite telefon
+              ovozini yomon eshitadi va matn to'qishi mumkin</small></span>
+        </label>
       </div>
     </details>
 
@@ -1407,13 +1414,13 @@ kalitKorinish();
 /* ===== Sozlamalar: yonma-yon tanlovlar, eslab qolinadi ===== */
 const SOZ_STANDART = {
   model: "gemini-2.5-flash", yozuv: "yangi", til: "aralash", segment: "nozik",
-  qism: "300", sozlovchi: false, tejamkor: true,
+  qism: "300", sozlovchi: false, tejamkor: true, zaxira: false,
 };
 function sozOl() {
   const r = n => document.querySelector(`input[name="${n}"]:checked`)?.value || SOZ_STANDART[n];
   return {
     model: r("model"), yozuv: r("yozuv"), til: r("til"), segment: r("segment"), qism: r("qism"),
-    sozlovchi: $("sozlovchi").checked, tejamkor: $("tejamkor").checked,
+    sozlovchi: $("sozlovchi").checked, tejamkor: $("tejamkor").checked, zaxira: $("zaxira").checked,
   };
 }
 function sozQoy(s) {
@@ -1424,6 +1431,7 @@ function sozQoy(s) {
   });
   $("sozlovchi").checked = !!s.sozlovchi;
   $("tejamkor").checked = !!s.tejamkor;
+  $("zaxira").checked = !!s.zaxira;
 }
 function chiplarYangila() {
   const s = sozOl();
@@ -1436,6 +1444,7 @@ function chiplarYangila() {
   ];
   if (s.sozlovchi) chiplar.push("So'zlovchilar");
   if (s.tejamkor) chiplar.push("Tejamkor");
+  if (s.zaxira) chiplar.push("Limitda Flash-Lite");
   $("sozChiplar").innerHTML = chiplar.map(c => `<span class="chip">${esc(c)}</span>`).join("");
 }
 (() => {
@@ -2421,6 +2430,12 @@ function kvotaTuri(e) {
 // Limit tugaganda foydalanuvchiga xabar
 function kvotaXabar(e) {
   if (kvotaTuri(e) === "daqiqalik") return "Daqiqalik limit hali bo'shamadi. Bir daqiqadan keyin qayta urining.";
+  if (e.zaxiraYoq) {
+    return `${modelNomi(e.limitModel || "gemini-2.5-flash")} bugungi bepul limiti tugadi — sifat buzilmasligi uchun ` +
+      `Flash-Lite'ga o'tilmadi.\nYangilanishga ${qolganVaqtMatn()} qoldi (soat ${yangilanishVaqti()} da) — keyin «Davom ettirish».\n` +
+      "Tezroq kerak bo'lsa — kalitga billing ulang (🔑 → «Billing qanday ulanadi?»). " +
+      "Kutmasdan davom etish uchun: Sozlamalar → «Limit tugasa Flash-Lite bilan davom etish».";
+  }
   return `Bugungi bepul limit barcha mos modellarda tugadi.\n` +
     `Yangilanishga ${qolganVaqtMatn()} qoldi (soat ${yangilanishVaqti()} da).\n` +
     "Limit kalit bo'yicha sanaladi: shu kalit boshqa qurilma yoki Telegram botda ham " +
@@ -3454,6 +3469,8 @@ async function modelBilan(ish, parts, schema, media, erkin, fh = ish) {
           }
           // Eski modelga tushishdan oldin — billing ulangan boshqa kalit (asosiy model bilan)
           if (model === ish.asosiyModel && kalitAlmashtir(ish, h)) continue;
+          // Sozlamada o'chiq: sifati past zaxira modelga tushmaymiz — ish to'xtaydi (davom ettirsa bo'ladi)
+          if (ish.zaxiraYoq) throw Object.assign(e, { zaxiraYoq: true, limitModel: model });
         }
         ish.sinalgan.push(ish.model);
         if (!ish.zaxira) {
@@ -3754,6 +3771,7 @@ async function modelTayyorla(ish) {
   ish.asosiyModel ||= ish.model;
   if (!modelTugaganmi(ish.model, ish.key)) return;
   if (kalitAlmashtir(ish, () => {})) return;
+  if (ish.zaxiraYoq) return;          // so'rov limit xatosini qaytaradi — ish aniq xabar bilan to'xtaydi
   ish.sinalgan.push(ish.model);
   ish.zaxira = await zaxiraModellar(ish.key, ish.sinalgan);
   ish.model = ish.zaxira.shift() || ish.model;
@@ -3818,7 +3836,7 @@ async function boshla(davom) {
   // Ish holati — transkript() uni to'ldirib boradi; to'xtab qolsa, shundan davom ettiriladi
   const t = {
     yt, file, s,
-    ish: { key, model: s.model, sinalgan: [], zaxira: null },
+    ish: { key, model: s.model, sinalgan: [], zaxira: null, zaxiraYoq: !s.zaxira },
     toplangan: davom ? davom.seglar.slice() : [],
     keyingi: davom ? davom.keyingi : 0,   // shu joydan oldingisi tayyor
     yubor: davom?.yubor || null,
@@ -4852,7 +4870,7 @@ const toplamYubor = new Map();        // video id → yuboriladigan (videodan aj
    «Davom ettirish» shu joydan boshlaydi, tayyor qismlar qayta so'ralmaydi. */
 // Ishlanishi kerak bo'lgan, lekin fayli xotirada yo'q qatorlar (sahifa yangilangan)
 const faylYoqlar = (p, faqat = null) => p.platforma !== "fayl" ? []
-  : (faqat != null ? [p.videolar[faqat]] : p.videolar.filter(v => !v.seglar && !v.xato)).filter(v => v && !toplamFayllari.has(v.id));
+  : (faqat != null ? [p.videolar[faqat]] : p.videolar.filter(v => (!v.seglar && !v.xato) || v.qayta)).filter(v => v && !toplamFayllari.has(v.id));
 // Fayllarni qayta tanlatib, yozuvning qatorlariga nomi va hajmi bo'yicha moslaymiz
 let qaytaTanlov = null;
 function faylQaytaTanla(p, faqat) {
@@ -4872,7 +4890,7 @@ $("qaytaFayl").addEventListener("change", () => {
   // tayyorlari bundan mustasno, lekin «Nutq topilmadi» qatori o'zi so'ralgan bo'lsa olinadi
   let olindi = 0;
   q.p.videolar.forEach((v, i) => {
-    if (toplamFayllari.has(v.id) || (v.seglar && i !== q.faqat)) return;
+    if (toplamFayllari.has(v.id) || (v.seglar && !v.qayta && i !== q.faqat)) return;
     const f = bor.get(`${v.nom}|${v.hajm}`)?.shift();
     if (!f) return;
     toplamFayllari.set(v.id, f);
@@ -4880,7 +4898,7 @@ $("qaytaFayl").addEventListener("change", () => {
   });
   // Kerakli qatorlarning birortasi ham fayl olmagan bo'lsa — ishga tushirmaymiz (profilDavom tanlovni qayta ochardi)
   const kerak = faylYoqlar(q.p, q.faqat).length;
-  if (!olindi || kerak === (q.faqat != null ? 1 : q.p.videolar.filter(v => !v.seglar && !v.xato).length)) {
+  if (!olindi || kerak === (q.faqat != null ? 1 : q.p.videolar.filter(v => (!v.seglar && !v.xato) || v.qayta).length)) {
     return toast("Tanlangan fayllar bu ro'yxatga mos kelmadi — nomi va hajmi bir xil bo'lishi kerak");
   }
   // Ortib qolganlari: tayyor qatorlarniki (kutilgan — qayta yuborilmaydi) yoki umuman begona
@@ -5369,7 +5387,7 @@ async function havolaMalumot(p, h, faqat = null) {
 }
 
 // Tarixdagi tahlilni davom ettirish: qolgan videolar, bitta video (faqat) yoki faqat tahlil
-async function profilDavom(id, faqat = null, tahlilQayta = false) {
+async function profilDavom(id, faqat = null, tahlilQayta = false, asosiy = false) {
   if (ishlayapti) return toast("Boshqa ish tugashini kuting");
   const p = profilJoriy?.id === id ? profilJoriy : tarixOl().find(x => x.id === id);
   if (!p) return toast("Bu tahlil tarixda topilmadi");
@@ -5381,7 +5399,7 @@ async function profilDavom(id, faqat = null, tahlilQayta = false) {
   }
   // Sahifa yangilangan — kerakli fayllarning birortasi ham xotirada yo'q: avval qayta tanlatamiz
   const yoq = faylYoqlar(p, faqat);
-  if (yoq.length && yoq.length === (faqat != null ? 1 : p.videolar.filter(v => !v.seglar && !v.xato).length)) {
+  if (yoq.length && yoq.length === (faqat != null ? 1 : p.videolar.filter(v => (!v.seglar && !v.xato) || v.qayta).length)) {
     return faylQaytaTanla(p, faqat);
   }
   ishBoshla();
@@ -5393,7 +5411,7 @@ async function profilDavom(id, faqat = null, tahlilQayta = false) {
       profilSaqla(p);
       profilKorsat(p, true);
     }
-    profilYakun(p, await profilIshla(p, { faqat, tahlilQayta }));
+    profilYakun(p, await profilIshla(p, { faqat, tahlilQayta, asosiy }));
   } catch (e) {
     profilXato(e, p);
   } finally {
@@ -5401,12 +5419,12 @@ async function profilDavom(id, faqat = null, tahlilQayta = false) {
   }
 }
 
-async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
-  const ish = { key: kalitOl(), model: p.s.model, sinalgan: [], zaxira: null, ig: {}, serverXato: 0 };
+async function profilIshla(p, { faqat = null, tahlilQayta = false, asosiy = false } = {}) {
+  const ish = { key: kalitOl(), model: p.s.model, sinalgan: [], zaxira: null, ig: {}, serverXato: 0, zaxiraYoq: !p.s.zaxira || asosiy };   // asosiy — «Flash bilan qayta qilish»: zaxiraga tushmaydi
   await modelTayyorla(ish);
   // Fayli xotirada yo'q qatorlar (sahifa yangilangan) — navbatga olinmaydi, «qayta tanlash»ni kutadi
   const navbat = tahlilQayta ? [] : p.videolar.map((v, i) => i)
-    .filter(i => faqat != null ? i === faqat : !p.videolar[i].seglar && !p.videolar[i].xato)
+    .filter(i => faqat != null ? i === faqat : (!p.videolar[i].seglar && !p.videolar[i].xato) || p.videolar[i].qayta)
     .filter(i => p.platforma !== "fayl" || toplamFayllari.has(p.videolar[i].id));
   const jami = navbat.length + 1;
   /* Navbat: p.opt.parallel ta ishchi bir vaqtda (fayllar to'plami); profil — bittadan.
@@ -5439,6 +5457,7 @@ async function profilIshla(p, { faqat = null, tahlilQayta = false } = {}) {
         if (r.ogoh) v.ogoh = r.ogoh; else delete v.ogoh;
         delete v.xato;
         v.model = ish.model;                 // qaysi model yozgani (limit tugab zaxiraga o'tgan bo'lishi mumkin)
+        delete v.qayta;
         shubhaTekshir(p, i);
         ish.serverXato = 0;
         tugadi = true;
@@ -5547,7 +5566,7 @@ function apifyXatoMatn(e) {
 }
 function profilXato(e, p) {
   jarayon(null);
-  const qolgan = p ? p.videolar.filter(v => !v.seglar && !v.xato).length : 0;
+  const qolgan = p ? p.videolar.filter(v => (!v.seglar && !v.xato) || v.qayta).length : 0;
   const tayyor = p ? p.videolar.filter(v => v.seglar).length : 0;
   const davom = p && (qolgan || (p.opt.tahlil && !p.tahlil && tayyor))
     ? `\n\n<b>${tayyor}/${p.videolar.length} ${birlik(p)} tayyor${saqlanmagan.has(p) ? " (tarixga sig'madi — nusxalab oling)"
@@ -5731,16 +5750,30 @@ function profilBoshKorsat(p) {
 let tahlilKesh = null;
 // «Davom ettirish» — qolgan videolar/fayllar bo'lsa. Sahifa yangilangan bo'lsa fayllar xotirada yo'q —
 // o'shalarni qayta tanlash taklif qilinadi (tayyorlari qayta yuborilmaydi)
+// Sifati shubhali natija: zaxira model (Flash-Lite) yozgan yoki boshqa fayl bilan bir xil matn
+const sifatsizmi = (p, v) => !!v.seglar && !v.qayta && ((v.model && v.model !== p.s?.model) || !!v.shubha);
+function sifatsizQayta(id) {
+  if (ishlayapti) return toast("Ish tugashini kuting");
+  const p = profilJoriy?.id === id ? profilJoriy : tarixOl().find(x => x.id === id);
+  if (!p) return;
+  p.videolar.forEach(v => { if (sifatsizmi(p, v)) v.qayta = true; });
+  profilSaqla(p);
+  profilDavom(id, null, false, true);
+}
 function davomHtml(p) {
-  const qolgan = p.videolar.filter(v => !v.seglar && !v.xato).length;
-  if (!qolgan) return "";
+  const qolgan = p.videolar.filter(v => (!v.seglar && !v.xato) || v.qayta).length;
+  const sifatsiz = p.videolar.filter(v => sifatsizmi(p, v)).length;
+  const qaytaTugma = sifatsiz ? `<button class="btn btn-ghost davomTugma" onclick="sifatsizQayta(${p.id})">` +
+    `${ikon("qayta", "ic ic-sm")} ${esc(modelNomi(p.s?.model || "gemini-2.5-flash"))} bilan qayta qilish — ${sifatsiz}&nbsp;ta ` +
+    `(Flash-Lite yoki shubhali)</button>` : "";
+  if (!qolgan) return qaytaTugma;
   const yoq = faylYoqlar(p).length;
   const tugma = (ikonka, matn) => `<button class="btn btn-ghost davomTugma" onclick="profilDavom(${p.id})">` +
     `${ikon(ikonka, "ic ic-sm")} ${matn}</button>`;
   return yoq === qolgan ? tugma("yuklash", `Fayllarni qayta tanlash — ${qolgan}&nbsp;ta qoldi`) +
       `<p class="hint">Sahifa yangilangani uchun fayllar xotiradan chiqib ketgan. O'sha fayllarni qayta tanlang — ` +
       `tayyorlari qayta yuborilmaydi.</p>`
-    : tugma("qayta", `Davom ettirish — ${qolgan}&nbsp;ta ${birlik(p)} qoldi`);
+    : tugma("qayta", `Davom ettirish — ${qolgan}&nbsp;ta ${birlik(p)} qoldi`) + qaytaTugma;
 }
 // Ish paytida faqat o'zgargan qatorni almashtiramiz — 50 ta skriptli kartani har safar qayta chizish
 // telefonda sahifani bir necha soniya qotirib qo'yadi
