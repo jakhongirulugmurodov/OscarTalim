@@ -236,6 +236,7 @@
   .tqQator { display: flex; align-items: center; gap: 9px; padding: 7px 6px 7px 11px; border-bottom: 1px solid var(--soft2); }
   .tqQator:last-child { border-bottom: 0; }
   .tqQator > .ic { color: var(--muted); }
+  .papkaQator { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: .8rem; color: var(--muted); }
   .davomTugma { width: 100%; margin-top: 12px; white-space: normal; text-align: center; }
   .tqMatn { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 9px; }
   .tqNom { flex: 1; min-width: 0; font-size: .86rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -777,6 +778,12 @@
           <svg class="ic ic-sm"><use href="#i-x"/></svg>
         </button>
       </label>
+      <div class="papkaQator">
+        <button type="button" class="chipBtn" onclick="$('papkaInput').click()">
+          <svg class="ic ic-sm"><use href="#i-fayl"/></svg> Papkani tanlash</button>
+        <span>— ichidagi barcha audio va videolar olinadi</span>
+        <input type="file" id="papkaInput" webkitdirectory multiple hidden>
+      </div>
       <!-- Bir nechta fayl tanlansa: ro'yxat va bir vaqtda nechtasi ishlanishi -->
       <div id="toplamQism" hidden>
         <div class="toplamRoyxat" id="toplamRoyxat"></div>
@@ -1551,11 +1558,11 @@ function fayllarQoy(royxat) {
   const bor = new Set();
   let yangi = (oldin.length <= 1 ? ok : [...oldin, ...ok])
     .filter(f => !bor.has(faylKalit(f)) && bor.add(faylKalit(f)));
-  if (yangi.length > TOPLAM_ENG_KOP) {
-    olinmadi.push(`${yangi.length - TOPLAM_ENG_KOP} tasi ${TOPLAM_ENG_KOP} talik chegaradan ortiq`);
-    yangi = yangi.slice(0, TOPLAM_ENG_KOP);
-  }
+  // Chegaradan ortig'i navbatga: birinchilari tugagach o'zi boshlanadi
+  toplamNavbat = yangi.slice(TOPLAM_ENG_KOP);
+  yangi = yangi.slice(0, TOPLAM_ENG_KOP);
   if (olinmadi.some(Boolean)) toast("Olinmadi: " + olinmadi.filter(Boolean).join(", "));
+  else if (toplamNavbat.length) toast(`${TOPLAM_ENG_KOP} tasi tanlandi, qolgan ${toplamNavbat.length} tasi navbatda — birinchilari tugagach o'zi boshlanadi`);
   if (yangi.length <= 1) {
     tanlanganFayllar = [];
     toplamKorsat();
@@ -1568,7 +1575,9 @@ function fayllarQoy(royxat) {
   toplamKorsat();
   toplamDavomiylik();
 }
-function fayllarTozala() {
+let toplamNavbat = [];       // chegaradan ortgan fayllar — joriy to'plam tugagach o'zi boshlanadi
+function fayllarTozala(navbatHam = true) {
+  if (navbatHam) toplamNavbat = [];
   tanlanganFayllar = [];
   toplamKorsat();
   faylQoy(null);
@@ -1589,7 +1598,8 @@ function toplamKorsat() {
     const davlar = tanlanganFayllar.map(f => faylDav.get(f));
     const jami = davlar.reduce((a, d) => a + (d || 0), 0);
     $("fdSub").textContent = `${hajmMatn(tanlanganFayllar.reduce((a, f) => a + f.size, 0))}` +
-      (jami ? ` · ${davlar.every(d => d != null) ? "" : "≈ "}${soatMatn(jami)}` : "") + " · yana qo'shish uchun bosing";
+      (jami ? ` · ${davlar.every(d => d != null) ? "" : "≈ "}${soatMatn(jami)}` : "") +
+      (toplamNavbat.length ? ` · yana ${toplamNavbat.length} tasi navbatda` : "") + " · yana qo'shish uchun bosing";
     $("faylTozala").hidden = false;
     $("toplamRoyxat").innerHTML = tanlanganFayllar.map((f, i) => `<div class="tqQator">` +
       ikon(/^audio/.test(f.type || "") ? "mic" : "fayl", "ic ic-sm") +
@@ -1626,6 +1636,32 @@ async function toplamDavomiylik() {
   });
 })();
 
+// Papka: ichidagi (ichki papkalari bilan) media fayllar, nomi bo'yicha tartibda
+const papkaTartib = l => [...l].sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, undefined, { numeric: true }));
+$("papkaInput").addEventListener("change", () => {
+  const l = papkaTartib($("papkaInput").files);
+  $("papkaInput").value = "";
+  if (!l.length) return;
+  if (ishlayapti) return toast("Ish tugashini kuting");
+  fayllarTozala();
+  fayllarQoy(l);
+});
+// Tashlangan papka (yoki papkalar) — ichidagi fayllarni yig'amiz; oddiy fayllar — o'zi
+async function tashlanganOl(dt) {
+  const kirish = [...(dt.items || [])].map(x => x.webkitGetAsEntry?.()).filter(Boolean);
+  if (!kirish.some(e => e.isDirectory)) return [...dt.files];
+  const natija = [];
+  const yur = async e => {
+    if (e.isFile) return natija.push(await new Promise((ok, rad) => e.file(f => {
+      Object.defineProperty(f, "webkitRelativePath", { value: e.fullPath.replace(/^\//, ""), configurable: true });
+      ok(f);
+    }, rad)));
+    const o = e.createReader();
+    for (let qism; (qism = await new Promise((ok, rad) => o.readEntries(ok, rad))).length;) for (const x of qism) await yur(x);
+  };
+  for (const e of kirish) await yur(e);
+  return papkaTartib(natija);
+}
 $("fileInput").addEventListener("change", () => {
   if ($("fileInput").files.length) ishlayapti ? toast("Ish tugashini kuting") : fayllarQoy($("fileInput").files);
   $("fileInput").value = "";
@@ -1638,18 +1674,18 @@ $("fileInput").addEventListener("change", () => {
   ["dragleave", "dragend"].forEach(ev => dz.addEventListener(ev, () => dz.classList.remove("drag")));
   dz.addEventListener("drop", e => {
     e.preventDefault(); e.stopPropagation(); dz.classList.remove("drag");
-    const fl = e.dataTransfer?.files;
-    if (fl?.length) ishlayapti ? toast("Ish tugashini kuting") : fayllarQoy(fl);
+    if (!e.dataTransfer?.files?.length && !e.dataTransfer?.items?.length) return;
+    if (ishlayapti) return toast("Ish tugashini kuting");
+    tashlanganOl(e.dataTransfer).then(l => l.length && fayllarQoy(l));
   });
   // Sahifaning istalgan joyiga tashlansa ham qabul qilamiz (brauzer faylni ochib yubormasin)
   window.addEventListener("dragover", e => e.preventDefault());
   window.addEventListener("drop", e => {
     e.preventDefault();
-    const fl = e.dataTransfer?.files;
-    if (!fl?.length) return;
+    if (!e.dataTransfer?.files?.length && !e.dataTransfer?.items?.length) return;
     if (ishlayapti) return toast("Ish tugashini kuting");
     tabTanla("fayl");
-    fayllarQoy(fl);
+    tashlanganOl(e.dataTransfer).then(l => l.length && fayllarQoy(l));
   });
 })();
 
@@ -5301,8 +5337,8 @@ async function toplamBoshla() {
     s: sozOl(), seglar: [],
     videolar: fayllar.map((f, i) => ({ id: `${id}-${i}`, nom: f.name, hajm: f.size, dav: faylDav.get(f) || null })) };
   p.videolar.forEach((v, i) => toplamFayllari.set(v.id, fayllar[i]));
-  // Tanlov tozalanadi — katta tugma tayyor fayllarni yangi yozuv qilib qayta yubormasin
-  fayllarTozala();
+  // Tanlov tozalanadi — katta tugma tayyor fayllarni yangi yozuv qilib qayta yubormasin (navbat qoladi)
+  fayllarTozala(false);
   ishBoshla();
   $("resultCard").hidden = true;
   $("profilCard").hidden = true;
@@ -5523,8 +5559,21 @@ function profilQatorMatn(p, i, m) {
 }
 const qatorMatnHtml = m => esc(String(m).replace(/\.\.\.$/, "")) + NUQTA;
 
+// Navbatdagi keyingi fayllar — joriy to'plam to'liq tugagach o'zi boshlanadi
+function navbatBoshla() {
+  if (ishlayapti || !toplamNavbat.length) return;
+  const keyingi = toplamNavbat.splice(0, TOPLAM_ENG_KOP);
+  tabTanla("fayl");
+  tanlanganFayl = null;
+  tanlanganFayllar = keyingi;
+  toast(`Navbatdagi ${keyingi.length} ta fayl boshlandi` + (toplamNavbat.length ? ` (yana ${toplamNavbat.length} tasi navbatda)` : ""));
+  toplamBoshla();
+}
 function profilYakun(p, ish) {
   jarayon(null);
+  if (p.platforma === "fayl" && toplamNavbat.length && !p.videolar.some(v => (!v.seglar && !v.xato) || v.qayta)) {
+    setTimeout(navbatBoshla, 1500);      // ishTugadi'dan keyin
+  }
   const xato = p.videolar.filter(v => v.xato).length, yoq = faylYoqlar(p).length;
   holat(esc([p.ogoh, xato ? `⚠️ ${xato} ta ${birlik(p)} transkripsiya qilinmadi — sababi va «Qayta urinish» tugmasi ` +
     `${birlik(p)}ning kartasida.` : "", yoq ? `${yoq} ta fayl hali tanlanmagan — «Fayllarni qayta tanlash» bilan davom ettiring.` : "", saqlanmagan.has(p) ? "⚠️ Brauzer xotirasi to'lgan — natija tarixga sig'madi. " +
